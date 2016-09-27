@@ -1,5 +1,15 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Iterables;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -46,17 +56,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 
-import javax.servlet.http.HttpServletResponse;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.core.Is.is;
@@ -66,7 +65,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -938,13 +936,32 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
                 "uaa.admin");
         String id = generator.generate();
         BaseClientDetails c = (BaseClientDetails) createClient(adminToken, id, Collections.singleton("client_credentials"));
-        SecretChangeRequest request = new SecretChangeRequest(id, "secret", "newsecret");
+        SecretChangeRequest request = new SecretChangeRequest(id, null, "newsecret");
 
         MockHttpServletRequestBuilder modifySecret = put("/oauth/clients/" + id + "/secret")
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(toString(request));
+
+        getMockMvc().perform(modifySecret).andExpect(status().isOk());
+    }
+
+    @Test
+    public void testSecretChange_UsingClientAdminToken() throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+          testAccounts.getAdminClientId(),
+          testAccounts.getAdminClientSecret(),
+          "clients.admin");
+        String id = generator.generate();
+        BaseClientDetails c = (BaseClientDetails) createClient(adminToken, id, Collections.singleton("client_credentials"));
+        SecretChangeRequest request = new SecretChangeRequest(id, null, "newersecret");
+
+        MockHttpServletRequestBuilder modifySecret = put("/oauth/clients/" + id + "/secret")
+          .header("Authorization", "Bearer " + adminToken)
+          .accept(APPLICATION_JSON)
+          .contentType(APPLICATION_JSON)
+          .content(toString(request));
 
         getMockMvc().perform(modifySecret).andExpect(status().isOk());
     }
@@ -1272,7 +1289,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
 
         MockHttpServletRequestBuilder get = get("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
-                .param("sortBy", "lastModified")
+                .param("sortBy", "lastmodified")
                 .param("sortOrder", "descending")
                 .accept(APPLICATION_JSON);
 

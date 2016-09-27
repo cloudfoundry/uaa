@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.apache.commons.lang.StringUtils;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
@@ -46,6 +47,12 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     public void setProvisioning(IdentityProviderProvisioning provisioning) {
         this.provisioning = provisioning;
+    }
+
+    @Override
+    protected void populateAuthenticationAttributes(UaaAuthentication authentication, Authentication request, Object authenticationData) {
+        super.populateAuthenticationAttributes(authentication, request, authenticationData);
+        authentication.getAuthenticationMethods().add("pwd");
     }
 
     @Override
@@ -126,4 +133,16 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         return result!=null ? result.booleanValue() : true;
     }
 
+    @Override
+    protected boolean isAddNewShadowUser() {
+        Boolean result = true;
+        if (provisioning!=null) {
+            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
+            if (ldapIdentityProviderDefinition!=null) {
+                result = ldapIdentityProviderDefinition.isAddShadowUserOnLogin();
+            }
+        }
+        return result!=null ? result.booleanValue() : true;
+    }
 }

@@ -49,4 +49,6 @@ public class ClaimConstants {
     public static final String PROFILE = "profile";
     public static final String USER_ATTRIBUTES = "user_attributes";
     public static final String REVOCABLE = "revocable";
+    public static final String EXTERNAL_ATTR = "ext_attr";
+    public static final String AMR = "amr";
 }

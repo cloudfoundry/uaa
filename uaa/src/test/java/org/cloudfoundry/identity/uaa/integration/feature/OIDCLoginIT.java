@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.junit.Assert.assertThat;
 
 @RunWith(LoginServerClassRunner.class)
@@ -125,12 +125,26 @@ public class OIDCLoginIT {
         Assert.assertThat(webDriver.findElement(By.linkText("My OIDC Provider")).getAttribute("href"), Matchers.containsString("scope=openid+cloud_controller.read"));
     }
 
+    @Test
+    public void scopesIncludedInAuthorizeRequest_When_Issuer_Set() throws Exception {
+        createOIDCProviderWithRequestedScopes("https://oidc10.identity.cf-app.com/oauth/token");
+        try {
+            webDriver.get(appUrl);
+        } finally {
+            IntegrationTestUtils.takeScreenShot(webDriver);
+        }
+        Assert.assertThat(webDriver.findElement(By.linkText("My OIDC Provider")).getAttribute("href"), Matchers.containsString("scope=openid+cloud_controller.read"));
+    }
+
     private void createOIDCProviderWithRequestedScopes() throws Exception {
+        createOIDCProviderWithRequestedScopes(null);
+    }
+    private void createOIDCProviderWithRequestedScopes(String issuer) throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
-        config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
         config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
         config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));
@@ -139,6 +153,7 @@ public class OIDCLoginIT {
         config.setSkipSslValidation(true);
         config.setRelyingPartyId("identity");
         config.setRelyingPartySecret("identitysecret");
+        config.setIssuer(issuer);
         List<String> requestedScopes = new ArrayList<>();
         requestedScopes.add("openid");
         requestedScopes.add("cloud_controller.read");

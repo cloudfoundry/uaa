@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -35,9 +36,11 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 
 import javax.servlet.http.HttpSession;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -109,6 +112,15 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void testAlreadyLoggedInRedirectsToHome() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        UaaAuthentication authentication = mock(UaaAuthentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        String result = endpoint.loginForHtml(model, authentication, new MockHttpServletRequest());
+        assertEquals("redirect:/home", result);
+    }
+
+    @Test
     public void testLoginReturnsOtherZone() throws Exception {
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
@@ -122,58 +134,22 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void customSelfserviceLinks_OnlyApplyToDefaultZone_Html() throws Exception {
+    public void customSelfserviceLinks_ApplyToAllZone_Html() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityZone zone = new IdentityZone();
+        zone.setName("some_other_zone");
+        zone.setId("some_id");
+        zone.setSubdomain(zone.getName());
+        IdentityZoneHolder.set(zone);
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
         assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
-
-        IdentityZone zone = new IdentityZone();
-        zone.setName("some_other_zone");
-        zone.setId("some_id");
-        zone.setSubdomain(zone.getName());
-        IdentityZoneHolder.set(zone);
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertNull(model.asMap().get("createAccountLink"));
-        assertNull(model.asMap().get("forgotPasswordLink"));
-        //ui links
-        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
         //json links
-        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("register"));
-        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
-    }
-
-    @Test
-    public void customSelfserviceLinks_OnlyApplyToDefaultZone_Json() throws Exception {
-        LoginInfoEndpoint endpoint = getEndpoint();
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
-        endpoint.loginForJson(model, null);
-        assertNull(((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertNull(((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
         assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("register"));
         assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
-
-        IdentityZone zone = new IdentityZone();
-        zone.setName("some_other_zone");
-        zone.setId("some_id");
-        zone.setSubdomain(zone.getName());
-        IdentityZoneHolder.set(zone);
-        endpoint.loginForJson(model, null);
-        assertNull(model.asMap().get("createAccountLink"));
-        assertNull(model.asMap().get("forgotPasswordLink"));
-        //ui links
-        assertNull("/create_account", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertNull("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
-        //json links
-        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("register"));
-        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
     }
-
-
 
     @Test
     public void use_login_url_if_present() throws Exception {
@@ -267,9 +243,8 @@ public class LoginInfoEndpointTests {
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
         assertEquals("http://someurl", links.get("login"));
-        assertTrue(model.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof List);
+        assertTrue(model.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof Collection);
     }
-
 
     @Test
     public void no_self_service_links_if_internal_user_management_disabled() throws Exception {
@@ -364,6 +339,23 @@ public class LoginInfoEndpointTests {
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNotNull(mapPrompts.get("passcode"));
+
+        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
+
+        IdentityProvider ldapIdentityProvider = new IdentityProvider();
+        ldapIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, "uaa")).thenReturn(ldapIdentityProvider);
+
+        IdentityProvider uaaIdentityProvider = new IdentityProvider();
+        uaaIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
+
+        endpoint.infoForJson(model, null);
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        mapPrompts = (Map)model.get("prompts");
+        assertNull(mapPrompts.get("username"));
+        assertNull(mapPrompts.get("password"));
+        assertNotNull(mapPrompts.get("passcode"));
     }
 
     @Test
@@ -383,7 +375,7 @@ public class LoginInfoEndpointTests {
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request);
 
-        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
         Iterator<SamlIdentityProviderDefinition> iterator = idpDefinitions.iterator();
@@ -408,7 +400,7 @@ public class LoginInfoEndpointTests {
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
 
-        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
         Iterator<SamlIdentityProviderDefinition> iterator = idpDefinitions.iterator();
@@ -448,12 +440,11 @@ public class LoginInfoEndpointTests {
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request);
 
-        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
-        SamlIdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
-        assertEquals("my-client-awesome-idp1", clientIdp.getIdpEntityAlias());
-        assertEquals(true, clientIdp.isShowSamlLink());
+        assertThat(idpDefinitions, PredicateMatcher.<SamlIdentityProviderDefinition>has(c -> c.getIdpEntityAlias().equals("my-client-awesome-idp1")));
+        assertThat(idpDefinitions, PredicateMatcher.<SamlIdentityProviderDefinition>has(c -> c.isShowSamlLink()));
         assertEquals(true, model.asMap().get("fieldUsernameShow"));
         assertEquals(false, model.asMap().get("linkCreateAccountShow"));
     }
@@ -488,12 +479,11 @@ public class LoginInfoEndpointTests {
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request);
 
-        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
-        SamlIdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
-        assertEquals("my-client-awesome-idp1", clientIdp.getIdpEntityAlias());
-        assertEquals(true, clientIdp.isShowSamlLink());
+        assertThat(idpDefinitions, PredicateMatcher.<SamlIdentityProviderDefinition>has(c -> c.getIdpEntityAlias().equals("my-client-awesome-idp1")));
+        assertThat(idpDefinitions, PredicateMatcher.<SamlIdentityProviderDefinition>has(c -> c.isShowSamlLink()));
         assertEquals(false, model.asMap().get("fieldUsernameShow"));
         assertEquals(false, model.asMap().get("linkCreateAccountShow"));
     }
@@ -518,6 +508,35 @@ public class LoginInfoEndpointTests {
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request);
         verify(mockIDPConfigurator).getIdentityProviderDefinitions(null, zone);
+    }
+
+    @Test
+    public void allowedIdpsforClientOIDCProvider() throws MalformedURLException {
+        // mock session and saved request
+        MockHttpServletRequest request = getMockHttpServletRequest();
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP);
+
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+
+        List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp3"));
+
+        when(identityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
+
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setClientDetailsService(clientDetailsService);
+        endpoint.loginForHtml(model, null, request);
+
+        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) model.asMap().get("oauthDefinitions");
+        assertEquals(2, idpDefinitions.size());
     }
 
     @Test
@@ -572,7 +591,7 @@ public class LoginInfoEndpointTests {
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
-        assertEquals(2, endpoint.getOauthIdentityProviderDefinitions().size());
+        assertEquals(2, endpoint.getOauthIdentityProviderDefinitions(null).size());
     }
 
     @Test
@@ -592,7 +611,6 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         String redirectUrl = endpoint.handleXOAuthCallback(session);
         assertEquals("redirect:/some.redirect.url", redirectUrl);
-
     }
 
     private MockHttpServletRequest getMockHttpServletRequest() {
@@ -639,5 +657,14 @@ public class LoginInfoEndpointTests {
         idp1.setShowSamlLink(true);
         idp1.setZoneId(zoneId);
         return idp1;
+    }
+
+    private IdentityProvider createOIDCIdentityProvider(String originKey) throws MalformedURLException {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcIdentityProvider= new IdentityProvider<>();
+        oidcIdentityProvider.setOriginKey(originKey);
+        oidcIdentityProvider.setType(OriginKeys.OIDC10);
+        oidcIdentityProvider.setConfig(new XOIDCIdentityProviderDefinition());
+        return oidcIdentityProvider;
+
     }
 }

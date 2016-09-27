@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db.mysql;
 
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3;
 import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.List;
 
 
 /**
@@ -36,7 +36,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                     +
                     "LOWER(column_name), ' ', column_type, ' ', extra,\n"
                     +
-                    "CASE WHEN IS_NULLABLE = 'YES' THEN  ' NULL' ELSE ' NOT NULL' END, ';') AS line, table_name, column_name \n"
+                    "CASE WHEN IS_NULLABLE = 'YES' THEN  ' NULL' ELSE ' NOT NULL' END, IF(column_default IS NULL, '', CONCAT(' DEFAULT ',column_default)), ';') AS line, table_name, column_name \n"
                     +
                     "FROM information_schema.columns\n" +
                     "WHERE table_schema = 'uaa' \n" +
@@ -49,7 +49,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                         new DatabaseInformation1_5_3.ColumnMapper());
         for (DatabaseInformation1_5_3.ColumnInfo column : columns) {
             if (processColumn(column)) {
-                String sql = column.sql;
+                String sql = column.sql.replaceAll("2001-01-01 .*", "'2001-01-01 01:01:01.000001'");
                 logger.info("Renaming column: [" + sql + "]");
                 jdbcTemplate.execute(sql);
             }

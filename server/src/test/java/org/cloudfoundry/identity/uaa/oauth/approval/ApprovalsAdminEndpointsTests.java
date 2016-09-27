@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -80,7 +81,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
                         "authorization_code, password, implicit, client_credentials", "update");
-        details.addAdditionalInformation(ClientConstants.AUTO_APPROVE, "true");
+        details.setAutoApproveScopes(Arrays.asList("true"));
         clientDetailsService.setClientDetailsStore(Collections
                         .singletonMap("c1", details));
         endpoints.setClientDetailsService(clientDetailsService);

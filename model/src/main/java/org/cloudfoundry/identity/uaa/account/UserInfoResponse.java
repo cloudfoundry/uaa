@@ -17,12 +17,7 @@ package org.cloudfoundry.identity.uaa.account;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 
 /**
  * Created by pivotal on 11/18/15.
@@ -44,6 +39,9 @@ public class UserInfoResponse {
 
     @JsonProperty(EMAIL)
     private String email;
+
+    @JsonProperty(PHONE_NUMBER)
+    private String phoneNumber;
 
     public String getUserId() {
         return userId;
@@ -89,5 +87,14 @@ public class UserInfoResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 }

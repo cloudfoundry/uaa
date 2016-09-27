@@ -12,15 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.account.ConflictException;
 import org.cloudfoundry.identity.uaa.account.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.account.NotFoundException;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
+import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -93,17 +93,23 @@ public class UaaResetPasswordServiceTests {
         when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
 
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
         when(codeStore.generateCode(eq("{\"user_id\":\"user-id-001\",\"username\":\"user@example.com\",\"passwordModifiedTime\":1234,\"client_id\":\"example\",\"redirect_uri\":\"redirect.example.com\"}"),
-                                    any(Timestamp.class), eq(null))).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
+                                    any(Timestamp.class), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
         ForgotPasswordInfo forgotPasswordInfo = emailResetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com");
-        assertThat(forgotPasswordInfo.getUserId(), equalTo("user-id-001"));
 
+        verify(codeStore).expireByIntent(captor.capture());
+        assertEquals(UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX+user.getId(), captor.getValue());
+        assertThat(forgotPasswordInfo.getUserId(), equalTo("user-id-001"));
         ExpiringCode resetPasswordCode = forgotPasswordInfo.getResetPasswordCode();
         assertThat(resetPasswordCode.getCode(), equalTo("code"));
         assertThat(resetPasswordCode.getExpiresAt(), equalTo(expiresAt));
         assertThat(resetPasswordCode.getData(), equalTo("user-id-001"));
     }
+
+
 
     @Test
     public void forgotPassword_PublishesResetPasswordRequestEvent() throws Exception {
@@ -115,13 +121,13 @@ public class UaaResetPasswordServiceTests {
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
-        when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null))).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
+        when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
         emailResetPasswordService.forgotPassword("user@example.com", "", "");
         ArgumentCaptor<ResetPasswordRequestEvent> captor = ArgumentCaptor.forClass(ResetPasswordRequestEvent.class);
         verify(publisher).publishEvent(captor.capture());
         ResetPasswordRequestEvent event = captor.getValue();
-        assertThat((String) event.getSource(), equalTo("user@example.com"));
+        assertThat(event.getSource(), equalTo("user@example.com"));
         assertThat(event.getCode(), equalTo("code"));
         assertThat(event.getAuthentication(), sameInstance(authentication));
     }
@@ -185,7 +191,7 @@ public class UaaResetPasswordServiceTests {
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
         ExpiringCode expiringCode = new ExpiringCode("good_code",
-            new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "user-id", null);
+            new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
         when(codeStore.retrieveCode("good_code")).thenReturn(expiringCode);
         when(scimUserProvisioning.retrieve("user-id")).thenReturn(user);
         when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld"))
@@ -199,6 +205,22 @@ public class UaaResetPasswordServiceTests {
         } catch (InvalidPasswordException e) {
             assertEquals("Your new password cannot be the same as the old password.", e.getMessage());
             assertEquals(UNPROCESSABLE_ENTITY, e.getStatus());
+        }
+    }
+
+    @Test
+    public void resetPassword_InvalidCodeData() {
+        ExpiringCode expiringCode = new ExpiringCode("good_code",
+                new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "user-id", null);
+        when(codeStore.retrieveCode("good_code")).thenReturn(expiringCode);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
+        SecurityContextHolder.setContext(securityContext);
+        try {
+            emailResetPasswordService.resetPassword("good_code", "password");
+            fail();
+        } catch (InvalidCodeException e) {
+            assertEquals("Sorry, your reset password link is no longer valid. Please request a new one", e.getMessage());
         }
     }
 

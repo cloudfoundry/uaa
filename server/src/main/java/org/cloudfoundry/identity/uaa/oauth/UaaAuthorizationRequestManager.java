@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -46,6 +47,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+
+import static java.util.Collections.unmodifiableMap;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
 /**
  * An {@link OAuth2RequestFactory} that applies various UAA-specific
@@ -155,7 +159,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
-        String grantType = authorizationParameters.get(OAuth2Utils.GRANT_TYPE);
+        String grantType = authorizationParameters.get(GRANT_TYPE);
         String state = authorizationParameters.get(OAuth2Utils.STATE);
         String redirectUri = authorizationParameters.get(OAuth2Utils.REDIRECT_URI);
         if ((scopes == null || scopes.isEmpty())) {
@@ -170,7 +174,6 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             }
         }
 
-        Set<String> scopesFromExternalAuthorities = null;
         if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
             String userId = securityContextAccessor.getUserId();
             UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
@@ -179,29 +182,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             scopes = checkUserScopes(scopes, authorities, clientDetails);
             //check client IDP relationship - allowed providers
             checkClientIdpAuthorization(clientDetails, uaaUser);
-
-            // TODO: will the grantType ever contain client_credentials or
-            // authorization_code
-            // External Authorities are things like LDAP groups that will be
-            // mapped to Oauth requestedScopes
-            // Add those requestedScopes to the request. These requestedScopes will not be
-            // validated against the requestedScopes
-            // registered to a client.
-            // These requestedScopes also do not need approval. The fact that they are
-            // already in an external
-            // group communicates user approval. Denying approval does not mean
-            // much
-            scopesFromExternalAuthorities = findScopesFromAuthorities(authorizationParameters.get("authorities"));
         }
 
         Set<String> resourceIds = getResourceIds(clientDetails, scopes);
         clientDetails.setResourceIds(resourceIds);
         Map<String, String> actualParameters = new HashMap<>(authorizationParameters);
-        if (scopesFromExternalAuthorities != null) {
-            actualParameters.put("external_scopes",
-                            OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
-
-        }
         AuthorizationRequest request = new AuthorizationRequest(
             actualParameters,
             null,
@@ -221,10 +206,6 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         request.setResourceIdsAndAuthoritiesFromClientDetails(clientDetails);
 
         return request;
-    }
-
-    private Set<String> findScopesFromAuthorities(String authorities) {
-        return new HashSet<String>();
     }
 
     /**
@@ -265,7 +246,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(user.getOrigin(), user.getZoneId());
             if (provider==null || !allowedProviders.contains(provider.getOriginKey())) {
-                throw new UnauthorizedClientException ("Client is not authorized for specified user's identity provider.");
+                throw new DisallowedIdpException("Client is not authorized for specified user's identity provider.");
             }
         } catch (EmptyResultDataAccessException x) {
             //this should not happen...but if it does
@@ -364,28 +345,32 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     @Override
     public TokenRequest createTokenRequest(Map<String, String> requestParameters, ClientDetails authenticatedClient) {
+        ClientDetails targetClient = authenticatedClient;
+        //clone so we can modify it
+        requestParameters = new HashMap<>(requestParameters);
         String clientId = requestParameters.get(OAuth2Utils.CLIENT_ID);
+        String grantType = requestParameters.get(GRANT_TYPE);
         if (clientId == null) {
             // if the clientId wasn't passed in in the map, we add pull it from the authenticated client object
             clientId = authenticatedClient.getClientId();
-        }
-        else {
-            // otherwise, make sure that they match
-            if (!clientId.equals(authenticatedClient.getClientId())) {
+        } else {
+            if (TokenConstants.GRANT_TYPE_USER_TOKEN.equals(grantType)) {
+                targetClient = clientDetailsService.loadClientByClientId(clientId);
+                requestParameters.put(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID, authenticatedClient.getClientId());
+            } else if (!clientId.equals(authenticatedClient.getClientId())) {
+                // otherwise, make sure that they match
                 throw new InvalidClientException("Given client ID does not match authenticated client");
             }
         }
-        String grantType = requestParameters.get(OAuth2Utils.GRANT_TYPE);
-
-        Set<String> scopes = extractScopes(requestParameters, authenticatedClient);
-        Set<String> resourceIds = getResourceIds(authenticatedClient, scopes);
-        TokenRequest tokenRequest = new UaaTokenRequest(requestParameters, clientId, scopes, grantType, resourceIds);
+        Set<String> scopes = extractScopes(requestParameters, targetClient);
+        Set<String> resourceIds = getResourceIds(targetClient, scopes);
+        TokenRequest tokenRequest = new UaaTokenRequest(unmodifiableMap(requestParameters), authenticatedClient.getClientId(), scopes, grantType, resourceIds);
 
         return tokenRequest;
     }
 
     protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {
-        boolean clientCredentials = "client_credentials".equals(requestParameters.get(OAuth2Utils.GRANT_TYPE));
+        boolean clientCredentials = "client_credentials".equals(requestParameters.get(GRANT_TYPE));
         Set<String> scopes = OAuth2Utils.parseParameterList(requestParameters.get(OAuth2Utils.SCOPE));
         if ((scopes == null || scopes.isEmpty())) {
             // If no scopes are specified in the incoming data, use the default values registered with the client

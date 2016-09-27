@@ -1,16 +1,16 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.account.EmailChange;
+import org.cloudfoundry.identity.uaa.account.EmailChangeResponse;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.account.EmailChange;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.account.EmailChangeResponse;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -26,10 +26,11 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 @Controller
 public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
@@ -62,7 +63,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         String code;
         try {
-            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), null).getCode();
+            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name()).getCode();
         } catch (JsonUtils.JsonUtilException e) {
             throw new UaaException("Error while generating change email code", e);
         }
@@ -73,7 +74,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value="/email_changes", method = RequestMethod.POST)
     public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) throws IOException {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
-        if (expiringCode != null) {
+        if ((null != expiringCode) && ((null == expiringCode.getIntent()) || EMAIL.name().equals(expiringCode.getIntent()))) {
             Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             String userId = data.get("userId");
             String email = data.get("email");
@@ -102,7 +103,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
             emailChangeResponse.setRedirectUrl(redirectLocation);
             return new ResponseEntity<>(emailChangeResponse, OK);
         } else {
-            return new ResponseEntity<>(BAD_REQUEST);
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
     }
 

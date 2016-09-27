@@ -351,8 +351,14 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     @Test
     public void changePasswordControllerChangePasswordPageNotAllowed() throws Exception {
+        MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
+
+        ResultActions result = createUser();
+        ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
-        getMockMvc().perform(get("/change_password"))
+
+        getMockMvc().perform(get("/change_password")
+            .session(getUserSession(createdUser.getUserName(), PASSWD)))
             .andExpect(status().isForbidden())
             .andExpect(content()
                            .string(JsonObjectMatcherUtils.matchesJsonObject(

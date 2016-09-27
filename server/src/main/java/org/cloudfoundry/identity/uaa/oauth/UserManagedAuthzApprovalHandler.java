@@ -37,6 +37,7 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
@@ -80,30 +81,12 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         // Factor in auto approved scopes
         Set<String> autoApprovedScopes = new HashSet<>();
-        ClientDetails client = clientDetailsService.retrieve(authorizationRequest.getClientId());
-        if (null != client) {
-            if (null != requestedScopes) {
-                for (String requestedScope : requestedScopes) {
-                    if (client.isAutoApprove(requestedScope)) {
-                        autoApprovedScopes.add(requestedScope);
-                    }
-                }
-            }
-            Map<String, Object> additionalInfo = client.getAdditionalInformation();
-            if (null != additionalInfo) {
-                Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
-                if (null != autoApproved && autoApproved instanceof Collection<?>) {
-                    @SuppressWarnings("unchecked")
-                    Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
-                    autoApprovedScopes.addAll(scopes);
-                } else if (null != autoApproved && autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
-                    autoApprovedScopes.addAll(client.getScope());
-                }
-            }
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.retrieve(authorizationRequest.getClientId());
+        if (client != null && requestedScopes != null) {
+            autoApprovedScopes.addAll(client.getAutoApproveScopes());
+            autoApprovedScopes = UaaTokenUtils.retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
         }
         //translate scope to user scopes - including wild cards
-        autoApprovedScopes = retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
-
 
         if (userApproval) {
             // Store the scopes that have been approved / denied
@@ -192,7 +175,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             // If the requested scopes have already been acted upon by the user,
             // this request is approved
             if (validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
-                approvedScopes = retainAutoApprovedScopes(requestedScopes, approvedScopes);
+                approvedScopes = UaaTokenUtils.retainAutoApprovedScopes(requestedScopes, approvedScopes);
                 // Set only the scopes that have been approved by the user
                 authorizationRequest.setScope(approvedScopes);
                 return true;
@@ -200,10 +183,6 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         }
 
         return false;
-    }
-
-    protected Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
-        return UaaTokenUtils.retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
     }
 
     protected String getUserId(Authentication authentication) {

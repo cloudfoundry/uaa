@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import static java.util.Collections.singleton;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -64,7 +65,7 @@ public class UaaUserApprovalHandlerTests {
     public void testAutoApproveAll() {
         BaseClientDetails client = new BaseClientDetails("client", "none", "read,write", "authorization_code",
                         "uaa.none");
-        client.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
+        client.setAutoApproveScopes(singleton("true"));
             Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
     }
@@ -74,10 +75,11 @@ public class UaaUserApprovalHandlerTests {
         BaseClientDetails client = new BaseClientDetails("client", "none", "read,write", "authorization_code",
                         "uaa.none");
         Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
-        client.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, Collections.singleton("read")));
+        client.setAutoApproveScopes(singleton("read"));
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
-        client.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, Collections.singleton("write")));
+        client.setAutoApproveScopes(singleton("write"));
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
+
 
 }

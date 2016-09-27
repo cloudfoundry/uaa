@@ -39,6 +39,10 @@ public class LoggingAuditService implements UaaAuditService {
 
     private AtomicInteger userAuthenticationFailureCount = new AtomicInteger();
 
+    private AtomicInteger clientAuthenticationCount = new AtomicInteger();
+
+    private AtomicInteger clientAuthenticationFailureCount = new AtomicInteger();
+
     private AtomicInteger principalAuthenticationFailureCount = new AtomicInteger();
 
     private AtomicInteger userNotFoundCount = new AtomicInteger();
@@ -62,6 +66,16 @@ public class LoggingAuditService implements UaaAuditService {
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Authentication Failure Count")
     public int getUserAuthenticationFailureCount() {
         return userAuthenticationFailureCount.get();
+    }
+
+    @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Successful Authentication Count")
+    public int getClientAuthenticationCount() {
+        return clientAuthenticationCount.get();
+    }
+
+    @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Authentication Failure Count")
+    public int getClientAuthenticationFailureCount() {
+        return clientAuthenticationFailureCount.get();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Principal (non-user) Authentication Failure Count")
@@ -109,6 +123,12 @@ public class LoggingAuditService implements UaaAuditService {
                 break;
             case UserAuthenticationFailure:
                 userAuthenticationFailureCount.incrementAndGet();
+                break;
+            case ClientAuthenticationSuccess:
+                clientAuthenticationCount.incrementAndGet();
+                break;
+            case ClientAuthenticationFailure:
+                clientAuthenticationFailureCount.incrementAndGet();
                 break;
             case UserNotFound:
                 userNotFoundCount.incrementAndGet();

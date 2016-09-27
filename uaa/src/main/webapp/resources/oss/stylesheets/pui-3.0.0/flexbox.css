@@ -1,0 +1,23 @@
+@media (max-width: 480px) {
+    .page .panel.login-email {
+        width: 100%;
+    }
+}
+
+.page {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.panel.login-email, .panel.login-password {
+    min-width: 320px;
+    width: 50%;
+    max-width: 500px;
+    border-radius: 5px;
+}
+
+.page .panel .logo {
+    max-height: 64px;
+    margin: auto;
+}

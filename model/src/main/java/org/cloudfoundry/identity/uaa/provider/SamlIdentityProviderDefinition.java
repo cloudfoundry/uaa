@@ -56,7 +56,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String socketFactoryClassName;
     private String linkText;
     private String iconUrl;
-    private boolean addShadowUserOnLogin = true;
     private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
 
     public SamlIdentityProviderDefinition() {}
@@ -75,7 +74,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setShowSamlLink(showSamlLink);
         def.setLinkText(linkText);
         def.setIconUrl(iconUrl);
-        def.setAddShadowUserOnLogin(addShadowUserOnLogin);
+        def.setAddShadowUserOnLogin(isAddShadowUserOnLogin());
         def.setEmailDomain(emailDomain);
         def.setExternalGroupsWhitelist(externalGroupsWhitelist);
         def.setAttributeMappings(attributeMappings);
@@ -111,6 +110,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         }
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setExpandEntityReferences(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
         } catch (ParserConfigurationException | SAXException | IOException e) {
@@ -241,15 +241,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return this;
     }
 
-    public boolean isAddShadowUserOnLogin() {
-        return addShadowUserOnLogin;
-    }
-
-    public SamlIdentityProviderDefinition setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
-        this.addShadowUserOnLogin = addShadowUserOnLogin;
-        return this;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -284,7 +275,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
             ", linkText='" + linkText + '\'' +
             ", iconUrl='" + iconUrl + '\'' +
             ", zoneId='" + zoneId + '\'' +
-            ", addShadowUserOnLogin='" + addShadowUserOnLogin + '\'' +
+            ", addShadowUserOnLogin='" + isAddShadowUserOnLogin() + '\'' +
             '}';
     }
 

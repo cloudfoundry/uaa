@@ -32,7 +32,7 @@ public class DomainFilter {
 
     private static Log logger = LogFactory.getLog(DomainFilter.class);
 
-    public List<IdentityProvider> filter(List<IdentityProvider> activeProviders, ClientDetails client, String email) {
+    public static List<IdentityProvider> filter(List<IdentityProvider> activeProviders, ClientDetails client, String email) {
         if (!StringUtils.hasText(email)) {
             return EMPTY_LIST;
         }
@@ -67,7 +67,7 @@ public class DomainFilter {
         return activeProviders != null ? activeProviders : EMPTY_LIST;
     }
 
-    protected List<String> getProvidersForClient(ClientDetails client) {
+    protected static List<String> getProvidersForClient(ClientDetails client) {
         if (client==null) {
             return null;
         } else {
@@ -75,7 +75,7 @@ public class DomainFilter {
         }
     }
 
-    protected List<String> getEmailDomain(IdentityProvider provider) {
+    protected static List<String> getEmailDomain(IdentityProvider provider) {
         if (provider.getConfig()!=null) {
             return provider.getConfig().getEmailDomain();
         }
@@ -83,18 +83,16 @@ public class DomainFilter {
     }
 
 
-    protected boolean doesEmailDomainMatchProvider(IdentityProvider provider, String domain, boolean explicit) {
+    protected static boolean doesEmailDomainMatchProvider(IdentityProvider provider, String domain, boolean explicit) {
         List<String> domainList = getEmailDomain(provider);
         List<String> wildcardList;
-        if (explicit) {
-            wildcardList = domainList;
-        } else {
+        wildcardList = domainList;
+        if (!explicit) {
             if (UAA.equals(provider.getOriginKey())) {
                 wildcardList = domainList == null ? Arrays.asList("*.*", "*.*.*", "*.*.*.*") : domainList;
-            } else {
-                wildcardList = domainList == null ? null : domainList;
             }
         }
+
         if (wildcardList==null) {
             return false;
         } else {

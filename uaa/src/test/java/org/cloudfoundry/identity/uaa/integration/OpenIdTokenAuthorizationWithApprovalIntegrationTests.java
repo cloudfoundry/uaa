@@ -56,9 +56,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
  * @author Luke Taylor
@@ -231,8 +233,9 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         ResponseEntity<String> response = serverRunning.getForString(location, headers);
@@ -273,7 +276,8 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             assertTrue(response.getBody().contains("Application Authorization</h1>"));
 
             formData.clear();
-            formData.add("user_oauth_approval", "true");
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");

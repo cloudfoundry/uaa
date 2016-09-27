@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+</head>
+<div layout:fragment="page-nav">
+    <th:block layout:replace="nav :: nav"></th:block>
+</div>
+<div class="panel-container" layout:fragment="page-content">
+    <div class="panel">
+            <p>
+                <th:block th:text="${client_display_name}">Cloudbees</th:block> does not support your identity provider. To log into an identity provider supported by the application, <a th:href="@{/logout.do(redirect=${redirect})}">click here</a>.
+            </p>
+    </div>
+</div>
+</html>

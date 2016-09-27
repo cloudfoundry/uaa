@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -50,8 +51,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
-public class ExternalLoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
+public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
     protected final Log logger = LogFactory.getLog(getClass());
 
@@ -89,7 +91,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
-        UaaUser userFromRequest = getUser(request);
+        ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
+        UaaUser userFromRequest = getUser(request, authenticationData);
         if (userFromRequest == null) {
             return null;
         }
@@ -105,7 +108,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         // Register new users automatically
         if (userFromDb == null) {
             if (!isAddNewShadowUser()) {
-                throw new IllegalStateException("The user account must be pre-created. Please contact your system administrator.");
+                throw new AccountNotPreCreatedException("The user account must be pre-created. Please contact your system administrator.");
             }
             publish(new NewUserAuthenticatedEvent(userFromRequest));
             try {
@@ -118,20 +121,31 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         //user is authenticated and exists in UAA
         UaaUser user = userAuthenticated(request, userFromRequest, userFromDb);
 
-        UaaAuthenticationDetails uaaAuthenticationDetails = null;
+        UaaAuthenticationDetails uaaAuthenticationDetails;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
             uaaAuthenticationDetails = (UaaAuthenticationDetails) request.getDetails();
         } else {
             uaaAuthenticationDetails = UaaAuthenticationDetails.UNKNOWN;
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
-        if (request.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) request.getPrincipal();
-            success.setUserAttributes(getUserAttributes(userDetails));
-            success.setExternalGroups(new HashSet<>(getExternalUserAuthorities(userDetails)));
-        }
+        populateAuthenticationAttributes(success, request, authenticationData);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
+    }
+
+    protected void populateAuthenticationAttributes(UaaAuthentication authentication, Authentication request, ExternalAuthenticationDetails authenticationData) {
+        if (request.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) request.getPrincipal();
+            authentication.setUserAttributes(getUserAttributes(userDetails));
+            authentication.setExternalGroups(new HashSet<>(getExternalUserAuthorities(userDetails)));
+        }
+        Set<String> amr = new HashSet<>();
+        amr.add("ext");
+        authentication.setAuthenticationMethods(amr);
+    }
+
+    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) {
+        return null;
     }
 
     protected boolean isAddNewShadowUser() {
@@ -156,7 +170,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         return userFromDb;
     }
 
-    protected UaaUser getUser(Authentication request) {
+    protected UaaUser getUser(Authentication request, ExternalAuthenticationDetails authDetails) {
         UserDetails userDetails;
         if (request.getPrincipal() instanceof UserDetails) {
             userDetails = (UserDetails) request.getPrincipal();

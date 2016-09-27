@@ -1,138 +1,139 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
-	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+    you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
+    This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
+    is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	   xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-	   xmlns:sec="http://www.springframework.org/schema/security"
-	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+       xmlns:sec="http://www.springframework.org/schema/security"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+        http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd">
 
-	<sec:http name="appFilterLogout" pattern="/logout" security="none" />
-	<sec:http name="appFilterLoginError" pattern="/login_error.jsp" security="none" />
-	<sec:http name="appFilterResources" pattern="/resources/**" security="none" />
-	<sec:http name="appFilterFavIcon" pattern="/square-logo.png" security="none" />
+    <sec:http name="appFilterLogout" pattern="/logout" security="none" />
+    <sec:http name="appFilterLoginError" pattern="/login_error.jsp" security="none" />
+    <sec:http name="appFilterResources" pattern="/resources/**" security="none" />
+    <sec:http name="appFilterFavIcon" pattern="/square-logo.png" security="none" />
 
-	<http name="appFilterApps" pattern="/apps.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
-		entry-point-ref="loginEntryPoint" disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager">
-		<intercept-url pattern="/apps.*" access="hasRole('cloud_controller.read')" />
-		<anonymous enabled="false" />
-		<custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
-		<custom-filter ref="accessTokenFilter" position="PRE_AUTH_FILTER" />
-		<csrf disabled="true"/>
-	</http>
+    <http name="appFilterApps" pattern="/apps.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
+        entry-point-ref="loginEntryPoint" disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager">
+        <intercept-url pattern="/apps.*" access="hasRole('cloud_controller.read')" />
+        <anonymous enabled="false" />
+        <custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
+        <custom-filter ref="accessTokenFilter" position="PRE_AUTH_FILTER" />
+        <csrf disabled="true"/>
+    </http>
 
-	<http name="appFilterDefault" xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
-		disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager"
-		security-context-repository-ref="securityContextRepository">
-		<intercept-url pattern="/**" access="isFullyAuthenticated()" />
-		<logout logout-success-url="/logout" />
-		<anonymous enabled="false" />
-		<custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
-		<custom-filter ref="socialClientFilter" position="PRE_AUTH_FILTER" />
-		<csrf disabled="true"/>
-	</http>
+    <http name="appFilterDefault" xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
+        disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager"
+        security-context-repository-ref="securityContextRepository">
+        <intercept-url pattern="/**" access="isFullyAuthenticated()" />
+        <logout logout-success-url="/logout" />
+        <anonymous enabled="false" />
+        <custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
+        <custom-filter ref="socialClientFilter" position="PRE_AUTH_FILTER" />
+        <csrf disabled="true"/>
+    </http>
 
-	<bean id="securityContextRepository" class="org.springframework.security.web.context.HttpSessionSecurityContextRepository">
-		<property name="springSecurityContextKey" value="SOCIAL_SPRING_SECURITY_CONTEXT" />
-	</bean>
+    <bean id="securityContextRepository" class="org.springframework.security.web.context.HttpSessionSecurityContextRepository">
+        <property name="springSecurityContextKey" value="SOCIAL_SPRING_SECURITY_CONTEXT" />
+    </bean>
 
-	<sec:authentication-manager alias="authenticationManager" />
+    <sec:authentication-manager alias="authenticationManager" />
 
-	<bean id="oauth2AuthenticationManager" class="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationManager">
-		<property name="tokenServices" ref="remoteTokenServices" />
-	</bean>
+    <bean id="oauth2AuthenticationManager" class="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationManager">
+        <property name="tokenServices" ref="remoteTokenServices" />
+    </bean>
 
-	<bean id="remoteTokenServices" class="org.cloudfoundry.identity.uaa.oauth.RemoteTokenServices">
-		<property name="checkTokenEndpointUrl" value="${checkTokenUrl}" />
-		<property name="clientId" value="${CLIENT_ID:app}" />
-		<property name="clientSecret" value="${CLIENT_SECRET:appclientsecret}" />
-	</bean>
+    <bean id="remoteTokenServices" class="org.cloudfoundry.identity.uaa.oauth.RemoteTokenServices">
+        <property name="checkTokenEndpointUrl" value="${checkTokenUrl}" />
+        <property name="clientId" value="${CLIENT_ID:app}" />
+        <property name="clientSecret" value="${CLIENT_SECRET:appclientsecret}" />
+    </bean>
 
-	<bean id="loginEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
-		<constructor-arg value="/login_error.jsp" />
-	</bean>
+    <bean id="loginEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+        <constructor-arg value="/login_error.jsp" />
+    </bean>
 
-	<!--apply the oauth client context -->
-	<oauth:client id="oauth2ClientFilter" />
+    <!--apply the oauth client context -->
+    <oauth:client id="oauth2ClientFilter" />
 
-	<bean id="socialClientFilter" class="org.cloudfoundry.identity.uaa.client.ClientAuthenticationFilter">
-		<constructor-arg value="/login" />
-		<property name="preAuthenticatedPrincipalSource">
-			<bean class="org.cloudfoundry.identity.uaa.client.SocialClientUserDetailsSource">
-				<property name="restTemplate" ref="restTemplate" />
-				<property name="userInfoUrl" value="${userInfoUri}" />
-			</bean>
-		</property>
-	</bean>
+    <bean id="socialClientFilter" class="org.cloudfoundry.identity.uaa.client.ClientAuthenticationFilter">
+        <constructor-arg value="/login" />
+        <property name="preAuthenticatedPrincipalSource">
+            <bean class="org.cloudfoundry.identity.uaa.client.SocialClientUserDetailsSource">
+                <property name="restTemplate" ref="restTemplate" />
+                <property name="userInfoUrl" value="${userInfoUri}" />
+            </bean>
+        </property>
+    </bean>
 
-	<bean id="accessTokenFilter" class="org.cloudfoundry.identity.uaa.client.ClientAuthenticationFilter">
-		<constructor-arg value="/login" />
-		<property name="authenticationManager" ref="oauth2AuthenticationManager" />
-		<property name="preAuthenticatedPrincipalSource">
-			<bean class="org.cloudfoundry.identity.uaa.client.OAuth2AccessTokenSource">
-				<property name="restTemplate" ref="restTemplate" />
-			</bean>
-		</property>
-	</bean>
+    <bean id="accessTokenFilter" class="org.cloudfoundry.identity.uaa.client.ClientAuthenticationFilter">
+        <constructor-arg value="/login" />
+        <property name="authenticationManager" ref="oauth2AuthenticationManager" />
+        <property name="preAuthenticatedPrincipalSource">
+            <bean class="org.cloudfoundry.identity.uaa.client.OAuth2AccessTokenSource">
+                <property name="restTemplate" ref="restTemplate" />
+            </bean>
+        </property>
+    </bean>
 
-	<mvc:resources location="/resources/" mapping="/resources/**" />
+    <mvc:resources location="/resources/" mapping="/resources/**" />
 
-	<mvc:annotation-driven />
+    <mvc:annotation-driven />
 
-	<mvc:default-servlet-handler />
+    <mvc:default-servlet-handler />
 
-	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-		<!--<property name="mediaTypes">-->
-			<!--<map>-->
-				<!--<entry key="json" value="application/json" />-->
-			<!--</map>-->
-		<!--</property>-->
-		<property name="defaultViews">
-			<bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
-		</property>
-	</bean>
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+        <!--<property name="mediaTypes">-->
+            <!--<map>-->
+                <!--<entry key="json" value="application/json" />-->
+            <!--</map>-->
+        <!--</property>-->
+        <property name="defaultViews">
+            <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
+        </property>
+    </bean>
 
-	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-		<property name="prefix" value="/" />
-		<property name="suffix" value=".jsp" />
-	</bean>
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/" />
+        <property name="suffix" value=".jsp" />
+    </bean>
 
-	<bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
-		<property name="restTemplate" ref="restTemplate" />
-		<property name="treeUrlPattern" value="${treeUrlPattern}" />
-	</bean>
+    <bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
+        <property name="restTemplate" ref="restTemplate" />
+        <property name="treeUrlPattern" value="${treeUrlPattern}" />
+    </bean>
 
-	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
-		<property name="approvalsUri" value="${approvalsUri}" />
-		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
-		<property name="dataUri" value="${dataUri}" />
-		<property name="logoutUrl" value="${cloudFoundryLogoutUrl}" />
-		<property name="clientId" value="${CLIENT_ID:app}" />
-	</bean>
+    <bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
+        <property name="approvalsUri" value="${approvalsUri}" />
+        <property name="userAuthorizationUri" value="${userAuthorizationUri}" />
+        <property name="dataUri" value="${dataUri}" />
+        <property name="logoutUrl" value="${cloudFoundryLogoutUrl}" />
+        <property name="clientId" value="${CLIENT_ID:app}" />
+    </bean>
 
-	<oauth:rest-template id="restTemplate" resource="uaa" />
+    <oauth:rest-template id="restTemplate" resource="uaa" />
 
-	<!--define an oauth 2 resource for api access -->
-	<oauth:resource id="uaa" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
-		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" />
+    <!--define an oauth 2 resource for api access -->
+    <oauth:resource id="uaa" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
+        access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" />
 
-	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
+    <oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
-	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
-		<property name="locations">
-			<list>
-				<value>classpath:/application.properties</value>
-				<value>classpath:/application-${UAA_PROFILE}.properties</value>
-			</list>
-		</property>
-		<property name="ignoreResourceNotFound" value="true"></property>
-	</bean>
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
+        <property name="locations">
+            <list>
+                <value>classpath:/application.properties</value>
+                <value>classpath:/application-${UAA_PROFILE}.properties</value>
+            </list>
+        </property>
+        <property name="ignoreResourceNotFound" value="true"></property>
+    </bean>
 
 </beans>

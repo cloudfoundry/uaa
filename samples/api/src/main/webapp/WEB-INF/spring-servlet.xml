@@ -1,107 +1,107 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
-	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+    you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
+    This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
+    is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
-		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+    xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+        http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
-	<http pattern="/index.html" security="none" xmlns="http://www.springframework.org/schema/security"/>
-	<http pattern="/browse" security="none" xmlns="http://www.springframework.org/schema/security" />
-	<http pattern="/denied" security="none" xmlns="http://www.springframework.org/schema/security" />
-	<http pattern="/js/**" security="none" xmlns="http://www.springframework.org/schema/security" />
+    <http pattern="/index.html" security="none" xmlns="http://www.springframework.org/schema/security"/>
+    <http pattern="/browse" security="none" xmlns="http://www.springframework.org/schema/security" />
+    <http pattern="/denied" security="none" xmlns="http://www.springframework.org/schema/security" />
+    <http pattern="/js/**" security="none" xmlns="http://www.springframework.org/schema/security" />
 
-	<!-- TODO: make an access denied view that tells me something useful -->
-	<http name="apiDefaultFilter" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-		xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-		<access-denied-handler error-page="/denied"/>
-		<intercept-url pattern="/info" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-		<intercept-url pattern="/apps" access="scope=cloud_controller.read" />
-		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-		<custom-filter ref="oauth2ServiceFilter" position="PRE_AUTH_FILTER" />
-		<custom-filter ref="contentTypeFilter" after="EXCEPTION_TRANSLATION_FILTER" />
-		<anonymous />
-		<csrf disabled="true"/>
-	</http>
+    <!-- TODO: make an access denied view that tells me something useful -->
+    <http name="apiDefaultFilter" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+        xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+        <access-denied-handler error-page="/denied"/>
+        <intercept-url pattern="/info" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+        <intercept-url pattern="/apps" access="scope=cloud_controller.read" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="oauth2ServiceFilter" position="PRE_AUTH_FILTER" />
+        <custom-filter ref="contentTypeFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+        <anonymous />
+        <csrf disabled="true"/>
+    </http>
 
-	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
-		<constructor-arg>
-			<list>
-				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
-					<property name="scopePrefix" value="scope=" />
-				</bean>
-				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
-			</list>
-		</constructor-arg>
-	</bean>
+    <bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
+        <constructor-arg>
+            <list>
+                <bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
+                    <property name="scopePrefix" value="scope=" />
+                </bean>
+                <bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+            </list>
+        </constructor-arg>
+    </bean>
 
-	<authentication-manager xmlns="http://www.springframework.org/schema/security" />
+    <authentication-manager xmlns="http://www.springframework.org/schema/security" />
 
-	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint"
-		xmlns="http://www.springframework.org/schema/beans">
-		<constructor-arg value="${auth.url}" />
-	</bean>
+    <bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint"
+        xmlns="http://www.springframework.org/schema/beans">
+        <constructor-arg value="${auth.url}" />
+    </bean>
 
-	<bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
-		xmlns="http://www.springframework.org/schema/beans">
-		<property name="location">
-			<value>classpath:/application.properties</value>
-		</property>
-	</bean>
+    <bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+        xmlns="http://www.springframework.org/schema/beans">
+        <property name="location">
+            <value>classpath:/application.properties</value>
+        </property>
+    </bean>
 
-	<bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.RemoteTokenServices">
-		<property name="checkTokenEndpointUrl" value="${checkTokenEndpointUrl}" />
-		<property name="clientId" value="app" />
-		<property name="clientSecret" value="appclientsecret" />
-	</bean>
+    <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.RemoteTokenServices">
+        <property name="checkTokenEndpointUrl" value="${checkTokenEndpointUrl}" />
+        <property name="clientId" value="app" />
+        <property name="clientSecret" value="appclientsecret" />
+    </bean>
 
-	<bean id="contentTypeFilter" class="org.cloudfoundry.identity.api.web.ContentTypeFilter">
-		<!--<property name="mediaTypes">-->
-			<!--<map>-->
-				<!--<entry key="/apps" value="application/json" />-->
-				<!--<entry key="/info" value="application/json" />-->
-			<!--</map>-->
-		<!--</property>-->
-	</bean>
+    <bean id="contentTypeFilter" class="org.cloudfoundry.identity.api.web.ContentTypeFilter">
+        <!--<property name="mediaTypes">-->
+            <!--<map>-->
+                <!--<entry key="/apps" value="application/json" />-->
+                <!--<entry key="/info" value="application/json" />-->
+            <!--</map>-->
+        <!--</property>-->
+    </bean>
 
-	<!-- We are faking out the cloud controller for demo purposes, so copy his resource id -->
-	<oauth:resource-server id="oauth2ServiceFilter" resource-id="cloud_controller"
-		token-services-ref="tokenServices" />
+    <!-- We are faking out the cloud controller for demo purposes, so copy his resource id -->
+    <oauth:resource-server id="oauth2ServiceFilter" resource-id="cloud_controller"
+        token-services-ref="tokenServices" />
 
-	<mvc:annotation-driven />
+    <mvc:annotation-driven />
 
-	<mvc:default-servlet-handler />
+    <mvc:default-servlet-handler />
 
-	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-		<!--<property name="mediaTypes">-->
-			<!--<map>-->
-				<!--<entry key="json" value="application/json" />-->
-				<!--<entry key="xml" value="application/xml" />-->
-				<!--<entry key="html" value="test/html" />-->
-			<!--</map>-->
-		<!--</property>-->
-		<property name="viewResolvers">
-			<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-				<property name="prefix" value="/WEB-INF/jsp/" />
-				<property name="suffix" value=".jsp" />
-			</bean>
-		</property>
-		<property name="defaultViews">
-			<bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
-		</property>
-	</bean>
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+        <!--<property name="mediaTypes">-->
+            <!--<map>-->
+                <!--<entry key="json" value="application/json" />-->
+                <!--<entry key="xml" value="application/xml" />-->
+                <!--<entry key="html" value="test/html" />-->
+            <!--</map>-->
+        <!--</property>-->
+        <property name="viewResolvers">
+            <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+                <property name="prefix" value="/WEB-INF/jsp/" />
+                <property name="suffix" value=".jsp" />
+            </bean>
+        </property>
+        <property name="defaultViews">
+            <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
+        </property>
+    </bean>
 
-	<bean class="org.cloudfoundry.identity.api.web.ApiController">
-		<property name="uaaUrl" value="${uaa.url:http://localhost:8080/uaa}" />
-		<property name="loginUrl" value="${login.url:http://localhost:8080/uaa}" />
-		<property name="info" value="classpath:/info.tmpl" />
-	</bean>
+    <bean class="org.cloudfoundry.identity.api.web.ApiController">
+        <property name="uaaUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+        <property name="loginUrl" value="${login.url:http://localhost:8080/uaa}" />
+        <property name="info" value="classpath:/info.tmpl" />
+    </bean>
 
 </beans>

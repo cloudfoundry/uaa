@@ -39,8 +39,10 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Iterator;
 
+import static org.apache.commons.lang3.StringUtils.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 @RunWith(LoginServerClassRunner.class)
@@ -157,6 +159,8 @@ public class ResetPasswordIT {
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
+        assertFalse(contains(link, "@"));
+        assertFalse(contains(link, "%40"));
         webDriver.get(link);
 
         webDriver.findElement(By.name("password")).sendKeys("new_password");

@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -42,11 +43,7 @@ import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
@@ -284,19 +281,35 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
 
 
             String json = rs.getString(10);
+
+            String scopes = rs.getString(11);
+            Set<String> autoApproveScopes = new HashSet<>();
+            if (scopes != null) {
+                autoApproveScopes = StringUtils.commaDelimitedListToSet(scopes);
+            }
             if (json != null) {
                 try {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> additionalInformation = JsonUtils.readValue(json, Map.class);
+                    Object autoApprovedFromAddInfo = additionalInformation.remove(ClientConstants.AUTO_APPROVE);
                     details.setAdditionalInformation(additionalInformation);
+                    if (autoApprovedFromAddInfo != null) {
+                        if ((autoApprovedFromAddInfo instanceof Boolean && (Boolean) autoApprovedFromAddInfo || "true".equals(autoApprovedFromAddInfo))) {
+                            autoApproveScopes.add("true");
+                        } else if (autoApprovedFromAddInfo instanceof Collection<?>) {
+                            @SuppressWarnings("unchecked")
+                            Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApprovedFromAddInfo;
+                            autoApproveScopes.addAll(approvedScopes);
+                        }
+                    }
+
                 } catch (Exception e) {
                     logger.warn("Could not decode JSON for additional information: " + details, e);
                 }
             }
-            String scopes = rs.getString(11);
-            if (scopes != null) {
-                details.setAutoApproveScopes(StringUtils.commaDelimitedListToSet(scopes));
-            }
+
+            details.setAutoApproveScopes(autoApproveScopes);
+
 
             // lastModified
             if (rs.getObject(12) != null) {

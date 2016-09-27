@@ -19,6 +19,7 @@ import org.springframework.security.providers.ExpiringUsernameAuthenticationToke
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,7 @@ public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthentication
             }
         }
         UaaAuthentication authentication = new UaaAuthentication(getUaaPrincipal(), getCredentials(), uaaAuthorityList, externalGroups, customAttributes, null, isAuthenticated(), System.currentTimeMillis(), getTokenExpiration()==null ? -1l : getTokenExpiration().getTime());
+        authentication.setAuthenticationMethods(Collections.singleton("ext"));
         return authentication;
     }
 }

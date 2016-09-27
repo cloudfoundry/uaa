@@ -46,4 +46,7 @@ public class IdentityZoneModifiedEvent extends AbstractUaaEvent {
                 AuditEventType.IdentityZoneModifiedEvent);
     }
 
+    public AuditEventType getEventType() {
+        return eventType;
+    }
 }

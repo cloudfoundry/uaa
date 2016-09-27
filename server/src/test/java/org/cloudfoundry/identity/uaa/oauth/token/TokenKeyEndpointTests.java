@@ -32,6 +32,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
+import org.springframework.util.Base64Utils;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -129,6 +130,9 @@ public class TokenKeyEndpointTests {
         IdentityZoneHolder.set(zone);
 
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(mock(Principal.class));
+
+        assertEquals(response.getModulus(), Base64Utils.encodeToUrlSafeString(Base64Utils.decodeFromUrlSafeString(response.getModulus())));
+        assertEquals(response.getExponent(), Base64Utils.encodeToUrlSafeString(Base64Utils.decodeFromUrlSafeString(response.getExponent())));
 
         assertEquals("SHA256withRSA", response.getAlgorithm());
         assertEquals("key1", response.getId());

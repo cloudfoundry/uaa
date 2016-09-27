@@ -47,10 +47,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -115,7 +117,7 @@ public class LoginIT {
                                           new HttpEntity<>(requestBody, headers),
                                           String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertEquals(2, cookies.size());
+        assertEquals(3, cookies.size());
         headers.clear();
         boolean jsessionIdValidated = false;
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
@@ -135,6 +137,13 @@ public class LoginIT {
         assertEquals("Cloud Foundry", webDriver.getTitle());
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    }
+
+    @Test
+    public void testNoZoneFound() throws Exception {
+        assumeTrue("Expected testzone1/2/3/4/doesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        webDriver.get(baseUrl.replace("localhost","testzonedoesnotexist.localhost") + "/login");
+        assertEquals("The subdomain does not map to a valid identity zone.",webDriver.findElement(By.tagName("p")).getText());
     }
 
     @Test

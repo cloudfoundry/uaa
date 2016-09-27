@@ -3,15 +3,15 @@ package org.cloudfoundry.identity.uaa.invitations;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
-import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,21 +21,32 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
+import static org.cloudfoundry.identity.uaa.util.DomainFilter.filter;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class InvitationsEndpoint {
@@ -46,6 +57,7 @@ public class InvitationsEndpoint {
     private IdentityProviderProvisioning providers;
     private ClientDetailsService clients;
     private ExpiringCodeStore expiringCodeStore;
+    private Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
 
     public InvitationsEndpoint(ScimUserProvisioning users,
                                IdentityProviderProvisioning providers,
@@ -73,37 +85,49 @@ public class InvitationsEndpoint {
 
         InvitationsResponse invitationsResponse = new InvitationsResponse();
 
-        DomainFilter filter = new DomainFilter();
         List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
-        ClientDetails client = clients.loadClientByClientId(clientId);
+
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String subdomainHeader = request.getHeader(SUBDOMAIN_HEADER);
+        String zoneIdHeader = request.getHeader(HEADER);
+
+        ClientDetails client = null;
+
+        if (!hasText(subdomainHeader) && !hasText(zoneIdHeader)) {
+            client = clients.loadClientByClientId(clientId);
+        }
+
         for (String email : invitations.getEmails()) {
             try {
-                List<IdentityProvider> providers = filter.filter(activeProviders, client, email);
-                if (providers.size() == 1) {
-                    ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
+                if (email!=null && emailPattern.matcher(email).matches()) {
+                    List<IdentityProvider> providers = filter(activeProviders, client, email);
+                    if (providers.size() == 1) {
+                        ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
+                        String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa());
 
-                    String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept");
+                        Map<String, String> data = new HashMap<>();
+                        data.put(InvitationConstants.USER_ID, user.getId());
+                        data.put(InvitationConstants.EMAIL, user.getPrimaryEmail());
+                        data.put(CLIENT_ID, clientId);
+                        data.put(REDIRECT_URI, redirectUri);
+                        data.put(ORIGIN, user.getOrigin());
+                        Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
+                        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name());
 
-                    Map<String, String> data = new HashMap<>();
-                    data.put(InvitationConstants.USER_ID, user.getId());
-                    data.put(InvitationConstants.EMAIL, user.getPrimaryEmail());
-                    data.put(CLIENT_ID, clientId);
-                    data.put(REDIRECT_URI, redirectUri);
-                    data.put(ORIGIN, user.getOrigin());
-                    Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
-                    ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, null);
-
-                    String invitationLink = accountsUrl + "?code=" + code.getCode();
-                    try {
-                        URL inviteLink = new URL(invitationLink);
-                        invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
-                    } catch (MalformedURLException mue) {
-                        invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url", invitationLink)));
+                        String invitationLink = accountsUrl + "?code=" + code.getCode();
+                        try {
+                            URL inviteLink = new URL(invitationLink);
+                            invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
+                        } catch (MalformedURLException mue) {
+                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url", invitationLink)));
+                        }
+                    } else if (providers.size() == 0) {
+                        invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
+                    } else {
+                        invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
                     }
-                } else if (providers.size() == 0) {
-                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
-                } else {
-                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
+                } else{
+                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "email.invalid", String.format(email + " is invalid email.")));
                 }
             } catch (ScimResourceConflictException x) {
                 invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "user.ambiguous", "Multiple users with the same origin matched to the email address."));

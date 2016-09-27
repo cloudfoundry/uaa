@@ -17,10 +17,10 @@
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
@@ -44,6 +44,7 @@
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
         <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
         <property name="useSuffixPatternMatch" value="false"/>
+        <property name="order" value="1"/>
     </bean>
 
     <bean name="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
@@ -90,10 +91,10 @@
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
 
-    <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.security.web.XFrameOptionsFilter" />
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
+    <bean id="utf8ConversionFilter" class="org.cloudfoundry.identity.uaa.authentication.UTF8ConversionFilter"/>
     <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter">
         <property name="corsAllowedUris"
                   value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
@@ -206,14 +207,15 @@
         </property>
         <property name="additionalFilters">
             <map>
-                <!-- Zone resolver goes after UaaLoggingFilter : position 1-->
-                <entry value-ref="corsFilter"
+                <entry value-ref="utf8ConversionFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}" />
+                <entry value-ref="corsFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}" />
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -221,7 +223,6 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
                 <entry value-ref="userManagementFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
-                <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
                 <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
         </property>
@@ -277,7 +278,7 @@
                 </constructor-arg>
             </bean>
         </property>
-        <property name="dbCaseInsensitive" value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
+        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 
 
@@ -427,6 +428,7 @@
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="selfServiceLinks" ref="links" />
         <property name="homeRedirect" value="${login.homeRedirect:null}"/>
+        <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}" />
         <property name="logoutRedirectWhitelist"
                   value="#{@config['logout']==null ? null :
                            @config['logout']['redirect']==null ? null :
@@ -436,10 +438,10 @@
         <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
         <property name="prompts" ref="prompts"/>
+        <property name="branding" value="#{@config['login']['branding']}" />
         <property name="samlSpPrivateKey" value="#{'${login.serviceProviderKey:' + @defaultSamlKey + '}'}" />
         <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:password}" />
         <property name="samlSpCertificate" value="#{'${login.serviceProviderCertificate:' + @defaultSamlCert + '}'}" />
-
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

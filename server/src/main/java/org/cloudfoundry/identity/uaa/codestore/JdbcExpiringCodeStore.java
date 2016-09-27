@@ -43,7 +43,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     private Log logger = LogFactory.getLog(getClass());
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(6);
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
 
     private JdbcTemplate jdbcTemplate;
 

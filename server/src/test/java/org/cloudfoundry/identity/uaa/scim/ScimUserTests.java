@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.Assert;
+import org.junit.Test;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -29,13 +29,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Assert;
-import org.junit.Test;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * @author Luke Taylor
@@ -43,6 +43,27 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 public class ScimUserTests {
 
     private static final String SCHEMAS = "\"schemas\": [\"urn:scim:schemas:core:1.0\"],";
+
+    @Test
+    public void testSerializeNullPhoneNumber() {
+        ScimUser user = new ScimUser("id","username","giveName","familyName");
+        String json = JsonUtils.writeValueAsString(user);
+        ScimUser user1 = JsonUtils.readValue(json, ScimUser.class);
+
+        user.setPhoneNumbers(null);
+        json = JsonUtils.writeValueAsString(user);
+        user1 = JsonUtils.readValue(json, ScimUser.class);
+
+        json = json.replace("\"id\":\"id\"", "\"id\":\"id\", \"phoneNumbers\":[]");
+        user1 = JsonUtils.readValue(json, ScimUser.class);
+        assertNotNull(user1.getPhoneNumbers());
+
+        json = json.replace("\"phoneNumbers\":[]", "\"phoneNumbers\":null");
+        user1 = JsonUtils.readValue(json, ScimUser.class);
+        assertNotNull(user1.getPhoneNumbers());
+
+
+    }
 
     @Test
     public void testDeserializeNullPasswordLastModified() {

@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.resources;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Dave Syer
@@ -21,7 +22,7 @@ import java.util.Collection;
  */
 public class SearchResults<T> {
 
-    private Collection<T> resources;
+    private List<T> resources;
     private int startIndex;
     private int itemsPerPage;
     private int totalResults;
@@ -53,7 +54,7 @@ public class SearchResults<T> {
         return totalResults;
     }
 
-    public Collection<T> getResources() {
+    public List<T> getResources() {
         return resources;
     }
 

@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -58,6 +59,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ApplicationEventMulticaster;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -97,7 +99,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -110,10 +111,13 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
-public class MockMvcUtils {
+public final class MockMvcUtils {
+
+    private MockMvcUtils() {}
 
     public static final String IDP_META_DATA =
         "<?xml version=\"1.0\"?>\n" +
@@ -149,33 +153,43 @@ public class MockMvcUtils {
         "</md:EntityDescriptor>";
 
     public static MockMvcUtils utils() {
-        return new MockMvcUtils();
+        // this is all static now
+        // TODO: replace calls to this method with static references
+        return null;
     }
 
-    public MockHttpSession getSavedRequestSession() {
+    public static MockHttpSession getSavedRequestSession() {
         MockHttpSession session = new MockHttpSession();
-        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
-            @Override
-            public String getRedirectUrl() {
-                return "http://test/redirect/oauth/authorize";
-            }
-            @Override
-            public String[] getParameterValues(String name) {
-                if ("client_id".equals(name)) {
-                    return new String[] {"admin"};
-                }
-                return new String[0];
-            }
-            @Override public List<Cookie> getCookies() { return null; }
-            @Override public String getMethod() { return null; }
-            @Override public List<String> getHeaderValues(String name) { return null; }
-            @Override
-            public Collection<String> getHeaderNames() { return null; }
-            @Override public List<Locale> getLocales() { return null; }
-            @Override public Map<String, String[]> getParameterMap() { return null; }
-        };
+        SavedRequest savedRequest = new MockSavedRequest();
         session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
         return session;
+    }
+
+    public static class MockSavedRequest extends DefaultSavedRequest {
+
+        public MockSavedRequest() {
+            super(new MockHttpServletRequest(), new PortResolverImpl());
+        }
+
+        @Override
+        public String getRedirectUrl() {
+            return "http://test/redirect/oauth/authorize";
+        }
+        @Override
+        public String[] getParameterValues(String name) {
+            if ("client_id".equals(name)) {
+                return new String[] {"admin"};
+            }
+            return new String[0];
+        }
+        @Override public List<Cookie> getCookies() { return null; }
+        @Override public String getMethod() { return null; }
+        @Override public List<String> getHeaderValues(String name) { return null; }
+        @Override
+        public Collection<String> getHeaderNames() { return null; }
+        @Override public List<Locale> getLocales() { return null; }
+        @Override public Map<String, String[]> getParameterMap() { return null; }
+
     }
 
     public static class ZoneScimInviteData {
@@ -301,14 +315,14 @@ public class MockMvcUtils {
         return JsonUtils.readValue(result.getResponse().getContentAsString(), InvitationsResponse.class);
     }
 
-    public URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String REDIRECT_URI) throws Exception {
+    public static URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String REDIRECT_URI) throws Exception {
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, REDIRECT_URI, email);
         assertEquals(1, response.getNewInvites().size());
         assertEquals(expectedOrigin, context.getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class));
         return response.getNewInvites().get(0).getInviteLink();
     }
 
-    public IdentityProvider createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
+    public static IdentityProvider createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
         IdentityProvider provider = new IdentityProvider();
         provider.setConfig(definition);
         provider.setActive(true);
@@ -330,7 +344,7 @@ public class MockMvcUtils {
         return provider;
     }
 
-    public ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String clientId, String redirectUri) throws Exception {
+    public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String clientId, String redirectUri) throws Exception {
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
         IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
         BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite", redirectUri);
@@ -375,8 +389,8 @@ public class MockMvcUtils {
         identityProviderProvisioning.update(idp);
     }
 
-    public IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
-        final String zoneId = UUID.randomUUID().toString();
+    public static IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
+        final String zoneId = new RandomValueStringGenerator(12).generate().toLowerCase();
         IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
 
         MvcResult result = mockMvc.perform(post("/identity-zones")
@@ -411,7 +425,7 @@ public class MockMvcUtils {
         }
     }
 
-    public IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
+    public static IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
             ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
         String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
                 "zones.write,scim.zones", null);
@@ -455,13 +469,13 @@ public class MockMvcUtils {
         return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
     }
 
-    public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+    public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
             ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
         return createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, bootstrapClient).getIdentityZone();
 
     }
 
-    public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+    public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
             ApplicationContext webApplicationContext) throws Exception {
 
         BaseClientDetails client = new BaseClientDetails("admin", null, null, "client_credentials",
@@ -471,11 +485,11 @@ public class MockMvcUtils {
         return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client);
     }
 
-    public IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
+    public static IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
                                                      IdentityProvider identityProvider, ResultMatcher resultMatcher) throws Exception {
         return createIdpUsingWebRequest(mockMvc, zoneId, token, identityProvider, resultMatcher, false);
     }
-    public IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
+    public static IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
             IdentityProvider identityProvider, ResultMatcher resultMatcher, boolean update) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
             update ?
@@ -507,14 +521,14 @@ public class MockMvcUtils {
         }
     }
 
-    public ScimUser createUser(MockMvc mockMvc, String accessToken, ScimUser user) throws Exception {
+    public static ScimUser createUser(MockMvc mockMvc, String accessToken, ScimUser user) throws Exception {
         return createUserInZone(mockMvc, accessToken, user, "");
     }
 
-    public ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain) throws  Exception {
+    public static ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain) throws  Exception {
         return createUserInZone(mockMvc, accessToken, user, subdomain, null);
     }
-    public ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain, String zoneId) throws  Exception {
+    public static ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain, String zoneId) throws  Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/Users");
         post.header("Authorization", "Bearer " + accessToken)
@@ -529,7 +543,7 @@ public class MockMvcUtils {
         return JsonUtils.readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
     }
 
-    public ScimUser readUserInZone(MockMvc mockMvc, String accessToken, String userId, String subdomain, String zoneId) throws  Exception {
+    public static ScimUser readUserInZone(MockMvc mockMvc, String accessToken, String userId, String subdomain, String zoneId) throws  Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder get = get("/Users/"+userId);
         get.header("Authorization", "Bearer " + accessToken)
@@ -543,7 +557,7 @@ public class MockMvcUtils {
         return JsonUtils.readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
     }
 
-    public ScimUser createAdminForZone(MockMvc mockMvc, String accessToken, String scopes) throws Exception {
+    public static ScimUser createAdminForZone(MockMvc mockMvc, String accessToken, String scopes) throws Exception {
         String random = RandomStringUtils.randomAlphabetic(6);
         ScimUser user = new ScimUser();
         user.setUserName(random + "@example.com");
@@ -569,10 +583,10 @@ public class MockMvcUtils {
         return createdUser;
     }
 
-    public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName) throws Exception {
+    public static ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName) throws Exception {
         return getGroup(mockMvc, accessToken, displayName, null);
     }
-    public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName, String subdomain) throws Exception {
+    public static ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName, String subdomain) throws Exception {
         String filter = "displayName eq \""+displayName+"\"";
         MockHttpServletRequestBuilder builder = get("/Groups");
         if (hasText(subdomain)) {
@@ -592,11 +606,11 @@ public class MockMvcUtils {
         }
     }
 
-    public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
+    public static ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
         return createGroup(mockMvc, accessToken, group, null);
     }
 
-    public ScimGroup createGroup(MockMvc mockMvc, String accessToken, String subdomain, ScimGroup group) throws Exception {
+    public static ScimGroup createGroup(MockMvc mockMvc, String accessToken, String subdomain, ScimGroup group) throws Exception {
         MockHttpServletRequestBuilder post = post("/Groups")
             .header("Authorization", "Bearer " + accessToken)
             .contentType(APPLICATION_JSON)
@@ -612,7 +626,7 @@ public class MockMvcUtils {
     }
 
 
-    public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group, String zoneId) throws Exception {
+    public static ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group, String zoneId) throws Exception {
         MockHttpServletRequestBuilder post = post("/Groups")
             .header("Authorization", "Bearer " + accessToken)
             .contentType(APPLICATION_JSON)
@@ -627,10 +641,10 @@ public class MockMvcUtils {
             ScimGroup.class);
     }
 
-    public ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
+    public static ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
         return updateGroup(mockMvc, accessToken, group, null);
     }
-    public ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group, IdentityZone zone) throws Exception {
+    public static ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group, IdentityZone zone) throws Exception {
         MockHttpServletRequestBuilder put = put("/Groups/" + group.getId());
         if (zone!=null) {
             put.header("Host", zone.getSubdomain()+".localhost");
@@ -645,11 +659,11 @@ public class MockMvcUtils {
             ScimGroup.class);
     }
 
-    public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
+    public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
         return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa());
     }
 
-    public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
+    public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
             throws Exception {
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + accessToken)
@@ -665,16 +679,16 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
-    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, List<String> scopes, List<String> grantTypes, String authorities) throws Exception {
+    public static ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, List<String> scopes, List<String> grantTypes, String authorities) throws Exception {
         return createClient(mockMvc, adminAccessToken, id, secret, resourceIds, scopes, grantTypes, authorities, null, IdentityZone.getUaa());
     }
 
-    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris, IdentityZone zone) throws Exception {
+    public static ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris, IdentityZone zone) throws Exception {
         ClientDetailsModification client = getClientDetailsModification(id, secret, resourceIds, scopes, grantTypes, authorities, redirectUris);
         return createClient(mockMvc,adminAccessToken, client, zone);
     }
 
-    public ClientDetailsModification getClientDetailsModification(String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris) {
+    public static ClientDetailsModification getClientDetailsModification(String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris) {
         ClientDetailsModification detailsModification = new ClientDetailsModification();
         detailsModification.setClientId(id);
         detailsModification.setResourceIds(resourceIds);
@@ -687,7 +701,7 @@ public class MockMvcUtils {
         return client;
     }
 
-    public BaseClientDetails updateClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
+    public static BaseClientDetails updateClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
         throws Exception {
         MockHttpServletRequestBuilder updateClientPut =
             put("/oauth/clients/" + clientDetails.getClientId())
@@ -705,7 +719,7 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
-    public BaseClientDetails getClient(MockMvc mockMvc, String accessToken, String clientId, IdentityZone zone)
+    public static BaseClientDetails getClient(MockMvc mockMvc, String accessToken, String clientId, IdentityZone zone)
         throws Exception {
         MockHttpServletRequestBuilder readClientGet =
             get("/oauth/clients/" + clientId)
@@ -722,12 +736,12 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
-    public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
+    public static String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
         String scope = "zones." + zoneId + ".admin";
         return getZoneAdminToken(mockMvc, adminToken, zoneId, scope);
     }
 
-    public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId, String scope) throws Exception {
+    public static String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId, String scope) throws Exception {
         ScimUser user = new ScimUser();
         user.setUserName(new RandomValueStringGenerator().generate());
         user.setPrimaryEmail(user.getUserName() + "@test.org");
@@ -747,7 +761,7 @@ public class MockMvcUtils {
 
     }
 
-    public String getUserOAuthAccessToken(MockMvc mockMvc,
+    public static String getUserOAuthAccessToken(MockMvc mockMvc,
                                           String clientId,
                                           String clientSecret,
                                           String username,
@@ -755,17 +769,36 @@ public class MockMvcUtils {
                                           String scope) throws Exception {
         return getUserOAuthAccessToken(mockMvc, clientId, clientSecret, username, password, scope, null);
     }
-        public String getUserOAuthAccessToken(MockMvc mockMvc,
-                                              String clientId,
-                                              String clientSecret,
-                                              String username,
-                                              String password,
-                                              String scope,
-                                              IdentityZone zone) throws Exception {
+
+    public static String getUserOAuthAccessToken(MockMvc mockMvc,
+                                          String clientId,
+                                          String clientSecret,
+                                          String username,
+                                          String password,
+                                          String scope,
+                                          IdentityZone zone) throws Exception {
+        return getUserOAuthAccessToken(mockMvc,
+                                       clientId,
+                                       clientSecret,
+                                       username,
+                                       password,
+                                       scope,
+                                       zone,
+                                       false);
+    }
+
+    public static String getUserOAuthAccessToken(MockMvc mockMvc,
+                                          String clientId,
+                                          String clientSecret,
+                                          String username,
+                                          String password,
+                                          String scope,
+                                          IdentityZone zone,
+                                          boolean opaque) throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost =
-            post("/oauth/token")
+             post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "password")
                 .param("client_id", clientId)
@@ -775,18 +808,22 @@ public class MockMvcUtils {
         if (zone!=null) {
             oauthTokenPost.header("Host", zone.getSubdomain()+".localhost");
         }
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        if (opaque) {
+            oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        }
+
+        MvcResult result = mockMvc.perform(oauthTokenPost).andDo(print()).andExpect(status().isOk()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
             TestClient.OAuthToken.class);
         return oauthToken.accessToken;
     }
 
-    public String getClientOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String scope)
+    public static String getClientOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String scope)
         throws Exception {
         return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, null);
     }
 
-    public String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope) throws Exception {
+    public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope) throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret)
                         .getBytes()));
@@ -810,6 +847,7 @@ public class MockMvcUtils {
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
@@ -840,7 +878,7 @@ public class MockMvcUtils {
 
     }
 
-    public String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret, IdentityZone zone) throws Exception {
+    public static String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret, IdentityZone zone) throws Exception {
         String adminToken = getClientCredentialsOAuthAccessToken(mockMvc,
                                                                  "admin",
                                                                  zone==null?"adminsecret":"admin-secret",
@@ -882,20 +920,34 @@ public class MockMvcUtils {
     }
 
 
-    public String getClientCredentialsOAuthAccessToken(MockMvc mockMvc,
+    public static String getClientCredentialsOAuthAccessToken(MockMvc mockMvc,
                                                        String clientId,
                                                        String clientSecret,
                                                        String scope,
                                                        String subdomain) throws Exception {
+        return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, subdomain, false);
+    }
+
+    public static String getClientCredentialsOAuthAccessToken(MockMvc mockMvc,
+            String clientId,
+            String clientSecret,
+            String scope,
+            String subdomain,
+        boolean opaque) throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
+                .param("recovable","true")
                 .param("scope", scope);
-        if (subdomain != null && !subdomain.equals(""))
+        if (subdomain != null && !subdomain.equals("")) {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
+        }
+        if (opaque) {
+            oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        }
         MvcResult result = mockMvc.perform(oauthTokenPost)
             .andExpect(status().isOk())
             .andReturn();
@@ -903,11 +955,11 @@ public class MockMvcUtils {
         return oauthToken.accessToken;
     }
 
-    public SecurityContext getMarissaSecurityContext(ApplicationContext context) {
+    public static SecurityContext getMarissaSecurityContext(ApplicationContext context) {
         return getUaaSecurityContext("marissa", context);
     }
 
-    public SecurityContext getUaaSecurityContext(String username, ApplicationContext context) {
+    public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context) {
         ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
         ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
@@ -918,17 +970,26 @@ public class MockMvcUtils {
     }
 
 
-    public <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {
+    public static <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {
         TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);
         applicationContext.addApplicationListener(listener);
         return listener;
     }
 
-    public void removeEventListener(ConfigurableApplicationContext applicationContext, ApplicationListener listener) {
+    public static void removeEventListener(ConfigurableApplicationContext applicationContext, ApplicationListener listener) {
         Map<String, ApplicationEventMulticaster> multicasters = applicationContext.getBeansOfType(ApplicationEventMulticaster.class);
         for (Map.Entry<String, ApplicationEventMulticaster> entry : multicasters.entrySet()) {
             entry.getValue().removeApplicationListener(listener);
         }
+    }
+
+    public static boolean isMySQL(Environment environment) {
+        for (String s : environment.getActiveProfiles()) {
+            if (s.contains("mysql")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static class MockSecurityContext implements SecurityContext {
@@ -965,20 +1026,34 @@ public class MockMvcUtils {
             CsrfTokenRepository repository = new CookieBasedCsrfTokenRepository();
             CsrfToken token = repository.generateToken(request);
             repository.saveToken(token, request, new MockHttpServletResponse());
-            String tokenValue = useInvalidToken ? "invalid" + token.getToken() : token.getToken();
+            String tokenValue = token.getToken();
             Cookie cookie = new Cookie(token.getParameterName(), tokenValue);
             cookie.setHttpOnly(true);
             Cookie[] cookies = request.getCookies();
             if (cookies==null) {
                 request.setCookies(cookie);
             } else {
-                Cookie[] newcookies = new Cookie[cookies.length+1];
+                addCsrfCookie(request, cookie, cookies);
+            }
+            request.setParameter(token.getParameterName(), useInvalidToken ? "invalid" + tokenValue : tokenValue);
+            return request;
+        }
+
+        protected void addCsrfCookie(MockHttpServletRequest request, Cookie cookie, Cookie[] cookies) {
+            boolean replaced = false;
+            for (int i=0; i<cookies.length; i++) {
+                Cookie c = cookies[i];
+                if (cookie.getName()==c.getName()) {
+                    cookies[i] = cookie;
+                    replaced = true;
+                }
+            }
+            if (!replaced) {
+                Cookie[] newcookies = new Cookie[cookies.length + 1];
                 System.arraycopy(cookies, 0, newcookies, 0, cookies.length);
                 newcookies[cookies.length] = cookie;
                 request.setCookies(newcookies);
             }
-            request.setParameter(token.getParameterName(), tokenValue);
-            return request;
         }
 
         public static CookieCsrfPostProcessor cookieCsrf() {

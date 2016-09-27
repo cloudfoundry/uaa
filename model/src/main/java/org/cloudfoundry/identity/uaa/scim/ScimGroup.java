@@ -12,16 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.cloudfoundry.identity.uaa.scim.impl.ScimGroupJsonDeserializer;
-import org.cloudfoundry.identity.uaa.scim.impl.ScimGroupJsonSerializer;
 
 import java.util.List;
 
 
-@JsonSerialize(using = ScimGroupJsonSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
-@JsonDeserialize(using = ScimGroupJsonDeserializer.class)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ScimGroup extends ScimCore {
 
     private String displayName;

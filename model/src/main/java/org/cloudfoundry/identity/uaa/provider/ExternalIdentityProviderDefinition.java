@@ -27,13 +27,14 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     public static final String FAMILY_NAME_ATTRIBUTE_NAME = "family_name"; //can be a string
     public static final String PHONE_NUMBER_ATTRIBUTE_NAME = "phone_number"; //can be a string
     public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
-    public static final String USER_NAME_ATTRIBUTE_PREFIX = "user_name";
+    public static final String USER_NAME_ATTRIBUTE_NAME = "user_name";
 
     public static final String EXTERNAL_GROUPS_WHITELIST = "externalGroupsWhitelist";
     public static final String ATTRIBUTE_MAPPINGS = "attributeMappings";
 
     private List<String> externalGroupsWhitelist = new LinkedList<>();
     private Map<String, Object> attributeMappings = new HashMap<>();
+    private boolean addShadowUserOnLogin = true;
 
     public List<String> getExternalGroupsWhitelist() {
         return Collections.unmodifiableList(externalGroupsWhitelist);
@@ -65,6 +66,14 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     @JsonIgnore
     public void addAttributeMapping(String key, Object value) {
         attributeMappings.put(key, value);
+    }
+
+    public boolean isAddShadowUserOnLogin() {
+        return addShadowUserOnLogin;
+    }
+
+    public void setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
+        this.addShadowUserOnLogin = addShadowUserOnLogin;
     }
 
     @Override
