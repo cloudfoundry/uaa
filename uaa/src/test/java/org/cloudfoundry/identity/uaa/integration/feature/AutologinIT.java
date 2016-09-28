@@ -206,7 +206,7 @@ public class AutologinIT {
         //here we must reset our state. we do that by following the logout flow.
         headers.clear();
 
-        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
                                                                  HttpMethod.GET,
                                                                  new HttpEntity<>(null, headers),
@@ -226,10 +226,10 @@ public class AutologinIT {
                                                 new HttpEntity<>(requestBody, headers),
                                                 String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertEquals(4, cookies.size());
         assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
         assertThat(cookies, hasItem(startsWith("Saved-Account-")));
+        assertThat(cookies, hasItem(startsWith("Current-User")));
         headers.clear();
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
             if (!cookie.contains("1970")) { //deleted cookie

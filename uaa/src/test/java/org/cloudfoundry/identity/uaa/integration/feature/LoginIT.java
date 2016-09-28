@@ -120,10 +120,10 @@ public class LoginIT {
                                           new HttpEntity<>(requestBody, headers),
                                           String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertEquals(4, cookies.size());
         MatcherAssert.assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         MatcherAssert.assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
         MatcherAssert.assertThat(cookies, hasItem(startsWith("Saved-Account-")));
+        MatcherAssert.assertThat(cookies, hasItem(startsWith("Current-User")));
         headers.clear();
         boolean jsessionIdValidated = false;
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {

@@ -222,8 +222,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             messages -->
         <bean id="samlLogoutFilter" class="org.cloudfoundry.identity.uaa.authentication.UaaSamlLogoutFilter">
             <constructor-arg ref="logoutHandler" />
-            <constructor-arg ref="samlLogoutHandler" />
-            <constructor-arg ref="samlLogoutHandler" />
+            <constructor-arg ref="samlLogoutHandlers" />
             <property name="contextProvider" ref="redirectSavingSamlContextProvider" />
         </bean>
 
@@ -232,7 +231,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             global logout -->
         <bean id="samlLogoutProcessingFilter" class="org.springframework.security.saml.SAMLLogoutProcessingFilter">
             <constructor-arg ref="samlWhitelistLogoutHandler" />
-            <constructor-arg ref="samlLogoutHandler" />
+            <constructor-arg ref="samlLogoutHandlers" />
             <property name="SAMLProcessor" ref="processor" />
         </bean>
 
