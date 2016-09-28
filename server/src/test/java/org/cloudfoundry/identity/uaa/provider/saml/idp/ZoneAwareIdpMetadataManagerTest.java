@@ -111,5 +111,12 @@ public class ZoneAwareIdpMetadataManagerTest {
 
         assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
         assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
+
+        //At this point, the service provider is removed from SamlServiceProviderConfigurator.
+        //Call refreshAllProviders again to test the path when UAA starts up, when the service provider will not exist
+        //in SamlServiceProviderConfigurator.
+        this.metadataManager.refreshAllProviders();
+        assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
     }
 }
