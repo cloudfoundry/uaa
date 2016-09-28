@@ -160,7 +160,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         }
         String familyName = info.get("family_name");
         if (familyName == null) {
-            familyName = email.split("@")[1];
+            familyName = (email.split("@").length > 1 ? email.split("@")[1] : email);
         }
         return new UaaUser(
             userId,
