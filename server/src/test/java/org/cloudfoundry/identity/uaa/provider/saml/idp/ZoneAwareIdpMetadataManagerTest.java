@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,6 +76,23 @@ public class ZoneAwareIdpMetadataManagerTest {
         assertEquals(1, this.metadataManager.getManager(testZone).getAvailableProviders().size());
     }
 
+    @Test
+    public void testForcedRefreshForInactiveProviders() throws Exception {
+        IdentityZone defaultZone = IdentityZone.getUaa();
+
+        SamlServiceProvider mockSamlServiceProvider = mockSamlServiceProviderForZone(defaultZone.getId());
+        mockSamlServiceProvider.setActive(false);
+
+        when(providerDao.retrieveAll(false, defaultZone.getId()))
+                .thenReturn(Arrays.asList(new SamlServiceProvider[] { mockSamlServiceProvider }));
+        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone }));
+        
+        this.metadataManager.refreshAllProviders();
+
+        assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
+    }
+    
     @Test
     public void testRefreshAllProvidersRemovesNonPersistedProvidersInConfigurator() throws Exception {
         IdentityZone defaultZone = IdentityZone.getUaa();
