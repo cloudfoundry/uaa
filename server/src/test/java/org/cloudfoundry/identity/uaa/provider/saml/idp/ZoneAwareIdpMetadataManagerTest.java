@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,6 +108,13 @@ public class ZoneAwareIdpMetadataManagerTest {
         when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone }));
         this.metadataManager.refreshAllProviders();
 
+        assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
+        
+        //At this point, the service provider is removed from SamlServiceProviderConfigurator.
+        //Call refreshAllProviders again to test the path when UAA starts up, when the service provider will not exist
+        //in SamlServiceProviderConfigurator.
+        this.metadataManager.refreshAllProviders();
         assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
         assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
     }
