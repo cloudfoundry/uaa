@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,11 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.io.IOException;
-import java.util.Arrays;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.login.AutologinRequest;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -24,14 +24,24 @@ import org.springframework.http.converter.AbstractHttpMessageConverter;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.util.MultiValueMap;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class AutologinRequestConverter extends AbstractHttpMessageConverter<AutologinRequest> {
 
-    private FormHttpMessageConverter converter = new FormHttpMessageConverter();
+    private FormHttpMessageConverter formConverter = new FormHttpMessageConverter();
+    private StringHttpMessageConverter stringConverter = new StringHttpMessageConverter();
 
     public AutologinRequestConverter() {
-        setSupportedMediaTypes(Arrays.asList(MediaType.APPLICATION_FORM_URLENCODED));
+        setSupportedMediaTypes(Arrays.asList(
+            MediaType.APPLICATION_FORM_URLENCODED,
+            MediaType.APPLICATION_JSON)
+        );
     }
 
     @Override
@@ -39,12 +49,32 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
         return AutologinRequest.class.isAssignableFrom(clazz);
     }
 
+    public boolean isJsonContent(List<String> contentType) {
+        if (contentType != null) {
+            for (String s : contentType) {
+                if (s!=null && s.contains(MediaType.APPLICATION_JSON_VALUE)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     protected AutologinRequest readInternal(Class<? extends AutologinRequest> clazz, HttpInputMessage inputMessage)
                     throws IOException, HttpMessageNotReadableException {
-        MultiValueMap<String, String> map = converter.read(null, inputMessage);
-        String username = map.getFirst("username");
-        String password = map.getFirst("password");
+
+        String username, password;
+        if (isJsonContent(inputMessage.getHeaders().get(HttpHeaders.CONTENT_TYPE))) {
+            Map<String, String> map = JsonUtils.readValue(stringConverter.read(String.class, inputMessage),
+                                                          new TypeReference<Map<String, String>>() {});
+            username = map.get("username");
+            password = map.get("password");
+        } else {
+            MultiValueMap<String, String> map = formConverter.read(null, inputMessage);
+            username = map.getFirst("username");
+            password = map.getFirst("password");
+        }
         AutologinRequest result = new AutologinRequest();
         result.setUsername(username);
         result.setPassword(password);
@@ -61,6 +91,6 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
         if (t.getPassword() != null) {
             map.set("password", t.getPassword());
         }
-        converter.write(map, MediaType.APPLICATION_FORM_URLENCODED, outputMessage);
+        formConverter.write(map, MediaType.APPLICATION_FORM_URLENCODED, outputMessage);
     }
 }

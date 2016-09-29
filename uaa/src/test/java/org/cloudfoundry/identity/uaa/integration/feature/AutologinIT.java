@@ -73,9 +73,14 @@ public class AutologinIT {
 
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
+    LinkedMultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+
+
     @Before
     @After
     public void logout_and_clear_cookies() {
+        map.add("username", testAccounts.getUserName());
+        map.add("password", testAccounts.getPassword());
         try {
             webDriver.get(baseUrl + "/logout.do");
         }catch (org.openqa.selenium.TimeoutException x) {
@@ -88,24 +93,21 @@ public class AutologinIT {
 
     @Test
     public void testAutologinFlow_FORM() throws Exception {
-        testAutologinFlow(MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+        testAutologinFlow(MediaType.APPLICATION_FORM_URLENCODED_VALUE, map);
     }
     public void testAutologinFlow_JSON() throws Exception {
-        testAutologinFlow(MediaType.APPLICATION_JSON_VALUE);
+        testAutologinFlow(MediaType.APPLICATION_JSON_VALUE, map.toSingleValueMap());
     }
-    public void testAutologinFlow(String contentType) throws Exception {
+    public void testAutologinFlow(String contentType, Map body) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-
         HttpHeaders headers = getAppBasicAuthHttpHeaders();
         headers.add(HttpHeaders.CONTENT_TYPE, contentType);
 
-        MultiValueMap<String,String> requestBody = new LinkedMultiValueMap<>();
-        requestBody.add("username", testAccounts.getUserName());
-        requestBody.add("password", testAccounts.getPassword());
+
 
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
                 HttpMethod.POST,
-                new HttpEntity<>(requestBody, headers),
+                new HttpEntity<>(body, headers),
                 Map.class);
         String autologinCode = (String) autologinResponseEntity.getBody().get("code");
 
