@@ -251,7 +251,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isForbidden())
             .andExpect(forwardedUrl("/login?error=invalid_login_request"));
 
-      ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'").get(0);
+        ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'").get(0);
 
         MockHttpServletRequestBuilder validPost = post("/login.do")
             .session(session)
@@ -268,7 +268,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private static ResultMatcher currentUserCookie(String userId) {
       return result -> {
-        cookie().value("Current-User", "{\"userId\":\"" + userId + "\"}").match(result);
+        cookie().value("Current-User", URLEncoder.encode("{\"userId\":\"" + userId + "\"}", "UTF-8")).match(result);
         cookie().maxAge("Current-User", 365*24*60*60);
       };
     }

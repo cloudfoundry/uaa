@@ -371,6 +371,8 @@
     <property name="links" ref="links" />
   </bean>
 
+  <bean id="sessionController" class="org.cloudfoundry.identity.uaa.login.SessionController"/>
+
   <!--apply the oauth client context -->
   <oauth:client id="oauth2ClientFilter" />
 

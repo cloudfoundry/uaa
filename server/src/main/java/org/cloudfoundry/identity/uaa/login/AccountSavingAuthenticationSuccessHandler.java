@@ -12,6 +12,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
@@ -52,7 +53,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
 
         CurrentUserInformation currentUserInformation = new CurrentUserInformation();
         currentUserInformation.setUserId(uaaPrincipal.getId());
-        Cookie currentUserCookie = new Cookie("Current-User", JsonUtils.writeValueAsString(currentUserInformation));
+        Cookie currentUserCookie = new Cookie("Current-User", URLEncoder.encode(JsonUtils.writeValueAsString(currentUserInformation), "UTF-8"));
         currentUserCookie.setMaxAge(365*24*60*60);
         currentUserCookie.setHttpOnly(false);
 
