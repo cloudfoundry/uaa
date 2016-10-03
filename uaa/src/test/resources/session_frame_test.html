@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script>
+  <script type="application/javascript">
     /* <![CDATA[ */
     var userId;
     if (!window.location.hash || window.location.hash === '' || window.location.hash === '#') userId = '~';
@@ -17,7 +17,6 @@
     };
 
     window.addEventListener('message', function (e) {
-      console.log(e);
       messageDiv.innerHTML = e.data;
     }, false);
 
@@ -40,7 +39,7 @@
   </script>
 </head>
 <body>
-<ul>
+<ul id="testLinks">
   <li><a href="javascript:void(0)" id="noUser" onclick="sendNoUser()">Send No User</a></li>
   <li><a href="javascript:void(0)" id="sameUser" onclick="sendSameUser()">Send Same User</a></li>
   <li><a href="javascript:void(0)" id="differentUser" onclick="sendDifferentUser()">Send Different User</a></li>

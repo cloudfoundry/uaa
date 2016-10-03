@@ -8,12 +8,11 @@
     function handleMessage(e) {
       var origin = '[[${messageOrigin}]]';
       var messageOrigin = e.origin === 'null' ? null : e.origin;
-      if (messageOrigin||'file://' !== origin) return;
+      if (messageOrigin !== origin || 'file://' !== origin) return;
 
       try {
         var messageTokens = e.data.split(' ');
         var clientId = messageTokens[0];
-
         var expectedClientId = '[[${clientId}]]';
 
         if (clientId !== expectedClientId) {
@@ -23,8 +22,6 @@
         var lastUserId = messageTokens[1];
 
         var nextUserId = '~';
-
-        // Get all the cookies pairs in an array
         var cookies = document.cookie.split(';');
         for (var i in cookies) {
           var cookieNameValue = cookies[i].split('=');
@@ -33,12 +30,12 @@
 
           var cookieValue = JSON.parse(decodeURIComponent(cookieNameValue[1]));
           nextUserId = cookieValue.userId;
+          break;
         }
 
         var status = (nextUserId === lastUserId) ? 'unchanged' : 'changed';
         e.source.postMessage(status, messageOrigin||'*');
       } catch (err) {
-        console.log(err);
         e.source.postMessage('error', messageOrigin||'*');
       }
     }
