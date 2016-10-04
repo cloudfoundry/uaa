@@ -207,7 +207,14 @@
         </constructor-arg>
     </bean>
 
-
+    <bean id="samlLogoutHandlers" class="java.util.ArrayList">
+        <constructor-arg>
+            <util:list>
+                <ref bean="currentUserCookieDestructor" />
+                <ref bean="samlLogoutHandler" />
+            </util:list>
+        </constructor-arg>
+    </bean>
 
     <bean id="loginCookieCsrfRepository" class="org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository">
         <property name="secure" value="${require_https:false}" />
@@ -219,6 +226,7 @@
         <constructor-arg index="0" ref="logoutHandler"/>
         <constructor-arg index="1">
             <util:list>
+                <ref bean="currentUserCookieDestructor" />
                 <bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
                 <bean class="org.springframework.security.web.csrf.CsrfLogoutHandler">
                     <constructor-arg ref="loginCookieCsrfRepository"/>
@@ -245,7 +253,7 @@
                   password-parameter="password"
                   login-processing-url="/login.do"
                   authentication-success-handler-ref="accountSavingAuthenticationSuccessHandler"
-                  authentication-failure-handler-ref="loginAuthenticationFailureHandler"
+                  authentication-failure-handler-ref="currentUserCookieDestructor"
                   authentication-details-source-ref="authenticationDetailsSource"
                   default-target-url="/"/>
       <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
@@ -264,7 +272,7 @@
 
     <bean id="savedRequestAwareAuthenticationDetailsSource" class="org.cloudfoundry.identity.uaa.security.SavedRequestAwareAuthenticationDetailsSource"/>
 
-    <bean id="loginAuthenticationFailureHandler" class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
+    <bean id="errorMessageAuthenticationFailureHandler" class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
         <property name="exceptionMappings">
             <map>
                 <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException" value="/login?error=account_not_verified" />
@@ -274,6 +282,10 @@
             </map>
         </property>
         <property name="defaultFailureUrl" value="/login?error=login_failure" />
+    </bean>
+
+    <bean id="currentUserCookieDestructor" class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieDestructor">
+      <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler" />
     </bean>
 
     <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
@@ -358,6 +370,8 @@
     <property name="uaaBaseUrl" ref="uaaUrl" />
     <property name="links" ref="links" />
   </bean>
+
+  <bean id="sessionController" class="org.cloudfoundry.identity.uaa.login.SessionController"/>
 
   <!--apply the oauth client context -->
   <oauth:client id="oauth2ClientFilter" />

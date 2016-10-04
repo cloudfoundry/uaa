@@ -12,6 +12,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
@@ -40,15 +41,23 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         savedAccountOption.setOrigin(uaaPrincipal.getOrigin());
         savedAccountOption.setUserId(uaaPrincipal.getId());
         savedAccountOption.setUsername(uaaPrincipal.getName());
-        Cookie cookie = new Cookie("Saved-Account-" + uaaPrincipal.getId(), JsonUtils.writeValueAsString(savedAccountOption));
+        Cookie savedAccountCookie = new Cookie("Saved-Account-" + uaaPrincipal.getId(), JsonUtils.writeValueAsString(savedAccountOption));
 
-        cookie.setPath(request.getContextPath() + "/login");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(request.isSecure());
+        savedAccountCookie.setPath(request.getContextPath() + "/login");
+        savedAccountCookie.setHttpOnly(true);
+        savedAccountCookie.setSecure(request.isSecure());
         // cookie expires in a year
-        cookie.setMaxAge(365*24*60*60);
+        savedAccountCookie.setMaxAge(365*24*60*60);
 
-        response.addCookie(cookie);
+        response.addCookie(savedAccountCookie);
+
+        CurrentUserInformation currentUserInformation = new CurrentUserInformation();
+        currentUserInformation.setUserId(uaaPrincipal.getId());
+        Cookie currentUserCookie = new Cookie("Current-User", URLEncoder.encode(JsonUtils.writeValueAsString(currentUserInformation), "UTF-8"));
+        currentUserCookie.setMaxAge(365*24*60*60);
+        currentUserCookie.setHttpOnly(false);
+
+        response.addCookie(currentUserCookie);
 
         redirectingHandler.onAuthenticationSuccess(request, response, authentication);
     }
