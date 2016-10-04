@@ -748,10 +748,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         //Merge simple Attributes, that are stored
         ofNullable(patch.getUserName()).ifPresent(p -> setUserName(p));
 
-        //Handle Booleans: don't allow turning false!
-        if (!isActive()) {
-            setActive(patch.isActive());
-        }
+        setActive(patch.isActive());
         setVerified(patch.isVerified());
 
         //Merge complex attributes

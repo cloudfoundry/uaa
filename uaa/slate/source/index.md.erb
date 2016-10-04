@@ -1011,6 +1011,10 @@ _Request Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/getServiceProvider/request-headers.md")).result(binding) %>
 
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/getServiceProvider/path-parameters.md")).result(binding) %>
+
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/getServiceProvider/response-fields.md")).result(binding) %>
@@ -1062,6 +1066,10 @@ _Request Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/updateServiceProvider/request-fields.md")).result(binding) %>
 
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/updateServiceProvider/path-parameters.md")).result(binding) %>
+
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/updateServiceProvider/response-fields.md")).result(binding) %>
@@ -1073,6 +1081,30 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity                                                  |
 | 409        | Conflict - A provider with the same entity id and zone id exists.     |
+
+## Delete
+
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/deleteServiceProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/deleteServiceProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/deleteServiceProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/deleteServiceProvider/request-headers.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/deleteServiceProvider/path-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/deleteServiceProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
 
 # Users
 
@@ -1576,6 +1608,9 @@ _Response Fields_
 | 409        | Conflict                                                              |
 
 ## Patch
+
+Updating partial elements of a group is documented at 
+[SCIM Specification](http://www.simplecloud.info/specs/draft-scim-api-01.html#edit-resource-with-patch)
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/patchScimGroup/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/patchScimGroup/http-request.md")).result(binding) %>

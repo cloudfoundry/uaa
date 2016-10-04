@@ -63,6 +63,7 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
 
     Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Access token with openid required"));
     Snippet responseFields = responseFields(
+      fieldWithPath("sub").description("Subject Identifier. A locally unique and never reassigned identifier within the Issuer for the End-User, which is intended to be consumed by the Client."),
       fieldWithPath("user_id").description("Unique user identifier."),
       fieldWithPath("email").description("The user's email address."),
       fieldWithPath("user_name").description("User name of the user, typically an email address."),

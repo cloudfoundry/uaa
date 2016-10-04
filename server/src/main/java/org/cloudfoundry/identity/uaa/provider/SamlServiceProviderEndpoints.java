@@ -18,6 +18,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlSpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -35,6 +36,7 @@ import java.util.List;
 
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
@@ -100,6 +102,13 @@ public class SamlServiceProviderEndpoints {
         return new ResponseEntity<>(serviceProvider, OK);
     }
 
+    @RequestMapping(value = "{id}", method = DELETE)
+    public ResponseEntity<SamlServiceProvider> deleteServiceProvider(@PathVariable String id) {
+        SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id);
+        serviceProviderProvisioning.delete(id);
+        return new ResponseEntity<>(serviceProvider, OK);
+    }
+
     @ExceptionHandler(MetadataProviderException.class)
     public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
         if (e.getMessage().contains("Duplicate")) {
@@ -117,6 +126,11 @@ public class SamlServiceProviderEndpoints {
     @ExceptionHandler(EmptyResultDataAccessException.class)
     public ResponseEntity<String> handleProviderNotFoundException() {
         return new ResponseEntity<>("Provider not found.", HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SamlSpAlreadyExistsException.class)
+    public ResponseEntity<String> handleDuplicateServiceProvider(){
+        return new ResponseEntity<>("SAML SP with the same entity id already exists.", HttpStatus.CONFLICT);
     }
 
 }

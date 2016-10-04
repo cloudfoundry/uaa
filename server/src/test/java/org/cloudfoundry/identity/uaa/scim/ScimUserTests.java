@@ -786,6 +786,10 @@ public class ScimUserTests {
         patchUser.setActive(true);
         patchUser.patch(user);
 
+        assertFalse(patchUser.isActive());
+
+        user.setActive(true);
+        patchUser.patch(user);
         assertTrue(patchUser.isActive());
     }
 

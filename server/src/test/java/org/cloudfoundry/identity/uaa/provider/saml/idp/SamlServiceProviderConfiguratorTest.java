@@ -132,13 +132,6 @@ public class SamlServiceProviderConfiguratorTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void testAddSamlServiceProviderWithNullEntityId() throws Exception {
-        SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
-        sp.setEntityId(null);
-        conf.addSamlServiceProvider(sp);
-    }
-
-    @Test(expected = NullPointerException.class)
     public void testAddSamlServiceProviderWithNullIdentityZoneId() throws Exception {
         SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
         sp.setIdentityZoneId(null);

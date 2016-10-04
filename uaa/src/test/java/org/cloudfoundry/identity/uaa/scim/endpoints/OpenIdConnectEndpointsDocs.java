@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.springframework.restdocs.snippet.Snippet;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -41,7 +42,9 @@ public class OpenIdConnectEndpointsDocs extends InjectedMockContextTest {
         );
 
         getMockMvc().perform(
-            get("/.well-known/openid-configuration"))
+            get("/.well-known/openid-configuration")
+            .servletPath("/.well-known/openid-configuration")
+            .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
