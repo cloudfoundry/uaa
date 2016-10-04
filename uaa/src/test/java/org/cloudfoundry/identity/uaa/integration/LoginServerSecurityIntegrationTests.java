@@ -52,9 +52,11 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Integration test to verify that the Login Server authentication channel is
@@ -331,6 +333,30 @@ public class LoginServerSecurityIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
         assertNotNull("There should be an error: " + results, results.containsKey("error"));
+    }
+
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testAddNewUserWithWrongEmailFormat() throws Exception {
+        ((RestTemplate) serverRunning.getRestTemplate())
+                        .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
+        params.set("source","login");
+        params.set("username", "newuser");
+        params.remove("given_name");
+        params.remove("family_name");
+        params.set("email", "noAtSign");
+        params.set(UaaAuthenticationDetails.ADD_NEW, "true");
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
+        assertNotNull(response);
+        assertNotEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, String> results = response.getBody();
+        if (results != null) {
+            assertFalse("There should not be an error: " + results, results.containsKey("error"));
+        }
     }
 
     @Test
