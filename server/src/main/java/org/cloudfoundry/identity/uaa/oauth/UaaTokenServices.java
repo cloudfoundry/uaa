@@ -74,9 +74,9 @@ import org.springframework.security.oauth2.provider.token.AuthorizationServerTok
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -154,7 +154,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private ApprovalStore approvalStore = null;
 
     private ApplicationEventPublisher applicationEventPublisher;
-    private String host;
 
     private List<String> validIdTokenScopes = Arrays.asList("openid");
     private TokenPolicy tokenPolicy;
@@ -980,12 +979,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() throws URISyntaxException {
         Assert.notNull(clientDetailsService, "clientDetailsService must be set");
         Assert.notNull(issuer, "issuer must be set");
         Assert.notNull(approvalStore, "approvalStore must be set");
-        URI uri = new URI(issuer);
-        host = uri.getHost();
+        new URI(issuer); //assert the issuer is a valid url at startup.
     }
 
     public void setUserDatabase(UaaUserDatabase userDatabase) {
@@ -1189,14 +1187,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     public String getTokenEndpoint() {
-        if (issuer==null) {
+        if(issuer == null){
             return null;
-        } else {
-            String hostToUse = host;
-            if (hasText(IdentityZoneHolder.get().getSubdomain())) {
-                hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + host;
-            }
-            return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+        }
+        try {
+            return UaaTokenUtils.constructTokenEndpointUrl(issuer);
+        } catch (URISyntaxException e) {
+            logger.error("Failed to get token endpoint for issuer " + issuer, e);
+            return null;
         }
     }
 

@@ -1,20 +1,28 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import static org.springframework.http.HttpStatus.*;
+import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class OpenIdConnectEndpoints {
 
-    @RequestMapping(value = "/.well-known/openid-configuration")
-    public ResponseEntity<OpenIdConfiguration> getOpenIdConfiguration(HttpServletRequest request) {
-        OpenIdConfiguration conf = new OpenIdConfiguration(getServerContextPath(request));
+    private String issuer;
 
+    @RequestMapping(value = "/.well-known/openid-configuration")
+    public ResponseEntity<OpenIdConfiguration> getOpenIdConfiguration(HttpServletRequest request) throws URISyntaxException {
+        OpenIdConfiguration conf = new OpenIdConfiguration(getServerContextPath(request), getTokenEndpoint());
         return new ResponseEntity<>(conf, OK);
     }
 
@@ -23,4 +31,15 @@ public class OpenIdConnectEndpoints {
         return requestURL.substring(0, requestURL.length() - request.getServletPath().length());
     }
 
+    public String getTokenEndpoint() throws URISyntaxException {
+        return UaaTokenUtils.constructTokenEndpointUrl(issuer);
+    }
+
+    public String getIssuer() {
+        return issuer;
+    }
+
+    public void setIssuer(String issuer) {
+        this.issuer = issuer;
+    }
 }

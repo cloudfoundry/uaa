@@ -3,8 +3,11 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.cloudfoundry.identity.uaa.account.OpenIdConfiguration;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
+
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -17,7 +20,9 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
 
     @Test
     public void testWellKnownEndpoint() throws Exception {
+        createOtherIdentityZone("subdomain", getMockMvc(), getWebApplicationContext());
         MockHttpServletResponse response = getMockMvc().perform(get("/.well-known/openid-configuration")
+            .with(new SetServerNameRequestPostProcessor("subdomain.localhost"))
             .servletPath("/.well-known/openid-configuration")
             .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -25,12 +30,12 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
 
         OpenIdConfiguration openIdConfiguration = JsonUtils.readValue(response.getContentAsString(), OpenIdConfiguration.class);
         assertNotNull(openIdConfiguration);
-        assertEquals("http://localhost/oauth/token",openIdConfiguration.getIssuer());
-        assertEquals("http://localhost/oauth/authorize",openIdConfiguration.getAuthUrl());
-        assertEquals("http://localhost/oauth/token",openIdConfiguration.getTokenUrl());
+        assertEquals("http://subdomain.localhost:8080/uaa/oauth/token",openIdConfiguration.getIssuer());
+        assertEquals("http://subdomain.localhost/oauth/authorize",openIdConfiguration.getAuthUrl());
+        assertEquals("http://subdomain.localhost/oauth/token",openIdConfiguration.getTokenUrl());
         assertArrayEquals(new String[]{"client_secret_basic"}, openIdConfiguration.getTokenAMR());
         assertArrayEquals(new String[]{"SHA256withRSA", "HMACSHA256"}, openIdConfiguration.getTokenEndpointAuthSigningValues());
-        assertEquals("http://localhost/userInfo", openIdConfiguration.getUserInfoUrl());
+        assertEquals("http://subdomain.localhost/userInfo", openIdConfiguration.getUserInfoUrl());
         assertArrayEquals(new String[]{"openid", "profile", "email", "phone"}, openIdConfiguration.getScopes());
         assertArrayEquals(new String[]{"code", "code id_token", "id_token", "token id_token"}, openIdConfiguration.getResponseTypes());
         assertArrayEquals(new String[]{"SHA256withRSA", "HMACSHA256"}, openIdConfiguration.getIdTokenSigningAlgValues());

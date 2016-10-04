@@ -44,6 +44,8 @@
         <property name="userDatabase" ref="userDatabase" />
     </bean>
 
-    <bean id="openIdConnectEndpoints" class="org.cloudfoundry.identity.uaa.account.OpenIdConnectEndpoints"/>
+    <bean id="openIdConnectEndpoints" class="org.cloudfoundry.identity.uaa.account.OpenIdConnectEndpoints">
+      <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
+    </bean>
 
 </beans>
