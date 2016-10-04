@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.SavedAccountOption;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.io.UnsupportedEncodingException;
@@ -50,6 +52,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -183,7 +186,21 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post)
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("http://localhost:8080/app/"));
+            .andExpect(redirectedUrl("http://localhost:8080/app/"))
+            .andExpect(savedAccountCookie(user));
+    }
+
+    private ResultMatcher savedAccountCookie(ScimUser user) {
+        return result -> {
+            SavedAccountOption savedAccountOption = new SavedAccountOption();
+            savedAccountOption.setEmail(user.getPrimaryEmail());
+            savedAccountOption.setUsername(user.getUserName());
+            savedAccountOption.setOrigin(user.getOrigin());
+            savedAccountOption.setUserId(user.getId());
+            String cookieName = "Saved-Account-" + user.getId();
+            cookie().value(cookieName, JsonUtils.writeValueAsString(savedAccountOption)).match(result);
+            cookie().maxAge(cookieName, 365*24*60*60);
+        };
     }
 
     @Test

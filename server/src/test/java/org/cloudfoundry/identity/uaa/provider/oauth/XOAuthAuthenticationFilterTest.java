@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -38,16 +39,21 @@ import static org.mockito.Mockito.when;
 
 public class XOAuthAuthenticationFilterTest {
 
+    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();;
+
     @Before
     @After
     public void clearContext() {
         SecurityContextHolder.clearContext();
     }
 
+
+
     @Test
     public void getXOAuthCodeTokenFromRequest() throws Exception {
         XOAuthAuthenticationManager xOAuthAuthenticationManager = Mockito.mock(XOAuthAuthenticationManager.class);
-        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager);
+
+        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler);
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://localhost/uaa/login/callback/the_origin"));
@@ -76,7 +82,7 @@ public class XOAuthAuthenticationFilterTest {
     public void redirectsToErrorPageInCaseOfException() throws Exception {
 
         XOAuthAuthenticationManager xOAuthAuthenticationManager = Mockito.mock(XOAuthAuthenticationManager.class);
-        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager);
+        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler);
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         FilterChain chain = mock(FilterChain.class);

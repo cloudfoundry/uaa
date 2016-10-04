@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -87,6 +88,7 @@ public class AutologinIT {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
+        webDriver.manage().deleteAllCookies();
         webDriver.get(appUrl+"/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
@@ -95,6 +97,8 @@ public class AutologinIT {
     public void testAutologinFlow_FORM() throws Exception {
         testAutologinFlow(MediaType.APPLICATION_FORM_URLENCODED_VALUE, map);
     }
+
+    @Test
     public void testAutologinFlow_JSON() throws Exception {
         testAutologinFlow(MediaType.APPLICATION_JSON_VALUE, map.toSingleValueMap());
     }
@@ -125,6 +129,7 @@ public class AutologinIT {
         webDriver.get(baseUrl);
 
         Assert.assertEquals(testAccounts.getUserName(), webDriver.findElement(By.cssSelector(".header .nav")).getText());
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
     @Test
@@ -165,10 +170,15 @@ public class AutologinIT {
 
         //we are now logged in. retrieve the JSESSIONID
         List<String> cookies = authorizeResponse.getHeaders().get("Set-Cookie");
-        assertEquals(2, cookies.size());
+        int cookiesAdded = 0;
         headers = getAppBasicAuthHttpHeaders();
-        headers.add("Cookie", cookies.get(0));
-        headers.add("Cookie", cookies.get(1));
+        for (String cookie : cookies) {
+            if (cookie.startsWith("X-Uaa-Csrf=") || cookie.startsWith("JSESSIONID=")) {
+                headers.add("Cookie", cookie);
+                cookiesAdded++;
+            }
+        }
+        assertEquals(2, cookiesAdded);
 
         //if we receive a 200, then we must approve our scopes
         if (HttpStatus.OK == authorizeResponse.getStatusCode()) {

@@ -84,13 +84,27 @@ public class OIDCLoginIT {
 
     ServerRunning serverRunning = ServerRunning.isRunning();
 
+    private boolean isSetUp = false;
+
     @Before
+    public void setUp() throws Exception {
+        if (!isSetUp) {
+            doLogout();
+        }
+        isSetUp = true;
+        screenShootRule.setWebDriver(webDriver);
+    }
+
     @After
-    public void logout() throws Exception {
+    public void tearDown() {
+        doLogout();
+    }
+
+    private void doLogout() {
         webDriver.get(baseUrl + "/logout.do");
+        webDriver.manage().deleteAllCookies();
         webDriver.get("https://oidc10.identity.cf-app.com/logout.do");
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
-        screenShootRule.setWebDriver(webDriver);
     }
 
     @After
@@ -111,6 +125,10 @@ public class OIDCLoginIT {
 
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+
+        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        webDriver.findElement(By.linkText("Sign Out")).click();
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
     @Test

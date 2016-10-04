@@ -24,6 +24,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
+
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
@@ -61,10 +63,10 @@ public class LdapLoginIT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         screenShootRule.setWebDriver(webDriver);
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
-        webDriver.get(baseUrl.replace("localhost", "testzone2.localhost") + "/logout.do");
-        webDriver.manage().deleteAllCookies();
+        for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
+            webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
+            webDriver.manage().deleteAllCookies();
+        }
     }
 
     @Test
@@ -77,8 +79,9 @@ public class LdapLoginIT {
 
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
-        performLdapLogin("testzone2", "ldap://localhost:389/", true, true);
+        performLdapLogin("testzone2", "ldap://52.87.212.253:389/", true, true);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost","testzone2.localhost"), webDriver);
 //        performLdapLogin("testzone2", "ldap://52.87.212.253:389/", true);
 //        performLdapLogin("testzone2", "ldap://52.20.5.106:389/", true);
     }

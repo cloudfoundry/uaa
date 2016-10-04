@@ -13,10 +13,11 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.httpclient.util.URIUtil;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.springframework.security.authentication.AuthenticationServiceException;
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 
@@ -31,13 +32,18 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 
+import static java.util.Optional.ofNullable;
+
 public class XOAuthAuthenticationFilter implements Filter {
 
+    private static Log logger = LogFactory.getLog(XOAuthAuthenticationFilter.class);
 
     private final XOAuthAuthenticationManager xOAuthAuthenticationManager;
+    private final AccountSavingAuthenticationSuccessHandler successHandler;
 
-    public XOAuthAuthenticationFilter(XOAuthAuthenticationManager xOAuthAuthenticationManager) {
+    public XOAuthAuthenticationFilter(XOAuthAuthenticationManager xOAuthAuthenticationManager, AccountSavingAuthenticationSuccessHandler successHandler) {
         this.xOAuthAuthenticationManager = xOAuthAuthenticationManager;
+        this.successHandler = successHandler;
     }
 
     @Override
@@ -46,7 +52,7 @@ public class XOAuthAuthenticationFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain) throws IOException, ServletException {
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain) throws  IOException, ServletException {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
@@ -58,7 +64,11 @@ public class XOAuthAuthenticationFilter implements Filter {
         try {
             Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            ofNullable(successHandler).ifPresent(handler ->
+                handler.setSavedAccountOptionCookie(request, response, authentication)
+            );
         } catch (Exception ex) {
+            logger.debug("XOauth Authentication exception", ex);
             String message = ex.getMessage();
             if(!StringUtils.hasText(message)) { message = ex.getClass().getSimpleName(); }
             String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + message, "UTF-8");

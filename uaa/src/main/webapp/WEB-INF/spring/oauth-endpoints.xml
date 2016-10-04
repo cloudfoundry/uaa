@@ -342,11 +342,13 @@
 
     <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
     <bean id="xOauthCallbackAuthenticationFilter" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationFilter">
-        <constructor-arg ref="xOauthAuthenticationManager" />
+        <constructor-arg name="xOAuthAuthenticationManager" ref="xOauthAuthenticationManager" />
+        <constructor-arg name="successHandler" ref="accountSavingAuthenticationSuccessHandler"/>
     </bean>
 
     <bean id="xOauthCallbackRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
