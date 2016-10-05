@@ -490,6 +490,11 @@ public class SamlTestUtils {
                 + "</md:SPSSODescriptor>"
             + "</md:EntityDescriptor>";
 
+    public static final String UNSIGNED_SAML_SP_METADATA_WITHOUT_SPSSODESCRIPTOR = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" ID=\"%s\" entityID=\"cloudfoundry-saml-login\">"
+                + "</md:EntityDescriptor>";
+
+
     public static final String DEFAULT_NAME_ID_FORMATS =
             "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>"
                     + "<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>"
@@ -535,4 +540,14 @@ public class SamlTestUtils {
         return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId("uaa")
                 .setConfig(singleAddWithoutHeaderDef);
     }
+
+    public static SamlServiceProvider mockSamlServiceProviderForZoneWithoutSPSSOInMetadata(String zoneId) {
+        SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_SPSSODESCRIPTOR,
+                        new RandomValueStringGenerator().generate()))
+                .setMetadataTrustCheck(true).build();
+        return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
+                .setConfig(singleAddDef);
+     }
+
 }

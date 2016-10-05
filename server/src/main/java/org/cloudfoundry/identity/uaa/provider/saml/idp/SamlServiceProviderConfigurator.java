@@ -135,7 +135,7 @@ public class SamlServiceProviderConfigurator {
         }
         return serviceProviders;
     }
-    
+
     /**
      * adds or replaces a SAML service provider for the current zone.
      *
@@ -178,7 +178,9 @@ public class SamlServiceProviderConfigurator {
         added.initialize();
         SPSSODescriptor spSsoDescriptor = added.getEntityDescriptor(metadataEntityId).
                 getSPSSODescriptor(SAMLConstants.SAML20P_NS);
-        if (null != spSsoDescriptor.getNameIDFormats() && !spSsoDescriptor.getNameIDFormats().isEmpty()) {
+        if (null != spSsoDescriptor &&
+            null != spSsoDescriptor.getNameIDFormats() &&
+            !spSsoDescriptor.getNameIDFormats().isEmpty()) {
             // The SP explicitly states the NameID formats it supports, we should check that we support at least one.
             if (!spSsoDescriptor.getNameIDFormats().stream().anyMatch(
                     format -> this.supportedNameIDs.contains(format.getFormat()))) {
