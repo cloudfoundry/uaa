@@ -1,3 +1,15 @@
+/*******************************************************************************
+ * Cloud Foundry
+ * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * <p>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -5,11 +17,13 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.test.web.servlet.ResultActions;
@@ -30,22 +44,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+
 public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContextTest {
 
     private String adminClientTokenWithClientsWrite;
-    private JdbcClientDetailsService clients;
+    private MultitenantJdbcClientDetailsService clients;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
     private UaaTestAccounts testAccounts;
     private String adminClientTokenWithClientsRead;
@@ -62,7 +65,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
                 testAccounts.getAdminClientSecret(),
                 "clients.write");
 
-        clients = getWebApplicationContext().getBean(JdbcClientDetailsService.class);
+        clients = getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class);
     }
 
     @Test

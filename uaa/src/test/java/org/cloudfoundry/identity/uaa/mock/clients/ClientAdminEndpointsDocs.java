@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
@@ -26,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.UPDATE;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;
@@ -84,8 +87,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
         fieldWithPath("clientId").required().description(clientIdDescription),
-        fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("The client secret before updating"),
-        fieldWithPath("secret").required().description("The new client secret")
+        fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("A valid client secret before updating"),
+        fieldWithPath("secret").required().description("The new client secret"),
+        fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `"+ADD+"`, the new `secret` will be added to the existing one to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
     @Before
