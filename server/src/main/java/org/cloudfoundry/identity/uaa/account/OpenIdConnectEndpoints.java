@@ -1,19 +1,14 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-
-import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.springframework.http.HttpStatus.*;
-import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.http.HttpStatus.OK;
 
 @Controller
 public class OpenIdConnectEndpoints {
