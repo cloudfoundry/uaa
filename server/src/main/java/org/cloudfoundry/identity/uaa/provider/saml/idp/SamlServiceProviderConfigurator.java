@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.NameIDType;
-import org.opensaml.saml2.metadata.NameIDFormat;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
@@ -202,14 +201,19 @@ public class SamlServiceProviderConfigurator {
     public synchronized ExtendedMetadataDelegate removeSamlServiceProvider(String entityId) {
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
                 IdentityZoneHolder.get());
-        return serviceProviders.remove(entityId).getExtendedMetadataDelegate();
+
+        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.remove(entityId);
+        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(String entityId)
             throws MetadataProviderException {
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
                 IdentityZoneHolder.get());
-        return serviceProviders.get(entityId).getExtendedMetadataDelegate();
+
+        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.get(entityId);
+        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
+        
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlServiceProvider provider)
