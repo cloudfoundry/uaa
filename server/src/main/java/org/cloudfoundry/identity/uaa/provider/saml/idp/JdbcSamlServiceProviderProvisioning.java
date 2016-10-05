@@ -38,7 +38,7 @@ import java.util.UUID;
  */
 public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderProvisioning, SamlServiceProviderDeletable {
 
-    private static final Log LOGGER = LogFactory.getLog(JdbcIdentityProviderProvisioning.class);
+    private static final Log LOGGER = LogFactory.getLog(JdbcSamlServiceProviderProvisioning.class);
 
     public static final String SERVICE_PROVIDER_FIELDS = "id,version,created,lastmodified,name,entity_id,config,identity_zone_id,active";
 
@@ -52,7 +52,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     public static final String DELETE_SERVICE_PROVIDER_BY_ZONE_SQL = "delete from service_provider where identity_zone_id=?";
 
     public static final String SERVICE_PROVIDERS_QUERY = "select " + SERVICE_PROVIDER_FIELDS
-            + " from service_provider where identity_zone_id=?";
+            + " from service_provider where identity_zone_id=? order by created desc";
 
     public static final String ACTIVE_SERVICE_PROVIDERS_QUERY = SERVICE_PROVIDERS_QUERY + " and active=?";
 

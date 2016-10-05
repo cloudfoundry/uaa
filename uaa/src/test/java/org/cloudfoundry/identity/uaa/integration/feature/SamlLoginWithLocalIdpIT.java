@@ -33,9 +33,11 @@ import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Rule;
+import org.junit.FixMethodOrder;
 import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -53,6 +55,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -68,6 +71,7 @@ import static org.junit.Assume.assumeTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class SamlLoginWithLocalIdpIT {
 
     public static final String IDP_ENTITY_ID = "cloudfoundry-saml-login";
@@ -161,9 +165,16 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     @Test
-    public void testCreateSamlSp() throws Exception {
+    public void testCreateAndDeleteSamlSp() throws Exception {
         SamlServiceProviderDefinition spDef = createLocalSamlSpDefinition("cloudfoundry-saml-login", "uaa");
-        createSamlServiceProvider("Local SAML SP", "cloudfoundry-saml-login", baseUrl, serverRunning, spDef);
+        ZoneAdminAttributes zoneAdminAttributes = new ZoneAdminAttributes(serverRunning, baseUrl);
+
+        //Test create SP instance
+        SamlServiceProvider samlSpInstance = createSamlServiceProvider("Local SAML SP", "cloudfoundry-saml-login",
+            baseUrl, serverRunning, spDef, zoneAdminAttributes);
+
+        //Test deleted SP instance
+        deleteSamlSp(baseUrl, samlSpInstance, zoneAdminAttributes);
     }
 
     public static SamlServiceProviderDefinition createLocalSamlSpDefinition(String alias, String zoneId) {
@@ -199,27 +210,38 @@ public class SamlLoginWithLocalIdpIT {
         return createLocalSamlSpDefinition(alias, "testzone2");
     }
 
-    public static SamlServiceProvider createSamlServiceProvider(String name, String entityId, String baseUrl,
-            ServerRunning serverRunning, SamlServiceProviderDefinition samlServiceProviderDefinition) throws Exception {
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(IntegrationTestUtils
+    //Zone specific Email and AdminToken initialization
+    private static class ZoneAdminAttributes {
+        String zoneAdminEmail;
+        String zoneAdminToken;
+
+        private ZoneAdminAttributes (ServerRunning serverRunning, String baseUrl) throws Exception {
+            RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(IntegrationTestUtils
                 .getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret"));
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret"));
-        String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
-        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email,
-                true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
 
-        String zoneAdminToken = IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
-                UaaTestAccounts.standard(serverRunning), "identity", "identitysecret", email, "secr3T");
+            this.zoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+            ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, this.zoneAdminEmail,
+                    "firstname", "lastname", this.zoneAdminEmail,
+                    true);
+            IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
 
+            this.zoneAdminToken = IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                UaaTestAccounts.standard(serverRunning), "identity", "identitysecret", zoneAdminEmail, "secr3T");
+        }
+    }
+
+    public static SamlServiceProvider createSamlServiceProvider(String name, String entityId, String baseUrl,
+            ServerRunning serverRunning, SamlServiceProviderDefinition samlServiceProviderDefinition,
+            ZoneAdminAttributes zoneAdminAttributes) throws Exception {
         SamlServiceProvider provider = new SamlServiceProvider();
         provider.setConfig(samlServiceProviderDefinition);
         provider.setIdentityZoneId(OriginKeys.UAA);
         provider.setActive(true);
         provider.setEntityId(entityId);
         provider.setName(name);
-        provider = createOrUpdateSamlServiceProvider(zoneAdminToken, baseUrl, provider);
+        provider = createOrUpdateSamlServiceProvider(zoneAdminAttributes.zoneAdminToken, baseUrl, provider);
         assertNotNull(provider.getId());
         return provider;
     }
@@ -233,6 +255,7 @@ public class SamlLoginWithLocalIdpIT {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         headers.add(IdentityZoneSwitchingFilter.HEADER, provider.getIdentityZoneId());
         List<SamlServiceProvider> existing = getSamlServiceProviders(accessToken, url, provider.getIdentityZoneId());
+        //Update existing
         if (existing != null) {
             for (SamlServiceProvider p : existing) {
                 if (p.getEntityId().equals(provider.getEntityId())
@@ -247,15 +270,39 @@ public class SamlLoginWithLocalIdpIT {
                 }
             }
         }
-
+        //Create
         HttpEntity<SamlServiceProvider> postHeaders = new HttpEntity<SamlServiceProvider>(provider, headers);
-        ResponseEntity<String> providerPost = client.exchange(url + "/saml/service-providers/{id}", HttpMethod.POST,
-                postHeaders, String.class, provider.getId());
+        ResponseEntity<String> providerPost = client.exchange(url + "/saml/service-providers", HttpMethod.POST,
+                postHeaders, String.class);
         if (providerPost.getStatusCode() == HttpStatus.CREATED) {
             return JsonUtils.readValue(providerPost.getBody(), SamlServiceProvider.class);
         }
         throw new IllegalStateException(
                 "Invalid result code returned, unable to create identity provider:" + providerPost.getStatusCode());
+    }
+
+    public static void deleteSamlSp(String baseUrl, SamlServiceProvider samlServiceProvider,
+                ZoneAdminAttributes zoneAdminAttributes) throws Exception {
+        RestTemplate client = new RestTemplate();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + zoneAdminAttributes.zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, samlServiceProvider.getIdentityZoneId());
+
+        HttpEntity<SamlServiceProvider> deleteHeaders = new HttpEntity<SamlServiceProvider>(headers);
+        ResponseEntity<String> provideDelete = client.exchange(baseUrl + "/saml/service-providers/{id}",
+                HttpMethod.DELETE, deleteHeaders, String.class, samlServiceProvider.getId());
+        assert(provideDelete.getStatusCode() == HttpStatus.OK);
+
+        try {
+            HttpEntity<SamlServiceProvider> verifyHeaders = new HttpEntity<SamlServiceProvider>(headers);
+            ResponseEntity<String> providerGet = client.exchange(baseUrl + "/saml/service-providers/{id}",
+                    HttpMethod.GET, verifyHeaders, String.class, samlServiceProvider.getId());
+            assert(false);
+        } catch(HttpClientErrorException e){
+            assert(e.getStatusCode()== HttpStatus.NOT_FOUND);
+        }
     }
 
     public static List<SamlServiceProvider> getSamlServiceProviders(String zoneAdminToken, String url, String zoneId) {
@@ -266,8 +313,8 @@ public class SamlLoginWithLocalIdpIT {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
-        ResponseEntity<String> providerGet = client.exchange(url + "/saml/service-providers", HttpMethod.GET, getHeaders,
-                String.class);
+        ResponseEntity<String> providerGet = client.exchange(url + "/saml/service-providers",
+                HttpMethod.GET, getHeaders, String.class);
         if (providerGet != null && providerGet.getStatusCode() == HttpStatus.OK) {
             return JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<SamlServiceProvider>>() {
                 // Do nothing.
@@ -290,7 +337,8 @@ public class SamlLoginWithLocalIdpIT {
                 "Local SAML IdP", IDP_ENTITY_ID, true, this.baseUrl, this.serverRunning, idpDef);
 
         SamlServiceProviderDefinition spDef = createLocalSamlSpDefinition("cloudfoundry-saml-login", "uaa");
-        createSamlServiceProvider("Local SAML SP", "cloudfoundry-saml-login", baseUrl, serverRunning, spDef);
+        createSamlServiceProvider("Local SAML SP", "cloudfoundry-saml-login", baseUrl, serverRunning, spDef,
+                new ZoneAdminAttributes(serverRunning, baseUrl));
 
         // tells us that we are on travis
         assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());

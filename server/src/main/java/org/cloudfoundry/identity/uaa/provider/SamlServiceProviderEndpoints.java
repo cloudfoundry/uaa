@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,12 +41,14 @@ import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 
 @RequestMapping("/saml/service-providers")
 @RestController
 public class SamlServiceProviderEndpoints {
 
-    protected static Log logger = LogFactory.getLog(SamlServiceProviderEndpoints.class);
+
+	protected static Log logger = LogFactory.getLog(SamlServiceProviderEndpoints.class);
 
     private final SamlServiceProviderProvisioning serviceProviderProvisioning;
     private final SamlServiceProviderConfigurator samlConfigurator;
@@ -99,6 +102,14 @@ public class SamlServiceProviderEndpoints {
     @RequestMapping(value = "{id}", method = GET)
     public ResponseEntity<SamlServiceProvider> retrieveServiceProvider(@PathVariable String id) {
         SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id);
+        return new ResponseEntity<>(serviceProvider, OK);
+    }
+    
+
+    @RequestMapping(value = "{id}", method = DELETE)
+    public ResponseEntity<SamlServiceProvider> deleteServiceProvider(@PathVariable String id) {
+        SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id);
+    	serviceProviderProvisioning.delete(id);
         return new ResponseEntity<>(serviceProvider, OK);
     }
 
