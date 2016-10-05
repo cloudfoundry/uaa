@@ -17,9 +17,13 @@ package org.cloudfoundry.identity.uaa.util;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -31,6 +35,7 @@ import java.util.regex.Pattern;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.springframework.util.StringUtils.hasText;
 
 public final class UaaTokenUtils {
 
@@ -165,5 +170,14 @@ public final class UaaTokenUtils {
 
     public static boolean isJwtToken(String token) {
         return jwtPattern.matcher(token).matches();
+    }
+
+    public static String constructTokenEndpointUrl(String issuer) throws URISyntaxException {
+        URI uri = new URI(issuer);
+        String hostToUse = uri.getHost();
+        if (hasText(IdentityZoneHolder.get().getSubdomain())) {
+            hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
+        }
+        return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
     }
 }

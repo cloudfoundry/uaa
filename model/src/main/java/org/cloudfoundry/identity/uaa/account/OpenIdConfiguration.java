@@ -39,11 +39,11 @@ public class OpenIdConfiguration {
     //For json serialization
     public OpenIdConfiguration() {}
 
-    public OpenIdConfiguration(String contextPath) {
-        issuer = contextPath + "/oauth/token";
-        authUrl = contextPath + "/oauth/authorize";
-        tokenUrl = contextPath + "/oauth/token";
-        userInfoUrl = contextPath + "/userInfo";
+    public OpenIdConfiguration(String contextPath, String issuer) {
+        this.issuer = issuer;
+        this.authUrl = contextPath + "/oauth/authorize";
+        this.tokenUrl = contextPath + "/oauth/token";
+        this.userInfoUrl = contextPath + "/userInfo";
     }
 
     public String getIssuer() {
