@@ -203,7 +203,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <!-- Processing filter for WebSSO profile messages -->
         <bean id="samlWebSSOProcessingFilter" class="org.springframework.security.saml.SAMLProcessingFilter">
             <property name="authenticationManager" ref="samlAuthenticationManager" />
-            <property name="authenticationSuccessHandler" ref="successRedirectHandler" />
+            <property name="authenticationSuccessHandler" ref="accountSavingAuthenticationSuccessHandler" />
             <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
             <property name="contextProvider" ref="basicContextProvider" />
             <property name="SAMLProcessor" ref="processor" />

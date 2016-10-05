@@ -14,7 +14,13 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -23,6 +29,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.HttpClientErrorException;
@@ -30,6 +37,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
 
+import java.util.Collections;
+
+import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
@@ -38,23 +48,28 @@ import static org.mockito.Mockito.when;
 
 public class XOAuthAuthenticationFilterTest {
 
+    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();;
+
     @Before
     @After
     public void clearContext() {
         SecurityContextHolder.clearContext();
     }
 
+
+
     @Test
     public void getXOAuthCodeTokenFromRequest() throws Exception {
         XOAuthAuthenticationManager xOAuthAuthenticationManager = Mockito.mock(XOAuthAuthenticationManager.class);
-        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager);
+
+        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler);
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://localhost/uaa/login/callback/the_origin"));
         when(request.getServletPath()).thenReturn("/login/callback/the_origin");
         when(request.getParameter("code")).thenReturn("the_code");
 
-        MockAuthentication authentication = new MockAuthentication();
+        UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("id", "username", "email@email.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId()), EMPTY_LIST, new UaaAuthenticationDetails(request));
         Mockito.when(xOAuthAuthenticationManager.authenticate(anyObject())).thenReturn(authentication);
 
         FilterChain chain = mock(FilterChain.class);
@@ -76,7 +91,7 @@ public class XOAuthAuthenticationFilterTest {
     public void redirectsToErrorPageInCaseOfException() throws Exception {
 
         XOAuthAuthenticationManager xOAuthAuthenticationManager = Mockito.mock(XOAuthAuthenticationManager.class);
-        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager);
+        XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler);
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         FilterChain chain = mock(FilterChain.class);

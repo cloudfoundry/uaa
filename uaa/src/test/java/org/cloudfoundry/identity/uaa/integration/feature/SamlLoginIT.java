@@ -122,15 +122,12 @@ public class SamlLoginIT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         screenShootRule.setWebDriver(webDriver);
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.manage().deleteAllCookies();
-        webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
-        webDriver.manage().deleteAllCookies();
-        webDriver.get(baseUrl.replace("localhost", "testzone2.localhost") + "/logout.do");
-        webDriver.manage().deleteAllCookies();
+        for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
+            webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
+            webDriver.manage().deleteAllCookies();
+        }
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.get("http://simplesamlphp2.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
-
     }
 
     @Test
@@ -292,6 +289,7 @@ public class SamlLoginIT {
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
 
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
@@ -424,6 +422,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {

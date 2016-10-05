@@ -35,7 +35,9 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.hamcrest.Matchers;
 import org.junit.Assert;
+import org.openqa.selenium.Cookie;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -82,11 +84,14 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
+import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
@@ -1154,6 +1159,13 @@ public class IntegrationTestUtils {
         } else {
             headers.remove("Cookie");
         }
+    }
+
+    public static void validateAccountChooserCookie(String baseUrl, WebDriver webDriver) {
+        webDriver.get(baseUrl +"/logout.do");
+        webDriver.get(baseUrl +"/login");
+        List<String> cookies = webDriver.manage().getCookies().stream().map(Cookie::getName).collect(Collectors.toList());
+        assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
     }
 
     public static class HttpRequestFactory extends HttpComponentsClientHttpRequestFactory {
