@@ -8,7 +8,7 @@
     function handleMessage(e) {
       var origin = '[[${messageOrigin}]]';
       var messageOrigin = e.origin === 'null' ? null : e.origin;
-      if (messageOrigin !== origin || 'file://' !== origin) return;
+      if ((messageOrigin || 'file://') !== origin) return;
 
       try {
         var messageTokens = e.data.split(' ');
