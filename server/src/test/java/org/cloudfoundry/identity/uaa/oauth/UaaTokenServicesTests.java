@@ -57,6 +57,7 @@ import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -92,6 +93,7 @@ import java.util.Set;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
@@ -125,6 +127,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -543,6 +546,42 @@ public class UaaTokenServicesTests {
         tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME)));
         accessToken = tokenServices.createAccessToken(authentication);
         tokenServices.loadAuthentication(accessToken.getValue());
+    }
+
+
+    @Test
+    public void testClientSecret_Added_Token_Validation_Still_Works() {
+
+        defaultClient.setClientSecret(SECRET);
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, PASSWORD);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        //normal token validation
+        tokenServices.loadAuthentication(accessToken.getValue());
+
+        //add a 2nd secret
+        defaultClient.setClientSecret(defaultClient.getClientSecret()+" newsecret");
+        tokenServices.loadAuthentication(accessToken.getValue());
+
+        //generate a token when we have two secrets
+        OAuth2AccessToken accessToken2 = tokenServices.createAccessToken(authentication);
+
+        //remove the 1st secret
+        defaultClient.setClientSecret("newsecret");
+        try {
+            tokenServices.loadAuthentication(accessToken.getValue());
+            fail("Token should fail to validate on the revocation signature");
+        } catch (InvalidTokenException e) {
+            assertTrue(e.getMessage().contains("revocable signature mismatch"));
+        }
+        tokenServices.loadAuthentication(accessToken2.getValue());
     }
 
     @Test

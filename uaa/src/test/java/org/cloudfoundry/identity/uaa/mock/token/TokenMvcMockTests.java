@@ -2068,6 +2068,63 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void validateOldTokenAfterAddClientSecret() throws Exception {
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param("grant_type", "client_credentials")
+            .param("client_id", clientId)
+            .param("client_secret", SECRET))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        Map<String,Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
+        String access_token = (String) bodyMap.get("access_token");
+        assertNotNull(access_token);
+
+        clientDetailsService.addClientSecret(clientId, "newSecret");
+        getMockMvc().perform(post("/check_token")
+            .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
+            .param("token", access_token))
+            .andDo(print())
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    public void validateNewTokenAfterAddClientSecret() throws Exception {
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+        clientDetailsService.addClientSecret(clientId, "newSecret");
+
+        for (String secret : Arrays.asList(SECRET, "newSecret")) {
+            String body = getMockMvc().perform(post("/oauth/token")
+                                                   .accept(MediaType.APPLICATION_JSON_VALUE)
+                                                   .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                                                   .param("grant_type", "client_credentials")
+                                                   .param("client_id", clientId)
+                                                   .param("client_secret", secret))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+            Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {
+            });
+            String access_token = (String) bodyMap.get("access_token");
+            assertNotNull(access_token);
+
+            getMockMvc().perform(post("/check_token")
+                                     .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
+                                     .param("token", access_token))
+                .andExpect(status().isOk());
+        }
+    }
+
+    @Test
     public void revokeOwnJWToken() throws Exception {
         IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
         defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);

@@ -253,10 +253,13 @@
     </bean>
 
     <authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-        <authentication-provider user-service-ref="clientDetailsUserService">
-            <password-encoder ref="cachingPasswordEncoder" />
-        </authentication-provider>
+        <authentication-provider ref="clientAuthenticationProvider"/>
     </authentication-manager>
+
+    <bean id="clientAuthenticationProvider" class="org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider">
+        <constructor-arg name="userDetailsService" ref="clientDetailsUserService"/>
+        <constructor-arg name="encoder" ref="cachingPasswordEncoder"/>
+    </bean>
 
     <bean id="clientAuthenticationPublisher" class="org.cloudfoundry.identity.uaa.client.ClientAuthenticationPublisher"/>
 

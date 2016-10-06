@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
@@ -47,7 +48,6 @@ import org.springframework.security.oauth2.common.exceptions.BadClientCredential
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
@@ -76,6 +76,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
+
 /**
  * Controller for listing and manipulating OAuth2 clients.
  */
@@ -87,7 +89,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    private ClientRegistrationService clientRegistrationService;
+    private ClientServicesExtension clientRegistrationService;
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
 
@@ -145,7 +147,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     /**
      * @param clientRegistrationService the clientRegistrationService to set
      */
-    public void setClientRegistrationService(ClientRegistrationService clientRegistrationService) {
+    public void setClientRegistrationService(ClientServicesExtension clientRegistrationService) {
         this.clientRegistrationService = clientRegistrationService;
     }
 
@@ -494,15 +496,15 @@ public class ClientAdminEndpoints implements InitializingBean {
         }
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}/secret", method = RequestMethod.PUT)
+    @RequestMapping(value = "/oauth/clients/{client_id}/secret", method = RequestMethod.PUT)
     @ResponseBody
-    public ActionResult changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
+    public ActionResult changeSecret(@PathVariable String client_id, @RequestBody SecretChangeRequest change) {
 
         ClientDetails clientDetails;
         try {
-            clientDetails = clientDetailsService.retrieve(client);
+            clientDetails = clientDetailsService.retrieve(client_id);
         } catch (InvalidClientException e) {
-            throw new NoSuchClientException("No such client: " + client);
+            throw new NoSuchClientException("No such client: " + client_id);
         }
 
         try {
@@ -511,11 +513,29 @@ public class ClientAdminEndpoints implements InitializingBean {
             throw new InvalidClientDetailsException(e.getMessage());
         }
 
-        clientRegistrationService.updateClientSecret(client, change.getSecret());
+        ActionResult result;
+        if(change.getChangeMode() == ADD) {
+            if(!validateCurrentClientSecret(clientDetails.getClientSecret())) {
+                throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
+            }
+
+            clientRegistrationService.addClientSecret(client_id, change.getSecret());
+            result = new ActionResult("ok", "Secret is added");
+        } else {
+            clientRegistrationService.updateClientSecret(client_id, change.getSecret());
+            result = new ActionResult("ok", "secret updated");
+        }
 
         clientSecretChanges.incrementAndGet();
 
-        return new ActionResult("ok", "secret updated");
+        return result;
+    }
+
+    private boolean validateCurrentClientSecret(String clientSecret) {
+        if(clientSecret != null && clientSecret.split(" ").length != 1){
+            return false;
+        }
+        return true;
     }
 
     @ExceptionHandler(InvalidClientDetailsException.class)

@@ -317,7 +317,7 @@ public class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkRevocationSignature(String currentHash) {
+    public TokenValidation checkRevocationSignature(List<String> revocableSignatureList) {
         if(!decoded) {
             addError("Token does not bear a revocation hash.");
             return this;
@@ -335,8 +335,15 @@ public class TokenValidation {
             return this;
         }
 
-        if(revocableHashSignature == null || !revocableHashSignature.equals(currentHash)) {
-            validationErrors.add(new TokenRevokedException(token));
+        boolean hashMatched = false;
+        for (String revocableSignature : revocableSignatureList) {
+            if(revocableHashSignature.equals(revocableSignature)){
+                hashMatched = true;
+                break;
+            }
+        }
+        if(revocableHashSignature == null || !hashMatched) {
+            validationErrors.add(new TokenRevokedException("revocable signature mismatch"));
         }
         return this;
     }

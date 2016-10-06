@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -44,6 +45,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -55,6 +57,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.core.Is.is;
@@ -67,9 +70,11 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -926,6 +931,67 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testAddNewClientSecret() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,clients.secret");
+        String id = generator.generate();
+        ClientDetails client = createClient(token, id, Collections.singleton("client_credentials"));
+        SecretChangeRequest request = new SecretChangeRequest();
+        request.setSecret("password2");
+        request.setChangeMode(ADD);
+        MockHttpServletResponse response = getMockMvc().perform(put("/oauth/clients/{client_id}/secret", client.getClientId())
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request)))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
+
+        ActionResult actionResult = JsonUtils.readValue(response.getContentAsString(), ActionResult.class);
+        assertEquals("ok", actionResult.getStatus());
+        assertEquals("Secret is added", actionResult.getMessage());
+
+        verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
+        assertEquals(SecretChangeEvent.class, captor.getValue().getClass());
+        SecretChangeEvent event = (SecretChangeEvent) captor.getValue();
+        assertEquals(id, event.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
+    public void testAddMoreThanTwoClientSecret() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,clients.secret");
+        String id = generator.generate();
+        ClientDetails client = createClient(token, id, Collections.singleton("client_credentials"));
+        SecretChangeRequest request = new SecretChangeRequest();
+        request.setSecret("password2");
+        request.setChangeMode(ADD);
+        getMockMvc().perform(put("/oauth/clients/{client_id}/secret", client.getClientId())
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request)))
+            .andExpect(status().isOk());
+
+        request.setSecret("password3");
+        getMockMvc().perform(put("/oauth/clients/{client_id}/secret", client.getClientId())
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request)))
+            .andExpect(status().isBadRequest());
+
+        verify(applicationEventPublisher, times(3)).publishEvent(captor.capture());
+        assertEquals(SecretFailureEvent.class, captor.getValue().getClass());
+        SecretFailureEvent event = (SecretFailureEvent) captor.getValue();
+        assertEquals(id, event.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
     public void testSecretChange_UsingAdminClientToken() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
@@ -990,7 +1056,6 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         SecretFailureEvent event = (SecretFailureEvent) captor.getValue();
         assertEquals(client.getClientId(), event.getAuditEvent().getPrincipalId());
     }
-
 
     @Test
     public void testSecretChangeModifyTxApprovalsDeleted() throws Exception {

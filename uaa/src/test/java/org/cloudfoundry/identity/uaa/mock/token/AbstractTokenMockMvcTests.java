@@ -28,13 +28,13 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Before;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -55,7 +55,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
     public static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
-    protected JdbcClientDetailsService clientDetailsService;
+    protected ClientServicesExtension clientDetailsService;
     protected JdbcScimUserProvisioning userProvisioning;
     protected JdbcScimGroupProvisioning groupProvisioning;
     protected JdbcScimGroupMembershipManager groupMembershipManager;
@@ -71,7 +71,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
 
     @Before
     public void setUpContext() throws Exception {
-        clientDetailsService = (JdbcClientDetailsService) getWebApplicationContext().getBean("jdbcClientDetailsService");
+        clientDetailsService = (ClientServicesExtension) getWebApplicationContext().getBean("jdbcClientDetailsService");
         userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");
         groupProvisioning = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");
         groupMembershipManager = (JdbcScimGroupMembershipManager) getWebApplicationContext().getBean("groupMembershipManager");

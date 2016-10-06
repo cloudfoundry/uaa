@@ -134,10 +134,10 @@ public final class UaaTokenUtils {
         return !"client_credentials".equals(claims.get(GRANT_TYPE)) || (claims.get(SUB)!=null && claims.get(SUB) == claims.get(CID));
     }
 
-    public static String getRevocableTokenSignature(ClientDetails client, UaaUser user) {
+    public static String getRevocableTokenSignature(ClientDetails client, String clientSecret, UaaUser user) {
         String[] salts = new String[] {
             client.getClientId(),
-            client.getClientSecret(),
+            clientSecret,
             (String)client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT),
             user == null ? null : user.getId(),
             user == null ? null : user.getPassword(),
