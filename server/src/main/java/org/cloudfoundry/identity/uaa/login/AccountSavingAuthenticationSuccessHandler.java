@@ -14,6 +14,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
@@ -61,7 +64,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         currentUserInformation.setUserId(uaaPrincipal.getId());
         Cookie currentUserCookie;
         try {
-            currentUserCookie = new Cookie("Current-User", URLEncoder.encode(JsonUtils.writeValueAsString(currentUserInformation), "UTF-8"));
+            currentUserCookie = new Cookie("Current-User", URLEncoder.encode(JsonUtils.writeValueAsString(currentUserInformation), UTF_8.name()));
         } catch (UnsupportedEncodingException e) {
             throw new IllegalArgumentException(e);
         }
