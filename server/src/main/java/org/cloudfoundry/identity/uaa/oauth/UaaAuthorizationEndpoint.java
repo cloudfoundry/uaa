@@ -175,11 +175,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
                   "A redirectUri must be either supplied or preconfigured in the ClientDetails");
             }
 
-            if ( "none".equals(parameters.get("prompt"))) {
+            boolean isAuthenticated = (principal instanceof Authentication) && ((Authentication) principal).isAuthenticated();
+
+            if (!isAuthenticated && "none".equals(parameters.get("prompt"))) {
                 return new ModelAndView(new RedirectView(resolvedRedirect));
             }
 
-            if (!(principal instanceof Authentication) || !((Authentication) principal).isAuthenticated()) {
+            if (!isAuthenticated) {
                 throw new InsufficientAuthenticationException(
                     "User must be authenticated with Spring Security before authorization can be completed.");
             }

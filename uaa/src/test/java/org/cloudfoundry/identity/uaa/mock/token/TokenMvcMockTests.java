@@ -962,13 +962,25 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     public void testImplicitGrantWithFragmentInRedirectURL() throws Exception {
         String redirectUri = "https://example.com/dashboard/?appGuid=app-guid#test";
-        testImplicitGrantRedirectUri(redirectUri);
+        testImplicitGrantRedirectUri(redirectUri, false);
     }
 
     @Test
     public void testImplicitGrantWithNoFragmentInRedirectURL() throws Exception {
         String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
-        testImplicitGrantRedirectUri(redirectUri);
+        testImplicitGrantRedirectUri(redirectUri, false);
+    }
+
+    @Test
+    public void testImplicitGrantWithFragmentInRedirectURLAndNoPrompt() throws Exception {
+        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid#test";
+        testImplicitGrantRedirectUri(redirectUri, true);
+    }
+
+    @Test
+    public void testImplicitGrantWithNoFragmentInRedirectURLAndNoPrompt() throws Exception {
+        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
+        testImplicitGrantRedirectUri(redirectUri, true);
     }
 
     @Test
@@ -1020,7 +1032,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ).andExpect(status);
     }
 
-    protected void testImplicitGrantRedirectUri(String redirectUri) throws Exception {
+    protected void testImplicitGrantRedirectUri(String redirectUri, boolean noPrompt) throws Exception {
         String clientId = "authclient-"+new RandomValueStringGenerator().generate();
         String scopes = "openid";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
@@ -1040,6 +1052,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
+
+        if(noPrompt) { authRequest = authRequest.param("prompt", "none"); }
 
         MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
@@ -1101,7 +1115,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotEquals(token.get("access_token"), token.get("id_token"));
         validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
 
-        //implicit grant - request for id_token using our old-style direct authentication
+        //request for id_token using our old-style direct authentication
         //this returns a redirect with a fragment in the URL/Location header
         String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", username, SECRET);
         oauthTokenPost = post("/oauth/authorize")
