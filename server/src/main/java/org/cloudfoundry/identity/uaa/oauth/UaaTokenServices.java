@@ -1203,19 +1203,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return null;
     }
 
-    public void setIssuer(String issuer) {
+    public void setIssuer(String issuer) throws URISyntaxException {
+        Assert.notNull(issuer);
+        UaaTokenUtils.constructTokenEndpointUrl(issuer);
         this.issuer = issuer;
     }
 
     public String getTokenEndpoint() {
-        if(issuer == null){
-            return null;
-        }
         try {
             return UaaTokenUtils.constructTokenEndpointUrl(issuer);
         } catch (URISyntaxException e) {
             logger.error("Failed to get token endpoint for issuer " + issuer, e);
-            return null;
+            throw new IllegalArgumentException(e);
         }
     }
 

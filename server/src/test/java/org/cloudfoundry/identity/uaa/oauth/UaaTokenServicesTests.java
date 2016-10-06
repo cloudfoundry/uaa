@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.collections.map.HashedMap;
+import org.apache.commons.lang.IllegalClassException;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -71,13 +72,17 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
+import org.springframework.util.ReflectionUtils;
 
+import java.lang.reflect.Field;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -325,6 +330,37 @@ public class UaaTokenServicesTests {
         IdentityZoneHolder.clear();
         tokens.clear();
     }
+
+    @Test
+    public void null_issuer_should_fail() throws URISyntaxException {
+        tokenServices = new UaaTokenServices();
+        tokenServices.setClientDetailsService(mock(ClientDetailsService.class));
+        try {
+            tokenServices.afterPropertiesSet();
+            fail();
+        } catch (IllegalArgumentException x) {
+            assertTrue(x.getMessage().contains("issuer must be set"));
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void do_not_allow_set_of_null_issuer() throws URISyntaxException {
+        tokenServices.setIssuer(null);
+    }
+
+    @Test(expected = URISyntaxException.class)
+    public void do_not_allow_set_of_non_url_issuer() throws URISyntaxException {
+        tokenServices.setIssuer("some bla bla bla");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getTokenEndpoint_Fails_If_Issuer_Is_Wrong() throws Exception {
+        Field field = UaaTokenServices.class.getDeclaredField("issuer");
+        field.setAccessible(true);
+        ReflectionUtils.setField(field, tokenServices, "adasdas");
+        tokenServices.getTokenEndpoint();
+    }
+
 
     @Test
     public void is_opaque_token_required() {
