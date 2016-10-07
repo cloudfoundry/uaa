@@ -3,10 +3,6 @@
 <head>
   <script type="application/javascript">
     /* <![CDATA[ */
-    var userId;
-    if (!window.location.hash || window.location.hash === '' || window.location.hash === '#') userId = '~';
-    else userId = window.location.hash.substring(1);
-
     var sessionFrame;
     var messageDiv;
 
@@ -25,6 +21,7 @@
     }
 
     function sendSameUser() {
+      var userId = getUserId();
       sessionFrame.contentWindow.postMessage('testClient ' + userId, '*');
     }
 
@@ -33,7 +30,13 @@
     }
 
     function sendWrongClient() {
+      var userId = getUserId();
       sessionFrame.contentWindow.postMessage('wrongClient ' + userId, '*');
+    }
+
+    function getUserId() {
+      if (!window.location.hash || window.location.hash === '' || window.location.hash === '#') return '~';
+      else return window.location.hash.substring(1);
     }
     /* ]]> */
   </script>
