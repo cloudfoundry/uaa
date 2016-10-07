@@ -309,7 +309,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
     protected String getGrantType(Set<String> responseTypes) {
         if (responseTypes.contains("token")) {
             return "implicit";
-        } else {
+        }
+        if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
+            return "implicit";
+        } else{
             return "authorization_code";
         }
     }
