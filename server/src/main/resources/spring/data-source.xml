@@ -16,9 +16,11 @@
     xmlns="http://www.springframework.org/schema/beans"
     xmlns:cloud="http://www.springframework.org/schema/cloud"
     xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:context="http://www.springframework.org/schema/context"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
         http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
-        http://www.springframework.org/schema/cloud http://www.springframework.org/schema/cloud/spring-cloud.xsd">
+        http://www.springframework.org/schema/cloud http://www.springframework.org/schema/cloud/spring-cloud.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
     <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">
         <property name="dataSource" ref="dataSource"/>
@@ -98,10 +100,7 @@
     </beans>
 
     <beans profile="cloud">
-        <cloud:data-source id="dataSource">
-            <cloud:pool
-                max-wait-time="${database.maxwaittime:60000}"
-                pool-size="${database.maxactive:100}" />
-        </cloud:data-source>
+        <context:annotation-config/>
+        <bean class="org.cloudfoundry.identity.uaa.db.CloudDataSourceConfig" />
     </beans>
 </beans>
