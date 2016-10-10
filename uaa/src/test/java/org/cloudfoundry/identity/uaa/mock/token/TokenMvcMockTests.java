@@ -1075,7 +1075,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(string.indexOf(substring), string.lastIndexOf(substring));
     }
 
-
     @Test
     public void testOpenIdToken() throws Exception {
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
@@ -1394,6 +1393,27 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(token.get("id_token"));
         assertNotNull(token.get("access_token"));
         validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+        state = generator.generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "id_token")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, implicitClientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertNotNull(token.get("id_token"));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
     }
 
     private void validateOpenIdConnectToken(String token, String userId, String clientId) {
