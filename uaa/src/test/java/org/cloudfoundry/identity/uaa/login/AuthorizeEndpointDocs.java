@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
@@ -56,7 +58,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client").attributes(key("constraints").value("Required"), key("type").value(STRING));
     private final ParameterDescriptor scopesParameter = parameterWithName(SCOPE).description("requested scopes, space-delimited").attributes(key("constraints").value("Optional"), key("type").value(STRING));
     private final ParameterDescriptor redirectParameter = parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied), optional if pre-registered by the client").attributes(key("constraints").value("Optional"), key("type").value(STRING));
-    private final ParameterDescriptor promptParameter = parameterWithName("prompt").description("specifies whether to prompt for user authentication. Only value `none` is supported.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
+    private final ParameterDescriptor promptParameter = parameterWithName(ID_TOKEN_HINT_PROMPT).description("specifies whether to prompt for user authentication. Only value `"+ID_TOKEN_HINT_PROMPT_NONE+"` is supported.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
     private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).attributes(key("constraints").value("Required"), key("type").value(STRING));
 
     private UsernamePasswordAuthenticationToken principal;
@@ -210,7 +212,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
           .param(RESPONSE_TYPE, "token")
           .param(CLIENT_ID, "app")
           .param(SCOPE, "openid")
-          .param("prompt", "none")
+          .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE)
           .param(REDIRECT_URI, "http://localhost:8080/app/");
 
         Snippet requestParameters = requestParameters(

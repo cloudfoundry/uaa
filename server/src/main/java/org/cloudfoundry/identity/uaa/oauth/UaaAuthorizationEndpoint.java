@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -79,6 +80,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 
 /**
  * Authorization endpoint that returns id_token's if requested.
@@ -177,7 +180,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
             boolean isAuthenticated = (principal instanceof Authentication) && ((Authentication) principal).isAuthenticated();
 
-            if (!isAuthenticated && "none".equals(parameters.get("prompt"))) {
+            if (!isAuthenticated && ID_TOKEN_HINT_PROMPT_NONE.equals(parameters.get(TokenConstants.ID_TOKEN_HINT_PROMPT))) {
                 return new ModelAndView(new RedirectView(resolvedRedirect));
             }
 
