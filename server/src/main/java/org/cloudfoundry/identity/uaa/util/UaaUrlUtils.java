@@ -91,6 +91,12 @@ public abstract class UaaUrlUtils {
         }
     }
 
+    public static String addQueryParameter(String url, String name, String value) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url);
+        builder.queryParam(name,value);
+        return builder.build().toUriString();
+    }
+
     public static String addSubdomainToUrl(String url) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
         builder.host(getSubdomain() + builder.build().getHost());

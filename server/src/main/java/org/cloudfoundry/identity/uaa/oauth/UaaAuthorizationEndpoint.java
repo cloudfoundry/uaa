@@ -15,8 +15,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
-import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -81,6 +81,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 
 /**
@@ -130,8 +131,11 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
     @RequestMapping(value = "/oauth/authorize")
-    public ModelAndView authorize(Map<String, Object> model, @RequestParam Map<String, String> parameters,
-                                  SessionStatus sessionStatus, Principal principal, HttpServletRequest request) {
+    public ModelAndView authorize(Map<String, Object> model,
+                                  @RequestParam Map<String, String> parameters,
+                                  SessionStatus sessionStatus,
+                                  Principal principal,
+                                  HttpServletRequest request) {
 
         ClientDetails client;
         String clientId;
@@ -154,7 +158,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         Set<String> responseTypes = authorizationRequest.getResponseTypes();
-        String grantType = getGrantType(responseTypes);
+        String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
         if (!supported_response_types.containsAll(responseTypes)) {
             throw new UnsupportedResponseTypeException("Unsupported response types: " + responseTypes);
@@ -180,8 +184,8 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
             boolean isAuthenticated = (principal instanceof Authentication) && ((Authentication) principal).isAuthenticated();
 
-            if (!isAuthenticated && ID_TOKEN_HINT_PROMPT_NONE.equals(parameters.get(TokenConstants.ID_TOKEN_HINT_PROMPT))) {
-                return new ModelAndView(new RedirectView(resolvedRedirect));
+            if (!isAuthenticated && ID_TOKEN_HINT_PROMPT_NONE.equals(parameters.get(ID_TOKEN_HINT_PROMPT))) {
+                return new ModelAndView(new RedirectView(UaaUrlUtils.addQueryParameter(resolvedRedirect, "error","login_required")));
             }
 
             if (!isAuthenticated) {
@@ -270,7 +274,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
         try {
             Set<String> responseTypes = authorizationRequest.getResponseTypes();
-            String grantType = getGrantType(responseTypes);
+            String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
             authorizationRequest.setApprovalParameters(approvalParameters);
             authorizationRequest = userApprovalHandler.updateAfterApproval(authorizationRequest,
@@ -309,15 +313,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     }
 
-    protected String getGrantType(Set<String> responseTypes) {
+    protected String deriveGrantTypeFromResponseType(Set<String> responseTypes) {
         if (responseTypes.contains("token")) {
             return "implicit";
-        }
-        if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
+        } else if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
             return "implicit";
-        } else{
-            return "authorization_code";
         }
+        return "authorization_code";
     }
 
     // We need explicit approval from the user.

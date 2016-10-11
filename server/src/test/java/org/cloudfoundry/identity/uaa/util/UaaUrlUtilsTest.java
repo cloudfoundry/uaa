@@ -215,6 +215,18 @@ public class UaaUrlUtilsTest {
         assertThat(matchingRedirectUri5, equalTo(fallback));
     }
 
+    @Test
+    public void test_add_query_parameter() {
+        String url = "http://sub.domain.com";
+        String name = "name";
+        String value = "value";
+        assertEquals("http://sub.domain.com?name=value", UaaUrlUtils.addQueryParameter(url, name, value));
+        assertEquals("http://sub.domain.com/?name=value", UaaUrlUtils.addQueryParameter(url+"/", name, value));
+        assertEquals("http://sub.domain.com?key=value&name=value", UaaUrlUtils.addQueryParameter(url+"?key=value", name, value));
+        assertEquals("http://sub.domain.com?key=value&name=value#frag=fragvalue", UaaUrlUtils.addQueryParameter(url+"?key=value#frag=fragvalue", name, value));
+        assertEquals("http://sub.domain.com?name=value#frag=fragvalue", UaaUrlUtils.addQueryParameter(url+"#frag=fragvalue", name, value));
+    }
+
     private void setIdentityZone(String subdomain) {
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         IdentityZoneHolder.set(zone);
