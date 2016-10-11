@@ -16,6 +16,8 @@ import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -31,6 +33,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -43,6 +46,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Collections.emptyList;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.util.StringUtils.isEmpty;
 
@@ -97,6 +101,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         redirectUri = change.getRedirectUri();
 
         ScimUser user = scimUserProvisioning.retrieve(userId);
+        UaaUser uaaUser = getUaaUser(user);
+        Authentication authentication = new UaaAuthentication(new UaaPrincipal(uaaUser), emptyList(), null);
         try {
             if (isUserModified(user, expiringCode.getExpiresAt(), userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
@@ -108,7 +114,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                 throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
             scimUserProvisioning.changePassword(userId, null, newPassword);
-            publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
+            publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
 
             String redirectLocation = "home";
             if (!isEmpty(clientId) && !isEmpty(redirectUri)) {
@@ -124,7 +130,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             }
             return new ResetPasswordResponse(user, redirectLocation, clientId);
         } catch (Exception e) {
-            publish(new PasswordChangeFailureEvent(e.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
+
+            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication));
             throw e;
         }
     }
