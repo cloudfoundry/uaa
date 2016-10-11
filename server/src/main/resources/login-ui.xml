@@ -123,6 +123,24 @@
         <csrf disabled="true"/>
     </http>
 
+    <bean id="resetPasswordEntryPoint" class="org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationEntryPoint"/>
+    <bean id="resetPasswordAuthenticationFilter" class="org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationFilter">
+        <constructor-arg name="entryPoint" ref="resetPasswordEntryPoint"/>
+        <constructor-arg name="handler" ref="accountSavingAuthenticationSuccessHandler"/>
+        <constructor-arg name="service" ref="resetPasswordService"/>
+    </bean>
+    <http name="resetPasswordSubmit"
+          pattern="/reset_password.do"
+          disable-url-rewriting="true"
+          entry-point-ref="loginEntryPoint"
+          use-expressions="false"
+          xmlns="http://www.springframework.org/schema/security">
+        <custom-filter ref="userManagementSecurityFilter" before="ANONYMOUS_FILTER"/>
+        <custom-filter ref="resetPasswordAuthenticationFilter" position="LAST"/>
+        <csrf disabled="false"/>
+        <access-denied-handler ref="loginEntryPoint"/>
+    </http>
+
     <http name="resetPasswordSecurity"
           pattern="/reset_password**"
           disable-url-rewriting="true"
@@ -220,7 +238,9 @@
         <property name="secure" value="${require_https:false}" />
     </bean>
 
-    <bean id="accountSavingAuthenticationSuccessHandler" class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler" />
+    <bean id="accountSavingAuthenticationSuccessHandler" class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler">
+        <property name="redirectingHandler" ref="successRedirectHandler"/>
+    </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
         <constructor-arg index="0" ref="logoutHandler"/>
@@ -462,7 +482,7 @@
     </bean>
 
     <!-- Handler deciding where to redirect user after successful login -->
-    <bean id="successRedirectHandler" class="org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler" />
+    <bean id="successRedirectHandler" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler" />
 
     <bean id="openIdUserDetailsService" class="org.cloudfoundry.identity.uaa.account.OpenIdUserDetailsService" />
 
