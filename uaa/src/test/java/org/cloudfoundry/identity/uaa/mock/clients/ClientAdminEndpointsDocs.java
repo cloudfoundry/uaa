@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.UPDATE;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
@@ -60,7 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
     private String clientAdminToken;
 
-    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client");
+    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client. To support secret rotation this can be space delimited string of two secrets.");
     private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`");
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id.");
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
@@ -89,7 +89,7 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         fieldWithPath("clientId").required().description(clientIdDescription),
         fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("A valid client secret before updating"),
         fieldWithPath("secret").required().description("The new client secret"),
-        fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `"+ADD+"`, the new `secret` will be added to the existing one to support secret rotation. Currently only two client secrets are supported at any given time.")
+        fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `"+ADD+"`, the new `secret` will be added to the existing one and if the change mode is set to `"+DELETE+"`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
     @Before

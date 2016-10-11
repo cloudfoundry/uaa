@@ -618,6 +618,9 @@ public class UaaTokenServicesTests {
             assertTrue(e.getMessage().contains("revocable signature mismatch"));
         }
         tokenServices.loadAuthentication(accessToken2.getValue());
+
+        OAuth2AccessToken accessToken3 = tokenServices.createAccessToken(authentication);
+        tokenServices.loadAuthentication(accessToken3.getValue());
     }
 
     @Test

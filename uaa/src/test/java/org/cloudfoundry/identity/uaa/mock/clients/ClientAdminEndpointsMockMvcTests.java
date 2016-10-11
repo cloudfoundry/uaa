@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -58,6 +59,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.core.Is.is;
@@ -978,14 +980,86 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk());
 
         request.setSecret("password3");
+        MockHttpServletResponse response = getMockMvc().perform(put("/oauth/clients/{client_id}/secret", client.getClientId())
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request)))
+            .andExpect(status().isBadRequest())
+            .andReturn().getResponse();
+
+        UaaException invalidClientDetailsException = JsonUtils.readValue(response.getContentAsString(), UaaException.class);
+        assertEquals("invalid_client", invalidClientDetailsException.getErrorCode());
+        assertEquals("client secret is either empty or client already has two secrets.", invalidClientDetailsException.getMessage());
+        verify(applicationEventPublisher, times(3)).publishEvent(captor.capture());
+        assertEquals(SecretFailureEvent.class, captor.getValue().getClass());
+        SecretFailureEvent event = (SecretFailureEvent) captor.getValue();
+        assertEquals(id, event.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
+    public void testDeleteClientSecret() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,clients.secret");
+        String id = generator.generate();
+        ClientDetails client = createClient(token, id, Collections.singleton("client_credentials"));
+        SecretChangeRequest request = new SecretChangeRequest();
+        request.setSecret("password2");
+        request.setChangeMode(ADD);
         getMockMvc().perform(put("/oauth/clients/{client_id}/secret", client.getClientId())
             .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(toString(request)))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isOk());
+
+        request = new SecretChangeRequest();
+        request.setChangeMode(DELETE);
+        MockHttpServletResponse response = getMockMvc().perform(put("/oauth/clients/{client_id}/secret", client.getClientId())
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request)))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
+
+        ActionResult actionResult = JsonUtils.readValue(response.getContentAsString(), ActionResult.class);
+        assertNotNull(actionResult);
+        assertEquals("ok", actionResult.getStatus());
+        assertEquals("Secret is deleted", actionResult.getMessage());
 
         verify(applicationEventPublisher, times(3)).publishEvent(captor.capture());
+        assertEquals(SecretChangeEvent.class, captor.getValue().getClass());
+        SecretChangeEvent event = (SecretChangeEvent) captor.getValue();
+        assertEquals(id, event.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
+    public void testDeleteClientSecretForClientWithOneSecret() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,clients.secret");
+        String id = generator.generate();
+        ClientDetails client = createClient(token, id, Collections.singleton("client_credentials"));
+
+        SecretChangeRequest request = new SecretChangeRequest();
+        request.setChangeMode(DELETE);
+        MockHttpServletResponse response = getMockMvc().perform(put("/oauth/clients/{client_id}/secret", client.getClientId())
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request)))
+            .andExpect(status().isBadRequest())
+            .andReturn().getResponse();
+
+        UaaException invalidClientDetailsException = JsonUtils.readValue(response.getContentAsString(), UaaException.class);
+        assertEquals("invalid_client", invalidClientDetailsException.getErrorCode());
+        assertEquals("client secret is either empty or client has only one secret.", invalidClientDetailsException.getMessage());
+
+        verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
         assertEquals(SecretFailureEvent.class, captor.getValue().getClass());
         SecretFailureEvent event = (SecretFailureEvent) captor.getValue();
         assertEquals(id, event.getAuditEvent().getPrincipalId());
