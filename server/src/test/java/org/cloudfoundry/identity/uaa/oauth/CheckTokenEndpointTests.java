@@ -579,6 +579,20 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
+    public void testClientDeleteSecret() {
+        String firstClientSecret = "oldsecret";
+        String secondClientSecret = "newsecret";
+
+        defaultClient.setClientSecret(firstClientSecret + " " +  secondClientSecret);
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        endpoint.checkToken(getAccessToken(), Collections.emptyList());
+
+        defaultClient.setClientSecret(secondClientSecret);
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        endpoint.checkToken(getAccessToken(), Collections.emptyList());
+    }
+
+    @Test
     public void testUserIdInResult() {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList());

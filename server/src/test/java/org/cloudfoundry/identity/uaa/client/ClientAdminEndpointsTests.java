@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -533,6 +534,42 @@ public class ClientAdminEndpointsTests {
         change.setChangeMode(ADD);
         expected.expect(InvalidClientDetailsException.class);
         expected.expectMessage("client secret is either empty or client already has two secrets.");
+        endpoints.changeSecret(detail.getClientId(), change);
+    }
+
+    @Test
+    public void testDeleteSecret() {
+        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+        when(sca.getClientId()).thenReturn("bar");
+        when(sca.isClient()).thenReturn(true);
+        when(sca.isAdmin()).thenReturn(true);
+        setSecurityContextAccessor(sca);
+
+        detail.setClientSecret("hash1 hash2");
+        when(clientDetailsService.retrieve(detail.getClientId())).thenReturn(detail);
+        SecretChangeRequest change = new SecretChangeRequest();
+        change.setChangeMode(DELETE);
+
+        endpoints.changeSecret(detail.getClientId(), change);
+        verify(clientRegistrationService).deleteClientSecret(detail.getClientId());
+    }
+
+    @Test
+    public void testDeleteSecretWhenOnlyOneSecret() {
+        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+        when(sca.getClientId()).thenReturn("bar");
+        when(sca.isClient()).thenReturn(true);
+        when(sca.isAdmin()).thenReturn(true);
+        setSecurityContextAccessor(sca);
+
+        detail.setClientSecret("hash1");
+        when(clientDetailsService.retrieve(detail.getClientId())).thenReturn(detail);
+        SecretChangeRequest change = new SecretChangeRequest();
+        change.setChangeMode(DELETE);
+
+        expected.expect(InvalidClientDetailsException.class);
+        expected.expectMessage("client secret is either empty or client has only one secret.");
+
         endpoints.changeSecret(detail.getClientId(), change);
     }
 

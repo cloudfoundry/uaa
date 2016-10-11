@@ -77,6 +77,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
@@ -514,28 +515,46 @@ public class ClientAdminEndpoints implements InitializingBean {
         }
 
         ActionResult result;
-        if(change.getChangeMode() == ADD) {
-            if(!validateCurrentClientSecret(clientDetails.getClientSecret())) {
-                throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
-            }
+        switch (change.getChangeMode()){
+            case ADD :
+                if(!validateCurrentClientSecretAdd(clientDetails.getClientSecret())) {
+                    throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
+                }
 
-            clientRegistrationService.addClientSecret(client_id, change.getSecret());
-            result = new ActionResult("ok", "Secret is added");
-        } else {
-            clientRegistrationService.updateClientSecret(client_id, change.getSecret());
-            result = new ActionResult("ok", "secret updated");
+                clientRegistrationService.addClientSecret(client_id, change.getSecret());
+                result = new ActionResult("ok", "Secret is added");
+                break;
+
+            case DELETE :
+                if(!validateCurrentClientSecretDelete(clientDetails.getClientSecret())) {
+                    throw new InvalidClientDetailsException("client secret is either empty or client has only one secret.");
+                }
+
+                clientRegistrationService.deleteClientSecret(client_id);
+                result = new ActionResult("ok", "Secret is deleted");
+                break;
+
+            default:
+                clientRegistrationService.updateClientSecret(client_id, change.getSecret());
+                result = new ActionResult("ok", "secret updated");
         }
-
         clientSecretChanges.incrementAndGet();
 
         return result;
     }
 
-    private boolean validateCurrentClientSecret(String clientSecret) {
+    private boolean validateCurrentClientSecretAdd(String clientSecret) {
         if(clientSecret != null && clientSecret.split(" ").length != 1){
             return false;
         }
         return true;
+    }
+
+    private boolean validateCurrentClientSecretDelete(String clientSecret) {
+        if(clientSecret != null && clientSecret.split(" ").length == 2){
+            return true;
+        }
+        return false;
     }
 
     @ExceptionHandler(InvalidClientDetailsException.class)
