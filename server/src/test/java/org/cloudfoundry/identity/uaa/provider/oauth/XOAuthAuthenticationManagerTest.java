@@ -147,7 +147,6 @@ public class XOAuthAuthenticationManagerTest {
         xoAuthAuthenticationManager = new XOAuthAuthenticationManager(provisioning);
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
-        mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate());
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
         claims = map(
             entry("sub", "12345"),
@@ -187,6 +186,9 @@ public class XOAuthAuthenticationManagerTest {
                     "MFswDQYJKoZIhvcNAQEBBQADSgAwRwJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdp\n" +
                     "Y8Ada9pZfxXz1PZSqv9TPTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQAB\n" +
                     "-----END PUBLIC KEY-----");
+
+        mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate(config));
+
     }
 
     @Test
