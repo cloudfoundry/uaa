@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Collections;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,7 +43,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     }
 
     public void setExternalGroupsWhitelist(List<String> externalGroupsWhitelist) {
-        this.externalGroupsWhitelist = new LinkedList<>(externalGroupsWhitelist!=null ? externalGroupsWhitelist : Collections.EMPTY_LIST);
+        this.externalGroupsWhitelist = new LinkedList<>(externalGroupsWhitelist!=null ? externalGroupsWhitelist : emptyList());
     }
 
     @JsonIgnore
@@ -50,7 +52,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     }
 
     public void setAttributeMappings(Map<String, Object> attributeMappings) {
-        this.attributeMappings = new HashMap<>(attributeMappings!=null?attributeMappings:Collections.EMPTY_MAP);
+        this.attributeMappings = new HashMap<>(attributeMappings!=null?attributeMappings: emptyMap());
     }
 
     public Map<String, Object> getAttributeMappings() {
