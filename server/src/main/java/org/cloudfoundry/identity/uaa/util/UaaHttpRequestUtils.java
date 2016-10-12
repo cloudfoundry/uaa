@@ -21,8 +21,21 @@ import static java.util.Arrays.stream;
 
 public abstract class UaaHttpRequestUtils {
 
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation) {
+        ClientHttpRequestFactory clientHttpRequestFactory;
+        if (skipSslValidation) {
+            clientHttpRequestFactory = getNoValidatingClientHttpRequestFactory();
+        } else {
+            clientHttpRequestFactory = getClientHttpRequestFactory();
+        }
+        return clientHttpRequestFactory;
+    }
+
+    public static ClientHttpRequestFactory createRequestFactory() {
+        return createRequestFactory(false);
+    }
+
     public static ClientHttpRequestFactory getNoValidatingClientHttpRequestFactory() {
-        ClientHttpRequestFactory requestFactory;
         SSLContext sslContext;
         try {
             sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
@@ -33,13 +46,15 @@ public abstract class UaaHttpRequestUtils {
         } catch (KeyStoreException e) {
             throw new RuntimeException(e);
         }
-        //
+        // Build the HTTP client from the system properties so that it uses the system proxy settings.
         CloseableHttpClient httpClient =
-                HttpClients.custom()
-                        .setSslcontext(sslContext)
-                        .setRedirectStrategy(new DefaultRedirectStrategy()).build();
+            HttpClients.custom()
+                .useSystemProperties()
+                .setSslcontext(sslContext)
+                .setRedirectStrategy(new DefaultRedirectStrategy())
+                .build();
 
-        requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+        ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
         return requestFactory;
     }
 
@@ -55,5 +70,14 @@ public abstract class UaaHttpRequestUtils {
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static ClientHttpRequestFactory getClientHttpRequestFactory() {
+        CloseableHttpClient httpClient =
+            HttpClients.custom()
+                .useSystemProperties()
+                .setRedirectStrategy(new DefaultRedirectStrategy())
+                .build();
+        return new HttpComponentsClientHttpRequestFactory(httpClient);
     }
 }

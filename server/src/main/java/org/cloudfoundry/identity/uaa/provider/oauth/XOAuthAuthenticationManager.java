@@ -66,11 +66,10 @@ import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
-import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getNoValidatingClientHttpRequestFactory;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
-    private RestTemplate restTemplate = new RestTemplate();
     private IdentityProviderProvisioning providerProvisioning;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
@@ -259,9 +258,41 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return false;
     }
 
-    public RestTemplate getRestTemplate() {
-        return restTemplate;
+    /*
+     * BEGIN
+     * The following thread local only exists to satisfy that the unit test
+     * that require the template to be bound to the mock server
+     */
+    public static class RestTemplateHolder {
+        private final RestTemplate skipSslValidationTemplate;
+        private final RestTemplate restTemplate;
+
+        public RestTemplateHolder() {
+            skipSslValidationTemplate = new RestTemplate(createRequestFactory(true));
+            restTemplate = new RestTemplate(createRequestFactory(false));
+        }
+
+        public RestTemplate getRestTemplate(boolean skipSslValidation) {
+            return skipSslValidation ? skipSslValidationTemplate : restTemplate;
+        }
     }
+
+    private ThreadLocal<RestTemplateHolder> restTemplateHolder = new ThreadLocal<RestTemplateHolder>() {
+        @Override
+        protected RestTemplateHolder initialValue() {
+            return new RestTemplateHolder();
+        }
+    };
+
+    public RestTemplate getRestTemplate(AbstractXOAuthIdentityProviderDefinition config) {
+        return restTemplateHolder.get().getRestTemplate(config.isSkipSslValidation());
+    }
+
+    /*
+     * END
+     * The following thread local only exists to satisfy that the unit test
+     * that require the template to be bound to the mock server
+     */
 
     private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
@@ -301,7 +332,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         headers.add("Authorization", getClientAuthHeader(config));
         headers.add("Accept", "application/json");
         HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
-        ResponseEntity<Map<String, Object>> responseEntity = restTemplate.exchange(tokenKeyUrl, HttpMethod.GET, tokenKeyRequest, new ParameterizedTypeReference<Map<String, Object>>() {});
+        ResponseEntity<Map<String, Object>> responseEntity = getRestTemplate(config).exchange(tokenKeyUrl, HttpMethod.GET, tokenKeyRequest, new ParameterizedTypeReference<Map<String, Object>>() {});
         return (String) responseEntity.getBody().get("value");
     }
 
@@ -326,12 +357,17 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
 
         try {
-            if (config.isSkipSslValidation()) {
-                restTemplate.setRequestFactory(getNoValidatingClientHttpRequestFactory());
-            }
-            ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<Map<String, String>>() {});
+            // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
+            // setup by the bean initializer.
+            ResponseEntity<Map<String, String>> responseEntity =
+                getRestTemplate(config)
+                    .exchange(requestUri,
+                              HttpMethod.POST,
+                              requestEntity,
+                              new ParameterizedTypeReference<Map<String, String>>() {}
+                    );
             return responseEntity.getBody().get(ID_TOKEN);
-        } catch (HttpServerErrorException|HttpClientErrorException ex) {
+        } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;
         }
     }
