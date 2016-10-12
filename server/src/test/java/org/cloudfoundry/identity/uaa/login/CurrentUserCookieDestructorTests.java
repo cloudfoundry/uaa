@@ -56,6 +56,14 @@ public class CurrentUserCookieDestructorTests {
         validateCookie();
     }
 
+    @Test
+    public void onAuthenticationFailure_Without_Delegate() throws Exception {
+        AuthenticationException exception = mock(AuthenticationException.class);
+        destructor = new CurrentUserCookieDestructor(null);
+        destructor.onAuthenticationFailure(request, response, exception);
+        validateCookie();
+    }
+
     public void validateCookie() {
         Cookie cookie = response.getCookie("Current-User");
         assertNotNull(cookie);

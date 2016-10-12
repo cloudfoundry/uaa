@@ -333,14 +333,30 @@
         </property>
     </bean>
 
+    <bean id="promptOauthAuthorizeEntryPoint" class="org.cloudfoundry.identity.uaa.oauth.AuthorizePromptNoneEntryPoint">
+        <constructor-arg name="failureHandler">
+            <bean class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieDestructor">
+                <constructor-arg name="delegate">
+                    <null/>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="redirectResolver">
+            <bean class="org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver"/>
+        </constructor-arg>
+
+    </bean>
+
     <http name="promptStatelessTokenApiSecurity"
           disable-url-rewriting="true"
-          entry-point-ref="loginEntryPoint"
+          entry-point-ref="promptOauthAuthorizeEntryPoint"
           use-expressions="false"
           request-matcher-ref="promptOauthAuthorizeApiRequestMatcher"
+          create-session="never"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-        <csrf disabled="false"/>
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <csrf disabled="true"/>
     </http>
 
     <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">

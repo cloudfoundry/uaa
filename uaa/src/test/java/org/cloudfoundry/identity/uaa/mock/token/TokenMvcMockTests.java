@@ -127,6 +127,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -352,18 +353,21 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = new RandomValueStringGenerator().generate();
 
-        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
-          .session(session)
-          .param(OAuth2Utils.RESPONSE_TYPE, "code")
-          .param(OAuth2Utils.STATE, state)
-          .param(OAuth2Utils.CLIENT_ID, clientId)
-          .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
-          .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
-          .andExpect(status().isFound())
-          .andReturn();
+        MvcResult result = getMockMvc().perform(
+            get("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andExpect(status().isFound())
+            .andExpect(cookie().maxAge("Current-User", 0))
+            .andReturn();
 
         String url = result.getResponse().getHeader("Location");
         assertEquals(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "login_required"), url);
+
     }
 
     @Test
@@ -1048,7 +1052,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = new RandomValueStringGenerator().generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-            .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.SCOPE, "openid")
