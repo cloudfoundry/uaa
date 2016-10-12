@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -48,6 +49,8 @@ public class PeriodLockoutPolicyTests {
     private UaaUser joe;
     private long now;
     private PeriodLockoutPolicy policy;
+    private CommonLoginPolicy innerPolicy;
+    private LockoutPolicyRetriever policyRetriever;
     private IdentityProviderProvisioning providerProvisioning;
 
     @Before
@@ -61,8 +64,10 @@ public class PeriodLockoutPolicyTests {
         lockoutPolicy.setCountFailuresWithin(ONE_HOUR);
         lockoutPolicy.setLockoutPeriodSeconds(ONE_HOUR);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(new IdentityProvider());
-        policy = new PeriodLockoutPolicy(as, providerProvisioning);
-        policy.setLockoutPolicy(lockoutPolicy);
+        policyRetriever = new UserLockoutPolicyRetriever(providerProvisioning);
+        innerPolicy = new CommonLoginPolicy(as, policyRetriever, AuditEventType.UserAuthenticationSuccess, AuditEventType.UserAuthenticationFailure);
+        policyRetriever.setDefaultLockoutPolicy(lockoutPolicy);
+        policy = new PeriodLockoutPolicy(innerPolicy);
     }
 
     @Test
@@ -72,7 +77,7 @@ public class PeriodLockoutPolicyTests {
                         new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId())
                         ));
 
-        policy.getLockoutPolicy().setLockoutAfterFailures(2);
+        policyRetriever.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
         assertFalse(policy.isAllowed(joe, mock(Authentication.class)));
     }
 
@@ -84,7 +89,7 @@ public class PeriodLockoutPolicyTests {
                         new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 3, IdentityZone.getUaa().getId())
                         ));
 
-        policy.getLockoutPolicy().setLockoutAfterFailures(2);
+        policy.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
         assertTrue(policy.isAllowed(joe, mock(Authentication.class)));
     }
 
@@ -96,8 +101,8 @@ public class PeriodLockoutPolicyTests {
                         new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5003, IdentityZone.getUaa().getId())
                         ));
 
-        policy.getLockoutPolicy().setLockoutAfterFailures(2);
-        policy.getLockoutPolicy().setLockoutPeriodSeconds(5);
+        policy.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
+        policy.getDefaultLockoutPolicy().setLockoutPeriodSeconds(5);
         // Last failed login is before lockout period
         assertTrue(policy.isAllowed(joe, mock(Authentication.class)));
     }
@@ -109,7 +114,7 @@ public class PeriodLockoutPolicyTests {
                         new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId())
                         ));
 
-        policy.getLockoutPolicy().setLockoutAfterFailures(3);
+        policy.getDefaultLockoutPolicy().setLockoutAfterFailures(3);
         assertTrue(policy.isAllowed(joe, mock(Authentication.class)));
     }
 

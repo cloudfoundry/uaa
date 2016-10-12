@@ -250,16 +250,10 @@ public class BootstrapTests {
         assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
 
         PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getDefaultLockoutPolicy();
         Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(5));
         Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(1200));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
-
-        PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
-        Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(5));
-        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(1200));
-        Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
         TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
         Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(60 * 60 * 12));
@@ -446,23 +440,17 @@ public class BootstrapTests {
         assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
         assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
 
-        PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
-        Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(10));
-        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(7200));
-        Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(600));
-
         PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getDefaultLockoutPolicy();
         Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
         Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
 
         AuthzAuthenticationManager manager = (AuthzAuthenticationManager) context.getBean("uaaUserDatabaseAuthenticationManager");
         PeriodLockoutPolicy accountLoginPolicy = (PeriodLockoutPolicy) manager.getAccountLoginPolicy();
-        assertEquals(2222, accountLoginPolicy.getLockoutPolicy().getCountFailuresWithin());
-        assertEquals(152, accountLoginPolicy.getLockoutPolicy().getLockoutPeriodSeconds());
-        assertEquals(1, accountLoginPolicy.getLockoutPolicy().getLockoutAfterFailures());
+        assertEquals(2222, accountLoginPolicy.getDefaultLockoutPolicy().getCountFailuresWithin());
+        assertEquals(152, accountLoginPolicy.getDefaultLockoutPolicy().getLockoutPeriodSeconds());
+        assertEquals(1, accountLoginPolicy.getDefaultLockoutPolicy().getLockoutAfterFailures());
 
         UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
         Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));

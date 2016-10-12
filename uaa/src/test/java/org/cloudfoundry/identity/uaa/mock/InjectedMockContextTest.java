@@ -119,7 +119,7 @@ public class InjectedMockContextTest implements Contextable {
     }
 
     public class TestClient {
-        private TestClient() {
+        public TestClient() {
         }
 
         public String getClientCredentialsOAuthAccessToken(String username, String password, String scope) throws Exception {
