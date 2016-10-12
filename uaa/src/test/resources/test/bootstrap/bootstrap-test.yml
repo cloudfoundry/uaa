@@ -17,6 +17,7 @@ zones:
 login:
   saml:
     signatureAlgorithm: SHA256
+    wantAssertionSigned: false
   branding:
     companyName: test-company-branding-name
     squareLogo: |

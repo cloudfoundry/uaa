@@ -32,7 +32,6 @@ public class IdentityZoneConfigurationTests {
 
     @Test
     public void test_want_assertion_signed_setters() {
-        definition.getSamlConfig().setRequestSigned(true);
         assertTrue(definition.getSamlConfig().isRequestSigned());
         definition = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), IdentityZoneConfiguration.class);
         assertTrue(definition.getSamlConfig().isRequestSigned());
@@ -42,7 +41,6 @@ public class IdentityZoneConfigurationTests {
 
     @Test
     public void test_request_signed_setters() {
-        definition.getSamlConfig().setWantAssertionSigned(true);
         assertTrue(definition.getSamlConfig().isWantAssertionSigned());
         definition = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), IdentityZoneConfiguration.class);
         assertTrue(definition.getSamlConfig().isWantAssertionSigned());
@@ -53,10 +51,10 @@ public class IdentityZoneConfigurationTests {
     @Test
     public void testDeserialize_Without_SamlConfig() {
         String s = JsonUtils.writeValueAsString(definition);
-        s = s.replace(",\"samlConfig\":{\"requestSigned\":false,\"wantAssertionSigned\":false}","");
+        s = s.replace(",\"samlConfig\":{\"requestSigned\":false,\"wantAssertionSigned\":true}","");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
         assertTrue(definition.getSamlConfig().isRequestSigned());
-        assertFalse(definition.getSamlConfig().isWantAssertionSigned());
+        assertTrue(definition.getSamlConfig().isWantAssertionSigned());
         definition.getSamlConfig().setWantAssertionSigned(true);
         definition.getSamlConfig().setRequestSigned(true);
         s = JsonUtils.writeValueAsString(definition);
@@ -71,4 +69,12 @@ public class IdentityZoneConfigurationTests {
         assertFalse(definition.getSamlConfig().isWantAssertionSigned());
     }
 
+    @Test
+    public void testDeserialize_With_SamlConfig() {
+        String s = JsonUtils.writeValueAsString(definition);
+        s = s.replace("\"wantAssertionSigned\":true","\"wantAssertionSigned\":false");
+        definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
+        assertTrue(definition.getSamlConfig().isRequestSigned());
+        assertFalse(definition.getSamlConfig().isWantAssertionSigned());
+    }
 }

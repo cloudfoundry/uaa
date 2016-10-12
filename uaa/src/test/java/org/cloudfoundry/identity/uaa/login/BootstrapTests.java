@@ -281,7 +281,7 @@ public class BootstrapTests {
 
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
         assertTrue(zoneAwareMetadataGenerator.isRequestSigned());
-        assertFalse(zoneAwareMetadataGenerator.isWantAssertionSigned());
+        assertTrue(zoneAwareMetadataGenerator.isWantAssertionSigned());
 
         CorsFilter corFilter = context.getBean(CorsFilter.class);
 
@@ -359,6 +359,8 @@ public class BootstrapTests {
         assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), zoneConfiguration.getSamlConfig().getPrivateKeyPassword().trim());
 
         assertTrue(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
+        ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
+        assertFalse(zoneAwareMetadataGenerator.isWantAssertionSigned());
 
         assertEquals(
             Arrays.asList(
