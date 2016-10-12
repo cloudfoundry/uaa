@@ -553,8 +553,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setLogout(logout);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "http://localhost/internal-location"))
-              .andExpect(status().isFound())
-              .andExpect(redirectedUrl("http://localhost/internal-location"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://localhost/internal-location"))
                 .andExpect(emptyCurrentUserCookie());
         } finally {
             setLogout(original);

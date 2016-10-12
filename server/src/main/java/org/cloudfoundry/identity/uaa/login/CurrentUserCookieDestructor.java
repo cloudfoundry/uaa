@@ -21,8 +21,9 @@ public class CurrentUserCookieDestructor implements AuthenticationFailureHandler
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         addCookie(response);
-
-        delegate.onAuthenticationFailure(request, response, exception);
+        if (delegate!=null) {
+            delegate.onAuthenticationFailure(request, response, exception);
+        }
     }
 
     @Override

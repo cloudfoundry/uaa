@@ -127,8 +127,11 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
     @RequestMapping(value = "/oauth/authorize")
-    public ModelAndView authorize(Map<String, Object> model, @RequestParam Map<String, String> parameters,
-                                  SessionStatus sessionStatus, Principal principal, HttpServletRequest request) {
+    public ModelAndView authorize(Map<String, Object> model,
+                                  @RequestParam Map<String, String> parameters,
+                                  SessionStatus sessionStatus,
+                                  Principal principal,
+                                  HttpServletRequest request) {
 
         ClientDetails client;
         String clientId;
@@ -151,7 +154,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         Set<String> responseTypes = authorizationRequest.getResponseTypes();
-        String grantType = getGrantType(responseTypes);
+        String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
         if (!supported_response_types.containsAll(responseTypes)) {
             throw new UnsupportedResponseTypeException("Unsupported response types: " + responseTypes);
@@ -176,10 +179,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
 
             boolean isAuthenticated = (principal instanceof Authentication) && ((Authentication) principal).isAuthenticated();
-
-            if (!isAuthenticated && "none".equals(parameters.get("prompt"))) {
-                return new ModelAndView(new RedirectView(resolvedRedirect));
-            }
 
             if (!isAuthenticated) {
                 throw new InsufficientAuthenticationException(
@@ -267,7 +266,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
         try {
             Set<String> responseTypes = authorizationRequest.getResponseTypes();
-            String grantType = getGrantType(responseTypes);
+            String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
             authorizationRequest.setApprovalParameters(approvalParameters);
             authorizationRequest = userApprovalHandler.updateAfterApproval(authorizationRequest,
@@ -306,15 +305,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     }
 
-    protected String getGrantType(Set<String> responseTypes) {
+    protected String deriveGrantTypeFromResponseType(Set<String> responseTypes) {
         if (responseTypes.contains("token")) {
             return "implicit";
-        }
-        if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
+        } else if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
             return "implicit";
-        } else{
-            return "authorization_code";
         }
+        return "authorization_code";
     }
 
     // We need explicit approval from the user.

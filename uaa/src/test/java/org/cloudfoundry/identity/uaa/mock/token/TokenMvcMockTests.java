@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -98,6 +99,8 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCred
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
@@ -126,6 +129,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -351,18 +355,21 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = new RandomValueStringGenerator().generate();
 
-        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
-          .session(session)
-          .param(OAuth2Utils.RESPONSE_TYPE, "code")
-          .param(OAuth2Utils.STATE, state)
-          .param(OAuth2Utils.CLIENT_ID, clientId)
-          .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
-          .param("prompt", "none"))
-          .andExpect(status().isFound())
-          .andReturn();
+        MvcResult result = getMockMvc().perform(
+            get("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andExpect(status().isFound())
+            .andExpect(cookie().maxAge("Current-User", 0))
+            .andReturn();
 
         String url = result.getResponse().getHeader("Location");
-        assertThat(url, containsString(TEST_REDIRECT_URI));
+        assertEquals(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "login_required"), url);
+
     }
 
     @Test
@@ -389,7 +396,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
           .param(OAuth2Utils.STATE, state)
           .param(OAuth2Utils.CLIENT_ID, clientId)
           .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
-          .param("prompt", "none"))
+          .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
           .andExpect(status().isFound())
           .andReturn();
 
@@ -1047,7 +1054,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = new RandomValueStringGenerator().generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-            .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.SCOPE, "openid")
@@ -1055,7 +1061,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
 
-        if(noPrompt) { authRequest = authRequest.param("prompt", "none"); }
+        if (noPrompt) {
+            authRequest = authRequest.param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE);
+        }
 
         MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
