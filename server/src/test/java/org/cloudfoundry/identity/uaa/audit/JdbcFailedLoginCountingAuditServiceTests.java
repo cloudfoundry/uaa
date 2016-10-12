@@ -18,6 +18,10 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.SecretChangeSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationFailure;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -57,8 +61,8 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
-        // Set the created column to 3 hours past
-        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3 * 3600 * 1000));
+        // Set the created column to 25 hours past
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 25 * 3600 * 1000));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
     }
@@ -83,13 +87,57 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
     public void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
-        // Set the created column to one hour past
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        // Set the created column to 2 hour past
         jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3600 * 1000));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "2", "joe"));
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "otherclient", "testman"));
         // Find events within last 2 mins
-        List<AuditEvent> events = auditService.find("1", now - 120 * 1000);
-        assertEquals(1, events.size());
+        List<AuditEvent> userEvents = auditService.find("1", now - 120 * 1000);
+        List<AuditEvent> clientEvents = auditService.find("client", now - 120 * 1000);
+        assertEquals(1, userEvents.size());
+        assertEquals(1, clientEvents.size());
+    }
+    
+    @Test
+    public void clientAuthenticationFailureAuditSucceeds() throws Exception {
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        Thread.sleep(100);
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        List<AuditEvent> events = auditService.find("client", 0);
+        assertEquals(2, events.size());
+        assertEquals("client", events.get(0).getPrincipalId());
+        assertEquals("testman", events.get(0).getData());
+        assertEquals("1.1.1.1", events.get(0).getOrigin());
+    }
+
+    @Test
+    public void clientAuthenticationFailureDeletesOldData() throws Exception {
+        long now = System.currentTimeMillis();
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+        // Set the created column to 25 hours past
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 25 * 3600 * 1000));
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+    }
+
+    @Test
+    public void clientAuthenticationSuccessResetsData() throws Exception {
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+        auditService.log(getAuditEvent(ClientAuthenticationSuccess, "client", "testman"));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
+    }
+
+    @Test
+    public void clientSecretChangeSuccessResetsData() throws Exception {
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+        auditService.log(getAuditEvent(SecretChangeSuccess, "client", "testman"));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
