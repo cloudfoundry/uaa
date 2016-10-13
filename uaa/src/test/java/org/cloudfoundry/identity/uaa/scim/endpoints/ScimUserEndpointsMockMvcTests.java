@@ -44,16 +44,17 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
@@ -63,15 +64,26 @@ import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
 
 public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
     public static final String HTTP_REDIRECT_EXAMPLE_COM = "http://redirect.example.com";
+    public static final String USER_PASSWORD = "pas5Word";
     private String scimReadWriteToken;
     private String scimCreateToken;
     private String uaaAdminToken;
@@ -373,6 +385,50 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                                         .put("error_description", "Exactly one email must be provided.")
                                         .put("message", "Exactly one email must be provided.")
                                         .put("error", "invalid_scim_resource"))));
+    }
+
+
+    @Test
+    public void patch_user_to_inactive_then_login() throws Exception {
+        ScimUser user = setUpScimUser();
+        user.setVerified(true);
+        boolean active = true;
+        user.setActive(active);
+        getMockMvc().perform(
+            patch("/Users/" + user.getId())
+                .header("Authorization", "Bearer " + scimReadWriteToken)
+                .header("If-Match", "\"" + user.getVersion() + "\"")
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(user)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.active", equalTo(active)));
+
+        performAuthentication(user, true);
+
+        active = false;
+        user.setActive(active);
+        getMockMvc().perform(
+            patch("/Users/" + user.getId())
+                .header("Authorization", "Bearer " + scimReadWriteToken)
+                .header("If-Match", "\"" + (user.getVersion()+1) + "\"")
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(user)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.active", equalTo(active)));
+
+        performAuthentication(user, false);
+
+    }
+
+    public void performAuthentication(ScimUser user, boolean success) throws Exception {
+        getMockMvc().perform(
+            post("/login.do")
+            .accept("text/html")
+            .with(cookieCsrf())
+            .param("username", user.getUserName())
+            .param("password", USER_PASSWORD))
+            .andDo(print())
+            .andExpect(success ? authenticated() : unauthenticated());
     }
 
     @Test
@@ -889,7 +945,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
             joel.setVerified(false);
             joel.addEmail(email);
-            joel = usersRepository.createUser(joel, "pas5Word");
+            joel = usersRepository.createUser(joel, USER_PASSWORD);
             return joel;
         } finally {
             IdentityZoneHolder.set(original);
