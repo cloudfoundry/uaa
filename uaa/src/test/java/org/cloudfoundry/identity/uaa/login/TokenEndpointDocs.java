@@ -72,9 +72,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TokenEndpointDocs extends InjectedMockContextTest {
 
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
-    private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).required().type(STRING).description("the type of token that should be issued.");
-    private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).required().type(STRING).description("a unique string representing the registration information provided by the client, the recipient of the token");
-    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").required().type(STRING).description("the secret passphrase configured for the OAuth client");
+    private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).required().type(STRING).description("The type of token that should be issued.");
+    private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.");
+    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to '"+ OPAQUE+"' to retrieve an opaque and revocable token.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
 
@@ -96,6 +96,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+    private static final HeaderDescriptor CLIENT_BASIC_AUTH_HEADER = headerWithName(HttpHeaders.AUTHORIZATION).optional().description("Client ID and secret may be passed as a basic authorization header, per <a href=\"https://tools.ietf.org/html/rfc6749#section-2.3.1\">RFC 6749</a> or as request parameters.");
 
     private ScimUser user;
 
@@ -127,7 +128,11 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         UriComponents location = UriComponentsBuilder.fromUri(URI.create(authCodeResponse.getHeader("Location"))).build();
         String code = location.getQueryParams().getFirst("code");
 
+        String clientAuthBase64 = new String(org.springframework.security.crypto.codec.Base64.encode(("login:loginsecret".getBytes())));
+        Snippet headerFields = requestHeaders(CLIENT_BASIC_AUTH_HEADER);
+
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+            .header(HttpHeaders.AUTHORIZATION, "Basic "+clientAuthBase64)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "login")
@@ -158,7 +163,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         );
 
         getMockMvc().perform(postForToken)
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), headerFields, requestParameters, responseFields));
     }
 
     @Test
