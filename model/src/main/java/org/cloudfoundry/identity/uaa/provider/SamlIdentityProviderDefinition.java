@@ -81,6 +81,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setAdditionalConfiguration(getAdditionalConfiguration());
         def.setProviderDescription(getProviderDescription());
         def.setGroupMappingMode(getGroupMappingMode());
+        def.setSocketFactoryClassName(getSocketFactoryClassName());
         return def;
     }
 

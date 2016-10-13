@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.DATA;
@@ -58,6 +59,20 @@ public class SamlIdentityProviderDefinitionTests {
     public void test_XML_with_DOCTYPE_Fails() {
         definition.setMetaDataLocation(IDP_METADATA.replace("<?xml version=\"1.0\"?>\n", "<?xml version=\"1.0\"?>\n<!DOCTYPE>"));
         assertEquals(UNKNOWN, definition.getType());
+    }
+
+    @Test
+    public void test_clone() throws Exception {
+        definition.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
+        definition.setSocketFactoryClassName(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY);
+        Field[] fields = SamlIdentityProviderDefinition.class.getDeclaredFields();
+        SamlIdentityProviderDefinition def = definition.clone();
+        for (Field f : fields) {
+            f.setAccessible(true);
+            Object expectedValue = f.get(definition);
+            Object actualValue = f.get(def);
+            assertEquals(f.getName(), expectedValue, actualValue);
+        }
 
     }
 

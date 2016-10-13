@@ -39,6 +39,7 @@ import org.flywaydb.core.internal.util.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -1241,6 +1242,36 @@ public class SamlLoginIT {
         def.setIdpEntityAlias(alias);
         def.setLinkText("Login with Simple SAML PHP("+alias+")");
         return def;
+    }
+
+    public SamlIdentityProviderDefinition getTestURLDefinition() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setZoneId("uaa");
+        def.setMetaDataLocation("https://branding.login.identity.cf-app.com/saml/metadata?random="+new RandomValueStringGenerator().generate());
+        //def.setMetaDataLocation("https://login.run.pivotal.io/saml/metadata");
+        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+        def.setAssertionConsumerIndex(0);
+        def.setMetadataTrustCheck(false);
+        def.setShowSamlLink(true);
+        //def.setSocketFactoryClassName(DEFAULT_HTTPS_SOCKET_FACTORY);
+        String urlAlias = "Test URL Create - "+new RandomValueStringGenerator().generate();
+        def.setIdpEntityAlias(urlAlias);
+        def.setLinkText("Login with Simple SAML PHP("+ urlAlias +")");
+        return def;
+    }
+
+    @Test
+    @Ignore("was used to test self signed URLs - but this test can only be run once")
+    public void test_url_provider() throws  Exception {
+        SamlIdentityProviderDefinition definition = getTestURLDefinition();
+        IntegrationTestUtils.createIdentityProvider(
+            "test saml url provider",
+            OriginKeys.SAML,
+            true,
+            baseUrl,
+            serverRunning,
+            definition
+        );
     }
 
 }
