@@ -33,9 +33,6 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
 
-    public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
-    public static final String DEFAULT_HTTPS_SOCKET_FACTORY = "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";
-
     public enum MetadataLocation {
         URL,
         DATA,
@@ -54,7 +51,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private int assertionConsumerIndex;
     private boolean metadataTrustCheck;
     private boolean showSamlLink;
-    private String socketFactoryClassName;
     private String linkText;
     private String iconUrl;
     private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
@@ -187,34 +183,11 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public String getSocketFactoryClassName() {
-        if (socketFactoryClassName!=null && socketFactoryClassName.trim().length()>0) {
-            return socketFactoryClassName;
-        }
-        if (getMetaDataLocation()==null || getMetaDataLocation().trim().length()==0) {
-            throw new IllegalStateException("Invalid meta data URL[" + getMetaDataLocation() + "] cannot determine socket factory.");
-        }
-        if (getMetaDataLocation().startsWith("https")) {
-            return DEFAULT_HTTPS_SOCKET_FACTORY;
-        } else {
-            return DEFAULT_HTTP_SOCKET_FACTORY;
-        }
+        return null;
     }
 
     public SamlIdentityProviderDefinition setSocketFactoryClassName(String socketFactoryClassName) {
-        if (socketFactoryClassName!=null && socketFactoryClassName.trim().length()>0) {
-            try {
-                Class.forName(
-                    socketFactoryClassName,
-                    true,
-                    Thread.currentThread().getContextClassLoader()
-                );
-            } catch (ClassNotFoundException e) {
-                throw new IllegalArgumentException(e);
-            } catch (ClassCastException e) {
-                throw new IllegalArgumentException(e);
-            }
-        }
-        this.socketFactoryClassName = socketFactoryClassName;
+        //no op
         return this;
     }
 
@@ -283,7 +256,8 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
             ", assertionConsumerIndex=" + assertionConsumerIndex +
             ", metadataTrustCheck=" + metadataTrustCheck +
             ", showSamlLink=" + showSamlLink +
-            ", socketFactoryClassName='" + socketFactoryClassName + '\'' +
+            ", socketFactoryClassName='deprected-not used'" +
+            ", skipSslValidation=" + skipSslValidation +
             ", linkText='" + linkText + '\'' +
             ", iconUrl='" + iconUrl + '\'' +
             ", zoneId='" + zoneId + '\'' +

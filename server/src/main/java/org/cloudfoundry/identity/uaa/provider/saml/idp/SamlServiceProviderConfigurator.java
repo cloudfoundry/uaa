@@ -19,17 +19,18 @@ import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.provider.saml.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.NameIDType;
-import org.opensaml.saml2.metadata.NameIDFormat;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.URI;
@@ -37,16 +38,16 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Arrays;
 
 /**
  * Holds internal state of available SAML Service Providers.
@@ -135,7 +136,7 @@ public class SamlServiceProviderConfigurator {
         }
         return serviceProviders;
     }
-    
+
     /**
      * adds or replaces a SAML service provider for the current zone.
      *
@@ -262,8 +263,12 @@ public class SamlServiceProviderConfigurator {
         extendedMetadata.setAlias(provider.getEntityId());
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
         try {
-            fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(dummyTimer, getClientParams(),
-                    adjustURIForPort(def.getMetaDataLocation()));
+            fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(
+                dummyTimer, getClientParams(),
+                adjustURIForPort(def.getMetaDataLocation()),
+                new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation()))
+
+            );
         } catch (URISyntaxException e) {
             throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);
         }

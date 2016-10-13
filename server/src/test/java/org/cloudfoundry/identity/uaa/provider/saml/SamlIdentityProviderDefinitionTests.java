@@ -13,7 +13,7 @@ import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinit
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.URL;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNull;
 
 public class SamlIdentityProviderDefinitionTests {
 
@@ -64,7 +64,6 @@ public class SamlIdentityProviderDefinitionTests {
     @Test
     public void test_clone() throws Exception {
         definition.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
-        definition.setSocketFactoryClassName(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY);
         definition.setSkipSslValidation(true);
         Field[] fields = SamlIdentityProviderDefinition.class.getDeclaredFields();
         SamlIdentityProviderDefinition def = definition.clone();
@@ -164,20 +163,17 @@ public class SamlIdentityProviderDefinitionTests {
     public void testGetSocketFactoryClassName() throws Exception {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://dadas.dadas.dadas/sdada");
-        assertEquals("org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory", def.getSocketFactoryClassName());
+        assertNull(def.getSocketFactoryClassName());
         def.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
-        assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", def.getSocketFactoryClassName());
+        assertNull(def.getSocketFactoryClassName());
         def.setSocketFactoryClassName("");
-        assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", def.getSocketFactoryClassName());
+        assertNull(def.getSocketFactoryClassName());
         def.setSocketFactoryClassName(null);
-        assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", def.getSocketFactoryClassName());
-        try {
-            def.setSocketFactoryClassName("test.class.that.DoesntExist");
-            fail("ClassNotFound is expected here");
-        } catch (IllegalArgumentException x) {
-            assertEquals(ClassNotFoundException.class, x.getCause().getClass());
-        }
+        assertNull(def.getSocketFactoryClassName());
+        def.setSocketFactoryClassName("test.class.that.DoesntExist");
+        assertNull(def.getSocketFactoryClassName());
         def.setSocketFactoryClassName(StrictSSLProtocolSocketFactory.class.getName());
-        assertEquals(StrictSSLProtocolSocketFactory.class.getName(), def.getSocketFactoryClassName());
+        assertNull(def.getSocketFactoryClassName());
+
     }
 }
