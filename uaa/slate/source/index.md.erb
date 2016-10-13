@@ -146,11 +146,19 @@ _Response Headers_
 
 # Token
 
+The `/oauth/token` endpoint requires client authentication to be accessed. Client Authentication can be passed as 
+as part of the request authorization header, using basic authentication, or as part of the request parameters, using the `client_id` and `client_secret` parameter
+names. 
+
 ## Authorization Code Grant
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-headers.md")).result(binding) %>
 
 _Request Parameters_
 
