@@ -65,6 +65,7 @@ public class SamlIdentityProviderDefinitionTests {
     public void test_clone() throws Exception {
         definition.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
         definition.setSocketFactoryClassName(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY);
+        definition.setSkipSslValidation(true);
         Field[] fields = SamlIdentityProviderDefinition.class.getDeclaredFields();
         SamlIdentityProviderDefinition def = definition.clone();
         for (Field f : fields) {

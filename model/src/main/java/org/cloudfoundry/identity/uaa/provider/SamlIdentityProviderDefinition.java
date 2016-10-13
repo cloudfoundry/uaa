@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.util.StringUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -29,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
 
     public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
@@ -57,6 +58,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String linkText;
     private String iconUrl;
     private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
+    private boolean skipSslValidation = false;
 
     public SamlIdentityProviderDefinition() {}
 
@@ -82,6 +84,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setProviderDescription(getProviderDescription());
         def.setGroupMappingMode(getGroupMappingMode());
         def.setSocketFactoryClassName(getSocketFactoryClassName());
+        def.setSkipSslValidation(isSkipSslValidation());
         return def;
     }
 
@@ -240,6 +243,14 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public SamlIdentityProviderDefinition setZoneId(String zoneId) {
         this.zoneId = zoneId;
         return this;
+    }
+
+    public boolean isSkipSslValidation() {
+        return skipSslValidation;
+    }
+
+    public void setSkipSslValidation(boolean skipSslValidation) {
+        this.skipSslValidation = skipSslValidation;
     }
 
     @Override
