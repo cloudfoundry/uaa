@@ -26,6 +26,7 @@ public class IdentityZoneConfiguration {
 
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
+    private CorsPolicy corsPolicy = new CorsPolicy();
     private Links links = new Links();
     private List<Prompt> prompts = Arrays.asList(
         new Prompt("username", "text", "Email"),
@@ -96,7 +97,14 @@ public class IdentityZoneConfiguration {
     public void setAccountChooserEnabled(boolean accountChooserEnabled) {
         this.accountChooserEnabled = accountChooserEnabled;
     }
+    public CorsPolicy getCorsPolicy() {
+        return corsPolicy;
+    }
 
+    public IdentityZoneConfiguration setCorsPolicy(CorsPolicy corsPolicy) {
+        this.corsPolicy = corsPolicy;
+        return this;
+    }
     public boolean isAccountChooserEnabled() {
         return accountChooserEnabled;
     }
