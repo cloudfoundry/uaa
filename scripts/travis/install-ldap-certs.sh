@@ -1,5 +1,36 @@
 #!/bin/bash
 
+function generate_keystore {
+    # parameters are:
+    # $1 - alias
+    # $2 - validity
+    # $3 - keystore file
+    rm -f $3
+    echo "Generating keystore file for server."
+    keytool -genkey -noprompt \
+        -alias $1 \
+        -dname "CN=Pivotal Test Server, OU=UAA, O=Pivotal Software Inc, L=Pivot, S=The, C=US" \
+        -keystore $3 \
+        -validity $2 \
+        -startdate -2d \
+        -storepass password \
+        -keypass password
+
+    echo "Exporting certificate for client"
+    keytool -export \
+        -storepass password \
+        -keypass password \
+        -keystore $3 \
+        -alias $1 \
+        -file "$3.crt"
+}
+
+function setup_ldap_certs_for_tests {
+    generate_keystore valid-self-signed-ldap-cert 3650 $DIR/valid-self-signed-ldap-cert.jks
+    generate_keystore expired-self-signed-ldap-cert 1 $DIR/expired-self-signed-ldap-cert.jks
+}
+
+
 function install_cert {
     #define the certificate to import
     CERT_FILE=$1
@@ -42,7 +73,8 @@ function install_cert {
     ## END CERTIFICATE INSTALLATION
 }
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-install_cert $DIR/expired-self-signed-ldap-cert.crt expired-self-signed-ldap-cert
-install_cert $DIR/valid-self-signed-ldap-cert.crt valid-self-signed-ldap-cert
+#DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR=/tmp
+setup_ldap_certs_for_tests
+install_cert $DIR/expired-self-signed-ldap-cert.jks.crt expired-self-signed-ldap-cert
+install_cert $DIR/valid-self-signed-ldap-cert.jks.crt valid-self-signed-ldap-cert
