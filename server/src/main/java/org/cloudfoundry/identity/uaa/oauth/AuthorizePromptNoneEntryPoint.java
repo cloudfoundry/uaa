@@ -95,9 +95,7 @@ public class AuthorizePromptNoneEntryPoint implements AuthenticationEntryPoint {
             return;
         }
 
-        response.sendRedirect(addQueryParameter(resolvedRedirect, "error", "login_required"));
         failureHandler.onAuthenticationFailure(request, response, authException);
-
-
+        response.sendRedirect(addQueryParameter(resolvedRedirect, "error", "login_required"));
     }
 }
