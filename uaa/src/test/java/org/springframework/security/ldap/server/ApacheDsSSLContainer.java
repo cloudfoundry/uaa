@@ -134,6 +134,10 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        afterPropertiesSet(getKeystore(getWorkingDirectory()));
+    }
+
+    public void afterPropertiesSet(File keystore) throws Exception {
         server = new LdapServer();
         server.setDirectoryService(service);
         TcpTransport sslTransport = new TcpTransport(sslPort);
@@ -147,7 +151,7 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
         assert server.isEnableLdaps(sslTransport);
         assert !server.isEnableLdaps(tcpTransport);
         server.setCertificatePassword("password");
-        server.setKeystoreFile(getKeystore(getWorkingDirectory()).getAbsolutePath());
+        server.setKeystoreFile(keystore.getAbsolutePath());
         server.addExtendedOperationHandler(new StartTlsHandler());
         start();
     }
