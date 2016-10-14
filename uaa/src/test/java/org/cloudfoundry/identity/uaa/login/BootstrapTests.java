@@ -615,9 +615,14 @@ public class BootstrapTests {
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider = providerProvisioning.retrieveByOrigin("okta-local", IdentityZone.getUaa().getId());
         assertEquals("Test Okta Preview 1 Description", samlProvider.getConfig().getProviderDescription());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED, samlProvider.getConfig().getGroupMappingMode());
+        assertTrue(samlProvider.getConfig().isSkipSslValidation());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = providerProvisioning.retrieveByOrigin("okta-local-2", IdentityZone.getUaa().getId());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES, samlProvider2.getConfig().getGroupMappingMode());
+        assertFalse(samlProvider2.getConfig().isSkipSslValidation());
+
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider3 = providerProvisioning.retrieveByOrigin("vsphere.local", IdentityZone.getUaa().getId());
+        assertTrue(samlProvider3.getConfig().isSkipSslValidation());
 
         CorsFilter filter = context.getBean(CorsFilter.class);
 
