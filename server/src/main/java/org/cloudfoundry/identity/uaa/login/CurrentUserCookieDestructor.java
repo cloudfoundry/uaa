@@ -20,7 +20,7 @@ public class CurrentUserCookieDestructor implements AuthenticationFailureHandler
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        addCookie(response);
+        addCookie(response, request.getContextPath());
         if (delegate!=null) {
             delegate.onAuthenticationFailure(request, response, exception);
         }
@@ -28,13 +28,14 @@ public class CurrentUserCookieDestructor implements AuthenticationFailureHandler
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        addCookie(response);
+        addCookie(response, request.getContextPath());
     }
 
-    private void addCookie(HttpServletResponse response) {
-        Cookie currentUserCookie = new Cookie("Current-User", "");
+    private void addCookie(HttpServletResponse response, String contextPath) {
+        Cookie currentUserCookie = new Cookie("Current-User", null);
         currentUserCookie.setHttpOnly(false);
         currentUserCookie.setMaxAge(0);
+        currentUserCookie.setPath(contextPath);
         response.addCookie(currentUserCookie);
     }
 }

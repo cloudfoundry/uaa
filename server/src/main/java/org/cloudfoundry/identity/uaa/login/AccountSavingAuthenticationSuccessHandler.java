@@ -70,6 +70,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         }
         currentUserCookie.setMaxAge(365*24*60*60);
         currentUserCookie.setHttpOnly(false);
+        currentUserCookie.setPath(request.getContextPath());
 
         response.addCookie(currentUserCookie);
     }
