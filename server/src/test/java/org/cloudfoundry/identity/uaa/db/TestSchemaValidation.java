@@ -27,16 +27,28 @@ public class TestSchemaValidation extends JdbcTestBase {
 
     @Test
     public void test_v2_3_6__That_Users_Perf_Id_Index_Exists() throws Exception {
+        String[] tableNames = {"users", "USERS"};
+        validate_index_existence(tableNames, "user_perf_id");
+    }
+
+    @Test
+    public void test_v3_9_0__That_Users_Perf_Id_Index_Exists() throws Exception {
+        String tableName = "group_membership";
+        validate_index_existence(new String[] {tableName,tableName.toUpperCase()}, "group_membership_perf_idx");
+    }
+
+
+    public void validate_index_existence(String[] tableNames, String lookupIndexName) throws Exception {
+
         Connection connection = dataSource.getConnection();
         try {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundIndex = false;
-            String[] tableNames = {"users", "USERS"};
             for (String tableName : tableNames) {
                 ResultSet rs = meta.getIndexInfo(connection.getCatalog(), null, tableName, false, false);
                 while ((!foundIndex) && rs.next()) {
                     String indexName = rs.getString("INDEX_NAME");
-                    if ("user_perf_id".equalsIgnoreCase(indexName)) {
+                    if (lookupIndexName.equalsIgnoreCase(indexName)) {
                         foundIndex = true;
                     }
                 }
@@ -45,11 +57,9 @@ public class TestSchemaValidation extends JdbcTestBase {
                     break;
                 }
             }
-            assertTrue("I was expecting to find index user_perf_id", foundIndex);
+            assertTrue("I was expecting to find index "+ lookupIndexName, foundIndex);
         } finally {
             connection.close();
         }
-
-
     }
 }
