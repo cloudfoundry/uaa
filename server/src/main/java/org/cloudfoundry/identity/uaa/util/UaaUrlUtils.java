@@ -23,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
 
@@ -94,6 +95,13 @@ public abstract class UaaUrlUtils {
     public static String addQueryParameter(String url, String name, String value) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url);
         builder.queryParam(name,value);
+        return builder.build().toUriString();
+    }
+
+    public static String addFragmentComponent(String urlString, String component) {
+        URI uri = URI.create(urlString);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUri(uri);
+        builder.fragment(StringUtils.hasText(uri.getFragment()) ? uri.getFragment() + "&" + component : component);
         return builder.build().toUriString();
     }
 

@@ -227,6 +227,20 @@ public class UaaUrlUtilsTest {
         assertEquals("http://sub.domain.com?name=value#frag=fragvalue", UaaUrlUtils.addQueryParameter(url+"#frag=fragvalue", name, value));
     }
 
+    @Test
+    public void test_add_fragment_component() {
+        String url = "http://sub.domain.com";
+        String component = "name=value";
+        assertEquals("http://sub.domain.com#name=value", UaaUrlUtils.addFragmentComponent(url, component));
+    }
+
+    @Test
+    public void test_add_fragment_component_to_prior_fragment() {
+        String url = "http://sub.domain.com#frag";
+        String component = "name=value";
+        assertEquals("http://sub.domain.com#frag&name=value", UaaUrlUtils.addFragmentComponent(url, component));
+    }
+
     private void setIdentityZone(String subdomain) {
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         IdentityZoneHolder.set(zone);
