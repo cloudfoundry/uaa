@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,8 +35,6 @@ import static org.junit.Assume.assumeTrue;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class LdapLoginIT {
 
-
-
     @Autowired
     @Rule
     public IntegrationTestRule integrationTestRule;
@@ -59,7 +56,6 @@ public class LdapLoginIT {
 
     ServerRunning serverRunning = ServerRunning.isRunning();
 
-
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         screenShootRule.setWebDriver(webDriver);
@@ -68,30 +64,11 @@ public class LdapLoginIT {
             webDriver.manage().deleteAllCookies();
         }
     }
-
-    @Test
-    @Ignore
-    public void ldapLogin_withValidSelfSignedCert() throws Exception {
-        performLdapLogin("testzone2", "ldaps://52.87.212.253:636/");
-        //assertThat("Unable to verify non expired cert. Did you run:scripts/travis/install-ldap-certs.sh ?", webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone2]!"));
-    }
-
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
         performLdapLogin("testzone2", "ldap://52.87.212.253:389/", true, true);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost","testzone2.localhost"), webDriver);
-//        performLdapLogin("testzone2", "ldap://52.87.212.253:389/", true);
-//        performLdapLogin("testzone2", "ldap://52.20.5.106:389/", true);
-    }
-
-    @Test
-    @Ignore
-    public void ldapLogin_withExpiredSelfSignedCert() throws Exception {
-        performLdapLogin("testzone1", "ldaps://52.20.5.106:636/");
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone1]!"));
-        //assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 
     private void performLdapLogin(String subdomain, String ldapUrl) throws Exception {

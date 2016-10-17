@@ -76,16 +76,18 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
         return useStartTLS;
     }
 
-    public void setUseStartTLS(boolean useStartTLS) {
+    public ApacheDsSSLContainer setUseStartTLS(boolean useStartTLS) {
         this.useStartTLS = useStartTLS;
+        return this;
     }
 
     public String getKeystoreFile() {
         return keystoreFile;
     }
 
-    public void setKeystoreFile(String keystoreFile) {
+    public ApacheDsSSLContainer setKeystoreFile(String keystoreFile) {
         this.keystoreFile = keystoreFile;
+        return this;
     }
 
     public ApacheDsSSLContainer(String root, Resource[] ldifs) throws Exception {
@@ -120,12 +122,13 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
         service.setDenormalizeOpAttrsEnabled(true);
     }
 
-    public void setWorkingDirectory(File workingDir) {
+    public ApacheDsSSLContainer setWorkingDirectory(File workingDir) {
         this.workingDir = workingDir;
         if (!workingDir.mkdirs()) {
             throw new RuntimeException("Unable to create directory:" + workingDir);
         }
         service.setWorkingDirectory(workingDir);
+        return this;
     }
 
     public File getWorkingDirectory() {
@@ -137,7 +140,7 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
         afterPropertiesSet(getKeystore(getWorkingDirectory()));
     }
 
-    public void afterPropertiesSet(File keystore) throws Exception {
+    public ApacheDsSSLContainer afterPropertiesSet(File keystore) throws Exception {
         server = new LdapServer();
         server.setDirectoryService(service);
         TcpTransport sslTransport = new TcpTransport(sslPort);
@@ -154,14 +157,17 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
         server.setKeystoreFile(keystore.getAbsolutePath());
         server.addExtendedOperationHandler(new StartTlsHandler());
         start();
+        return this;
     }
 
-    public void setSslPort(int sslPort) {
+    public ApacheDsSSLContainer setSslPort(int sslPort) {
         this.sslPort = sslPort;
+        return this;
     }
 
-    public void setPort(int port) {
+    public ApacheDsSSLContainer setPort(int port) {
         this.port = port;
+        return this;
     }
 
 
