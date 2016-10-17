@@ -34,8 +34,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
 
+import static java.util.Arrays.stream;
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addFragmentComponent;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -60,6 +62,7 @@ public class AuthorizePromptNoneEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         String clientId = request.getParameter(OAuth2Utils.CLIENT_ID);
         String redirectUri = request.getParameter(OAuth2Utils.REDIRECT_URI);
+        String[] responseTypes = ofNullable(request.getParameter(OAuth2Utils.RESPONSE_TYPE)).map(rt -> rt.split(" ")).orElse(new String[0]);
 
         //client_id is a required parameter
         if (!hasText(clientId)) {
@@ -96,6 +99,8 @@ public class AuthorizePromptNoneEntryPoint implements AuthenticationEntryPoint {
         }
 
         failureHandler.onAuthenticationFailure(request, response, authException);
-        response.sendRedirect(addQueryParameter(resolvedRedirect, "error", "login_required"));
+        boolean implicit = stream(responseTypes).noneMatch("code"::equalsIgnoreCase);
+        String redirectLocation = implicit ? addFragmentComponent(resolvedRedirect, "error=login_required") : addQueryParameter(resolvedRedirect, "error", "login_required");
+        response.sendRedirect(redirectLocation);
     }
 }
