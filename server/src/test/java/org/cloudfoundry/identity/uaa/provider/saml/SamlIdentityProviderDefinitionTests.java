@@ -33,13 +33,6 @@ public class SamlIdentityProviderDefinitionTests {
     }
 
     @Test
-    public void testCloneOfSocketFactoryName() {
-        definition.setSocketFactoryClassName(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY);
-        SamlIdentityProviderDefinition def = definition.clone();
-        assertEquals(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY, def.getSocketFactoryClassName());
-    }
-
-    @Test
     public void testGetType() throws Exception {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("<?xml>");
