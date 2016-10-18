@@ -61,7 +61,6 @@ public class NetworkTestUtils {
     static final String city = "San Francisco";
     static final String state = "CA";
     static final String country = "UA";
-    static final long validity = 1096; // 3 years
     static final String alias = "uaa-test-cert";
     public static final String keyPass = "password";
 
@@ -183,6 +182,7 @@ public class NetworkTestUtils {
         private final int status;
         private final HttpHeaders headers;
         private final String responseBody;
+        private volatile boolean wasInvoked = false;
 
         public SimpleHttpResponseHandler(int status, HttpHeaders headers, String responseBody) {
             this.status = status;
@@ -190,8 +190,13 @@ public class NetworkTestUtils {
             this.responseBody = responseBody;
         }
 
+        public boolean wasInvoked() {
+            return wasInvoked;
+        }
+
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
+            wasInvoked = true;
             HttpsExchange exchange = (HttpsExchange) httpExchange;
             for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
                 for (String value : entry.getValue()) {

@@ -43,7 +43,8 @@ public class UaaHttpRequestUtilsTest {
     private static final String HTTPS_PORT_PROPERTY = "https.proxyPort";
 
     private static Map<String,String> systemProxyConfig = new HashMap<>();
-    private NetworkTestUtils.SimpleHttpResponseHandler responseHandler;
+    private NetworkTestUtils.SimpleHttpResponseHandler httpResponseHandler;
+    private NetworkTestUtils.SimpleHttpResponseHandler httpsResponseHandler;
 
     @BeforeClass
     public static void storeSystemProxyConfig() {
@@ -82,10 +83,11 @@ public class UaaHttpRequestUtilsTest {
         port = sslPort+1;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        responseHandler = new NetworkTestUtils.SimpleHttpResponseHandler(200, headers, "OK");
-        NetworkTestUtils.SimpleHttpResponseHandler handler = responseHandler;
-        httpsServer = NetworkTestUtils.startHttpsServer(sslPort, keystore, NetworkTestUtils.keyPass, handler);
-        httpServer = NetworkTestUtils.startHttpServer(port, handler);
+        httpResponseHandler = new NetworkTestUtils.SimpleHttpResponseHandler(200, headers, "OK");
+        httpsResponseHandler = new NetworkTestUtils.SimpleHttpResponseHandler(200, headers, "OK");
+
+        httpsServer = NetworkTestUtils.startHttpsServer(sslPort, keystore, NetworkTestUtils.keyPass, httpsResponseHandler);
+        httpServer = NetworkTestUtils.startHttpServer(port, httpResponseHandler);
         httpsUrl = "https://localhost:" + sslPort + "/";
         httpUrl = "http://localhost:" + port + "/";
     }
@@ -102,7 +104,7 @@ public class UaaHttpRequestUtilsTest {
         String host = "localhost";
         System.setProperty(HTTP_HOST_PROPERTY, host);
         System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("http://google.com:80/", port, host);
+        testHttpProxy("http://google.com:80/", port, host, true);
     }
 
     @Test
@@ -110,26 +112,26 @@ public class UaaHttpRequestUtilsTest {
         String host = "localhost";
         System.setProperty(HTTPS_HOST_PROPERTY, host);
         System.setProperty(HTTPS_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("https://google.com:443/", port, host);
+        testHttpProxy("https://google.com:443/", port, host, false);
     }
 
     @Test
     public void testHttpIpProxy() throws Exception {
-        String ip = "127.0.1.1";
+        String ip = "127.0.0.1";
         System.setProperty(HTTP_HOST_PROPERTY, ip);
         System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("http://google.com:80/", port, ip);
+        testHttpProxy("http://google.com:80/", port, ip, true);
     }
 
     @Test
     public void testHttpsIpProxy() throws Exception {
-        String ip = "127.0.1.1";
+        String ip = "127.0.0.1";
         System.setProperty(HTTPS_HOST_PROPERTY, ip);
         System.setProperty(HTTPS_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("https://google.com:443/", port, ip);
+        testHttpProxy("https://google.com:443/", port, ip, false);
     }
 
-    public void testHttpProxy(String url, int expectedPort, String expectedHost) throws Exception {
+    public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) throws Exception {
         HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true);
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
@@ -142,6 +144,7 @@ public class UaaHttpRequestUtilsTest {
         assertEquals(1, routePlanner.routes.size());
         assertEquals(expectedHost, routePlanner.routes.get(0).getProxyHost().getHostName());
         assertEquals(expectedPort, routePlanner.routes.get(0).getProxyHost().getPort());
+        assertEquals(wantHandlerInvoked, httpResponseHandler.wasInvoked());
     }
 
     @Test
