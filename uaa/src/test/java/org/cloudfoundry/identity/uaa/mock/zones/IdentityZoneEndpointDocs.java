@@ -265,6 +265,13 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.links.selfService.signup").description(SIGNUP_DESC),
             fieldWithPath("[].config.links.selfService.passwd").description(PASSWD_DESC),
 
+            fieldWithPath("[].config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC),
+            fieldWithPath("[].config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC),
+            fieldWithPath("[].config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC),
+            fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
+            fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
+
+
             fieldWithPath("[].config.prompts[]").type(ARRAY).description(PROMPTS_DESC),
             fieldWithPath("[].config.prompts[].name").description(PROMPTS_DESC),
             fieldWithPath("[].config.prompts[].type").description(PROMPTS_TYPE_DESC),
