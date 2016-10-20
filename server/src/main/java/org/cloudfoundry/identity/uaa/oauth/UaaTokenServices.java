@@ -74,7 +74,6 @@ import org.springframework.security.oauth2.provider.token.AuthorizationServerTok
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -1044,8 +1043,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         Authentication userAuthentication = null;
-        // Is this a user token?
-        if (claims.containsKey(EMAIL)) {
+        // Is this a user token - minimum info is user_id
+        if (claims.containsKey(USER_ID)) {
             UaaUser user = userDatabase.retrieveUserById((String)claims.get(USER_ID));
             UaaPrincipal principal = new UaaPrincipal(user);
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
