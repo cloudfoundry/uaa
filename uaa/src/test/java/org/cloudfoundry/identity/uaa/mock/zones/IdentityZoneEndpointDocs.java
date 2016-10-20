@@ -28,6 +28,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -44,6 +45,10 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String NAME_DESC = "Human-readable zone name";
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";
+    private static final String CLIENT_LOCKOUT_POLICY_DESC = "Various fields pertaining to the lockout policy for clients.";
+    private static final String LOCKOUT_PERIOD_SECONDS_DESC = "Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).";
+    private static final String LOCKOUT_AFTER_FAILURES_DESC = "Number of allowed failures before account is locked (defaults to 5).";
+    private static final String LOCKOUT_COUNT_FAILURES_WITHIN_DESC = "Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).";
     private static final String TOKEN_POLICY_DESC = "Various fields pertaining to the JWT access and refresh tokens.";
     private static final String ACTIVE_KEY_ID_DESC = "The ID for the key that is being used to sign tokens";
     private static final String KEYS_DESC = "Keys which will be used to sign the token";
@@ -107,6 +112,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
+        identityZone.getConfig().getClientLockoutPolicy().setLockoutAfterFailures(5);
+        identityZone.getConfig().getClientLockoutPolicy().setLockoutPeriodSeconds(300);
+        identityZone.getConfig().getClientLockoutPolicy().setCountFailuresWithin(3600);
 
         FieldDescriptor[] fieldDescriptors = {
             fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Optional")),
@@ -115,12 +123,17 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+
             fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
-
+            
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
@@ -237,12 +250,21 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].name").description(NAME_DESC),
             fieldWithPath("[].description").description(DESCRIPTION_DESC),
             fieldWithPath("[].version").description(VERSION_DESC),
+            
+            fieldWithPath("[].config.tokenPolicy").description(TOKEN_POLICY_DESC),
 
             fieldWithPath("[].config.tokenPolicy").description(TOKEN_POLICY_DESC),
             fieldWithPath("[].config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.tokenPolicy.keys").description(KEYS_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
+            
+
+            fieldWithPath("[].config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+
 
             fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
@@ -341,6 +363,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
@@ -478,6 +505,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
+
+            fieldWithPath("config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
+            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),

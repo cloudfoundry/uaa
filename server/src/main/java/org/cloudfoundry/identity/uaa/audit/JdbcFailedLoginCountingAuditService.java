@@ -25,7 +25,7 @@ import javax.sql.DataSource;
  */
 public class JdbcFailedLoginCountingAuditService extends JdbcAuditService {
 
-    private int saveDataPeriodMillis = 2 * 3600 * 1000; // 2hr
+    private int saveDataPeriodMillis = 24 * 3600 * 1000; // 24hr
 
     public JdbcFailedLoginCountingAuditService(DataSource dataSource) {
         super(dataSource);
@@ -51,6 +51,16 @@ public class JdbcFailedLoginCountingAuditService extends JdbcAuditService {
                                 new Timestamp(System.currentTimeMillis()
                                                 - saveDataPeriodMillis));
                 super.log(auditEvent);
+                break;
+            case ClientAuthenticationSuccess:
+            case SecretChangeSuccess:
+                getJdbcTemplate().update("delete from sec_audit where principal_id=?", auditEvent.getPrincipalId());
+                break;
+            case ClientAuthenticationFailure:
+                super.log(auditEvent);
+                getJdbcTemplate().update("delete from sec_audit where created < ?",
+                                new Timestamp(System.currentTimeMillis()
+                                                - saveDataPeriodMillis));
                 break;
             default:
                 break;
