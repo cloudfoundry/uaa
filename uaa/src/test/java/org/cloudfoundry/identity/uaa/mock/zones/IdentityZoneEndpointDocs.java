@@ -59,6 +59,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String PRIVATE_KEY_DESC = "Exposed SAML metadata property. The SAML provider's private key.";
     private static final String PRIVATE_KEY_PASSWORD_DESC = "Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use.";
     private static final String REDIRECT_URL_DESC = "Logout redirect url";
+    private static final String HOMEREDIRECT_URL_DESC = "Overrides the UAA home page and issues a redirect to this URL when the browser requests `/` and `/home`.";
     private static final String REDIRECT_PARAMETER_NAME_DESC = "Changes the name of the redirect parameter";
     private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Whether or not to allow the redirect parameter on logout";
     private static final String WHITELIST_DESC = "List of allowed whitelist redirects";
@@ -72,10 +73,10 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String IDP_DISCOVERY_ENABLED_FLAG = "IDP Discovery should be set to true if you have configured more than one identity provider for UAA. The discovery relies on email domain being set for each additional provider";
     private static final String ACCOUNT_CHOOSER_ENABLED_FLAG = "This flag is required to enable account choosing functionality for IDP discovery page.";
     private static final String BRANDING_COMPANY_NAME_DESC = "This name is used on the UAA Pages and in account management related communication in UAA";
-    private static final String BRANDING_PRODUCT_LOGO_DESC = "This is a base64 encoded PNG image which will be used as the logo on all UAA pages like Login, Sign Up etc.";
+    private static final String BRANDING_PRODUCT_LOGO_DESC = "This is a base64Url encoded PNG image which will be used as the logo on all UAA pages like Login, Sign Up etc.";
     private static final String BRANDING_SQUARE_LOGO_DESC = "This is a base64 encoded PNG image which will be used as the favicon for the UAA pages";
     private static final String BRANDING_FOOTER_LEGAL_TEXT_DESC = "This text appears on the footer of all UAA pages";
-    private static final String BRANDING_FOOTER_LINKS_DESC = "These links appear on the footer of all UAA pages. You may choose to add multiple urls for things like Support, Terms of Service etc.";
+    private static final String BRANDING_FOOTER_LINKS_DESC = "These links (Map<String,String>) appear on the footer of all UAA pages. You may choose to add multiple urls for things like Support, Terms of Service etc.";
 
     private static final String CORS_XHR_ORIGINS_DESC = "`Access-Control-Allow-Origin header`. Indicates whether a resource can be shared based by returning the value of the Origin request header, \"*\", or \"null\" in the response.";
     private static final String CORS_XHR_ORIGIN_PATTERNS_DESC = "Indicates whether a resource can be shared based by returning the value of the Origin patterns.";
@@ -132,6 +133,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
@@ -243,7 +245,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.tokenPolicy.keys").description(KEYS_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
-            fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC),
 
             fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
@@ -255,6 +257,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC),
 
             fieldWithPath("[].config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
+            fieldWithPath("[].config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC),
             fieldWithPath("[].config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
             fieldWithPath("[].config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
             fieldWithPath("[].config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC),
@@ -353,6 +356,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
@@ -490,6 +494,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
+            fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
             fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC),
@@ -539,8 +544,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         branding.setProductLogo("VGVzdFByb2R1Y3RMb2dv");
         branding.setSquareLogo("VGVzdFNxdWFyZUxvZ28=");
         branding.setFooterLegalText("Test footer legal text");
-        branding.setFooterLinks(new HashMap<>());
+        HashMap<String, String> footerLinks = new HashMap<>();
+        footerLinks.put("Support", "http://support.example.com");
+        branding.setFooterLinks(footerLinks);
         config.setBranding(branding);
+        config.getLinks().setHomeRedirect("http://my.hosted.homepage.com/");
         return config;
     }
 }
