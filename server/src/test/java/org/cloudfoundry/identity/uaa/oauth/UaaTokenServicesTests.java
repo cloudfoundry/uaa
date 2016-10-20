@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.lang.IllegalClassException;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -58,7 +57,6 @@ import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -95,6 +93,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
@@ -579,9 +578,10 @@ public class UaaTokenServicesTests {
         tokenServices.loadAuthentication(accessToken.getValue());
 
         //ensure that we can load without user_name claim
-        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME)));
+        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME, ClaimConstants.EMAIL)));
         accessToken = tokenServices.createAccessToken(authentication);
-        tokenServices.loadAuthentication(accessToken.getValue());
+        assertNotNull(tokenServices.loadAuthentication(accessToken.getValue()).getUserAuthentication());
+
     }
 
 
@@ -1625,6 +1625,16 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testReadAccessToken() {
+        readAccessToken(EMPTY_SET);
+    }
+
+    @Test
+    public void testReadAccessToken_No_PII() {
+        readAccessToken(new HashSet<>(Arrays.asList(ClaimConstants.EMAIL, ClaimConstants.USER_NAME)));
+    }
+
+    public void readAccessToken(Set<String> excludedClaims) {
+        tokenServices.setExcludedClaims(excludedClaims);
         AuthorizationRequest authorizationRequest =new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -1651,18 +1661,27 @@ public class UaaTokenServicesTests {
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(updatedAt.getTime()));
+        Approval approval = new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(OPENID)
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime());
         approvalStore.addApproval(
-            new Approval()
-                .setUserId(userId)
-                .setClientId(CLIENT_ID)
-                .setScope(OPENID)
-                .setExpiresAt(expiresAt.getTime())
-                .setStatus(ApprovalStatus.APPROVED)
-                .setLastUpdatedAt(updatedAt.getTime()));
+            approval);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));
+
+        approvalStore.revokeApproval(approval);
+        try {
+            tokenServices.readAccessToken(accessToken.getValue());
+            fail("Approval has been revoked");
+        } catch (InvalidTokenException x) {
+            assertThat("Exception should be about approvals", x.getMessage().contains("some requested scopes are not approved"));
+        }
     }
 
     @Test(expected = InvalidTokenException.class)
