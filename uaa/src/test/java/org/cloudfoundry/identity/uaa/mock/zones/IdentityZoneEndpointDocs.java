@@ -28,6 +28,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -44,11 +45,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String NAME_DESC = "Human-readable zone name";
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";
-    private static final String TOKEN_POLICY_DESC = "Various fields pertaining to the JWT access and refresh tokens.";
     private static final String ACTIVE_KEY_ID_DESC = "The ID for the key that is being used to sign tokens";
     private static final String KEYS_DESC = "Keys which will be used to sign the token";
     private static final String ACCESS_TOKEN_VALIDITY_DESC = "Time in seconds between when a access token is issued and when it expires. Defaults to global `accessTokenValidity`";
     private static final String REFRESH_TOKEN_VALIDITY_DESC = "Time in seconds between when a refresh token is issued and when it expires. Defaults to global `refreshTokenValidity`";
+    private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
     private static final String ASSERTION_SIGNED_DESC = "If `true`, the SAML provider will sign all assertions";
     private static final String WANT_ASSERTION_SIGNED_DESC = "Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.";
     private static final String REQUEST_SIGNED_DESC = "Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.";
@@ -115,11 +116,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
@@ -238,11 +239,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].description").description(DESCRIPTION_DESC),
             fieldWithPath("[].version").description(VERSION_DESC),
 
-            fieldWithPath("[].config.tokenPolicy").description(TOKEN_POLICY_DESC),
             fieldWithPath("[].config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.tokenPolicy.keys").description(KEYS_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
+            fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
@@ -336,11 +337,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
@@ -473,11 +474,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").type(STRING).description(DESCRIPTION_DESC).optional(),
             fieldWithPath("version").description(VERSION_DESC),
 
-            fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC),
             fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
+            fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
