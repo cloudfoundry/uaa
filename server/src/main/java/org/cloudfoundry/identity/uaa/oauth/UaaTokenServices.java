@@ -1081,16 +1081,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
         if (null != scopes && scopes.size() > 0) {
-            token.setScope(new HashSet<String>(scopes));
+            token.setScope(new HashSet<>(scopes));
         }
         String clientId = (String) claims.get(CID);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-        String email = (String) claims.get(EMAIL);
-
+        String userId = (String)claims.get(USER_ID);
         // Only check user access tokens
-        if (null != email) {
-            String userId = (String)claims.get(USER_ID);
-
+        if (null != userId) {
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
