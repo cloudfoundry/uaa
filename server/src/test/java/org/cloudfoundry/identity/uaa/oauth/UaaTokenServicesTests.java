@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.lang.IllegalClassException;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -58,7 +57,6 @@ import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -579,9 +577,10 @@ public class UaaTokenServicesTests {
         tokenServices.loadAuthentication(accessToken.getValue());
 
         //ensure that we can load without user_name claim
-        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME)));
+        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME, ClaimConstants.EMAIL)));
         accessToken = tokenServices.createAccessToken(authentication);
-        tokenServices.loadAuthentication(accessToken.getValue());
+        assertNotNull(tokenServices.loadAuthentication(accessToken.getValue()).getUserAuthentication());
+
     }
 
 
