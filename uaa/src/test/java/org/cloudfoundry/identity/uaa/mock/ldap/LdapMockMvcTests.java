@@ -926,6 +926,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         deleteLdapUsers();
         testAuthenticateWithUTF8Characters();
         deleteLdapUsers();
+        test_username_with_space();
+        deleteLdapUsers();
     }
 
     public ClassPathXmlApplicationContext getBeanContext() {
@@ -997,8 +999,17 @@ public class LdapMockMvcTests extends TestClassNullifier {
         }
     }
 
-    protected void testSuccessfulLogin() throws Exception {
+    public void test_username_with_space() throws Exception {
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+                            .with(cookieCsrf())
+                            .param("username", "marissa 11")
+                            .param("password", "ldap11"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
 
+    }
+
+    protected void testSuccessfulLogin() throws Exception {
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
             .with(cookieCsrf())
             .param("username", "marissa2")
