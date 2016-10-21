@@ -20,6 +20,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
@@ -46,6 +47,7 @@ import static org.junit.Assert.assertSame;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -159,6 +161,29 @@ public class UserTokenGranterTest {
         assertEquals(refreshToken.getValue(), result.getAdditionalInformation().get(JTI));
         assertNull(result.getValue());
         verify(tokenStore).delete(eq(tokenId), anyInt());
+    }
+
+    @Test
+    public void ensure_client_gets_swapped() {
+        granter = new UserTokenGranter(
+            tokenServices,
+            clientDetailsService,
+            requestFactory,
+            tokenStore
+        ) {
+            @Override
+            protected DefaultOAuth2AccessToken prepareForSerialization(DefaultOAuth2AccessToken token) {
+                return null; //override for testing
+            }
+
+            @Override
+            protected Authentication validateRequest(TokenRequest request) {
+                return userAuthentication;
+            }
+        };
+
+        granter.getAccessToken(requestingClient, tokenRequest);
+        verify(clientDetailsService, times(1)).loadClientByClientId(eq(receivingClient.getClientId()));
 
     }
 
@@ -168,8 +193,6 @@ public class UserTokenGranterTest {
     }
 
     protected void missing_parameter(String parameter) {
-        System.out.println("Receiving:"+clientDetailsService.loadClientByClientId(receivingClient.getClientId()));
-        System.out.println("Requesting:"+clientDetailsService.loadClientByClientId(requestingClient.getClientId()));
         tokenRequest.setClientId(receivingClient.getClientId());
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
