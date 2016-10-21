@@ -205,14 +205,19 @@ public class SamlServiceProviderConfigurator {
     public synchronized ExtendedMetadataDelegate removeSamlServiceProvider(String entityId) {
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
                 IdentityZoneHolder.get());
-        return serviceProviders.remove(entityId).getExtendedMetadataDelegate();
+
+        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.remove(entityId);
+        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(String entityId)
             throws MetadataProviderException {
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
                 IdentityZoneHolder.get());
-        return serviceProviders.get(entityId).getExtendedMetadataDelegate();
+
+        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.get(entityId);
+        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
+
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlServiceProvider provider)

@@ -1,22 +1,21 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+
+import java.util.Arrays;
+
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ZoneAwareIdpMetadataManagerTest {
 
@@ -109,6 +108,13 @@ public class ZoneAwareIdpMetadataManagerTest {
         when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone }));
         this.metadataManager.refreshAllProviders();
 
+        assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
+
+        //At this point, the service provider is removed from SamlServiceProviderConfigurator.
+        //Call refreshAllProviders again to test the path when UAA starts up, when the service provider will not exist
+        //in SamlServiceProviderConfigurator.
+        this.metadataManager.refreshAllProviders();
         assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
         assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
     }

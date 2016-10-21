@@ -1,22 +1,10 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderWithoutXmlHeaderInMetadata;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.MOCK_SP_ENTITY_ID;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZoneWithoutSPSSOInMetadata;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import java.util.Map;
-import java.util.Timer;
-import java.util.UUID;
-
 import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,6 +13,18 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+
+import java.util.Map;
+import java.util.Timer;
+import java.util.UUID;
+
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.MOCK_SP_ENTITY_ID;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZoneWithoutSPSSOInMetadata;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderWithoutXmlHeaderInMetadata;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 
 public class SamlServiceProviderConfiguratorTest {
@@ -169,4 +169,15 @@ public class SamlServiceProviderConfiguratorTest {
             conf.addSamlServiceProvider(mockSamlServiceProviderForZoneWithoutSPSSOInMetadata("uaa"));
         assertEquals(delegates.length, 2);
     }
+
+    @Test
+    public void testGetNonExistentServiceProviderMetadata() throws Exception {
+       Assert.assertNull(conf.getExtendedMetadataDelegateFromCache("non-existent-entity-id"));
+    }
+
+    @Test
+    public void testRemoveNonExistentServiceProviderMetadata() throws Exception {
+       Assert.assertNull(conf.removeSamlServiceProvider("non-existent-entity-id"));
+    }
+
 }
