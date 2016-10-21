@@ -46,7 +46,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String NAME_DESC = "Human-readable zone name";
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";
-    private static final String CLIENT_LOCKOUT_POLICY_DESC = "Various fields pertaining to the lockout policy for clients.";
     private static final String LOCKOUT_PERIOD_SECONDS_DESC = "Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).";
     private static final String LOCKOUT_AFTER_FAILURES_DESC = "Number of allowed failures before account is locked (defaults to 5).";
     private static final String LOCKOUT_COUNT_FAILURES_WITHIN_DESC = "Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).";
@@ -126,7 +125,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
@@ -263,7 +261,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC),
 
-            fieldWithPath("[].config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("[].config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("[].config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
@@ -376,7 +373,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
@@ -519,7 +515,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.clientLockoutPolicy").description(CLIENT_LOCKOUT_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
             fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
