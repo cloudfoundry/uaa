@@ -62,8 +62,8 @@ public class LdapCertificateMockMvcTests extends InjectedMockContextTest {
     public static void startLdapsServers() throws Exception {
         File expiredKeystore = new File(System.getProperty("java.io.tmpdir"), "expired-self-signed-ldap-cert.jks");
         File validKeystore = new File(System.getProperty("java.io.tmpdir"), "valid-self-signed-ldap-cert.jks");
-        assertTrue("Did you run scripts/travis/install-ldapcerts.sh?\nFile:" + expiredKeystore.getAbsolutePath() + " should exist.", expiredKeystore.exists() && expiredKeystore.canRead());
-        assertTrue("Did you run scripts/travis/install-ldapcerts.sh?\nFile:" + validKeystore.getAbsolutePath() + " should exist.", validKeystore.exists() && validKeystore.canRead());
+        assertTrue("Did you run scripts/travis/install-ldap-certs.sh?\nFile:" + expiredKeystore.getAbsolutePath() + " should exist.", expiredKeystore.exists() && expiredKeystore.canRead());
+        assertTrue("Did you run scripts/travis/install-ldap-certs.sh?\nFile:" + validKeystore.getAbsolutePath() + " should exist.", validKeystore.exists() && validKeystore.canRead());
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
         LDAP_ROOT_DIRECTORY_VALID = new File(System.getProperty("java.io.tmpdir"), generator.generate());
         LDAP_ROOT_DIRECTORY_EXPIRED = new File(System.getProperty("java.io.tmpdir"), generator.generate());
