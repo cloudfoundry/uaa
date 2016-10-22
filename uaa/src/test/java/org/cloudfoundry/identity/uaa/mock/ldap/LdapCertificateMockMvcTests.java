@@ -32,6 +32,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.util.FileSystemUtils;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -58,34 +59,40 @@ public class LdapCertificateMockMvcTests extends InjectedMockContextTest {
     private MockMvcUtils.IdentityZoneCreationResult trustedCertZone;
     private MockMvcUtils.IdentityZoneCreationResult trustedButExpiredCertZone;
 
+    private static final AtomicBoolean started = new AtomicBoolean(false);
+
     @BeforeClass
     public static void startLdapsServers() throws Exception {
-        File expiredKeystore = new File(System.getProperty("java.io.tmpdir"), "expired-self-signed-ldap-cert.jks");
-        File validKeystore = new File(System.getProperty("java.io.tmpdir"), "valid-self-signed-ldap-cert.jks");
-        assertTrue("Did you run scripts/travis/install-ldap-certs.sh?\nFile:" + expiredKeystore.getAbsolutePath() + " should exist.", expiredKeystore.exists() && expiredKeystore.canRead());
-        assertTrue("Did you run scripts/travis/install-ldap-certs.sh?\nFile:" + validKeystore.getAbsolutePath() + " should exist.", validKeystore.exists() && validKeystore.canRead());
-        RandomValueStringGenerator generator = new RandomValueStringGenerator();
-        LDAP_ROOT_DIRECTORY_VALID = new File(System.getProperty("java.io.tmpdir"), generator.generate());
-        LDAP_ROOT_DIRECTORY_EXPIRED = new File(System.getProperty("java.io.tmpdir"), generator.generate());
-        validLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
-            .setWorkingDirectory(LDAP_ROOT_DIRECTORY_VALID)
-            .setPort(LDAP_VALID_LDAP_PORT)
-            .setSslPort(LDAP_VALID_LDAPS_PORT)
-            .afterPropertiesSet(validKeystore);
+        if (started.compareAndSet(false, true)) {
+            File expiredKeystore = new File(System.getProperty("java.io.tmpdir"), "expired-self-signed-ldap-cert.jks");
+            File validKeystore = new File(System.getProperty("java.io.tmpdir"), "valid-self-signed-ldap-cert.jks");
+            assertTrue("Did you run scripts/travis/install-ldap-certs.sh?\nFile:" + expiredKeystore.getAbsolutePath() + " should exist.", expiredKeystore.exists() && expiredKeystore.canRead());
+            assertTrue("Did you run scripts/travis/install-ldap-certs.sh?\nFile:" + validKeystore.getAbsolutePath() + " should exist.", validKeystore.exists() && validKeystore.canRead());
+            RandomValueStringGenerator generator = new RandomValueStringGenerator();
+            LDAP_ROOT_DIRECTORY_VALID = new File(System.getProperty("java.io.tmpdir"), generator.generate());
+            LDAP_ROOT_DIRECTORY_EXPIRED = new File(System.getProperty("java.io.tmpdir"), generator.generate());
+            validLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
+                .setWorkingDirectory(LDAP_ROOT_DIRECTORY_VALID)
+                .setPort(LDAP_VALID_LDAP_PORT)
+                .setSslPort(LDAP_VALID_LDAPS_PORT)
+                .afterPropertiesSet(validKeystore);
 
-        expiredLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
-            .setWorkingDirectory(LDAP_ROOT_DIRECTORY_EXPIRED)
-            .setPort(LDAP_EXPIRED_LDAP_PORT)
-            .setSslPort(LDAP_EXPIRED_LDAPS_PORT)
-            .afterPropertiesSet(expiredKeystore);
+            expiredLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
+                .setWorkingDirectory(LDAP_ROOT_DIRECTORY_EXPIRED)
+                .setPort(LDAP_EXPIRED_LDAP_PORT)
+                .setSslPort(LDAP_EXPIRED_LDAPS_PORT)
+                .afterPropertiesSet(expiredKeystore);
+        }
 
     }
 
     @AfterClass
     public static void stopLdapsServers() throws Exception {
-        ofNullable(validLdapCertServer).ifPresent(s -> s.stop());
-        ofNullable(expiredLdapCertServer).ifPresent(s -> s.stop());
-        ofNullable(LDAP_ROOT_DIRECTORY_VALID).ifPresent(d -> FileSystemUtils.deleteRecursively(d));
+        if (started.compareAndSet(true,false)) {
+            ofNullable(validLdapCertServer).ifPresent(s -> s.stop());
+            ofNullable(expiredLdapCertServer).ifPresent(s -> s.stop());
+            ofNullable(LDAP_ROOT_DIRECTORY_VALID).ifPresent(d -> FileSystemUtils.deleteRecursively(d));
+        }
     }
 
 
