@@ -223,6 +223,19 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
+    public void getUserWithMultipleExtraAuthorities() {
+        addAuthority("additional", JOE_ID);
+        addAuthority("anotherOne", JOE_ID);
+        UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
+        assertTrue("authorities does not contain uaa.user",
+                joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+        assertTrue("authorities does not contain additional",
+                joe.getAuthorities().contains(new SimpleGrantedAuthority("additional")));
+        assertTrue("authorities does not contain anotherOne",
+                joe.getAuthorities().contains(new SimpleGrantedAuthority("anotherOne")));
+    }
+
+    @Test
     public void getUserWithNestedAuthoritiesWorks() {
         UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
         assertThat(joe.getAuthorities(),

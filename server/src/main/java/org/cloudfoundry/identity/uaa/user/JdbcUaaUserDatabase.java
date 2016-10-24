@@ -179,24 +179,21 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             dynamicAuthoritiesQuery.append("?);");
 
             Object[] parameterList = ArrayUtils.addAll(new Object[]{IdentityZoneHolder.get().getId()},memberIdList.toArray());
-            try {
-                results = jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList);
-                List<String> newMemberIdList = new ArrayList<>();
 
-                for(int i=0;i<results.size();i++)
-                {
-                    Map<String,Object> record = results.get(i);
-                    String displayName = (String)record.get("displayName");
-                    String groupId = (String)record.get("id");
-                    if (!authorities.contains(displayName)) {
-                        authorities.add(displayName);
-                        newMemberIdList.add(groupId);
-                    }
+            results = jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList);
+            List<String> newMemberIdList = new ArrayList<>();
+
+            for(int i=0;i<results.size();i++)
+            {
+                Map<String,Object> record = results.get(i);
+                String displayName = (String)record.get("displayName");
+                String groupId = (String)record.get("id");
+                if (!authorities.contains(displayName)) {
+                    authorities.add(displayName);
+                    newMemberIdList.add(groupId);
                 }
-                getAuthorities(authorities,newMemberIdList);
-            } catch (EmptyResultDataAccessException ex) {
-                return;
             }
+            getAuthorities(authorities,newMemberIdList);
         }
     }
 }
