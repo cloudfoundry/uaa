@@ -105,6 +105,7 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -160,7 +161,7 @@ public final class MockMvcUtils {
     public static MockHttpSession getSavedRequestSession() {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new MockSavedRequest();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         return session;
     }
 

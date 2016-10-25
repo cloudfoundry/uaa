@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -38,6 +38,7 @@ import javax.validation.Valid;
 
 import java.io.IOException;
 
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -107,7 +108,7 @@ public class AccountsController {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         String redirectLocation = accountCreation.getRedirectLocation();
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (redirectLocation.equals(accountCreationService.getDefaultRedirect()) && savedRequest != null && savedRequest.getRedirectUrl() != null) {
             redirectLocation = savedRequest.getRedirectUrl();
         }
