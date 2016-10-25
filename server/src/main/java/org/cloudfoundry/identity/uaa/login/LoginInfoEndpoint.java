@@ -63,7 +63,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.awt.Color;
+import java.awt.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -300,10 +300,10 @@ public class LoginInfoEndpoint {
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
 
         Optional<String> loginHintParam = Optional
-                .ofNullable(session)
-                .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
-                .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
-                .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
+            .ofNullable(session)
+            .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
+            .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
+            .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
 
         if(loginHintParam.isPresent()) {
             String loginHint = loginHintParam.get();
