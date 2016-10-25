@@ -101,7 +101,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.isEmptyString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -190,6 +189,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
             .andExpect(model().attributeExists("prompts"))
             .andExpect(content().string(containsString("/create_account")));
+    }
+
+    @Test
+    public void testLogin_Csrf_MaxAge() throws Exception {
+        getMockMvc()
+            .perform(
+                get("/login"))
+            .andExpect(status().isOk())
+            .andExpect(cookie().maxAge(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, CookieBasedCsrfTokenRepository.DEFAULT_COOKIE_MAX_AGE));
     }
 
     protected void setDisableInternalAuth(boolean disable) throws Exception {
