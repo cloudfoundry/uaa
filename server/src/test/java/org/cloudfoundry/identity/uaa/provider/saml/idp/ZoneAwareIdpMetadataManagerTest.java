@@ -65,9 +65,9 @@ public class ZoneAwareIdpMetadataManagerTest {
         testZone.setId(testZone.getName());
 
         when(providerDao.retrieveAll(false, defaultZone.getId())).thenReturn(Arrays.asList(
-        		new SamlServiceProvider[] { mockSamlServiceProviderForZone(defaultZone.getId()) }));
+                new SamlServiceProvider[] { mockSamlServiceProviderForZone(defaultZone.getId()) }));
         when(providerDao.retrieveAll(false, testZone.getId())).thenReturn(Arrays.asList(
-        		new SamlServiceProvider[] { mockSamlServiceProviderForZone(testZone.getId()) }));
+                new SamlServiceProvider[] { mockSamlServiceProviderForZone(testZone.getId()) }));
         when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone, testZone }));
         this.metadataManager.refreshAllProviders();
         assertEquals(1, configurator.getSamlServiceProvidersForZone(defaultZone).size());

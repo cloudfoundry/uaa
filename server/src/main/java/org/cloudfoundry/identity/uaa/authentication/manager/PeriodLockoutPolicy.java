@@ -14,21 +14,11 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.audit.AuditEvent;
-import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy.Result;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-
-import java.util.List;
 
 /**
  * Locks an account out for a configured period based on the number of failed
@@ -41,81 +31,31 @@ import java.util.List;
 public class PeriodLockoutPolicy implements AccountLoginPolicy {
 
     private final Log logger = LogFactory.getLog(getClass());
-    private final UaaAuditService auditService;
-    private LockoutPolicy lockoutPolicy;
-    private IdentityProviderProvisioning providerProvisioning;
 
-    public PeriodLockoutPolicy(UaaAuditService auditService, IdentityProviderProvisioning providerProvisioning) {
-        this.auditService = auditService;
-        this.providerProvisioning = providerProvisioning;
+    private final LoginPolicy loginPolicy;
+    
+    public PeriodLockoutPolicy(LoginPolicy loginPolicy) {
+        this.loginPolicy = loginPolicy;
+    }
+    
+    public LockoutPolicy getDefaultLockoutPolicy() {
+        return this.loginPolicy.getLockoutPolicyRetriever().getDefaultLockoutPolicy();
     }
 
     @Override
     public boolean isAllowed(UaaUser user, Authentication a) throws AuthenticationException {
-        LockoutPolicy policyFromDb = getLockoutPolicyFromDb();
-        LockoutPolicy localPolicy = policyFromDb != null ? policyFromDb : lockoutPolicy;
-
-        long eventsAfter = System.currentTimeMillis() - localPolicy.getCountFailuresWithin() * 1000;
-
-        List<AuditEvent> events = auditService.find(user.getId(), eventsAfter);
-
-        final int failureCount = sequentialFailureCount(events);
-
-        if (failureCount >= localPolicy.getLockoutAfterFailures()) {
-            // Check whether time of most recent failure is within the lockout
-            // period
-            AuditEvent lastFailure = mostRecentFailure(events);
-            if (lastFailure != null && lastFailure.getTime() > System.currentTimeMillis() - localPolicy.getLockoutPeriodSeconds() * 1000) {
-                logger.warn("User " + user.getUsername() + " and id " + user.getId() + " has "
-                                + failureCount + " failed logins within the last checking period.");
-                return false;
-            }
+        Result result = loginPolicy.isAllowed(user.getId());
+        if(result.isAllowed()) {
+            return true;
         }
-
-        return true;
+        logger.warn("User " + user.getUsername() + " and id " + user.getId() + " has "
+                + result.getFailureCount() + " failed logins within the last checking period.");
+        return false;
     }
 
-    /**
-     * Counts the number of failures that occurred without an intervening
-     * successful login.
-     */
-    private int sequentialFailureCount(List<AuditEvent> events) {
-        int failureCount = 0;
-        for (AuditEvent event : events) {
-            if (event.getType() == AuditEventType.UserAuthenticationFailure) {
-                failureCount++;
-            } else if (event.getType() == AuditEventType.UserAuthenticationSuccess) {
-                // Successful authentication occurred within last allowable
-                // failures, so ignore
-                break;
-            }
-        }
-        return failureCount;
+    public LoginPolicy getLoginPolicy() {
+        return loginPolicy;
     }
-
-    private AuditEvent mostRecentFailure(List<AuditEvent> events) {
-        for (AuditEvent event : events) {
-            if (event.getType() == AuditEventType.UserAuthenticationFailure) {
-                return event;
-            }
-        }
-        return null;
-    }
-
-    public void setLockoutPolicy(LockoutPolicy lockoutPolicy) {
-        this.lockoutPolicy = lockoutPolicy;
-    }
-
-    private LockoutPolicy getLockoutPolicyFromDb() {
-        IdentityProvider idp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(idp.getConfig(), UaaIdentityProviderDefinition.class);
-        if (idpDefinition != null && idpDefinition.getLockoutPolicy() !=null ) {
-            return idpDefinition.getLockoutPolicy();
-        }
-        return null;
-    }
-
-    public LockoutPolicy getLockoutPolicy() {
-        return lockoutPolicy;
-    }
+    
+    
 }
