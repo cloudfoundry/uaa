@@ -195,17 +195,24 @@ public final class MockMvcUtils {
         private final IdentityZoneCreationResult zone;
         private final String adminToken;
         private final ClientDetails scimInviteClient;
+        private final String defaultZoneAdminToken;
 
         public ZoneScimInviteData(String adminToken,
                                   IdentityZoneCreationResult zone,
-                                  ClientDetails scimInviteClient) {
+                                  ClientDetails scimInviteClient,
+                                  String defaultZoneAdminToken) {
             this.adminToken = adminToken;
             this.zone = zone;
             this.scimInviteClient = scimInviteClient;
+            this.defaultZoneAdminToken = defaultZoneAdminToken;
         }
 
         public ClientDetails getScimInviteClient() {
             return scimInviteClient;
+        }
+
+        public String getDefaultZoneAdminToken() {
+            return defaultZoneAdminToken;
         }
 
         public IdentityZoneCreationResult getZone() {
@@ -345,6 +352,7 @@ public final class MockMvcUtils {
 
     public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String clientId, String redirectUri) throws Exception {
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        String superAdmin = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
         IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
         BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite", redirectUri);
         appClient.setClientSecret("secret");
@@ -372,7 +380,8 @@ public final class MockMvcUtils {
         return new ZoneScimInviteData(
                 adminToken,
                 zone,
-                appClient
+                appClient,
+                superAdmin
         );
     }
 
