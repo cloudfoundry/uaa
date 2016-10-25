@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,14 +53,25 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
-import static org.hamcrest.Matchers.*;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -420,7 +430,7 @@ public class LoginInfoEndpointTests {
         SavedRequest savedRequest = mock(SavedRequest.class);
         when(savedRequest.getParameterValues("client_id")).thenReturn(new String[]{"client-id"});
         when(savedRequest.getRedirectUrl()).thenReturn("http://localhost:8080/uaa");
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         request.setSession(session);
         // mock SamlIdentityProviderConfigurator
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
@@ -661,7 +671,7 @@ public class LoginInfoEndpointTests {
         HttpSession session = new MockHttpSession();
         DefaultSavedRequest savedRequest = Mockito.mock(DefaultSavedRequest.class);
         when(savedRequest.getRedirectUrl()).thenReturn("/some.redirect.url");
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         LoginInfoEndpoint endpoint = getEndpoint();
         String redirectUrl = endpoint.handleXOAuthCallback(session);
         assertEquals("redirect:/some.redirect.url", redirectUrl);
@@ -674,7 +684,7 @@ public class LoginInfoEndpointTests {
         when(savedRequest.getParameterValues("client_id")).thenReturn(new String[]{"client-id"});
         when(savedRequest.getRedirectUrl())
             .thenReturn("http://localhost:8080/uaa/oauth/authorize?client_id=identity&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         request.setSession(session);
         return request;
     }

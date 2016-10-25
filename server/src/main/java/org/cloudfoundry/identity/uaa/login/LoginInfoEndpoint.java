@@ -95,6 +95,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
@@ -300,7 +301,7 @@ public class LoginInfoEndpoint {
 
         Optional<String> loginHintParam = Optional
                 .ofNullable(session)
-                .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute("SPRING_SECURITY_SAVED_REQUEST")))
+                .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
                 .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
                 .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
 
@@ -471,10 +472,10 @@ public class LoginInfoEndpoint {
     }
 
     protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {
-        if (session == null || session.getAttribute("SPRING_SECURITY_SAVED_REQUEST") == null) {
+        if (session == null || session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE) == null) {
             return false;
         }
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         String redirectUrl = savedRequest.getRedirectUrl();
         String[] client_ids = savedRequest.getParameterValues("client_id");
         if (redirectUrl != null && redirectUrl.contains("/oauth/authorize") && client_ids != null && client_ids.length != 0) {
@@ -487,7 +488,7 @@ public class LoginInfoEndpoint {
         if (!hasSavedOauthAuthorizeRequest(session)) {
             return null;
         }
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         String[] client_ids = savedRequest.getParameterValues("client_id");
         try {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
@@ -552,7 +553,7 @@ public class LoginInfoEndpoint {
     public String discoverIdentityProvider(@RequestParam String email, Model model, HttpSession session, HttpServletRequest request) {
         ClientDetails clientDetails = null;
         if (hasSavedOauthAuthorizeRequest(session)) {
-            SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+            SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
             String[] client_ids = savedRequest.getParameterValues("client_id");
             try {
                 clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
@@ -631,7 +632,7 @@ public class LoginInfoEndpoint {
     @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
         String redirectLocation = "home";
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
             redirectLocation = savedRequest.getRedirectUrl();
         }
@@ -642,7 +643,7 @@ public class LoginInfoEndpoint {
     @RequestMapping(value = "/login/callback/{origin}", method = GET)
     public String handleXOAuthCallback(HttpSession session) {
         String redirectLocation = "/home";
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
             redirectLocation = savedRequest.getRedirectUrl();
         }

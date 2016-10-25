@@ -6,6 +6,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.Serializable;
 
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+
 public class SavedRequestAwareAuthenticationDetails extends WebAuthenticationDetails implements Serializable {
 
     private static final long serialVersionUID = 3801124242820219132L;
@@ -17,7 +19,7 @@ public class SavedRequestAwareAuthenticationDetails extends WebAuthenticationDet
 
         HttpSession session = request.getSession(false);
         if (session != null) {
-            savedRequest = session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+            savedRequest = session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         }
     }
 

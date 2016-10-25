@@ -95,6 +95,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -1061,7 +1062,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new MockMvcUtils.MockSavedRequest();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         getMockMvc().perform(get("/login")
             .accept(TEXT_HTML)
@@ -1210,7 +1211,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = mock(DefaultSavedRequest.class);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "example.com" });
-        session.putValue("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
 
         getMockMvc().perform(get("/login")
@@ -1343,7 +1344,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             @Override public List<Locale> getLocales() { return null; }
             @Override public Map<String, String[]> getParameterMap() { return null; }
         };
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
             .session(session)
@@ -1860,7 +1861,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
 
         SavedRequest savedRequest = getSavedRequest(client);
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         getMockMvc().perform(get("/login")
             .session(session)
@@ -2187,7 +2188,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         SavedRequest savedRequest = getSavedRequest(client);
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         return session;
     }
 
