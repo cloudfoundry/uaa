@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -222,8 +223,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             // for approveOrDeny to use. That way we make sure that auth request comes from the session,
             // so any auth request parameters passed to approveOrDeny will be ignored and retrieved from the session.
             model.put("authorizationRequest", authorizationRequest);
+            if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))){
+                return new ModelAndView(
+                    new RedirectView(UaaUrlUtils.addFragmentComponent(resolvedRedirect, "error=interaction_required"))
+                );
 
-            return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
+            } else {
+                return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
+            }
 
         } catch (RuntimeException e) {
             sessionStatus.setComplete();

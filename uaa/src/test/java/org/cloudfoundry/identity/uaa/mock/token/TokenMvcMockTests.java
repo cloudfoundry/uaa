@@ -50,7 +50,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.seleniumhq.jetty7.util.log.Log;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -131,6 +130,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -783,6 +783,38 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(((List)query.get("code")).get(0));
         assertNull(query.get("token"));
     }
+
+    @Test
+    public void prompt_is_none_and_approvals_are_required() throws Exception {
+        String redirectUrl = TEST_REDIRECT_URI + "#test=true";
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+        setUpClients(clientId, scopes, scopes, "implicit,authorization_code", false);
+        String username = "testuser" + new RandomValueStringGenerator().generate();
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        String state = new RandomValueStringGenerator().generate();
+
+        getMockMvc().perform(
+            post("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param("prompt", "none")
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
+                .with(cookieCsrf())
+        )
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", startsWith(redirectUrl)))
+            .andExpect(header().string("Location", containsString("error=interaction_required")));
+    }
+
+
+
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenientWhenAppNotApproved() throws Exception {
