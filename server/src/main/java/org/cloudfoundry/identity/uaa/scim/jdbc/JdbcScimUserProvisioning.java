@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -45,6 +46,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -166,17 +168,16 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         final String identityZoneId = IdentityZoneHolder.get().getId();
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
 
-        List<ScimUser> existingUsers = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + origin + "\"");
-        if ((existingUsers != null) && (existingUsers.size() > 0)) {
-            ScimUser existingUser = existingUsers.get(0);
-            Map<String,Object> userDetails = new HashMap<>();
-            userDetails.put("active", existingUser.isActive());
-            userDetails.put("verified", existingUser.isVerified());
-            userDetails.put("user_id", existingUser.getId());
-            throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
-        }
-
         try {
+            List<ScimUser> existingUsers = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + origin + "\"");
+            if ((existingUsers != null) && (existingUsers.size() > 0)) {
+                ScimUser existingUser = existingUsers.get(0);
+                Map<String,Object> userDetails = new HashMap<>();
+                userDetails.put("active", existingUser.isActive());
+                userDetails.put("verified", existingUser.isVerified());
+                userDetails.put("user_id", existingUser.getId());
+                throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+            }
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -203,14 +204,19 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     ps.setString(13, hasText(user.getExternalId())?user.getExternalId():null);
                     ps.setString(14, identityZoneId);
                     ps.setString(15, user.getSalt());
+
                     ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
                     ps.setString(17, user.getPassword());
                 }
 
             });
-        } catch (Exception e) {
-            logger.error("Creating new user failed", e);
+        } catch (ScimResourceAlreadyExistsException e) {
+            logger.debug(e.getMessage());
             throw e;
+        } catch (Throwable t) {
+            String message = "Creating new user failed";
+            logger.error(message, t);
+            throw new ScimException(message, t, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return retrieve(id);
     }
