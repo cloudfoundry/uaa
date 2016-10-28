@@ -147,17 +147,18 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private String BADSECRET = "badsecret";
 
     private TestClient testClient;
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Override
     public void setUpContext() throws Exception {
         testClient = new TestClient();
-        
+
         super.setUpContext();
     }
 
     @Test
     public void test_encoded_char_on_authorize_url() throws Exception {
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
 
@@ -175,10 +176,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void test_token_ids() throws Exception {
-        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        String clientId = "testclient"+ generator.generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
 
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
 
@@ -232,10 +233,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void getOauthToken_Password_Grant_When_UAA_Provider_is_Disabled() throws Exception {
-        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        String clientId = "testclient"+ generator.generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
 
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
         setDisableInternalAuth(getWebApplicationContext(), IdentityZone.getUaa().getId(), true);
@@ -257,16 +258,16 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void getOauthToken_usingAuthCode_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
-        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        String clientId = "testclient"+ generator.generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "authorization_code", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
 
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
 
         MockHttpSession session = getAuthenticatedSession(developer);
 
-        String state = new RandomValueStringGenerator().generate();
+        String state = generator.generate();
 
         MvcResult result = getMockMvc().perform(get("/oauth/authorize")
                 .session(session)
