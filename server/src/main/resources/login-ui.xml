@@ -275,10 +275,14 @@
         </constructor-arg>
         <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
-    <bean id="savedRequestCache" class="org.springframework.security.web.savedrequest.HttpSessionRequestCache">
+
+    <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
         <property name="requestMatcher" ref="uiAuthorizeRequestMatcher"/>
     </bean>
-    <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" use-expressions="false"
+
+    <http name="uiSecurity"
+          request-matcher-ref="uiRequestMatcher"
+          use-expressions="false"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
@@ -293,12 +297,14 @@
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
         <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
+        <custom-filter ref="clientRedirectStateCache" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
-        <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository"
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"
               request-matcher-ref="uiCookeCsrfRequestMatcher"/>
         <access-denied-handler error-page="/login?error=invalid_login_request"/>
-        <request-cache ref="savedRequestCache"/>
+        <request-cache ref="clientRedirectStateCache"/>
     </http>
 
     <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"

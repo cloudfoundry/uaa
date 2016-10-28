@@ -17,15 +17,21 @@ package org.cloudfoundry.identity.uaa.util;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public abstract class UaaUrlUtils {
 
@@ -81,6 +87,35 @@ public abstract class UaaUrlUtils {
     public static String getHostForURI(String uri) {
         UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(uri);
         return b.build().getHost();
+    }
+
+    public static Map<String, String[]> getParameterMap(String uri) {
+        UriComponentsBuilder b = UriComponentsBuilder.fromUriString(uri);
+        MultiValueMap<String, String> map = b.build().getQueryParams();
+        Map<String, String[]> result= new HashMap<>();
+        map
+            .entrySet()
+            .stream()
+            .forEach(
+                e -> result.put(e.getKey(), decodeValue(e.getValue()))
+            );
+        return result;
+    }
+
+    public static String[] decodeValue(List<String> value) {
+        if (value==null) {
+            return null;
+        }
+        String[] result = new String[value.size()];
+        int pos = 0;
+        for (String s : value) {
+            try {
+                result[pos++] = UriUtils.decode(s, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalArgumentException(s, e);
+            }
+        }
+        return result;
     }
 
     public static boolean isUrl(String url) {

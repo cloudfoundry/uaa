@@ -23,10 +23,12 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Collections;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 public class UaaUrlUtilsTest {
@@ -44,6 +46,14 @@ public class UaaUrlUtilsTest {
         RequestContextHolder.setRequestAttributes(null);
     }
 
+    @Test
+    public void getParameterMapFromQueryString() {
+        String url = "http://localhost:8080/uaa/oauth/authorize?client_id=app-addnew-false4cEsLB&response_type=code&redirect_uri=http%3A%2F%2Fnosuchhostname%3A0%2Fnosuchendpoint";
+        Map<String,String[]> map = UaaUrlUtils.getParameterMap(url);
+        assertNotNull(map);
+        assertEquals("app-addnew-false4cEsLB", map.get("client_id")[0]);
+        assertEquals("http://nosuchhostname:0/nosuchendpoint", map.get("redirect_uri")[0]);
+    }
     @Test
     public void testGetUaaUrl() throws Exception {
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl());

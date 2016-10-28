@@ -16,6 +16,15 @@
                    th:autofocus="${iter.index} == 0"
                    class="form-control"/>
             <input type="submit" value="Sign in" class="island-button"/>
+            <input th:if="${session.SPRING_SECURITY_SAVED_REQUEST}"
+                   th:unless="${form_redirect_uri}"
+                   th:name="form_redirect_uri"
+                   th:type="hidden"
+                   th:value="${session.SPRING_SECURITY_SAVED_REQUEST.redirectUrl}"/>
+            <input th:if="${form_redirect_uri}"
+                   th:name="form_redirect_uri"
+                   th:type="hidden"
+                   th:value="${form_redirect_uri}"/>
         </form>
         </th:block>
         <div class="saml-login">

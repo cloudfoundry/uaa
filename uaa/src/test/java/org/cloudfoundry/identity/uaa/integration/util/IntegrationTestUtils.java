@@ -35,7 +35,9 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.hamcrest.Description;
 import org.hamcrest.Matchers;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.OutputType;
@@ -66,6 +68,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.DefaultResponseErrorHandler;
+import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
@@ -96,6 +99,50 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 public class IntegrationTestUtils {
+
+
+    public static ScimUser createUnapprovedUser(ServerRunning serverRunning) throws Exception {
+        String userName = "bob-" + new RandomValueStringGenerator().generate();
+        String userEmail = userName + "@example.com";
+
+        RestOperations restTemplate = serverRunning.getRestTemplate();
+
+        ScimUser user = new ScimUser();
+        user.setUserName(userName);
+        user.setPassword("s3Cretsecret");
+        user.addEmail(userEmail);
+        user.setActive(true);
+        user.setVerified(true);
+
+        ResponseEntity<ScimUser> result = restTemplate.postForEntity(serverRunning.getUrl("/Users"), user, ScimUser.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+        return user;
+    }
+
+    public static class RegexMatcher extends TypeSafeMatcher<String> {
+
+        private final String regex;
+
+        public RegexMatcher(final String regex) {
+            this.regex = regex;
+        }
+
+        @Override
+        public void describeTo(final Description description) {
+            description.appendText("matches regex=`" + regex + "`");
+        }
+
+        @Override
+        public boolean matchesSafely(final String string) {
+            return string.matches(regex);
+        }
+
+
+        public static RegexMatcher matchesRegex(final String regex) {
+            return new RegexMatcher(regex);
+        }
+    }
 
     public static final DefaultResponseErrorHandler fiveHundredErrorHandler = new DefaultResponseErrorHandler(){
         @Override
