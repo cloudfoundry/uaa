@@ -8,7 +8,7 @@ buildscript {
     mavenCentral()
     jcenter()
     maven {
-      url 'http://repo.spring.io/plugins-release'
+      url 'https://repo.spring.io/plugins-release'
     }
     maven {
       url 'https://plugins.gradle.org/m2/'
@@ -148,12 +148,11 @@ subprojects {
     archives javadocJar
   }
   repositories {
-    maven { url "http://maven.springframework.org/release" }
-    maven { url "http://maven.springframework.org/milestone" }
-    maven { url "http://maven.springframework.org/snapshot" }
-    maven { url "http://objectstyle.org/maven2/" }
-    maven { url "http://repo.springsource.org/ext-release-local" }
-    maven { url "http://repo.maven.apache.org/maven2" }
+    maven { url "https://repo.spring.io/release" }
+    maven { url "https://repo.spring.io/milestone" }
+    maven { url "https://repo.spring.io/snapshot" }
+    maven { url "https://repo.spring.io/ext-release-local" }
+    maven { url "https://repo.maven.apache.org/maven2" }
   }
 
   install {
@@ -247,7 +246,7 @@ cargo {
     }
 
     installer {
-      installUrl = 'http://repo2.maven.org/maven2/org/apache/tomcat/tomcat/' + tomcatVersion + '/tomcat-' + tomcatVersion + '.tar.gz'
+      installUrl = 'https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/' + tomcatVersion + '/tomcat-' + tomcatVersion + '.tar.gz'
       downloadDir = file("$buildDir/download")
       extractDir = file("$buildDir/extract")
     }
