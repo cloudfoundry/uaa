@@ -100,6 +100,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
+import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
@@ -127,6 +128,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
@@ -154,6 +157,41 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         testClient = new TestClient();
 
         super.setUpContext();
+    }
+
+    @Test
+    public void passcode_with_client_parameters() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String content = getMockMvc().perform(
+            get("/passcode")
+            .session(getAuthenticatedSession(user))
+            .accept(APPLICATION_JSON)
+        )
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        String code = JsonUtils.readValue(content, String.class);
+
+        String response = getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("passcode", code)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        Map<String,Object> tokens = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {});
+        Object accessToken = tokens.get(ACCESS_TOKEN);
+        Object jti = tokens.get(JTI);
+        assertNotNull(accessToken);
+        assertNotNull(JTI);
+
     }
 
     @Test
@@ -642,7 +680,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-            .accept(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1118,7 +1156,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //ensure we can do scim.read
         getMockMvc().perform(get("/Users")
             .header("Authorization", "Bearer "+accessToken)
-            .accept(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
         ).andExpect(status().isOk());
 
         ScimUserBootstrap bootstrap = getWebApplicationContext().getBean(ScimUserBootstrap.class);
@@ -1130,7 +1168,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //ensure we can do scim.read with the existing token
         getMockMvc().perform(get("/Users")
                 .header("Authorization", "Bearer " + accessToken)
-                .accept(MediaType.APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
         ).andExpect(status().isOk());
 
     }
@@ -1483,7 +1521,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(code);
 
         oauthTokenPost = post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
             .header("Authorization", basicDigestHeaderValue)
             .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
@@ -1519,7 +1557,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(code);
 
         oauthTokenPost = post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
             .header("Authorization", basicDigestHeaderValue)
             .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
@@ -1552,7 +1590,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(code);
 
         oauthTokenPost = post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
             .header("Authorization", basicDigestHeaderValue)
             .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
