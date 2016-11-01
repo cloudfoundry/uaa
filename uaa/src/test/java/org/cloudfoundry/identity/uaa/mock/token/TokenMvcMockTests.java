@@ -327,8 +327,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         Map query = splitQuery(url);
         String code = ((List<String>) query.get("code")).get(0);
 
-        assertThat(code.length(), greaterThan(9));
-
         state = ((List<String>) query.get("state")).get(0);
 
         getMockMvc().perform(post("/oauth/token")
