@@ -244,6 +244,7 @@
     <bean id="clientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
         <property name="loginPolicy" ref="clientLoginPolicy"/>
+        <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>
     </bean>
 
     <bean id="clientLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
