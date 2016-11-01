@@ -128,6 +128,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -296,6 +297,55 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         }
     }
 
+    @Test
+    public void token_endpoint_should_return_Basic_WWW_Authenticate_Header() throws Exception {
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        String clientId = "testclient"+ generator.generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", "authorization_code", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), OriginKeys.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+        String state = generator.generate();
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+                                                    .session(session)
+                                                    .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                                                    .param(OAuth2Utils.STATE, state)
+                                                    .param(OAuth2Utils.CLIENT_ID, clientId))
+            .andExpect(status().isFound())
+            .andReturn();
+
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        String code = ((List<String>) query.get("code")).get(0);
+
+        assertThat(code.length(), greaterThan(9));
+
+        state = ((List<String>) query.get("state")).get(0);
+
+        getMockMvc().perform(post("/oauth/token")
+                                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                                 .accept(MediaType.APPLICATION_JSON_VALUE)
+                                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                 .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+                                 .param(OAuth2Utils.CLIENT_ID, clientId)
+                                 .param("code", code)
+                                 .param("state", state))
+            .andExpect(status().isUnauthorized())
+            .andExpect(
+                header()
+                    .stringValues("WWW-Authenticate",
+                                  "Basic realm=\"UAA/client\", error=\"unauthorized\", error_description=\"Bad credentials\"")
+            );
+    }
 
     @Test
     public void getOauthToken_usingAuthCode_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
