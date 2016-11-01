@@ -55,6 +55,9 @@ dependencies {
   runtime group: 'org.springframework.data', name: 'spring-data-commons', version:'1.9.1.RELEASE'
   runtime group: 'com.nurego', name: 'nurego-java', version:'1.0.10'
   runtime group: 'com.github.fge', name: 'json-schema-validator', version:'2.2.6'
+  
+  // For dynamic log level configuration
+  runtime group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.0'
 
 
   testCompile identityServer.configurations.testCompile.dependencies

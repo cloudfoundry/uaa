@@ -475,5 +475,6 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
+    <import resource="classpath:META-INF/spring/tasks.xml"/>
 
 </beans>
