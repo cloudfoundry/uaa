@@ -981,4 +981,20 @@ public class ScimUserEndpointsTests {
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()+1), new MockHttpServletRequest(), new MockHttpServletResponse());
     }
+
+    @Test
+    public void testPasswordExpiresFieldIsNull() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        user = new ScimUser();
+        user.setPasswordExpires(new Date());
+        ScimUser patchedUser = endpoints.patchUser(user, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        assertEquals(createdUser.getUserName(), patchedUser.getUserName());
+        assertEquals(createdUser.getName().getGivenName(), patchedUser.getName().getGivenName());
+        assertEquals(createdUser.getName().getFamilyName(), patchedUser.getName().getFamilyName());
+        assertEquals(createdUser.getEmails().size(), patchedUser.getEmails().size());
+        assertEquals(createdUser.getPrimaryEmail(), patchedUser.getPrimaryEmail());
+        assertEquals(createdUser.getVersion()+1, patchedUser.getVersion());
+    }
 }

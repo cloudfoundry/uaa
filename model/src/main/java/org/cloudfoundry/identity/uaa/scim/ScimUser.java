@@ -338,6 +338,8 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     private Date passwordLastModified = null;
 
+    private Date passwordExpires = null;
+
     @JsonProperty
     private String password;
 
@@ -540,8 +542,16 @@ public class ScimUser extends ScimCore<ScimUser> {
         return null;
     }
 
+    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    public Date getPasswordExpires() {
+        return passwordExpires;
+    }
+
     public void setPasswordLastModified(Date passwordLastModified) {
         this.passwordLastModified = passwordLastModified;
+    }
+    public void setPasswordExpires(Date passwordExpires) {
+        this.passwordExpires = passwordExpires;
     }
 
     @JsonIgnore
