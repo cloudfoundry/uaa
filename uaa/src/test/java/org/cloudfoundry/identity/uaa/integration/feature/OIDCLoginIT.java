@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
@@ -220,7 +220,7 @@ public class OIDCLoginIT {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
         config.setTokenUrl(new URL(urlBase + "/oauth/token"));

@@ -25,7 +25,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -655,7 +655,7 @@ public class LoginInfoEndpointTests {
         RawXOAuthIdentityProviderDefinition oauthDefinition = new RawXOAuthIdentityProviderDefinition()
             .setAuthUrl(new URL("http://auth.url"))
             .setTokenUrl(new URL("http://token.url"));
-        XOIDCIdentityProviderDefinition oidcDefinition = new XOIDCIdentityProviderDefinition()
+        OIDCIdentityProviderDefinition oidcDefinition = new OIDCIdentityProviderDefinition()
             .setAuthUrl(new URL("http://auth.url"))
             .setTokenUrl(new URL("http://token.url"));
 
@@ -739,7 +739,7 @@ public class LoginInfoEndpointTests {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcIdentityProvider= new IdentityProvider<>();
         oidcIdentityProvider.setOriginKey(originKey);
         oidcIdentityProvider.setType(OriginKeys.OIDC10);
-        oidcIdentityProvider.setConfig(new XOIDCIdentityProviderDefinition());
+        oidcIdentityProvider.setConfig(new OIDCIdentityProviderDefinition());
         return oidcIdentityProvider;
 
     }

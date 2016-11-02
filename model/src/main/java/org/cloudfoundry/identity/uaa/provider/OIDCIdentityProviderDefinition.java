@@ -14,7 +14,7 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import java.net.URL;
 
-public class XOIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<XOIDCIdentityProviderDefinition> {
+public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> {
 
     private URL userInfoUrl;
 
@@ -22,7 +22,7 @@ public class XOIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProvi
         return userInfoUrl;
     }
 
-    public XOIDCIdentityProviderDefinition setUserInfoUrl(URL userInfoUrl) {
+    public OIDCIdentityProviderDefinition setUserInfoUrl(URL userInfoUrl) {
         this.userInfoUrl = userInfoUrl;
         return this;
     }

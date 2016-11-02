@@ -26,7 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -280,7 +280,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "token";
-        } else if (XOIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
+        } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "id_token";
         } else {
             throw new IllegalArgumentException("Unknown type for provider.");

@@ -31,6 +31,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
     private String relyingPartySecret;
     private List<String> scopes;
     private String issuer;
+    private String responseType = "code";
 
     public URL getAuthUrl() {
         return authUrl;
@@ -128,6 +129,15 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setIssuer(String issuer) {
         this.issuer = issuer;
+        return (T) this;
+    }
+
+    public String getResponseType() {
+        return responseType;
+    }
+
+    public T setResponseType(String responseType) {
+        this.responseType = responseType;
         return (T) this;
     }
 }

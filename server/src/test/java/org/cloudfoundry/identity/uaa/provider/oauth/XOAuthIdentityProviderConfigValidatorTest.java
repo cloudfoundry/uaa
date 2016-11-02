@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidator;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,7 +15,7 @@ public class XOAuthIdentityProviderConfigValidatorTest {
 
     @Before
     public void setup() throws MalformedURLException {
-        definition = new XOIDCIdentityProviderDefinition();
+        definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
         definition.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
         definition.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));

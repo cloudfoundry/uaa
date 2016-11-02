@@ -29,7 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -111,7 +111,7 @@ public class XOAuthAuthenticationManagerTest {
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
-    private XOIDCIdentityProviderDefinition config;
+    private OIDCIdentityProviderDefinition config;
     private String rsaSigningKey;
     private RsaSigner signer;
     private Map<String, Object> header;
@@ -174,7 +174,7 @@ public class XOAuthAuthenticationManagerTest {
 
         attributeMappings = new HashMap<>();
 
-        config = new XOIDCIdentityProviderDefinition()
+        config = new OIDCIdentityProviderDefinition()
             .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
             .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
             .setShowLinkText(true)

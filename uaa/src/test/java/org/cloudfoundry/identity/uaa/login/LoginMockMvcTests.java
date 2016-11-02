@@ -27,7 +27,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -1146,7 +1146,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1157,7 +1157,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setScopes(asList("openid", "roles"));
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1188,7 +1188,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1199,7 +1199,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setScopes(asList("openid", "roles"));
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
         oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
@@ -1253,7 +1253,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider.setOriginKey(alias);
         activeIdentityProvider = MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1263,7 +1263,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setShowLinkText(false);
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1968,7 +1968,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
 
         String originKey = generator.generate();
-        AbstractXOAuthIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        AbstractXOAuthIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setEmailDomain(asList("test.org"));
         definition.setAuthUrl(new URL("http://myauthurl.com"));
         definition.setTokenKey("key");
