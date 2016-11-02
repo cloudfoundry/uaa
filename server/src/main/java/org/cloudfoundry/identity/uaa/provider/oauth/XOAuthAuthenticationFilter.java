@@ -70,7 +70,9 @@ public class XOAuthAuthenticationFilter implements Filter {
         } catch (Exception ex) {
             logger.debug("XOauth Authentication exception", ex);
             String message = ex.getMessage();
-            if(!StringUtils.hasText(message)) { message = ex.getClass().getSimpleName(); }
+            if(!StringUtils.hasText(message)) {
+                message = ex.getClass().getSimpleName();
+            }
             String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + message, "UTF-8");
             response.sendRedirect(request.getContextPath() + "/oauth_error?error=" + errorMessage);
             return;

@@ -67,6 +67,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
@@ -241,23 +242,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return provider.getConfig().isAddShadowUserOnLogin();
     }
 
-    protected boolean isAcceptedInvitationAuthentication() {
-        try {
-            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
-            if (attr!=null) {
-                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
-                if (result!=null) {
-                    return result.booleanValue();
-                }
-            }
-        } catch (IllegalStateException x) {
-            //nothing bound on thread.
-            logger.debug("Unable to retrieve request attributes during SAML authentication.");
-
-        }
-        return false;
-    }
-
     /*
      * BEGIN
      * The following thread local only exists to satisfy that the unit test
@@ -279,8 +263,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private ThreadLocal<RestTemplateHolder> restTemplateHolder = new ThreadLocal<RestTemplateHolder>() {
         @Override
-        protected RestTemplateHolder initialValue() {
-            return new RestTemplateHolder();
+        protected RestTemplateHolder initialValue() {return new RestTemplateHolder();
         }
     };
 
@@ -306,6 +289,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
         String idToken = getTokenFromCode(codeToken, config);
+        return getClaimsFromToken(idToken, config);
+    }
+
+    private Map<String,Object> getClaimsFromToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
         if(idToken == null) {
             return null;
         }
