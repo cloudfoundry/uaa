@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.util.StringUtils;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -33,6 +32,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 
 import static java.util.Optional.ofNullable;
+import static org.springframework.util.StringUtils.hasText;
 
 public class XOAuthAuthenticationFilter implements Filter {
 
@@ -48,7 +48,6 @@ public class XOAuthAuthenticationFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-
     }
 
     @Override
@@ -56,6 +55,23 @@ public class XOAuthAuthenticationFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
+        if (containsCredentials(request)) {
+            if (authenticationWasSuccessful(request, response)) {
+                chain.doFilter(request, response);
+            }
+        } else {
+            request.getRequestDispatcher("/login_implicit").forward(request, response);
+        }
+    }
+
+    public boolean containsCredentials(HttpServletRequest request) {
+        String code = request.getParameter("code");
+        String idToken = request.getParameter("id_token");
+        String accessToken = request.getParameter("access_token");
+        return hasText(code) || hasText(idToken) || hasText(accessToken);
+    }
+
+    public boolean authenticationWasSuccessful(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String origin = URIUtil.getName(request.getServletPath());
         String code = request.getParameter("code");
         String idToken = request.getParameter("id_token");
@@ -70,16 +86,16 @@ public class XOAuthAuthenticationFilter implements Filter {
                 handler.setSavedAccountOptionCookie(request, response, authentication)
             );
         } catch (Exception ex) {
-            logger.debug("XOauth Authentication exception", ex);
+            logger.error("XOauth Authentication exception", ex);
             String message = ex.getMessage();
-            if(!StringUtils.hasText(message)) {
+            if(!hasText(message)) {
                 message = ex.getClass().getSimpleName();
             }
             String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + message, "UTF-8");
             response.sendRedirect(request.getContextPath() + "/oauth_error?error=" + errorMessage);
-            return;
+            return false;
         }
-        chain.doFilter(request, response);
+        return true;
     }
 
     @Override

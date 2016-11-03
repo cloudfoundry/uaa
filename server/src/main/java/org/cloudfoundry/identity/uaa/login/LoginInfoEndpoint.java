@@ -626,7 +626,12 @@ public class LoginInfoEndpoint {
         return "redirect:" + redirectLocation;
     }
 
-    @RequestMapping(value = "/login/callback/{origin}", method = GET)
+    @RequestMapping(value = "/login_implicit", method = GET)
+    public String captureImplicitValuesUsingJavascript() {
+        return "login_implicit";
+    }
+
+    @RequestMapping(value = "/login/callback/{origin}")
     public String handleXOAuthCallback(HttpSession session) {
         String redirectLocation = "/home";
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);

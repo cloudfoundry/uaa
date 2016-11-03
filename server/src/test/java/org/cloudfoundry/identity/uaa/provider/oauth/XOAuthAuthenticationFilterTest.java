@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.HttpClientErrorException;
@@ -37,7 +38,9 @@ import javax.servlet.http.HttpServletRequest;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -55,8 +58,28 @@ public class XOAuthAuthenticationFilterTest {
     }
 
     @Test
+    public void testShouldAuthenticate() {
+        XOAuthAuthenticationFilter filter = spy(new XOAuthAuthenticationFilter(mock(XOAuthAuthenticationManager.class), successHandler));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        testShouldAuthenticate(filter, request, "code", "value");
+        testShouldAuthenticate(filter, request, "id_token", "value");
+        testShouldAuthenticate(filter, request, "access_token", "value");
+    }
+
+    public void testShouldAuthenticate(XOAuthAuthenticationFilter filter,
+                                       MockHttpServletRequest request,
+                                       String pname,
+                                       String pvalue) {
+        assertFalse(filter.containsCredentials(request));
+        request.setParameter(pname, pvalue);
+        assertTrue(filter.containsCredentials(request));
+        request.removeParameter(pname);
+        assertFalse(filter.containsCredentials(request));
+    }
+
+    @Test
     public void getIdTokenInResponse() throws Exception {
-        XOAuthAuthenticationManager xOAuthAuthenticationManager = Mockito.mock(XOAuthAuthenticationManager.class);
+        XOAuthAuthenticationManager xOAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
         XOAuthAuthenticationFilter filter = spy(new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler));
 
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -88,7 +111,7 @@ public class XOAuthAuthenticationFilterTest {
 
     @Test
     public void getXOAuthCodeTokenFromRequest() throws Exception {
-        XOAuthAuthenticationManager xOAuthAuthenticationManager = Mockito.mock(XOAuthAuthenticationManager.class);
+        XOAuthAuthenticationManager xOAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
 
         XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler);
 
@@ -121,7 +144,7 @@ public class XOAuthAuthenticationFilterTest {
     @Test
     public void redirectsToErrorPageInCaseOfException() throws Exception {
 
-        XOAuthAuthenticationManager xOAuthAuthenticationManager = Mockito.mock(XOAuthAuthenticationManager.class);
+        XOAuthAuthenticationManager xOAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
         XOAuthAuthenticationFilter filter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler);
 
         HttpServletRequest request = mock(HttpServletRequest.class);
