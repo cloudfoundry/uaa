@@ -542,7 +542,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         return null;
     }
 
-    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonSerialize(using = JsonDateSerializer.class)
     public Date getPasswordExpires() {
         return passwordExpires;
     }

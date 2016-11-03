@@ -98,7 +98,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     }
                 } else if ("passwordExpires".equalsIgnoreCase(fieldName)) {
                     if (jp.getValueAsString()!=null) {
-                        user.setPasswordLastModified(JsonDateDeserializer.getDate(jp.getValueAsString(), jp.getCurrentLocation()));
+                        user.setPasswordExpires(JsonDateDeserializer.getDate(jp.getValueAsString(), jp.getCurrentLocation()));
                     }
                 } else if ("approvals".equalsIgnoreCase(fieldName)) {
                     user.setApprovals(new HashSet<>(Arrays.asList(jp.readValueAs(Approval[].class))));
