@@ -14,8 +14,8 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
@@ -80,10 +80,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -144,7 +149,7 @@ public class XOAuthAuthenticationManagerTest {
         provisioning = mock(JdbcIdentityProviderProvisioning.class);
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
-        xoAuthAuthenticationManager = new XOAuthAuthenticationManager(provisioning);
+        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(provisioning));
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
@@ -188,7 +193,36 @@ public class XOAuthAuthenticationManagerTest {
                     "-----END PUBLIC KEY-----");
 
         mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate(config));
+        reset(xoAuthAuthenticationManager);
 
+    }
+
+    @Test
+    public void idToken_In_Redirect_Should_Use_it() throws Exception {
+        mockToken();
+        addTheUserOnAuth();
+        String tokenResponse = getIdTokenResponse();
+        String idToken = (String) JsonUtils.readValue(tokenResponse, Map.class).get("id_token");
+        xCodeToken.setIdToken(idToken);
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+
+        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), anyObject());
+        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), anyObject());
+        verify(xoAuthAuthenticationManager, never()).getRestTemplate(anyObject());
+
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
+
+        UaaUser uaaUser = event.getUser();
+        assertEquals("Marissa",uaaUser.getGivenName());
+        assertEquals("Bloggs", uaaUser.getFamilyName());
+        assertEquals("marissa@bloggs.com", uaaUser.getEmail());
+        assertEquals("the_origin", uaaUser.getOrigin());
+        assertEquals("1234567890", uaaUser.getPhoneNumber());
+        assertEquals("marissa",uaaUser.getUsername());
+        assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
     }
 
     @Test
@@ -546,14 +580,7 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     private void mockToken() throws MalformedURLException {
-        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
-        identityProvider = getProvider();
-
-        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
-
-        CompositeAccessToken compositeAccessToken = new CompositeAccessToken("accessToken");
-        compositeAccessToken.setIdTokenValue(idTokenJwt);
-        String response = JsonUtils.writeValueAsString(compositeAccessToken);
+        String response = getIdTokenResponse();
         mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token"))
             .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
             .andExpect(header("Accept", "application/json"))
@@ -562,6 +589,17 @@ public class XOAuthAuthenticationManagerTest {
             .andExpect(content().string(containsString("redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin")))
             .andExpect(content().string(containsString(("response_type=id_token"))))
             .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
+    }
+
+    private String getIdTokenResponse() throws MalformedURLException {
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+        identityProvider = getProvider();
+
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        CompositeAccessToken compositeAccessToken = new CompositeAccessToken("accessToken");
+        compositeAccessToken.setIdTokenValue(idTokenJwt);
+        return JsonUtils.writeValueAsString(compositeAccessToken);
     }
 
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getProvider() throws MalformedURLException {

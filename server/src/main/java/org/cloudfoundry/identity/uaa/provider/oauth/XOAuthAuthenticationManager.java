@@ -287,12 +287,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    private Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+    protected Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
         String idToken = getTokenFromCode(codeToken, config);
         return getClaimsFromToken(idToken, config);
     }
 
-    private Map<String,Object> getClaimsFromToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
+    protected Map<String,Object> getClaimsFromToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
         if(idToken == null) {
             return null;
         }
@@ -324,6 +324,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+        if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
+            return codeToken.getIdToken();
+        }
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "authorization_code");
         body.add("response_type", getResponseType(config));

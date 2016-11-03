@@ -429,6 +429,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
             fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
             fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use."),
+            fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
             ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS,
             ATTRIBUTE_MAPPING,

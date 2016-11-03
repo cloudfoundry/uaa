@@ -445,7 +445,7 @@ public class LoginInfoEndpoint {
         String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
         List<String> query = new ArrayList<>();
         query.add("client_id=" + definition.getRelyingPartyId());
-        query.add("response_type=code");
+        query.add("response_type="+URLEncoder.encode(definition.getResponseType(), "UTF-8"));
         String requestURL = request.getRequestURL().toString();
         String rootContext = StringUtils.hasText(request.getServletPath()) ? requestURL.substring(0, requestURL.indexOf(request.getServletPath())) : requestURL;
         query.add("redirect_uri=" + URLEncoder.encode(rootContext + "/login/callback/" + alias, "UTF-8"));
