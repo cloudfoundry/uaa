@@ -72,7 +72,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
             scimUser.getGivenName(),
             scimUser.getFamilyName(), today, today,
             scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
-            scimUser.getPasswordLastModified());
+            scimUser.getPasswordLastModified(), scimUser.getPasswordExpires());
     }
 
     @Override

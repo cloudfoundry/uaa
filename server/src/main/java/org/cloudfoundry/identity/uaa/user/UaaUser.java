@@ -71,19 +71,19 @@ public class UaaUser {
 
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-                new Date(), null, null, false, null, null, new Date());
+                new Date(), null, null, false, null, null, new Date(), null);
     }
 
     public UaaUser(String username, String password, String email, String givenName, String familyName, String origin, String zoneId) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-                new Date(), origin, null, false, zoneId, null, new Date());
+                new Date(), origin, null, false, zoneId, null, new Date(), null);
     }
 
     public UaaUser(String id, String username, String password, String email,
                    List<? extends GrantedAuthority> authorities,
                    String givenName, String familyName, Date created, Date modified,
                    String origin, String externalId, boolean verified, String zoneId, String salt,
-                   Date passwordLastModified) {
+                   Date passwordLastModified, Date passwordExpires) {
         this(new UaaUserPrototype()
                 .withId(id)
                 .withUsername(username)
@@ -99,7 +99,8 @@ public class UaaUser {
                 .withVerified(verified)
                 .withZoneId(zoneId)
                 .withSalt(salt)
-                .withPasswordLastModified(passwordLastModified));
+                .withPasswordLastModified(passwordLastModified)
+                .withPasswordExpires(passwordExpires));
     }
 
     public UaaUser(UaaUserPrototype prototype) {
@@ -173,7 +174,7 @@ public class UaaUser {
         if (!"NaN".equals(this.id)) {
             throw new IllegalStateException("Id already set");
         }
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified, passwordExpires);
     }
 
     public UaaUser authorities(Collection<? extends GrantedAuthority> authorities) {
@@ -185,7 +186,7 @@ public class UaaUser {
         if (!values.contains(UaaAuthority.UAA_USER)) {
             values.add(UaaAuthority.UAA_USER);
         }
-        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified, passwordExpires);
         return user;
     }
 

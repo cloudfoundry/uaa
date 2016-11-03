@@ -814,4 +814,12 @@ public class ScimUserTests {
         user.patch(patch);
         assertTrue(user.isVerified());
     }
+
+    @Test
+    public void testPatchPasswordExpires() {
+        Date current = new Date();
+        patch.setPasswordExpires(current);
+        user.patch(patch);
+        assertEquals(current, user.getPasswordExpires());
+    }
 }

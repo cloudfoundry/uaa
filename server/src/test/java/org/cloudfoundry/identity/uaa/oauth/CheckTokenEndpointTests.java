@@ -215,7 +215,8 @@ public class CheckTokenEndpointTests {
             false,
             IdentityZoneHolder.get().getId(),
             "salt",
-            new Date(System.currentTimeMillis() - 2000));
+            new Date(System.currentTimeMillis() - 2000),
+            null);
         mockUserDatabase(userId, user);
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client", "scim")));
@@ -361,7 +362,8 @@ public class CheckTokenEndpointTests {
             false,
             IdentityZoneHolder.get().getId(),
             "changedsalt",
-            new Date(System.currentTimeMillis() - 2000));
+            new Date(System.currentTimeMillis() - 2000),
+            null);
         mockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList());
     }
@@ -384,7 +386,8 @@ public class CheckTokenEndpointTests {
             false,
             IdentityZoneHolder.get().getId(),
             "salt",
-            new Date(System.currentTimeMillis() - 2000));
+            new Date(System.currentTimeMillis() - 2000),
+            null);
         mockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList());
     }
@@ -407,7 +410,8 @@ public class CheckTokenEndpointTests {
             false,
             IdentityZoneHolder.get().getId(),
             "salt",
-            new Date(System.currentTimeMillis() - 2000));
+            new Date(System.currentTimeMillis() - 2000),
+            null);
         mockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList());
     }
@@ -431,7 +435,8 @@ public class CheckTokenEndpointTests {
             false,
             IdentityZoneHolder.get().getId(),
             "salt",
-            new Date(System.currentTimeMillis() - 2000));
+            new Date(System.currentTimeMillis() - 2000),
+            null);
 
         mockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList());

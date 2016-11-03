@@ -82,7 +82,8 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
                     scimUser.isVerified(),
                     scimUser.getZoneId(),
                     scimUser.getSalt(),
-                    scimUser.getPasswordLastModified());
+                    scimUser.getPasswordLastModified(),
+                    scimUser.getPasswordExpires());
             }
         } catch (ScimResourceNotFoundException e) {
             // ignore

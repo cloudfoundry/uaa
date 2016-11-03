@@ -78,7 +78,8 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
                 true,
                 IdentityZone.getUaa().getId(),
                 "salt",
-                yesterday
+                yesterday,
+                null
         );
 
         UaaPrincipal principal = new UaaPrincipal(user);

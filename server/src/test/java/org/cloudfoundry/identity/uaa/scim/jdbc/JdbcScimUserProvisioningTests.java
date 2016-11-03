@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -730,6 +731,31 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         scimUser = db.update(scimUser.getId(), scimUser);
         assertNotNull(scimUser);
         assertEquals("newsalt", scimUser.getSalt());
+    }
+
+    @Test
+    public void testCreateUserCheckNullPasswordExpires() throws Exception {
+        ScimUser scimUser = new ScimUser("user-id-3", "user3@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Arrays.asList(email));
+        Date current = new Date();
+        scimUser.setPasswordExpires(null);
+        scimUser = db.createUser(scimUser, "password");
+        assertNull(scimUser.getPasswordExpires());
+    }
+
+    @Test
+    public void testCreateUserCheckPasswordExpires() throws Exception {
+        ScimUser scimUser = new ScimUser("user-id-3", "user3@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Arrays.asList(email));
+        Date current = new Date();
+        scimUser.setPasswordExpires(current);
+        scimUser = db.createUser(scimUser, "password");
+        assertNotNull(scimUser.getPasswordExpires());
+        assertEquals(current, scimUser.getPasswordExpires());
     }
 
     @Test
