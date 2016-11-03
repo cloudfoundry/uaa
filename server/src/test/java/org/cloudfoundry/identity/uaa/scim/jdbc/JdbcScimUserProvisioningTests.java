@@ -46,6 +46,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -751,11 +752,13 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("user@example.com");
         scimUser.setEmails(Arrays.asList(email));
-        Date current = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.MILLISECOND, 0);
+        Date current = calendar.getTime();
         scimUser.setPasswordExpires(current);
-        scimUser = db.createUser(scimUser, "password");
-        assertNotNull(scimUser.getPasswordExpires());
-        assertEquals(current, scimUser.getPasswordExpires());
+        ScimUser createdUser = db.createUser(scimUser, "password");
+        assertNotNull(createdUser.getPasswordExpires());
+        assertEquals(current, createdUser.getPasswordExpires());
     }
 
     @Test
