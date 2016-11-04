@@ -33,12 +33,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -49,15 +47,10 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Calendar.MILLISECOND;
-import static java.util.Calendar.getInstance;
-import static junit.framework.TestCase.assertNotNull;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
@@ -66,7 +59,6 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -426,44 +418,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
         performAuthentication(user, false);
 
-    }
-
-    @Test
-    public void patchToAddPasswordExpires() throws Exception {
-        ScimUser user = setUpScimUser();
-
-        MockHttpServletResponse response = getMockMvc().perform(patch("/Users/" + user.getId())
-            .header("Authorization", "Bearer " + scimReadWriteToken)
-            .header("If-Match", "\"" + user.getVersion() + "\"")
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(user)))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
-
-        ScimUser scimUser = JsonUtils.readValue(response.getContentAsString(), ScimUser.class);
-        assertNull(scimUser.getPasswordExpires());
-
-        Date passExp = getDateWithoutMilliseconds();
-        user.setPasswordExpires(passExp);
-
-        response = getMockMvc().perform(patch("/Users/" + user.getId())
-            .header("Authorization", "Bearer " + scimReadWriteToken)
-            .header("If-Match", "\"" + scimUser.getVersion() + "\"")
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(user)))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
-
-        scimUser = JsonUtils.readValue(response.getContentAsString(), ScimUser.class);
-        assertNotNull(scimUser.getPasswordExpires());
-
-        assertEquals(passExp, scimUser.getPasswordExpires());
-    }
-
-    private Date getDateWithoutMilliseconds() {
-        Calendar calendar = getInstance();
-        calendar.set(MILLISECOND, 0);
-        return calendar.getTime();
     }
 
     public void performAuthentication(ScimUser user, boolean success) throws Exception {
@@ -868,7 +822,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         if (status == HttpStatus.OK.value()) {
             String json = getMockMvc().perform(put)
                 .andExpect(status().isOk())
-                .andExpect(header().string("ETag", "\""+(user.getVersion() + 1)+"\""))
+                .andExpect(header().string("ETag", "\"1\""))
                 .andExpect(jsonPath("$.userName").value(user.getUserName()))
                 .andExpect(jsonPath("$.emails[0].value").value(user.getPrimaryEmail()))
                 .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
@@ -901,20 +855,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testUpdateUserWithUaaAdminToken() throws Exception {
         updateUser(uaaAdminToken, HttpStatus.OK.value());
-    }
-
-    @Test
-    public void testUpdateUserWithPasswordExpires() throws Exception {
-        ScimUser user = getScimUser();
-        user = createUser(user, scimReadWriteToken, null);
-
-        ScimUser updatedUser = updateUser(scimReadWriteToken, HttpStatus.OK.value(), user);
-        assertNull(updatedUser.getPasswordExpires());
-
-        updatedUser.setPasswordExpires(getDateWithoutMilliseconds());
-        ScimUser updatedUserWithPassExp = updateUser(scimReadWriteToken, HttpStatus.OK.value(), updatedUser);
-        assertNotNull(updatedUserWithPassExp);
-        assertEquals(updatedUser.getPasswordExpires(), updatedUserWithPassExp.getPasswordExpires());
     }
 
     @Test

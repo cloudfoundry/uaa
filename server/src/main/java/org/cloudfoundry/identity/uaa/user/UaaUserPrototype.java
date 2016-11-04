@@ -45,8 +45,6 @@ public final class UaaUserPrototype {
 
     private Date passwordLastModified;
 
-    private Date passwordExpires;
-
     private String zoneId;
 
     private List<? extends GrantedAuthority> authorities;
@@ -203,15 +201,6 @@ public final class UaaUserPrototype {
 
     public UaaUserPrototype withLegacyVerificationBehavior(boolean legacyVerificationBehavior) {
         this.legacyVerificationBehavior = legacyVerificationBehavior;
-        return this;
-    }
-
-    public Date getPasswordExpires() {
-        return passwordExpires;
-    }
-
-    public UaaUserPrototype withPasswordExpires(Date passwordExpires) {
-        this.passwordExpires = passwordExpires;
         return this;
     }
 }

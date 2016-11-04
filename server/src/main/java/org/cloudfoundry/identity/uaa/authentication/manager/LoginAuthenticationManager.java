@@ -177,7 +177,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             false,
             IdentityZoneHolder.get().getId(),
             null,
-            null,
             null);
 
     }

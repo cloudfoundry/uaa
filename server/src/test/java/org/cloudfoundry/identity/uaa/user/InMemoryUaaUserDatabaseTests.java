@@ -16,7 +16,7 @@ import static org.junit.Assert.assertSame;
 
 public class InMemoryUaaUserDatabaseTests {
 
-    UaaUser user = new UaaUser("test-id","username","password","email",UaaAuthority.USER_AUTHORITIES,"givenname","familyname", new Date(), new Date(), OriginKeys.UAA,"externalID", false, IdentityZoneHolder.get().getId(), "test-id", new Date(), null);
+    UaaUser user = new UaaUser("test-id","username","password","email",UaaAuthority.USER_AUTHORITIES,"givenname","familyname", new Date(), new Date(), OriginKeys.UAA,"externalID", false, IdentityZoneHolder.get().getId(), "test-id", new Date());
     InMemoryUaaUserDatabase db;
     @Before
     public void setUp() {
@@ -77,8 +77,7 @@ public class InMemoryUaaUserDatabaseTests {
             false,
             user.getZoneId(),
             user.getSalt(),
-            user.getPasswordLastModified(),
-            user.getPasswordExpires());
+            user.getPasswordLastModified());
         db.updateUser(user.getId(), newUser);
         assertSame(newUser, db.retrieveUserById(user.getId()));
     }

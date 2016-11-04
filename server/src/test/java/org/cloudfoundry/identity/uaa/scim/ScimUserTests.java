@@ -85,12 +85,12 @@ public class ScimUserTests {
         user1 = JsonUtils.readValue(json, ScimUser.class);
         assertNotNull(user1.getPhoneNumbers());
 
+
     }
 
     @Test
     public void testDeserializeNullPasswordLastModified() {
-        String dateString = new Date().toString();
-        String json = "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"passwordExpires\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+        String json = "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
         JsonUtils.readValue(json, ScimUser.class);
     }
 
@@ -474,20 +474,6 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testPasswordExpires() throws Exception {
-        ScimUser user = new ScimUser();
-        assertNull(user.getPasswordExpires());
-        user.setId("someid");
-        assertNull(user.getPasswordExpires());
-
-        Date d = new Date(System.currentTimeMillis());
-        user.setPasswordExpires(d);
-        assertNotNull(user.getPasswordExpires());
-        assertSame(d, user.getPasswordExpires());
-
-    }
-
-    @Test
     public void user_verified_byDefault() throws Exception {
         ScimUser user = new ScimUser();
         assertTrue(user.isVerified());
@@ -813,13 +799,5 @@ public class ScimUserTests {
         patch.setVerified(true);
         user.patch(patch);
         assertTrue(user.isVerified());
-    }
-
-    @Test
-    public void testPatchPasswordExpires() {
-        Date current = new Date();
-        patch.setPasswordExpires(current);
-        user.patch(patch);
-        assertEquals(current, user.getPasswordExpires());
     }
 }

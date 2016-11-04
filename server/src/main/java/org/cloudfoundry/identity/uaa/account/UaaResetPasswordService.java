@@ -175,7 +175,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             scimUser.getGivenName(),
             scimUser.getFamilyName(), today, today,
             scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
-            scimUser.getPasswordLastModified(), scimUser.getPasswordExpires());
+            scimUser.getPasswordLastModified());
     }
 
     @Override

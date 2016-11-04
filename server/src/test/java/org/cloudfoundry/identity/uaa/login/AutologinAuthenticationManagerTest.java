@@ -98,8 +98,7 @@ public class AutologinAuthenticationManagerTest {
                             true,
                             IdentityZoneHolder.get().getId(),
                             "test-salt",
-                            new Date(System.currentTimeMillis()),
-                            null
+                            new Date(System.currentTimeMillis())
                 )
             );
 

@@ -97,7 +97,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String userOriginDescription = "The alias of the identity provider that authenticated this user. 'uaa' is an internal UAA user.";
     private final String userZoneIdDescription = "The zone this user belongs to. 'uaa' is the default zone.";
     private final String passwordLastModifiedDescription = "The timestamp this user's password was last changed.";
-    private final String passwordExpiresDescription = "The timestamp after which the user will be forced to reset password.";
     private final String externalIdDescription = "External user ID if authenticated through external identity provider.";
     private final String passwordDescription = "User's password.";
     private final String phoneNumbersListDescription = "The user's phone numbers.";
@@ -141,7 +140,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
         fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("resources[].passwordExpires").optional(null).type(STRING).description(passwordExpiresDescription),
         fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
         fieldWithPath("resources[].meta").type(STRING).description(metaDesc),
         fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
@@ -165,7 +163,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
         fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
-        fieldWithPath("passwordExpires").optional(null).type(STRING).description(passwordExpiresDescription),
         fieldWithPath("meta").optional().ignored().type(STRING).description("SCIM object meta data not read.")
     );
 
@@ -191,7 +188,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("origin").type(STRING).description(userOriginDescription),
         fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("passwordExpires").optional(null).type(STRING).description(passwordExpiresDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
         fieldWithPath("meta").type(STRING).description(metaDesc),
         fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
@@ -218,7 +214,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
         fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("passwordExpired").optional(null).type(STRING).description(passwordExpiresDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
         fieldWithPath("meta").ignored().type(STRING).description("SCIM object meta data not read.")
     );
@@ -251,7 +246,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("origin").type(STRING).description(userOriginDescription),
         fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("passwordExpires").optional(null).type(STRING).description(passwordExpiresDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
         fieldWithPath("meta").type(STRING).description(metaDesc),
         fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
@@ -278,7 +272,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
             fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
-            fieldWithPath("passwordExpires").optional(null).type(STRING).description(passwordExpiresDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
             fieldWithPath("meta").ignored().type(STRING).description("SCIM object meta data not read."),
             fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)

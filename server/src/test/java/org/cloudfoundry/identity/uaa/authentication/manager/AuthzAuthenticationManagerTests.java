@@ -140,8 +140,7 @@ public class AuthzAuthenticationManagerTests {
             true,
             IdentityZoneHolder.get().getId(),
             user.getSalt(),
-            oneYearAgo,
-            null);
+            oneYearAgo);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
     }
