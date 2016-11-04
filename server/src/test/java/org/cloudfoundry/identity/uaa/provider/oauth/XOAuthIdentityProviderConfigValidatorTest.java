@@ -71,6 +71,15 @@ public class XOAuthIdentityProviderConfigValidatorTest {
         validator.validate(definition);
     }
 
+    @Test
+    public void no_client_secret_needed_for_implicit() throws Exception {
+        definition.setRelyingPartySecret(null);
+        definition.setResponseType("code id_token");
+        validator = new XOAuthIdentityProviderConfigValidator();
+        validator.validate(definition);
+    }
+
+
     @Test(expected = IllegalArgumentException.class)
     public void configCannotBeNull() throws Exception {
         validator.validate(null);
