@@ -27,7 +27,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -71,6 +71,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.servlet.http.Cookie;
@@ -104,6 +105,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -122,6 +124,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -1137,7 +1140,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void xOAuthRedirect_onlyOneProvider_noClientContext() throws Exception {
+    public void xOAuthRedirect_onlyOneProvider_noClientContext_and_ResponseType_Set() throws Exception {
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -1146,7 +1149,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1155,9 +1158,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setScopes(asList("openid", "roles"));
+        definition.setResponseType("code id_token");
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1173,7 +1177,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
+                .andExpect(
+                    header()
+                        .string("Location",
+                                startsWith("http://auth.url?client_id=uaa&response_type=code+id_token&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
+                        )
+                );
         IdentityZoneHolder.clear();
     }
 
@@ -1188,7 +1197,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1199,7 +1208,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setScopes(asList("openid", "roles"));
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
         oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
@@ -1221,7 +1230,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
+                .andExpect(
+                    header()
+                        .string("Location",
+                                startsWith("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
+                        )
+                );
         IdentityZoneHolder.clear();
 
 
@@ -1253,7 +1267,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider.setOriginKey(alias);
         activeIdentityProvider = MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1263,7 +1277,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setShowLinkText(false);
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1967,8 +1981,46 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone zone = MultitenancyFixture.identityZone("oidc-idp-discovery", "oidc-idp-discovery");
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
 
+        String originKey = createOIDCProvider(zone, "id_token code");
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .servletPath("/login/idp_discovery")
+            .param("email", "marissa@test.org")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(
+                header()
+                    .string(
+                        "Location",
+                        startsWith("http://myauthurl.com?client_id=id&response_type=id_token+code&redirect_uri=http%3A%2F%2Foidc-idp-discovery.localhost%2Flogin%2Fcallback%2F" +originKey+"&nonce=")
+                    )
+            );
+    }
+
+    @Test
+    public void multiple_oidc_providers_use_response_type_in_url() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("oidc-idp-discovery-multi", "oidc-idp-discovery-multi");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        String originKey = createOIDCProvider(zone);
+        String originKey2 = createOIDCProvider(zone,"code id_token");
+
+        getMockMvc().perform(get("/login")
+                                 .header("Accept", TEXT_HTML)
+                                 .servletPath("/login")
+                                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code&amp;redirect_uri=http%3A%2F%2Foidc-idp-discovery-multi.localhost%2Flogin%2Fcallback%2F" +originKey+"&amp;nonce=")))
+            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&amp;redirect_uri=http%3A%2F%2Foidc-idp-discovery-multi.localhost%2Flogin%2Fcallback%2F" +originKey2+"&amp;nonce=")));
+
+    }
+
+    public String createOIDCProvider(IdentityZone zone) throws Exception {
+        return createOIDCProvider(zone, null);
+    }
+    public String createOIDCProvider(IdentityZone zone, String responseType) throws Exception {
         String originKey = generator.generate();
-        AbstractXOAuthIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        AbstractXOAuthIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setEmailDomain(asList("test.org"));
         definition.setAuthUrl(new URL("http://myauthurl.com"));
         definition.setTokenKey("key");
@@ -1976,18 +2028,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setRelyingPartyId("id");
         definition.setRelyingPartySecret("secret");
         definition.setLinkText("my oidc provider");
+        if (StringUtils.hasText(responseType)) {
+            definition.setResponseType(responseType);
+        }
 
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
         identityProvider.setType(OriginKeys.OIDC10);
         identityProvider.setConfig(definition);
         MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getId(), adminToken, identityProvider, status().isCreated());
-
-        getMockMvc().perform(post("/login/idp_discovery")
-            .header("Accept", TEXT_HTML)
-            .servletPath("/login/idp_discovery")
-            .param("email", "marissa@test.org")
-            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("http://myauthurl.com?client_id=id&response_type=code&redirect_uri=http%3A%2F%2Foidc-idp-discovery.localhost%2Flogin%2Fcallback%2F" +originKey));
+        return originKey;
     }
 
     @Test

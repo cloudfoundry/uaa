@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -50,7 +51,6 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -69,13 +69,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -440,19 +438,7 @@ public class LoginInfoEndpoint {
     }
 
     private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) throws UnsupportedEncodingException {
-        String authUrlBase = definition.getAuthUrl().toString();
-
-        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
-        List<String> query = new ArrayList<>();
-        query.add("client_id=" + definition.getRelyingPartyId());
-        query.add("response_type=code");
-        String requestURL = request.getRequestURL().toString();
-        String rootContext = StringUtils.hasText(request.getServletPath()) ? requestURL.substring(0, requestURL.indexOf(request.getServletPath())) : requestURL;
-        query.add("redirect_uri=" + URLEncoder.encode(rootContext + "/login/callback/" + alias, "UTF-8"));
-        if (definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
-        String queryString = String.join("&", query);
-
-        return authUrlBase + queryAppendDelimiter + queryString;
+        return definition.getCompleteAuthorizationURI(UaaUrlUtils.getBaseURL(request), alias);
     }
 
     protected Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
@@ -640,7 +626,12 @@ public class LoginInfoEndpoint {
         return "redirect:" + redirectLocation;
     }
 
-    @RequestMapping(value = "/login/callback/{origin}", method = GET)
+    @RequestMapping(value = "/login_implicit", method = GET)
+    public String captureImplicitValuesUsingJavascript() {
+        return "login_implicit";
+    }
+
+    @RequestMapping(value = "/login/callback/{origin}")
     public String handleXOAuthCallback(HttpSession session) {
         String redirectLocation = "/home";
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);

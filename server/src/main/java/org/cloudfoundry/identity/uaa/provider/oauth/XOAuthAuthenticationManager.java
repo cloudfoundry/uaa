@@ -26,7 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -67,6 +67,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
@@ -241,23 +242,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return provider.getConfig().isAddShadowUserOnLogin();
     }
 
-    protected boolean isAcceptedInvitationAuthentication() {
-        try {
-            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
-            if (attr!=null) {
-                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
-                if (result!=null) {
-                    return result.booleanValue();
-                }
-            }
-        } catch (IllegalStateException x) {
-            //nothing bound on thread.
-            logger.debug("Unable to retrieve request attributes during SAML authentication.");
-
-        }
-        return false;
-    }
-
     /*
      * BEGIN
      * The following thread local only exists to satisfy that the unit test
@@ -279,8 +263,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private ThreadLocal<RestTemplateHolder> restTemplateHolder = new ThreadLocal<RestTemplateHolder>() {
         @Override
-        protected RestTemplateHolder initialValue() {
-            return new RestTemplateHolder();
+        protected RestTemplateHolder initialValue() {return new RestTemplateHolder();
         }
     };
 
@@ -297,15 +280,19 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "token";
-        } else if (XOIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
+        } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "id_token";
         } else {
             throw new IllegalArgumentException("Unknown type for provider.");
         }
     }
 
-    private Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+    protected Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
         String idToken = getTokenFromCode(codeToken, config);
+        return getClaimsFromToken(idToken, config);
+    }
+
+    protected Map<String,Object> getClaimsFromToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
         if(idToken == null) {
             return null;
         }
@@ -337,6 +324,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+        if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
+            return codeToken.getIdToken();
+        }
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "authorization_code");
         body.add("response_type", getResponseType(config));

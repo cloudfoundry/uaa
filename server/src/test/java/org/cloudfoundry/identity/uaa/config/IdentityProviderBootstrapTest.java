@@ -27,7 +27,7 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
@@ -244,8 +244,9 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void testRemovedOAuthIdentityProviderIsInactive() throws Exception {
         AbstractXOAuthIdentityProviderDefinition oauthProvider = new RawXOAuthIdentityProviderDefinition();
         setCommonProperties(oauthProvider);
-        AbstractXOAuthIdentityProviderDefinition oidcProvider = new XOIDCIdentityProviderDefinition();
+        AbstractXOAuthIdentityProviderDefinition oidcProvider = new OIDCIdentityProviderDefinition();
         setCommonProperties(oidcProvider);
+        oidcProvider.setResponseType("code id_token");
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
@@ -262,6 +263,11 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
             assertNotNull(bootstrapOauthProvider.getLastModified());
             assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
             assertTrue(bootstrapOauthProvider.isActive());
+            if (OIDC10.equals(provider.getKey())) {
+                assertEquals("code id_token", bootstrapOauthProvider.getConfig().getResponseType());
+            } else {
+                assertEquals("code", bootstrapOauthProvider.getConfig().getResponseType());
+            }
         }
 
         bootstrap.setOauthIdpDefinitions(null);

@@ -387,19 +387,11 @@
 
     <bean id="xOauthCallbackRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/login/callback" />
-        <property name="parameters">
-            <map>
-                <entry key="code" value="" />
-            </map>
-        </property>
-        <property name="method">
-            <value>GET</value>
-        </property>
     </bean>
 
     <http name="xOauthCallbackEndpointSecurity" request-matcher-ref="xOauthCallbackRequestMatcher" entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" method="GET"/>
+        <intercept-url pattern="**" access="IS_AUTHENTICATED_FULLY"/>
         <custom-filter ref="xOauthCallbackAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />
         <csrf disabled="true"/>

@@ -89,6 +89,15 @@ public abstract class UaaUrlUtils {
         return b.build().getHost();
     }
 
+    public static String getBaseURL(HttpServletRequest request) {
+        //returns scheme, host and context path
+        //for example http://localhost:8080/uaa or http://login.identity.cf-app.com
+        String requestURL = request.getRequestURL().toString();
+        return StringUtils.hasText(request.getServletPath()) ?
+            requestURL.substring(0, requestURL.indexOf(request.getServletPath())) :
+            requestURL;
+    }
+
     public static Map<String, String[]> getParameterMap(String uri) {
         UriComponentsBuilder b = UriComponentsBuilder.fromUriString(uri);
         MultiValueMap<String, String> map = b.build().getQueryParams();

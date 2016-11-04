@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<!--
+  ~ *****************************************************************************
+  ~     Cloud Foundry
+  ~     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+  ~
+  ~     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+  ~     You may not use this product except in compliance with the License.
+  ~
+  ~     This product includes a number of subcomponents with
+  ~     separate copyright notices and license terms. Your use of these
+  ~     subcomponents is subject to the terms and conditions of the
+  ~     subcomponent's license, as noted in the LICENSE file.
+  ~ *****************************************************************************
+  -->
+
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
+
+<div class="island" layout:fragment="page-content">
+    <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'One more step!':'One more step to access '+zone_name+'!'}">Your authentication is being processed!</h1>
+    <div class="island-content">
+        <form method="post" novalidate="novalidate" accept-charset="UTF-8" id="formAuthenticate">
+            <input type="submit" value="Sign in" class="island-button"/>
+        </form>
+    </div>
+    <script type="text/javascript" th:inline="javascript">
+        // <![CDATA[
+        // First, parse the query string
+        var params = {};
+        var postBody = location.hash.substring(1);
+        var regex = /([^&=]+)=([^&]*)/g;
+        var m;
+
+        while (m = regex.exec(postBody)) {
+            var pname = decodeURIComponent(m[1]);
+            var pvalue = decodeURIComponent(m[2]);
+            params[pname] = pvalue;
+            console.log('Parsing parameter:', pname,' = ',pvalue);
+            var input = document.createElement("input");
+            input.setAttribute("type", "hidden");
+            input.setAttribute("name", pname);
+            input.setAttribute("value", pvalue);
+            document.getElementById("formAuthenticate").appendChild(input);
+        }
+        document.getElementById("formAuthenticate").submit();
+
+        // And send the token over to the server
+//        var req = new XMLHttpRequest();
+//        // using POST so query isn't logged
+//        req.open('POST', '', true);
+//        req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+//
+//        req.onreadystatechange = function (e) {
+//            if (req.readyState == 4) {
+//                if (req.status == 200) {
+//                    //this is ok, we should have received a 302 and followed it
+//                } else if (req.status == 400) {
+//                    // if the OAuth response is invalid, generate an error message
+//                    alert('There was an error processing the token')
+//                } else {
+//                    alert('Something other than 200 was returned')
+//                }
+//            }
+//        };
+        //the result here is a redirect, so how d
+        //req.send(postBody);
+        // ]]>
+    </script>
+</div>
+</html>

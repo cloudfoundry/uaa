@@ -368,6 +368,23 @@ public class BootstrapTests {
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
         assertFalse(uaaIdp.isActive());
 
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
+        assertNotNull(oidcProvider);
+        assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
+        assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
+        assertNull(oidcProvider.getConfig().getIssuer());
+        assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
+        assertEquals(true, oidcProvider.getConfig().isShowLinkText());
+        assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
+        assertEquals("secret", oidcProvider.getConfig().getRelyingPartySecret());
+        assertEquals("my-oidc-provider", oidcProvider.getOriginKey());
+        assertEquals("first_name", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
+        assertEquals("last_name", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertTrue(oidcProvider.getConfig().isAddShadowUserOnLogin());
+        assertEquals(OIDC10, oidcProvider.getType());
+        assertEquals(Collections.singletonList("requested_scope"), oidcProvider.getConfig().getScopes());
+        assertEquals("code id_token", oidcProvider.getConfig().getResponseType());
+
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
         assertNotNull(oauthProvider);
         assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
@@ -384,22 +401,7 @@ public class BootstrapTests {
         assertEquals(OAUTH20, oauthProvider.getType());
         assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
         assertEquals(Collections.singletonList("example.com"), oauthProvider.getConfig().getEmailDomain());
-
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
-        assertNotNull(oidcProvider);
-        assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
-        assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
-        assertNull(oidcProvider.getConfig().getIssuer());
-        assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
-        assertEquals(true, oidcProvider.getConfig().isShowLinkText());
-        assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
-        assertEquals("secret", oidcProvider.getConfig().getRelyingPartySecret());
-        assertEquals("my-oidc-provider", oidcProvider.getOriginKey());
-        assertEquals("first_name", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
-        assertEquals("last_name", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
-        assertTrue(oidcProvider.getConfig().isAddShadowUserOnLogin());
-        assertEquals(OIDC10, oidcProvider.getType());
-        assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
+        assertEquals("code", oauthProvider.getConfig().getResponseType());
 
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));

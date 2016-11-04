@@ -18,7 +18,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,7 +26,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotNull;
@@ -138,7 +136,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                 this.type = UAA;
             } else if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = OAUTH20;
-            } else if (XOIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = OIDC10;
             } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = LDAP;
@@ -340,7 +338,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                         definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
                         break;
                     case OIDC10:
-                        definition = JsonUtils.readValue(config, XOIDCIdentityProviderDefinition.class);
+                        definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);
                         break;
                     case UAA:
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
