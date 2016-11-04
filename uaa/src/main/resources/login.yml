@@ -45,25 +45,35 @@
 #        - https://url2.domain2.com/logout-success
 
 login:
-  oauth:
-    providers:
-      microsoft-azure:
-        type: oidc1.0
-        authUrl: https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/oauth2/authorize
-        tokenUrl: https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/oauth2/token
-        tokenKey:
-        tokenKeyUrl: https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys
-        issuer: https://sts.windows.net/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/
-        scopes:
-          - openid
-        linkText: Microsoft Azure Implicit Test
-        showLinkText: true
-        addShadowUserOnLogin: true
-        relyingPartyId: 8c5ea049-869e-47f8-a492-852a05f507af
-        relyingPartySecret:
-        responseType: id_token
-        attributeMappings:
-          user_name: unique_name
+  # Enable create account and forgot password links on the Login Server (enabled by default)
+  #selfServiceLinksEnabled: true
+  #base URL that the login server can be reached at
+#  oauth:
+#    providers:
+#      my-oauth-provider:
+#        type: oauth2.0
+#        authUrl: http://my-auth.com
+#        tokenUrl: http://my-token.com
+#        tokenKey: my-token-key
+#        tokenKeyUrl:
+#        issuer: token issuer (iss)
+#        scopes:
+#          - openid
+#          - scope.example
+#        emailDomain:
+#          - example.com
+#        linkText: My Oauth Provider
+#        showLinkText: true
+#        addShadowUserOnLogin: false
+#        relyingPartyId: uaa
+#        relyingPartySecret: secret
+#        attributeMappings:
+#          given_name: firstName
+#          family_name: lastname
+#          user_name: username
+#          external_groups:
+#            - scopes_example_group
+#            - roles_example_group
   url: http://localhost:8080/uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
