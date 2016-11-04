@@ -338,6 +338,8 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     private Date passwordLastModified = null;
 
+    private Date passwordExpires = null;
+
     @JsonProperty
     private String password;
 
@@ -540,8 +542,16 @@ public class ScimUser extends ScimCore<ScimUser> {
         return null;
     }
 
+    @JsonSerialize(using = JsonDateSerializer.class)
+    public Date getPasswordExpires() {
+        return passwordExpires;
+    }
+
     public void setPasswordLastModified(Date passwordLastModified) {
         this.passwordLastModified = passwordLastModified;
+    }
+    public void setPasswordExpires(Date passwordExpires) {
+        this.passwordExpires = passwordExpires;
     }
 
     @JsonIgnore
@@ -740,6 +750,9 @@ public class ScimUser extends ScimCore<ScimUser> {
                 case "NAME.MIDDLENAME":
                     ofNullable(getName()).ifPresent(name -> name.setMiddleName(null));
                     break;
+                case "PASSWORDEXPIRES":
+                    setPasswordExpires(null);
+                    break;
                 default:
                     throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
             }
@@ -750,6 +763,8 @@ public class ScimUser extends ScimCore<ScimUser> {
 
         setActive(patch.isActive());
         setVerified(patch.isVerified());
+
+        ofNullable(patch.getPasswordExpires()).ifPresent((p -> setPasswordExpires(p)));
 
         //Merge complex attributes
         ScimUser.Name patchName = patch.getName();

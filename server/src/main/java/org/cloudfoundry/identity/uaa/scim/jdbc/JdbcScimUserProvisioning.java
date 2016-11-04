@@ -71,12 +71,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return logger;
     }
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified ";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified,passwd_expires";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=? and identity_zone_id=?";
+    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=?, passwd_expires=? where id=? and version=? and identity_zone_id=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=? and identity_zone_id=?";
 
@@ -199,7 +199,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     ps.setString(15, user.getSalt());
 
                     ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
-                    ps.setString(17, user.getPassword());
+                    if(user.getPasswordExpires() != null){
+                        ps.setTimestamp(17, new Timestamp(user.getPasswordExpires().getTime()));
+                    } else{
+                        ps.setTimestamp(17, null);
+                    }
+
+                    ps.setString(18, user.getPassword());
                 }
 
             });
@@ -275,6 +281,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 ps.setString(pos++, origin);
                 ps.setString(pos++, hasText(user.getExternalId())?user.getExternalId():null);
                 ps.setString(pos++, user.getSalt());
+                if(user.getPasswordExpires() != null){
+                    ps.setTimestamp(pos++, new Timestamp(user.getPasswordExpires().getTime()));
+                } else {
+                    ps.setTimestamp(pos++, null);
+                }
                 ps.setString(pos++, id);
                 ps.setInt(pos++, user.getVersion());
                 ps.setString(pos++, zoneId);
@@ -462,6 +473,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             String zoneId = rs.getString(14);
             String salt = rs.getString(15);
             Date passwordLastModified = rs.getTimestamp(16);
+            Date passwordExpires = rs.getTimestamp(17);
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -485,6 +497,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             user.setZoneId(zoneId);
             user.setSalt(salt);
             user.setPasswordLastModified(passwordLastModified);
+            user.setPasswordExpires(passwordExpires);
             return user;
         }
     }
