@@ -80,6 +80,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -407,11 +408,22 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
         ScimUser user = dao.retrieve(userId);
-        if(status.isLocked() != null) {
-            if(!status.isLocked()) {
+        if(status.getLocked() != null) {
+            if(!status.getLocked()) {
                 publish(new UserAccountUnlockedEvent(user));
             } else {
                 throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
+            }
+        } else if(status.getPasswordExpires() != null) {
+            if(status.getPasswordExpires()) {
+                try{
+                    dao.updatePasswordLastModified(userId, new Date(0));
+                    scimUpdates.incrementAndGet();
+                } catch (OptimisticLockingFailureException e) {
+                    throw new ScimResourceConflictException(e.getMessage());
+                }
+            } else {
+                throw new IllegalArgumentException("Cannot set user passwordExpires to false.");
             }
         }
 

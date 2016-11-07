@@ -991,7 +991,7 @@ public class ScimUserEndpointsTests {
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setLocked(false);
         UserAccountStatus updatedStatus = endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
-        assertEquals(false, updatedStatus.isLocked());
+        assertEquals(false, updatedStatus.getLocked());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -1004,4 +1004,25 @@ public class ScimUserEndpointsTests {
         endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
     }
 
+    @Test
+    public void testPatchUserStatusWithPasswordExpiry() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setPasswordExpires(true);
+        UserAccountStatus updatedStatus = endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
+        ScimUser updatedUser = endpoints.getUser(createdUser.getId(), new MockHttpServletResponse());
+        assertEquals(0, updatedUser.getPasswordLastModified().getTime());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPatchUserStatusWithPasswordExpiryFalse() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setPasswordExpires(false);
+        endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
+    }
 }

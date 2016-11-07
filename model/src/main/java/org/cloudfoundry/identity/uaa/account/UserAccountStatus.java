@@ -1,7 +1,12 @@
 package org.cloudfoundry.identity.uaa.account;
 
 public class UserAccountStatus {
-  public Boolean isLocked() {
+
+  private Boolean locked;
+
+  private Boolean passwordExpires;
+
+  public Boolean getLocked() {
     return locked;
   }
 
@@ -9,5 +14,12 @@ public class UserAccountStatus {
     this.locked = locked;
   }
 
-  private Boolean locked;
+
+  public Boolean getPasswordExpires() {
+    return passwordExpires;
+  }
+
+  public void setPasswordExpires(Boolean passwordExpires) {
+    this.passwordExpires = passwordExpires;
+  }
 }

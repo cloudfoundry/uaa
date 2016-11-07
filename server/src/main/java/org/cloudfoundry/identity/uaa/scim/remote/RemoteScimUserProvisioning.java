@@ -25,6 +25,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -106,6 +107,11 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
         request.setOldPassword(oldPassword);
         request.setPassword(newPassword);
         restTemplate.put(baseUrl + "/User/{id}/password", request, id);
+    }
+
+    @Override
+    public void updatePasswordLastModified(String id, Date passwordLastModified) throws ScimResourceNotFoundException {
+        throw new UnsupportedOperationException();
     }
 
     @Override

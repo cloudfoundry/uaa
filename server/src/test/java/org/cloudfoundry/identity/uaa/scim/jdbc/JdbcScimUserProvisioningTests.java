@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -322,6 +323,24 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         user = db.retrieve(created.getId());
         assertNotNull(user.getPasswordLastModified());
         assertEquals((user.getMeta().getLastModified().getTime() / 1000l) * 1000l, user.getPasswordLastModified().getTime());
+    }
+
+    @Test
+    public void testChangePasswordLastModified() {
+        ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
+        user.addEmail(user.getUserName());
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        db.updatePasswordLastModified(created.getId(), new Date(0));
+        ScimUser updated = db.retrieve(created.getId());
+        assertEquals(0, updated.getPasswordLastModified().getTime());
+    }
+
+    @Test (expected=ScimResourceNotFoundException.class)
+    public void testChangePasswordLastModifiedForInvalidUser() {
+        ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
+        user.addEmail(user.getUserName());
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        db.updatePasswordLastModified("1234", new Date(0));
     }
 
     @Test

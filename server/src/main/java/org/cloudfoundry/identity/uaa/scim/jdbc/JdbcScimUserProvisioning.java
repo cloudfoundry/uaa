@@ -84,6 +84,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String DELETE_USER_SQL = "delete from users where id=? and identity_zone_id=?";
 
+    public static final String UPDATE_PASSWD_LASTMODIFIED_SQL = "update users set passwd_lastmodified=? where id=? and identity_zone_id=?";
+
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
@@ -290,6 +292,20 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             throw new IncorrectResultSizeDataAccessException(1);
         }
         return result;
+    }
+
+    @Override
+    public void updatePasswordLastModified(final String id, final Date passwordLastModified)
+                    throws ScimResourceNotFoundException{
+        final String zoneId = IdentityZoneHolder.get().getId();
+        int updated = jdbcTemplate.update(UPDATE_PASSWD_LASTMODIFIED_SQL, ps -> {
+            ps.setTimestamp(1, new Timestamp(passwordLastModified.getTime()));
+            ps.setString(2, id);
+            ps.setString(3, zoneId);
+        });
+        if (updated == 0) {
+            throw new ScimResourceNotFoundException("User " + id + " does not exist");
+        }
     }
 
     @Override

@@ -671,6 +671,42 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
           .andExpect(redirectedUrl("/"));
     }
 
+    @Test
+    public void testForcePasswordExpireAccountInvalid() throws Exception {
+        ScimUser user = createUser(uaaAdminToken);
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setPasswordExpires(false);
+
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+        getMockMvc()
+            .perform(
+                patch("/Users/"+user.getId()+"/status")
+                    .header("Authorization", "Bearer " + uaaAdminToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(jsonStatus)
+            )
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testForcePasswordExpireAccount() throws Exception {
+        ScimUser user = createUser(uaaAdminToken);
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setPasswordExpires(true);
+
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+        getMockMvc()
+            .perform(
+                patch("/Users/"+user.getId()+"/status")
+                    .header("Authorization", "Bearer " + uaaAdminToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(jsonStatus)
+            )
+            .andExpect(status().isOk());
+    }
+
     private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/login.do")
