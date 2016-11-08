@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserAccountStatus {
 
   private Boolean locked;
