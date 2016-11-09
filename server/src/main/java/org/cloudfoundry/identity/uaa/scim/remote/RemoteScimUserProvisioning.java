@@ -110,7 +110,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
-    public void updatePasswordLastModified(String id, Date passwordLastModified) throws ScimResourceNotFoundException {
+    public void updatePasswordLastModified(String id, long passwordLastModified) throws ScimResourceNotFoundException {
         throw new UnsupportedOperationException();
     }
 

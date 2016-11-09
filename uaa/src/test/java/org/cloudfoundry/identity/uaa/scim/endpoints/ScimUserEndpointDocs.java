@@ -458,7 +458,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                              IDENTITY_ZONE_ID_HEADER,
                              IDENTITY_ZONE_SUBDOMAIN_HEADER
                          ),
-                         requestFields(fieldWithPath("passwordExpires").optional(null).description("Set to `true` in order to force user’s password to expire").type(BOOLEAN)),
+                         requestFields(fieldWithPath("passwordExpires").optional(null).description("Set to `true` in order to force internal user’s password to expire").type(BOOLEAN)),
                          responseFields(fieldWithPath("passwordExpires").description("The `passwordExpires` value given in the request.").type(BOOLEAN))
                 )
             );

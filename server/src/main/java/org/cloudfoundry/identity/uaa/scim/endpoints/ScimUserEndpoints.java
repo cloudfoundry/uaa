@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -41,6 +42,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.util.UaaDateUtils;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
@@ -415,19 +417,25 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
             }
         } else if(status.getPasswordExpires() != null) {
-            if(status.getPasswordExpires()) {
-                try{
-                    dao.updatePasswordLastModified(userId, new Date(0));
-                    scimUpdates.incrementAndGet();
-                } catch (OptimisticLockingFailureException e) {
-                    throw new ScimResourceConflictException(e.getMessage());
-                }
-            } else {
-                throw new IllegalArgumentException("Cannot set user passwordExpires to false.");
+            validatePasswordExpiry(user, status);
+            try{
+                dao.updatePasswordLastModified(userId, UaaDateUtils.getMinDate());
+                scimUpdates.incrementAndGet();
+            } catch (OptimisticLockingFailureException e) {
+                throw new ScimResourceConflictException(e.getMessage());
             }
         }
 
         return status;
+    }
+
+    private void validatePasswordExpiry(ScimUser user, UserAccountStatus status) throws IllegalArgumentException{
+        if(!user.getOrigin().equals(OriginKeys.UAA)) {
+            throw new IllegalArgumentException("Cannot force password expiry on external users.");
+        }
+        if(!status.getPasswordExpires()) {
+            throw new IllegalArgumentException("Cannot set user passwordExpires to false.");
+        }
     }
 
     private ScimUser syncGroups(ScimUser user) {

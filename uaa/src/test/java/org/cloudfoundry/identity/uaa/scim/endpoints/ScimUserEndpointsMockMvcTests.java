@@ -690,6 +690,26 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testForcePasswordExpireAccountExternalUser() throws Exception {
+        ScimUser user = createUser(uaaAdminToken);
+        user.setOrigin("NOT_UAA");
+        updateUser(uaaAdminToken, HttpStatus.OK.value(), user);
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setPasswordExpires(true);
+
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+        getMockMvc()
+            .perform(
+                patch("/Users/"+user.getId()+"/status")
+                    .header("Authorization", "Bearer " + uaaAdminToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(jsonStatus)
+            )
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
     public void testForcePasswordExpireAccount() throws Exception {
         ScimUser user = createUser(uaaAdminToken);
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();

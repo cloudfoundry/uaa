@@ -1025,4 +1025,15 @@ public class ScimUserEndpointsTests {
         userAccountStatus.setPasswordExpires(false);
         endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPatchUserStatusWithPasswordExpiryExternalUser() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        user.setOrigin("NOT_UAA");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setPasswordExpires(true);
+        endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
+    }
 }

@@ -295,11 +295,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public void updatePasswordLastModified(final String id, final Date passwordLastModified)
+    public void updatePasswordLastModified(final String id, final long passwordLastModified)
                     throws ScimResourceNotFoundException{
         final String zoneId = IdentityZoneHolder.get().getId();
         int updated = jdbcTemplate.update(UPDATE_PASSWD_LASTMODIFIED_SQL, ps -> {
-            ps.setTimestamp(1, new Timestamp(passwordLastModified.getTime()));
+            ps.setTimestamp(1, new Timestamp(passwordLastModified));
             ps.setString(2, id);
             ps.setString(3, zoneId);
         });

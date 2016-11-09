@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.UaaDateUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -330,9 +331,9 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
         user.addEmail(user.getUserName());
         ScimUser created = db.createUser(user, "j7hyqpassX");
-        db.updatePasswordLastModified(created.getId(), new Date(0));
+        db.updatePasswordLastModified(created.getId(), UaaDateUtils.getMinDate());
         ScimUser updated = db.retrieve(created.getId());
-        assertEquals(0, updated.getPasswordLastModified().getTime());
+        assertEquals(UaaDateUtils.getMinDate(), updated.getPasswordLastModified().getTime());
     }
 
     @Test (expected=ScimResourceNotFoundException.class)
@@ -340,7 +341,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
         user.addEmail(user.getUserName());
         ScimUser created = db.createUser(user, "j7hyqpassX");
-        db.updatePasswordLastModified("1234", new Date(0));
+        db.updatePasswordLastModified("1234", UaaDateUtils.getMinDate());
     }
 
     @Test
