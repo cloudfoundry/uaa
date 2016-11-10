@@ -677,7 +677,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testForcePasswordExpireAccountInvalid() throws Exception {
         ScimUser user = createUser(uaaAdminToken);
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
-        alteredAccountStatus.setPasswordExpires(false);
+        alteredAccountStatus.setPasswordChangeRequired(false);
 
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
         getMockMvc()
@@ -697,7 +697,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         user.setOrigin("NOT_UAA");
         updateUser(uaaAdminToken, HttpStatus.OK.value(), user);
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
-        alteredAccountStatus.setPasswordExpires(true);
+        alteredAccountStatus.setPasswordChangeRequired(true);
 
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
         getMockMvc()
@@ -715,7 +715,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testForcePasswordExpireAccount() throws Exception {
         ScimUser user = createUser(uaaAdminToken);
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
-        alteredAccountStatus.setPasswordExpires(true);
+        alteredAccountStatus.setPasswordChangeRequired(true);
 
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
         getMockMvc()

@@ -1011,7 +1011,7 @@ public class ScimUserEndpointsTests {
         user.addEmail("test@example.org");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
-        userAccountStatus.setPasswordExpires(true);
+        userAccountStatus.setPasswordChangeRequired(true);
         UserAccountStatus updatedStatus = endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
         ScimUser updatedUser = endpoints.getUser(createdUser.getId(), new MockHttpServletResponse());
         assertEquals(UaaDateUtils.getSafeMinDate(), updatedUser.getPasswordLastModified().getTime());
@@ -1023,7 +1023,7 @@ public class ScimUserEndpointsTests {
         user.addEmail("test@example.org");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
-        userAccountStatus.setPasswordExpires(false);
+        userAccountStatus.setPasswordChangeRequired(false);
         endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
     }
 
@@ -1034,7 +1034,7 @@ public class ScimUserEndpointsTests {
         user.setOrigin("NOT_UAA");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
-        userAccountStatus.setPasswordExpires(true);
+        userAccountStatus.setPasswordChangeRequired(true);
         endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
     }
 }

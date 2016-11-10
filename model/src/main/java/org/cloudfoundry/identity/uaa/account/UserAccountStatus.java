@@ -7,7 +7,7 @@ public class UserAccountStatus {
 
   private Boolean locked;
 
-  private Boolean passwordExpires;
+  private Boolean passwordChangeRequired;
 
   public Boolean getLocked() {
     return locked;
@@ -17,12 +17,11 @@ public class UserAccountStatus {
     this.locked = locked;
   }
 
-
-  public Boolean getPasswordExpires() {
-    return passwordExpires;
+  public Boolean isPasswordChangeRequired() {
+    return passwordChangeRequired;
   }
 
-  public void setPasswordExpires(Boolean passwordExpires) {
-    this.passwordExpires = passwordExpires;
+  public void setPasswordChangeRequired(Boolean passwordChangeRequired) {
+    this.passwordChangeRequired = passwordChangeRequired;
   }
 }

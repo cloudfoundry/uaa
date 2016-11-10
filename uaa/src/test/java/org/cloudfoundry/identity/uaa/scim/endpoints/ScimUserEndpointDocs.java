@@ -435,7 +435,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
 
     @Test
     public void test_status_password_expire_user() throws Exception {UserAccountStatus alteredAccountStatus = new UserAccountStatus();
-        alteredAccountStatus.setPasswordExpires(true);
+        alteredAccountStatus.setPasswordChangeRequired(true);
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
 
         getMockMvc()

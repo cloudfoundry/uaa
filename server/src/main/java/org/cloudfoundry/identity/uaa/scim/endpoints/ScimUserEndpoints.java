@@ -414,7 +414,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             } else {
                 throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
             }
-        } else if(status.getPasswordExpires() != null) {
+        } else if(status.isPasswordChangeRequired() != null) {
             validatePasswordExpiry(user, status);
             try{
                 dao.updatePasswordLastModified(userId, UaaDateUtils.getSafeMinDate());
@@ -431,7 +431,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if(!user.getOrigin().equals(OriginKeys.UAA)) {
             throw new IllegalArgumentException("Cannot force password expiry on external users.");
         }
-        if(!status.getPasswordExpires()) {
+        if(!status.isPasswordChangeRequired()) {
             throw new IllegalArgumentException("Cannot set user passwordExpires to false.");
         }
     }
