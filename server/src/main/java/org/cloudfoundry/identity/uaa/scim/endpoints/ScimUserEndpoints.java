@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -82,7 +81,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -419,7 +417,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         } else if(status.getPasswordExpires() != null) {
             validatePasswordExpiry(user, status);
             try{
-                dao.updatePasswordLastModified(userId, UaaDateUtils.getMinDate());
+                dao.updatePasswordLastModified(userId, UaaDateUtils.getSafeMinDate());
                 scimUpdates.incrementAndGet();
             } catch (OptimisticLockingFailureException e) {
                 throw new ScimResourceConflictException(e.getMessage());

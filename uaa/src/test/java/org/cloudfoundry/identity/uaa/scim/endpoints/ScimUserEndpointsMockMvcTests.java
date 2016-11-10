@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.util.UaaDateUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -59,6 +60,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -725,6 +727,9 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                     .content(jsonStatus)
             )
             .andExpect(status().isOk());
+
+        user = getAndReturnUser(HttpStatus.OK.value(), user, uaaAdminToken);
+        assertEquals(UaaDateUtils.getSafeMinDate(), user.getPasswordLastModified().getTime());
     }
 
     private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {

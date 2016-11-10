@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.util.UaaDateUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -1013,7 +1014,7 @@ public class ScimUserEndpointsTests {
         userAccountStatus.setPasswordExpires(true);
         UserAccountStatus updatedStatus = endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
         ScimUser updatedUser = endpoints.getUser(createdUser.getId(), new MockHttpServletResponse());
-        assertEquals(0, updatedUser.getPasswordLastModified().getTime());
+        assertEquals(UaaDateUtils.getSafeMinDate(), updatedUser.getPasswordLastModified().getTime());
     }
 
     @Test(expected = IllegalArgumentException.class)
