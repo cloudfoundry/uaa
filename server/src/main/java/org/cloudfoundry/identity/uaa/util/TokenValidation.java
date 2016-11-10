@@ -58,7 +58,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 
 public class TokenValidation {
     private static final Log logger = LogFactory.getLog(TokenValidation.class);
@@ -296,7 +295,7 @@ public class TokenValidation {
             ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 
             Collection<String> clientScopes;
-            if (null == claims.get(USER_NAME)) {
+            if (null == claims.get(USER_ID)) {
                 // for client credentials tokens, we want to validate the client scopes
                 clientScopes = Optional.ofNullable(client.getAuthorities())
                     .map(a -> a.stream()
