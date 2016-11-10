@@ -18,8 +18,9 @@ public class UaaDateUtils {
 
     public static long getSafeMinDate() {
         Calendar calendar = Calendar.getInstance();
-        calendar.set(1970, Calendar.JANUARY, 2, 0, 0, 0);
+        calendar.set(1970, Calendar.JANUARY, 1, 0, 0, 0);
         calendar.set(Calendar.MILLISECOND, 0);
+
         return calendar.getTimeInMillis();
     }
 }
