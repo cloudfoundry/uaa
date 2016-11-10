@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.util.UaaDateUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -60,9 +59,10 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
@@ -581,23 +581,12 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setLocked(false);
-        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
-        getMockMvc()
-            .perform(
-                patch("/Users/"+userToLockout.getId()+"/status")
-                    .header("Authorization", "Bearer " + uaaAdminToken)
-                    .accept(APPLICATION_JSON)
-                    .contentType(APPLICATION_JSON)
-                    .content(jsonStatus)
-                )
+        updateAccountStatus(userToLockout, alteredAccountStatus)
             .andExpect(status().isOk())
-            .andExpect(content().json(jsonStatus));
+            .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
-        getMockMvc().perform(post("/login.do")
-          .with(cookieCsrf())
-          .param("username", userToLockout.getUserName())
-          .param("password", userToLockout.getPassword()))
-          .andExpect(redirectedUrl("/"));
+        attemptLogin(userToLockout)
+            .andExpect(redirectedUrl("/"));
     }
 
     @Test
@@ -605,22 +594,11 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         ScimUser userToLockout = createUser(uaaAdminToken);
         attemptFailedLogin(5, userToLockout.getUserName(), "");
 
-        String jsonStatus = JsonUtils.writeValueAsString(Collections.emptyMap());
-        getMockMvc()
-                .perform(
-                        patch("/Users/"+userToLockout.getId()+"/status")
-                                .header("Authorization", "Bearer " + uaaAdminToken)
-                                .accept(APPLICATION_JSON)
-                                .contentType(APPLICATION_JSON)
-                                .content(jsonStatus)
-                )
+        updateAccountStatus(userToLockout, new UserAccountStatus())
                 .andExpect(status().isOk())
-                .andExpect(content().json(jsonStatus));
+                .andExpect(content().json("{}"));
 
-        getMockMvc().perform(post("/login.do")
-                .with(cookieCsrf())
-                .param("username", userToLockout.getUserName())
-                .param("password", userToLockout.getPassword()))
+        attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/login?error=account_locked"));
     }
 
@@ -630,22 +608,11 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setLocked(true);
-        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
-        getMockMvc()
-                .perform(
-                        patch("/Users/"+user.getId()+"/status")
-                                .header("Authorization", "Bearer " + uaaAdminToken)
-                                .accept(APPLICATION_JSON)
-                                .contentType(APPLICATION_JSON)
-                                .content(jsonStatus)
-                )
+        updateAccountStatus(user, alteredAccountStatus)
                 .andExpect(status().isBadRequest());
 
-        getMockMvc().perform(post("/login.do")
-                .with(cookieCsrf())
-                .param("username", user.getUserName())
-                .param("password", user.getPassword()))
-                .andExpect(redirectedUrl("/"));
+        attemptLogin(user)
+            .andExpect(redirectedUrl("/"));
     }
 
     @Test
@@ -654,23 +621,12 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setLocked(false);
-        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
-        getMockMvc()
-          .perform(
-            patch("/Users/"+userToLockout.getId()+"/status")
-              .header("Authorization", "Bearer " + uaaAdminToken)
-              .accept(APPLICATION_JSON)
-              .contentType(APPLICATION_JSON)
-              .content(jsonStatus)
-          )
+        updateAccountStatus(userToLockout, alteredAccountStatus)
           .andExpect(status().isOk())
-          .andExpect(content().json(jsonStatus));
+          .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
-        getMockMvc().perform(post("/login.do")
-          .with(cookieCsrf())
-          .param("username", userToLockout.getUserName())
-          .param("password", userToLockout.getPassword()))
-          .andExpect(redirectedUrl("/"));
+        attemptLogin(userToLockout)
+            .andExpect(redirectedUrl("/"));
     }
 
     @Test
@@ -679,16 +635,10 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(false);
 
-        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
-        getMockMvc()
-            .perform(
-                patch("/Users/"+user.getId()+"/status")
-                    .header("Authorization", "Bearer " + uaaAdminToken)
-                    .accept(APPLICATION_JSON)
-                    .contentType(APPLICATION_JSON)
-                    .content(jsonStatus)
-            )
+        updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
+
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
     }
 
     @Test
@@ -699,37 +649,81 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(true);
 
-        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
-        getMockMvc()
-            .perform(
-                patch("/Users/"+user.getId()+"/status")
-                    .header("Authorization", "Bearer " + uaaAdminToken)
-                    .accept(APPLICATION_JSON)
-                    .contentType(APPLICATION_JSON)
-                    .content(jsonStatus)
-            )
+        updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
+
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
     }
 
     @Test
-    public void testForcePasswordExpireAccount() throws Exception {
+    public void testForcePasswordChange() throws Exception {
         ScimUser user = createUser(uaaAdminToken);
+
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(true);
 
+        updateAccountStatus(user, alteredAccountStatus)
+            .andExpect(status().isOk())
+            .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
+
+        assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+    }
+
+    @Test
+    public void testTryMultipleStatusUpdatesWithInvalidLock() throws Exception {
+        ScimUser user = createUser(uaaAdminToken);
+
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setPasswordChangeRequired(true);
+        alteredAccountStatus.setLocked(true);
+
+        updateAccountStatus(user, alteredAccountStatus)
+            .andExpect(status().isBadRequest());
+
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+
+        attemptLogin(user)
+            .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    public void testTryMultipleStatusUpdatesWithInvalidRemovalOfPasswordChange() throws Exception {
+        ScimUser user = createUser(uaaAdminToken);
+        attemptFailedLogin(5, user.getUserName(), "");
+
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setPasswordChangeRequired(false);
+        alteredAccountStatus.setLocked(false);
+
+        updateAccountStatus(user, alteredAccountStatus)
+            .andExpect(status().isBadRequest());
+
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+
+        attemptLogin(user)
+            .andExpect(redirectedUrl("/login?error=account_locked"));
+    }
+
+    private ResultActions updateAccountStatus(ScimUser user, UserAccountStatus alteredAccountStatus) throws Exception {
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
-        getMockMvc()
+        return getMockMvc()
             .perform(
-                patch("/Users/"+user.getId()+"/status")
+                patch("/Users/" + user.getId() + "/status")
                     .header("Authorization", "Bearer " + uaaAdminToken)
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
                     .content(jsonStatus)
-            )
-            .andExpect(status().isOk());
+            );
+    }
 
-        user = getAndReturnUser(HttpStatus.OK.value(), user, uaaAdminToken);
-        assertEquals(UaaDateUtils.getSafeMinDate(), user.getPasswordLastModified().getTime());
+    private ResultActions attemptLogin(ScimUser user) throws Exception {
+        return getMockMvc()
+            .perform(post("/login.do")
+                         .with(cookieCsrf())
+                         .param("username", user.getUserName())
+                         .param("password", user.getPassword()));
     }
 
     private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {

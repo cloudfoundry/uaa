@@ -110,7 +110,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
-    public void updatePasswordLastModified(String id, long passwordLastModified) throws ScimResourceNotFoundException {
+    public void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired) throws ScimResourceNotFoundException {
         throw new UnsupportedOperationException();
     }
 
@@ -125,6 +125,11 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 
     @Override
     public boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean checkPasswordChangeIndividuallyRequired(String id) throws ScimResourceNotFoundException {
         throw new UnsupportedOperationException();
     }
 

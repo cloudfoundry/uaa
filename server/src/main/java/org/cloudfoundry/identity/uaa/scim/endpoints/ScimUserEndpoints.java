@@ -41,7 +41,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
-import org.cloudfoundry.identity.uaa.util.UaaDateUtils;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
@@ -408,32 +407,26 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
         ScimUser user = dao.retrieve(userId);
-        if(status.getLocked() != null) {
-            if(!status.getLocked()) {
-                publish(new UserAccountUnlockedEvent(user));
-            } else {
-                throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
-            }
-        } else if(status.isPasswordChangeRequired() != null) {
-            validatePasswordExpiry(user, status);
-            try{
-                dao.updatePasswordLastModified(userId, UaaDateUtils.getSafeMinDate());
-                scimUpdates.incrementAndGet();
-            } catch (OptimisticLockingFailureException e) {
-                throw new ScimResourceConflictException(e.getMessage());
-            }
+
+        if(!user.getOrigin().equals(OriginKeys.UAA)) {
+            throw new IllegalArgumentException("Can only manage users from the internal user store.");
+        }
+        if(status.getLocked() != null && status.getLocked()) {
+            throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
+        }
+        if(status.isPasswordChangeRequired() != null && !status.isPasswordChangeRequired()) {
+            throw new IllegalArgumentException("The requirement that this user change their password cannot be removed via API.");
+        }
+
+
+        if(status.getLocked() != null && !status.getLocked()) {
+            publish(new UserAccountUnlockedEvent(user));
+        }
+        if(status.isPasswordChangeRequired() != null && status.isPasswordChangeRequired()) {
+            dao.updatePasswordChangeRequired(userId, true);
         }
 
         return status;
-    }
-
-    private void validatePasswordExpiry(ScimUser user, UserAccountStatus status) throws IllegalArgumentException{
-        if(!user.getOrigin().equals(OriginKeys.UAA)) {
-            throw new IllegalArgumentException("Cannot force password expiry on external users.");
-        }
-        if(!status.isPasswordChangeRequired()) {
-            throw new IllegalArgumentException("Cannot set user passwordExpires to false.");
-        }
     }
 
     private ScimUser syncGroups(ScimUser user) {

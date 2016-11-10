@@ -27,11 +27,12 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
 
     void changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException;
 
-    void updatePasswordLastModified(String id, long passwordLastModified) throws ScimResourceNotFoundException;
+    void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired) throws ScimResourceNotFoundException;
 
     ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException, InvalidScimResourceException;
 
     boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException;
 
+    boolean checkPasswordChangeIndividuallyRequired(String id) throws ScimResourceNotFoundException;
 }
 

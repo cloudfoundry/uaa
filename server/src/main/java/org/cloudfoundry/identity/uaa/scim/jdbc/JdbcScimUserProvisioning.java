@@ -90,6 +90,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
 
+    public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where id=? and identity_zone_id=?";
+
+    public static final String READ_PASSWORD_CHANGE_REQUIRED_SQL = "select passwd_change_required from users where id=? and identity_zone_id=?";
+
     public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=? and identity_zone_id=?";
 
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
@@ -295,20 +299,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public void updatePasswordLastModified(final String id, final long passwordLastModified)
-                    throws ScimResourceNotFoundException{
-        final String zoneId = IdentityZoneHolder.get().getId();
-        int updated = jdbcTemplate.update(UPDATE_PASSWD_LASTMODIFIED_SQL, ps -> {
-            ps.setTimestamp(1, new Timestamp(passwordLastModified));
-            ps.setString(2, id);
-            ps.setString(3, zoneId);
-        });
-        if (updated == 0) {
-            throw new ScimResourceNotFoundException("User " + id + " does not exist");
-        }
-    }
-
-    @Override
     public void changePassword(final String id, String oldPassword, final String newPassword)
                     throws ScimResourceNotFoundException {
         if (oldPassword != null && !checkPasswordMatches(id, oldPassword)) {
@@ -354,6 +344,24 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         }
 
         return passwordEncoder.matches(password, currentPassword);
+    }
+
+    @Override
+    public boolean checkPasswordChangeIndividuallyRequired(String userId) throws ScimResourceNotFoundException {
+        return jdbcTemplate.queryForObject(READ_PASSWORD_CHANGE_REQUIRED_SQL, boolean.class, userId, IdentityZoneHolder.get().getId());
+    }
+
+    @Override
+    public void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired) throws ScimResourceNotFoundException {
+        final String zoneId = IdentityZoneHolder.get().getId();
+        int updated = jdbcTemplate.update(UPDATE_PASSWORD_CHANGE_REQUIRED_SQL, ps -> {
+            ps.setBoolean(1, passwordChangeRequired);
+            ps.setString(2, userId);
+            ps.setString(3, zoneId);
+        });
+        if (updated == 0) {
+            throw new ScimResourceNotFoundException("User " + userId + " does not exist");
+        }
     }
 
     @Override
