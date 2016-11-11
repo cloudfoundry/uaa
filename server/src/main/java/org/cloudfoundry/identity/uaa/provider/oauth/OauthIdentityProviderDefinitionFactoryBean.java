@@ -1,8 +1,20 @@
+/*******************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -13,6 +25,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.springframework.util.StringUtils.hasText;
 
 public class OauthIdentityProviderDefinitionFactoryBean {
     private Map<String,AbstractXOAuthIdentityProviderDefinition> oauthIdpDefinitions = new HashMap<>();
@@ -30,7 +43,7 @@ public class OauthIdentityProviderDefinitionFactoryBean {
                         oauthIdpDefinitions.put(alias, oauthIdentityProviderDefinition);
                     }
                     else if(OIDC10.equalsIgnoreCase(type)) {
-                        XOIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new XOIDCIdentityProviderDefinition();
+                        OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
                         setCommonProperties(idpDefinitionMap, oidcIdentityProviderDefinition);
                         oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
                         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
@@ -57,6 +70,10 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         idpDefinition.setIssuer((String) idpDefinitionMap.get("issuer"));
         idpDefinition.setAttributeMappings((Map<String, Object>) idpDefinitionMap.get(ATTRIBUTE_MAPPINGS));
         idpDefinition.setScopes((List<String>) idpDefinitionMap.get("scopes"));
+        String responseType = (String) idpDefinitionMap.get("responseType");
+        if (hasText(responseType)) {
+            idpDefinition.setResponseType(responseType);
+        }
         try {
             idpDefinition.setAuthUrl(new URL((String)idpDefinitionMap.get("authUrl")));
             idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String)idpDefinitionMap.get("tokenKeyUrl")));

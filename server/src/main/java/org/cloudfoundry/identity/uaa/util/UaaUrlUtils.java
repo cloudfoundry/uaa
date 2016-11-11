@@ -17,14 +17,21 @@ package org.cloudfoundry.identity.uaa.util;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public abstract class UaaUrlUtils {
 
@@ -82,6 +89,44 @@ public abstract class UaaUrlUtils {
         return b.build().getHost();
     }
 
+    public static String getBaseURL(HttpServletRequest request) {
+        //returns scheme, host and context path
+        //for example http://localhost:8080/uaa or http://login.identity.cf-app.com
+        String requestURL = request.getRequestURL().toString();
+        return StringUtils.hasText(request.getServletPath()) ?
+            requestURL.substring(0, requestURL.indexOf(request.getServletPath())) :
+            requestURL;
+    }
+
+    public static Map<String, String[]> getParameterMap(String uri) {
+        UriComponentsBuilder b = UriComponentsBuilder.fromUriString(uri);
+        MultiValueMap<String, String> map = b.build().getQueryParams();
+        Map<String, String[]> result= new HashMap<>();
+        map
+            .entrySet()
+            .stream()
+            .forEach(
+                e -> result.put(e.getKey(), decodeValue(e.getValue()))
+            );
+        return result;
+    }
+
+    public static String[] decodeValue(List<String> value) {
+        if (value==null) {
+            return null;
+        }
+        String[] result = new String[value.size()];
+        int pos = 0;
+        for (String s : value) {
+            try {
+                result[pos++] = UriUtils.decode(s, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalArgumentException(s, e);
+            }
+        }
+        return result;
+    }
+
     public static boolean isUrl(String url) {
         try {
             new URL(url);
@@ -94,6 +139,13 @@ public abstract class UaaUrlUtils {
     public static String addQueryParameter(String url, String name, String value) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url);
         builder.queryParam(name,value);
+        return builder.build().toUriString();
+    }
+
+    public static String addFragmentComponent(String urlString, String component) {
+        URI uri = URI.create(urlString);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUri(uri);
+        builder.fragment(StringUtils.hasText(uri.getFragment()) ? uri.getFragment() + "&" + component : component);
         return builder.build().toUriString();
     }
 

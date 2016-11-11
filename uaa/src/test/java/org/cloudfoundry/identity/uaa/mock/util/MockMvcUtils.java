@@ -105,6 +105,7 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -160,7 +161,7 @@ public final class MockMvcUtils {
     public static MockHttpSession getSavedRequestSession() {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new MockSavedRequest();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         return session;
     }
 
@@ -195,17 +196,24 @@ public final class MockMvcUtils {
         private final IdentityZoneCreationResult zone;
         private final String adminToken;
         private final ClientDetails scimInviteClient;
+        private final String defaultZoneAdminToken;
 
         public ZoneScimInviteData(String adminToken,
                                   IdentityZoneCreationResult zone,
-                                  ClientDetails scimInviteClient) {
+                                  ClientDetails scimInviteClient,
+                                  String defaultZoneAdminToken) {
             this.adminToken = adminToken;
             this.zone = zone;
             this.scimInviteClient = scimInviteClient;
+            this.defaultZoneAdminToken = defaultZoneAdminToken;
         }
 
         public ClientDetails getScimInviteClient() {
             return scimInviteClient;
+        }
+
+        public String getDefaultZoneAdminToken() {
+            return defaultZoneAdminToken;
         }
 
         public IdentityZoneCreationResult getZone() {
@@ -345,6 +353,7 @@ public final class MockMvcUtils {
 
     public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String clientId, String redirectUri) throws Exception {
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        String superAdmin = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
         IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
         BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite", redirectUri);
         appClient.setClientSecret("secret");
@@ -372,7 +381,8 @@ public final class MockMvcUtils {
         return new ZoneScimInviteData(
                 adminToken,
                 zone,
-                appClient
+                appClient,
+                superAdmin
         );
     }
 

@@ -135,6 +135,7 @@
 
     <bean id="loginClientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
+        <property name="loginPolicy" ref="clientLoginPolicy"/>
     </bean>
 
     <!-- Support for older login servers -->

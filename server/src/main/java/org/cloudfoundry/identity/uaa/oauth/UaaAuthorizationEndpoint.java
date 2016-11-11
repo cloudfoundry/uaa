@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -51,6 +52,7 @@ import org.springframework.security.oauth2.provider.endpoint.DefaultRedirectReso
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.oauth2.provider.implicit.ImplicitTokenRequest;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestValidator;
+import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.HttpSessionRequiredException;
@@ -218,12 +220,19 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
                 }
             }
 
-            // Place auth request into the model so that it is stored in the session
-            // for approveOrDeny to use. That way we make sure that auth request comes from the session,
-            // so any auth request parameters passed to approveOrDeny will be ignored and retrieved from the session.
-            model.put("authorizationRequest", authorizationRequest);
 
-            return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
+            if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))){
+                return new ModelAndView(
+                    new RedirectView(UaaUrlUtils.addFragmentComponent(resolvedRedirect, "error=interaction_required"))
+                );
+            } else {
+                // Place auth request into the model so that it is stored in the session
+                // for approveOrDeny to use. That way we make sure that auth request comes from the session,
+                // so any auth request parameters passed to approveOrDeny will be ignored and retrieved from the session.
+                model.put("authorizationRequest", authorizationRequest);
+                model.put("original_uri", UrlUtils.buildFullRequestUrl(request));
+                return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
+            }
 
         } catch (RuntimeException e) {
             sessionStatus.setComplete();

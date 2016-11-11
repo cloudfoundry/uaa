@@ -63,6 +63,7 @@ login:
         showLinkText: true
         relyingPartyId: uaa
         relyingPartySecret: secret
+        responseType: code id_token
         attributeMappings:
           given_name: first_name
           family_name: last_name

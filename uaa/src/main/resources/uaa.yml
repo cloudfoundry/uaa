@@ -37,7 +37,7 @@
 #  driverClassName: org.mariadb.jdbc.Driver
 #  url: jdbc:mysql://localhost:3306/uaa
 #  username: root
-#  password:
+#  password: blabla
 
 #mysql commands that were run
 #create database uaa;

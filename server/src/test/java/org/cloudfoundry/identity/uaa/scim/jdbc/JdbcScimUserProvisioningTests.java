@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
@@ -66,7 +65,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -561,11 +559,19 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test(expected = InvalidScimResourceException.class)
     public void updateWithBadUsernameIsError() {
+        ScimUser jo = db.retrieve(JOE_ID);
+        jo.setUserName("jo$ephione");
+        db.update(JOE_ID, jo);
+    }
+
+    @Test
+    public void updateWithBadUsernameIsOk_For_Non_UAA() {
         ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
+        jo.setOrigin(OriginKeys.LDAP);
         jo.addEmail("jo@blah.com");
-        jo.setVersion(1);
         ScimUser joe = db.update(JOE_ID, jo);
-        assertEquals("joe", joe.getUserName());
+        assertEquals("jo$ephine", joe.getUserName());
+        assertEquals(OriginKeys.LDAP, joe.getOrigin());
     }
 
     /*

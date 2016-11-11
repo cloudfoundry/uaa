@@ -27,7 +27,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -71,6 +71,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.servlet.http.Cookie;
@@ -95,14 +96,16 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.isEmptyString;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -121,6 +124,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -191,6 +195,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("/create_account")));
     }
 
+    @Test
+    public void testLogin_Csrf_MaxAge() throws Exception {
+        getMockMvc()
+            .perform(
+                get("/login"))
+            .andExpect(status().isOk())
+            .andExpect(cookie().maxAge(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, CookieBasedCsrfTokenRepository.DEFAULT_COOKIE_MAX_AGE));
+    }
+
     protected void setDisableInternalAuth(boolean disable) throws Exception {
        MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), getUaa().getId(), disable);
     }
@@ -253,8 +266,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'").get(0);
 
-        MockHttpServletRequestBuilder validPost = post("/login.do")
+        MockHttpServletRequestBuilder validPost = post("/uaa/login.do")
             .session(session)
+            .contextPath("/uaa")
             .param("username", "marissa")
             .param("password", "koala")
             .cookie(cookie)
@@ -262,7 +276,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(validPost)
             .andDo(print())
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"))
+            .andExpect(redirectedUrl("/uaa/"))
             .andExpect(currentUserCookie(marissa.getId()));
     }
 
@@ -270,6 +284,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
       return result -> {
         cookie().value("Current-User", URLEncoder.encode("{\"userId\":\"" + userId + "\"}", "UTF-8")).match(result);
         cookie().maxAge("Current-User", 365*24*60*60);
+        cookie().path("Current-User", "/uaa").match(result);
       };
     }
 
@@ -312,12 +327,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         } finally {
             setDisableInternalAuth(false);
         }
-        getMockMvc().perform(post("/login.do")
+        getMockMvc().perform(post("/uaa/login.do")
             .with(cookieCsrf())
+            .contextPath("/uaa")
             .param("username", user.getUserName())
             .param("password", user.getPassword()))
             .andDo(print())
-            .andExpect(redirectedUrl("/"))
+            .andExpect(redirectedUrl("/uaa/"))
             .andExpect(currentUserCookie(user.getId()));
     }
 
@@ -516,17 +532,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLogOut() throws Exception {
-        getMockMvc().perform(get("/logout.do"))
+        getMockMvc().perform(get("/uaa/logout.do").contextPath("/uaa"))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login"))
+            .andExpect(redirectedUrl("/uaa/login"))
             .andExpect(emptyCurrentUserCookie());
     }
 
     @Test
     public void testLogOutIgnoreRedirectParameter() throws Exception {
-        getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
+        getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login"))
+            .andExpect(redirectedUrl("/uaa/login"))
             .andExpect(emptyCurrentUserCookie());
     }
 
@@ -537,7 +553,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         logout.setDisableRedirectParameter(false);
         setLogout(logout);
         try {
-            getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
+            getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"))
                 .andExpect(emptyCurrentUserCookie());
@@ -552,9 +568,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         Links.Logout logout = getLogout();
         setLogout(logout);
         try {
-            getMockMvc().perform(get("/logout.do").param("redirect", "http://localhost/internal-location"))
+            getMockMvc().perform(get("/uaa/logout.do").param("redirect", "http://localhost/uaa/internal-location").contextPath("/uaa"))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/internal-location"))
+                .andExpect(redirectedUrl("http://localhost/uaa/internal-location"))
                 .andExpect(emptyCurrentUserCookie());
         } finally {
             setLogout(original);
@@ -569,7 +585,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         logout.setWhitelist(asList("https://www.google.com"));
         setLogout(logout);
         try {
-            getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
+            getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"))
                 .andExpect(emptyCurrentUserCookie());
@@ -586,9 +602,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         logout.setWhitelist(asList("https://www.yahoo.com"));
         setLogout(logout);
         try {
-            getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
+            getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login"))
+                .andExpect(redirectedUrl("/uaa/login"))
                 .andExpect(emptyCurrentUserCookie());
         } finally {
             setLogout(original);
@@ -603,7 +619,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         logout.setWhitelist(null);
         setLogout(logout);
         try {
-            getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
+            getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"))
                 .andExpect(emptyCurrentUserCookie());
@@ -620,9 +636,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         logout.setWhitelist(EMPTY_LIST);
         setLogout(logout);
         try {
-            getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
+            getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login"))
+                .andExpect(redirectedUrl("/uaa/login"))
                 .andExpect(emptyCurrentUserCookie());
         } finally {
             setLogout(original);
@@ -647,7 +663,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         logout.setRedirectUrl("https://www.google.com");
         setLogout(logout);
         try {
-            getMockMvc().perform(get("/logout.do"))
+            getMockMvc().perform(get("/uaa/logout.do").contextPath("/uaa"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"))
                 .andExpect(emptyCurrentUserCookie());
@@ -670,30 +686,33 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             client.setClientSecret(clientId);
             MockMvcUtils.createClient(getMockMvc(), accessToken, client);
             getMockMvc().perform(
-                get("/logout.do")
+                get("/uaa/logout.do")
                     .param(CLIENT_ID, clientId)
                     .param("redirect", "http://testing.com")
+                    .contextPath("/uaa")
             )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://testing.com"))
                 .andExpect(emptyCurrentUserCookie());
 
             getMockMvc().perform(
-                get("/logout.do")
+                get("/uaa/logout.do")
                     .param(CLIENT_ID, clientId)
                     .param("redirect", "http://www.wildcard.testing")
+                    .contextPath("/uaa")
             )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://www.wildcard.testing"))
                 .andExpect(emptyCurrentUserCookie());
 
             getMockMvc().perform(
-                get("/logout.do")
+                get("/uaa/logout.do")
                     .param(CLIENT_ID, "non-existent-client")
                     .param("redirect", "http://www.wildcard.testing")
+                    .contextPath("/uaa")
             )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login"))
+                .andExpect(redirectedUrl("/uaa/login"))
                 .andExpect(emptyCurrentUserCookie());
         } finally {
             setLogout(original);
@@ -713,19 +732,21 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         zone = zoneProvisioning.create(zone);
 
         //default zone
-        getMockMvc().perform(get("/logout.do"))
+        getMockMvc().perform(get("/uaa/logout.do").contextPath("/uaa"))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login"))
+            .andExpect(redirectedUrl("/uaa/login"))
             .andExpect(emptyCurrentUserCookie());
 
         //other zone
-        getMockMvc().perform(get("/logout.do")
+        getMockMvc().perform(get("/uaa/logout.do")
+            .contextPath("/uaa")
             .header("Host", zoneId+".localhost"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://test.redirect.com"))
             .andExpect(emptyCurrentUserCookie());
 
-        getMockMvc().perform(get("/logout.do")
+        getMockMvc().perform(get("/uaa/logout.do")
+                                .contextPath("/uaa")
                                  .header("Host", zoneId+".localhost")
                                  .param("redirect", "http://google.com")
         )
@@ -736,9 +757,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         zone.getConfig().getLinks().getLogout().setDisableRedirectParameter(false);
         zone = zoneProvisioning.update(zone);
 
-        getMockMvc().perform(get("/logout.do")
-                                 .header("Host", zoneId+".localhost")
-                                 .param("redirect", "http://google.com")
+        getMockMvc().perform(get("/uaa/logout.do")
+                                .contextPath("/uaa")
+                                .header("Host", zoneId+".localhost")
+                                .param("redirect", "http://google.com")
         )
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://google.com"))
@@ -747,17 +769,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         zone.getConfig().getLinks().getLogout().setWhitelist(asList("http://yahoo.com"));
         zone = zoneProvisioning.update(zone);
 
-        getMockMvc().perform(get("/logout.do")
-                                 .header("Host", zoneId+".localhost")
-                                 .param("redirect", "http://google.com")
+        getMockMvc().perform(get("/uaa/logout.do")
+                                .contextPath("/uaa")
+                                .header("Host", zoneId+".localhost")
+                                .param("redirect", "http://google.com")
         )
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://test.redirect.com"))
             .andExpect(emptyCurrentUserCookie());
 
-        getMockMvc().perform(get("/logout.do")
-                                 .header("Host", zoneId+".localhost")
-                                 .param("redirect", "http://yahoo.com")
+        getMockMvc().perform(get("/uaa/logout.do")
+                                .contextPath("/uaa")
+                                .header("Host", zoneId+".localhost")
+                                .param("redirect", "http://yahoo.com")
         )
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://yahoo.com"))
@@ -1041,7 +1065,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new MockMvcUtils.MockSavedRequest();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         getMockMvc().perform(get("/login")
             .accept(TEXT_HTML)
@@ -1116,7 +1140,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void xOAuthRedirect_onlyOneProvider_noClientContext() throws Exception {
+    public void xOAuthRedirect_onlyOneProvider_noClientContext_and_ResponseType_Set() throws Exception {
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -1125,7 +1149,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1134,9 +1158,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setScopes(asList("openid", "roles"));
+        definition.setResponseType("code id_token");
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1152,7 +1177,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
+                .andExpect(
+                    header()
+                        .string("Location",
+                                startsWith("http://auth.url?client_id=uaa&response_type=code+id_token&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
+                        )
+                );
         IdentityZoneHolder.clear();
     }
 
@@ -1167,7 +1197,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1178,7 +1208,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setScopes(asList("openid", "roles"));
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
         oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
@@ -1190,7 +1220,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = mock(DefaultSavedRequest.class);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "example.com" });
-        session.putValue("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
 
         getMockMvc().perform(get("/login")
@@ -1200,7 +1230,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
+                .andExpect(
+                    header()
+                        .string("Location",
+                                startsWith("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
+                        )
+                );
         IdentityZoneHolder.clear();
 
 
@@ -1232,7 +1267,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider.setOriginKey(alias);
         activeIdentityProvider = MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -1242,7 +1277,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setShowLinkText(false);
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1323,7 +1358,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             @Override public List<Locale> getLocales() { return null; }
             @Override public Map<String, String[]> getParameterMap() { return null; }
         };
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
             .session(session)
@@ -1718,11 +1753,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void login_LockoutPolicySucceeds_ForDefaultZone() throws Exception {
         ScimUser userToLockout = createUser("", adminToken);
         attemptFailedLogin(5, userToLockout.getUserName(), "");
-        getMockMvc().perform(post("/login.do")
+        getMockMvc().perform(post("/uaa/login.do")
+            .contextPath("/uaa")
             .with(cookieCsrf())
             .param("username", userToLockout.getUserName())
             .param("password", userToLockout.getPassword()))
-            .andExpect(redirectedUrl("/login?error=account_locked"))
+            .andExpect(redirectedUrl("/uaa/login?error=account_locked"))
             .andExpect(emptyCurrentUserCookie());
     }
 
@@ -1739,12 +1775,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         attemptFailedLogin(2, userToLockout.getUserName(), subdomain);
 
-        getMockMvc().perform(post("/login.do")
+        getMockMvc().perform(post("/uaa/login.do")
+            .contextPath("/uaa")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .with(cookieCsrf())
             .param("username", userToLockout.getUserName())
             .param("password", userToLockout.getPassword()))
-            .andExpect(redirectedUrl("/login?error=account_locked"))
+            .andExpect(redirectedUrl("/uaa/login?error=account_locked"))
             .andExpect(emptyCurrentUserCookie());
     }
 
@@ -1838,7 +1875,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
 
         SavedRequest savedRequest = getSavedRequest(client);
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         getMockMvc().perform(get("/login")
             .session(session)
@@ -1944,8 +1981,46 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone zone = MultitenancyFixture.identityZone("oidc-idp-discovery", "oidc-idp-discovery");
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
 
+        String originKey = createOIDCProvider(zone, "id_token code");
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .servletPath("/login/idp_discovery")
+            .param("email", "marissa@test.org")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(
+                header()
+                    .string(
+                        "Location",
+                        startsWith("http://myauthurl.com?client_id=id&response_type=id_token+code&redirect_uri=http%3A%2F%2Foidc-idp-discovery.localhost%2Flogin%2Fcallback%2F" +originKey+"&nonce=")
+                    )
+            );
+    }
+
+    @Test
+    public void multiple_oidc_providers_use_response_type_in_url() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("oidc-idp-discovery-multi", "oidc-idp-discovery-multi");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        String originKey = createOIDCProvider(zone);
+        String originKey2 = createOIDCProvider(zone,"code id_token");
+
+        getMockMvc().perform(get("/login")
+                                 .header("Accept", TEXT_HTML)
+                                 .servletPath("/login")
+                                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code&amp;redirect_uri=http%3A%2F%2Foidc-idp-discovery-multi.localhost%2Flogin%2Fcallback%2F" +originKey+"&amp;nonce=")))
+            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&amp;redirect_uri=http%3A%2F%2Foidc-idp-discovery-multi.localhost%2Flogin%2Fcallback%2F" +originKey2+"&amp;nonce=")));
+
+    }
+
+    public String createOIDCProvider(IdentityZone zone) throws Exception {
+        return createOIDCProvider(zone, null);
+    }
+    public String createOIDCProvider(IdentityZone zone, String responseType) throws Exception {
         String originKey = generator.generate();
-        AbstractXOAuthIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        AbstractXOAuthIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setEmailDomain(asList("test.org"));
         definition.setAuthUrl(new URL("http://myauthurl.com"));
         definition.setTokenKey("key");
@@ -1953,18 +2028,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         definition.setRelyingPartyId("id");
         definition.setRelyingPartySecret("secret");
         definition.setLinkText("my oidc provider");
+        if (StringUtils.hasText(responseType)) {
+            definition.setResponseType(responseType);
+        }
 
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
         identityProvider.setType(OriginKeys.OIDC10);
         identityProvider.setConfig(definition);
         MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getId(), adminToken, identityProvider, status().isCreated());
-
-        getMockMvc().perform(post("/login/idp_discovery")
-            .header("Accept", TEXT_HTML)
-            .servletPath("/login/idp_discovery")
-            .param("email", "marissa@test.org")
-            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("http://myauthurl.com?client_id=id&response_type=code&redirect_uri=http%3A%2F%2Foidc-idp-discovery.localhost%2Flogin%2Fcallback%2F" +originKey));
+        return originKey;
     }
 
     @Test
@@ -2102,15 +2174,16 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         SetServerNameRequestPostProcessor inZone = new SetServerNameRequestPostProcessor(subdomain + ".localhost");
 
-        MockHttpServletRequestBuilder post = post("/login.do")
+        MockHttpServletRequestBuilder post = post("/uaa/login.do")
           .with(inZone)
           .with(cookieCsrf())
+          .contextPath("/uaa")
           .session(session)
           .param("username", user.getUserName())
           .param("password", user.getPassword());
 
         getMockMvc().perform(post)
-          .andExpect(redirectedUrl("/"))
+          .andExpect(redirectedUrl("/uaa/"))
           .andExpect(currentUserCookie(user.getId()));
 
         // authorize for client that does not allow that idp
@@ -2164,7 +2237,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         SavedRequest savedRequest = getSavedRequest(client);
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         return session;
     }
 
@@ -2192,22 +2265,24 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
-        MockHttpServletRequestBuilder post = post("/login.do")
+        MockHttpServletRequestBuilder post = post("/uaa/login.do")
             .with(new SetServerNameRequestPostProcessor(requestDomain))
             .with(cookieCsrf())
+            .contextPath("/uaa")
             .param("username", username)
             .param("password", "wrong_password");
         for (int i = 0; i < numberOfAttempts ; i++) {
             getMockMvc().perform(post)
-                .andExpect(redirectedUrl("/login?error=login_failure"))
+                .andExpect(redirectedUrl("/uaa/login?error=login_failure"))
                 .andExpect(emptyCurrentUserCookie());
         }
     }
 
     private static ResultMatcher emptyCurrentUserCookie() {
         return result -> {
-            cookie().value("Current-User", isEmptyString()).match(result);
+            cookie().value("Current-User", isEmptyOrNullString()).match(result);
             cookie().maxAge("Current-User", 0).match(result);
+            cookie().path("Current-User", "/uaa").match(result);
         };
     }
 

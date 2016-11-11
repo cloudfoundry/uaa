@@ -65,7 +65,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         this.tokenId = tokenId;
         this.clientId = clientId;
         this.userId = userId;
-        issuedAt = System.currentTimeMillis() + random.nextInt(10000);
+        issuedAt = System.currentTimeMillis();
         scope = "test1,test2";
         format = "format";
         expected = new RevocableToken()
@@ -73,7 +73,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             .setClientId(clientId)
             .setResponseType(ACCESS_TOKEN)
             .setIssuedAt(issuedAt)
-            .setExpiresAt(issuedAt)
+            .setExpiresAt(issuedAt+10000)
             .setValue(new String(value))
             .setScope(scope)
             .setFormat(format)
@@ -258,6 +258,16 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
 
     }
 
+    @Test
+    public void ensure_expired_token_is_deleted_on_create() throws Exception {
+        insertToken();
+        jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, tokenId);
+        expected.setTokenId(generator.generate());
+        dao.lastExpiredCheck.set(0); //simulate time has passed
+        dao.create(expected);
+        assertEquals(0, (int)jdbcTemplate.queryForObject("select count(1) from revocable_tokens where token_id=?", Integer.class, tokenId));
+    }
+
 
     @Test
     public void test_periodic_deletion_of_expired_tokens() throws Exception {
@@ -267,6 +277,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         assertEquals(2, (int)jdbcTemplate.queryForObject("select count(1) from revocable_tokens", Integer.class));
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
         try {
+            dao.lastExpiredCheck.set(0);
             dao.retrieve(tokenId);
             fail("Token should have been deleted");
         } catch (EmptyResultDataAccessException x) {}
