@@ -29,6 +29,7 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -200,6 +201,7 @@ public class OIDCLoginIT {
     }
 
     @Test
+    @Ignore("We don't have an azure provider pointint to http://localhost:8080/uaa anymore")
     public void successful_Azure_Login() throws Exception {
         String userName = "jondoe@cfuaa.onmicrosoft.com";
         String password = "Cona41591";
