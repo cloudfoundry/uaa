@@ -13,7 +13,6 @@ ext {
   jacksonVersion = '2.8.3'
   javamailVersion = '1.4.7'
   jsonPathVersion = '2.2.0'
-  jstlVersion = '1.2'
   junitVersion = '4.12'
   mariaDBClientVersion = '1.1.8'
   mockitoVersion = '1.8.5'
