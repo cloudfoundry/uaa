@@ -403,7 +403,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void test_unlock_user() throws Exception {UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+    public void test_status_unlock_user() throws Exception {UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setLocked(false);
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
 
@@ -429,6 +429,37 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                     ),
                     requestFields(fieldWithPath("locked").optional(null).description("Set to `false` in order to unlock the user when they have been locked out according to the password lock-out policy. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
                     responseFields(fieldWithPath("locked").description("The `locked` value given in the request.").type(BOOLEAN))
+                )
+            );
+    }
+
+    @Test
+    public void test_status_password_expire_user() throws Exception {UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setPasswordChangeRequired(true);
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+
+        getMockMvc()
+            .perform(
+                RestDocumentationRequestBuilders.patch("/Users/{userId}/status", user.getId())
+                    .header("Authorization", "Bearer " + scimWriteToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(jsonStatus)
+            )
+            .andExpect(status().isOk())
+            .andExpect(content().json(jsonStatus))
+            .andDo(
+                document("{ClassName}/{methodName}",
+                         preprocessRequest(prettyPrint()),
+                         preprocessResponse(prettyPrint()),
+                         pathParameters(parameterWithName("userId").description(userIdDescription)),
+                         requestHeaders(
+                             headerWithName("Authorization").description("Access token with scim.write, uaa.account_status.write, or uaa.admin required"),
+                             IDENTITY_ZONE_ID_HEADER,
+                             IDENTITY_ZONE_SUBDOMAIN_HEADER
+                         ),
+                         requestFields(fieldWithPath("passwordChangeRequired").optional(null).description("Set to `true` in order to force internal user’s password to expire").type(BOOLEAN)),
+                         responseFields(fieldWithPath("passwordChangeRequired").description("The `passwordChangeRequired` value given in the request.").type(BOOLEAN))
                 )
             );
     }

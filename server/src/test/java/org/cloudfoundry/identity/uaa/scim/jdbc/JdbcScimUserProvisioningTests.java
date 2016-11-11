@@ -325,6 +325,18 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     }
 
     @Test
+    public void testSetPasswordChangeRequired() {
+        ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
+        user.addEmail(user.getUserName());
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertFalse(db.checkPasswordChangeIndividuallyRequired(created.getId()));
+        db.updatePasswordChangeRequired(created.getId(), true);
+        assertTrue(db.checkPasswordChangeIndividuallyRequired(created.getId()));
+        db.updatePasswordChangeRequired(created.getId(), false);
+        assertFalse(db.checkPasswordChangeIndividuallyRequired(created.getId()));
+    }
+
+    @Test
     public void canCreateUserInOtherIdentityZone() {
         String otherZoneId = "my-zone-id";
         createOtherIdentityZone(otherZoneId);

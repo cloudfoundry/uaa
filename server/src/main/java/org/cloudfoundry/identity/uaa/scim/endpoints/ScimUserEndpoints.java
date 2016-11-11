@@ -407,12 +407,23 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
         ScimUser user = dao.retrieve(userId);
-        if(status.isLocked() != null) {
-            if(!status.isLocked()) {
-                publish(new UserAccountUnlockedEvent(user));
-            } else {
-                throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
-            }
+
+        if(!user.getOrigin().equals(OriginKeys.UAA)) {
+            throw new IllegalArgumentException("Can only manage users from the internal user store.");
+        }
+        if(status.getLocked() != null && status.getLocked()) {
+            throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
+        }
+        if(status.isPasswordChangeRequired() != null && !status.isPasswordChangeRequired()) {
+            throw new IllegalArgumentException("The requirement that this user change their password cannot be removed via API.");
+        }
+
+
+        if(status.getLocked() != null && !status.getLocked()) {
+            publish(new UserAccountUnlockedEvent(user));
+        }
+        if(status.isPasswordChangeRequired() != null && status.isPasswordChangeRequired()) {
+            dao.updatePasswordChangeRequired(userId, true);
         }
 
         return status;

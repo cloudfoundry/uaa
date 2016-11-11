@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
@@ -980,5 +981,47 @@ public class ScimUserEndpointsTests {
         user.addEmail("test@example.org");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()+1), new MockHttpServletRequest(), new MockHttpServletResponse());
+    }
+
+    @Test
+    public void testPatchUserStatus() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setLocked(false);
+        UserAccountStatus updatedStatus = endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
+        assertEquals(false, updatedStatus.getLocked());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPatchUserInvalidStatus() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setLocked(true);
+        endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPatchUserStatusWithPasswordExpiryFalse() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setPasswordChangeRequired(false);
+        endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPatchUserStatusWithPasswordExpiryExternalUser() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        user.setOrigin("NOT_UAA");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setPasswordChangeRequired(true);
+        endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
     }
 }
