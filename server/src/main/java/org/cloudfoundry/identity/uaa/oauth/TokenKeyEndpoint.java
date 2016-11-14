@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms.sigAlg;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
@@ -64,7 +66,7 @@ public class TokenKeyEndpoint {
 
     public static VerificationKeyResponse getVerificationKeyResponse(KeyInfo key) {
         VerificationKeyResponse result = new VerificationKeyResponse();
-        result.setAlgorithm(key.getSigner().algorithm());
+        result.setAlgorithm(sigAlg(key.getSigner().algorithm()));
         result.setKey(key.getVerifierKey());
         //new values per OpenID and JWK spec
         result.setType(key.getType());

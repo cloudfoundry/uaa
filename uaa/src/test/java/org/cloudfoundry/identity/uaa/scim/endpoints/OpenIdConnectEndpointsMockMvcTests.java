@@ -34,11 +34,11 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
         assertEquals("http://subdomain.localhost/oauth/authorize",openIdConfiguration.getAuthUrl());
         assertEquals("http://subdomain.localhost/oauth/token",openIdConfiguration.getTokenUrl());
         assertArrayEquals(new String[]{"client_secret_basic"}, openIdConfiguration.getTokenAMR());
-        assertArrayEquals(new String[]{"SHA256withRSA", "HMACSHA256"}, openIdConfiguration.getTokenEndpointAuthSigningValues());
+        assertArrayEquals(new String[]{"RS256", "HS256"}, openIdConfiguration.getTokenEndpointAuthSigningValues());
         assertEquals("http://subdomain.localhost/userInfo", openIdConfiguration.getUserInfoUrl());
         assertArrayEquals(new String[]{"openid", "profile", "email", "phone"}, openIdConfiguration.getScopes());
         assertArrayEquals(new String[]{"code", "code id_token", "id_token", "token id_token"}, openIdConfiguration.getResponseTypes());
-        assertArrayEquals(new String[]{"SHA256withRSA", "HMACSHA256"}, openIdConfiguration.getIdTokenSigningAlgValues());
+        assertArrayEquals(new String[]{"RS256", "HS256"}, openIdConfiguration.getIdTokenSigningAlgValues());
         assertArrayEquals(new String[]{"normal"}, openIdConfiguration.getClaimTypesSupported());
         assertArrayEquals(new String[]{"sub", "user_name", "origin", "iss", "auth_time", "amr", "acr", "client_id",
             "aud", "zid", "grant_type", "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig", "cid", "given_name", "family_name", "phone_number", "email"}, openIdConfiguration.getClaimsSupported());
