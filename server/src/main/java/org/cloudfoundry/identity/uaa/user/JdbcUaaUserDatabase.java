@@ -40,7 +40,7 @@ import java.util.Set;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior ";
+    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required ";
 
     public static final String PRE_DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users where %s = ? and active=? and origin=? and identity_zone_id=?";
     public static final String DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY = String.format(PRE_DEFAULT_USER_BY_USERNAME_QUERY, "lower(username)");
@@ -145,6 +145,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                     .withPasswordLastModified(rs.getTimestamp(15))
                     .withPhoneNumber(rs.getString(16))
                     .withLegacyVerificationBehavior(rs.getBoolean(17))
+                    .withPasswordChangeRequired(rs.getBoolean(18))
                     ;
 
             List<GrantedAuthority> authorities =

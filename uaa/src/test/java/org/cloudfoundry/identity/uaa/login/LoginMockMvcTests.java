@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -118,6 +119,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -312,6 +314,32 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
             .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+    }
+
+    @Test
+    public void testLoginWithPasswordChange() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        String csrfValue = "12345";
+        Cookie cookie = new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
+
+        ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'").get(0);
+
+        MockHttpServletRequestBuilder validPost = post("/login.do")
+            .session(session)
+            .param("username", "marissa")
+            .param("password", "koala")
+            .cookie(cookie)
+            .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
+        getMockMvc().perform(validPost)
+            .andDo(print())
+            .andExpect(status().isFound())
+
+            .andExpect(redirectedUrl("/"));
+
+        getMockMvc().perform(get("/home")
+                                 .cookie(cookie))
+//            .andExpect(status().isTemporaryRedirect())
+            .andExpect(redirectedUrl("/reset_password"));
     }
 
     @Test
@@ -1797,7 +1825,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         request.setUsername("marissa");
         request.setPassword("koala");
         getMockMvc().perform(post("/autologin")
-                .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -1819,7 +1847,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         request.setUsername("marissa");
         request.setPassword("koala");
         getMockMvc().perform(post("/autologin")
-                .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());

@@ -53,6 +53,8 @@ public final class UaaUserPrototype {
 
     private boolean legacyVerificationBehavior;
 
+    private boolean passwordChangeRequired;
+
     public String getId() {
         return id;
     }
@@ -201,6 +203,15 @@ public final class UaaUserPrototype {
 
     public UaaUserPrototype withLegacyVerificationBehavior(boolean legacyVerificationBehavior) {
         this.legacyVerificationBehavior = legacyVerificationBehavior;
+        return this;
+    }
+
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public UaaUserPrototype withPasswordChangeRequired(boolean requiresPasswordChange) {
+        this.passwordChangeRequired = requiresPasswordChange;
         return this;
     }
 }
