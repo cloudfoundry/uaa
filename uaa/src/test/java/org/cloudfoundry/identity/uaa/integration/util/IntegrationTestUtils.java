@@ -1209,10 +1209,14 @@ public class IntegrationTestUtils {
     }
 
     public static void validateAccountChooserCookie(String baseUrl, WebDriver webDriver) {
+        List<String> cookies = getAccountChooserCookies(baseUrl, webDriver);
+        assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+    }
+
+    public static List<String> getAccountChooserCookies(String baseUrl, WebDriver webDriver) {
         webDriver.get(baseUrl +"/logout.do");
         webDriver.get(baseUrl +"/login");
-        List<String> cookies = webDriver.manage().getCookies().stream().map(Cookie::getName).collect(Collectors.toList());
-        assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+        return webDriver.manage().getCookies().stream().map(Cookie::getName).collect(Collectors.toList());
     }
 
     public static class HttpRequestFactory extends HttpComponentsClientHttpRequestFactory {
