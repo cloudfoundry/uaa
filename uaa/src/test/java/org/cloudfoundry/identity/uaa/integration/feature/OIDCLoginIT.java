@@ -56,6 +56,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -135,6 +136,26 @@ public class OIDCLoginIT {
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
+    }
+
+    @Test
+    @Ignore("enable when we're ready to run the integration test")
+    public void login_with_invalid_key_format() throws Exception {
+        createOIDCProviderWithRequestedScopes(null, "https://oidc10.identity.cf-app.com", "https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys");
+        webDriver.get(baseUrl + "/login");
+        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+
+        webDriver.findElement(By.name("username")).sendKeys("marissa");
+        webDriver.findElement(By.name("password")).sendKeys("koala");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome!"));
+
+
+        List<String> cookies = IntegrationTestUtils.getAccountChooserCookies(baseUrl, webDriver);
+        assertTrue(cookies.isEmpty());
     }
 
     @Test
@@ -271,6 +292,9 @@ public class OIDCLoginIT {
         createOIDCProviderWithRequestedScopes(null, "https://oidc10.identity.cf-app.com");
     }
     private void createOIDCProviderWithRequestedScopes(String issuer, final String urlBase) throws Exception {
+        createOIDCProviderWithRequestedScopes(issuer, urlBase, null);
+    }
+    private void createOIDCProviderWithRequestedScopes(String issuer, String urlBase, String keyUrl) throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
@@ -278,7 +302,7 @@ public class OIDCLoginIT {
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
         config.setTokenUrl(new URL(urlBase + "/oauth/token"));
-        config.setTokenKeyUrl(new URL(urlBase + "/token_key"));
+        config.setTokenKeyUrl(keyUrl==null ? new URL(urlBase + "/token_key") : new URL(keyUrl));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);
