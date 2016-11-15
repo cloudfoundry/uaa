@@ -54,9 +54,10 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -139,7 +140,6 @@ public class OIDCLoginIT {
     }
 
     @Test
-    @Ignore("enable when we're ready to run the integration test")
     public void login_with_invalid_key_format() throws Exception {
         createOIDCProviderWithRequestedScopes(null, "https://oidc10.identity.cf-app.com", "https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys");
         webDriver.get(baseUrl + "/login");
@@ -150,12 +150,11 @@ public class OIDCLoginIT {
         webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome!"));
-
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("http://localhost:8080/uaa/oauth_error?error=There+was+an+error+when+authenticating+against+the+external+identity+provider"));
+        //assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome!"));
 
         List<String> cookies = IntegrationTestUtils.getAccountChooserCookies(baseUrl, webDriver);
-        assertTrue(cookies.isEmpty());
+        assertThat(cookies, not(Matchers.hasItem(startsWith("Saved-Account-"))));
     }
 
     @Test
