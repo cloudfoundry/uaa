@@ -62,6 +62,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -909,8 +910,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone deletedZone = (IdentityZone) deletedEvent.getDeleted();
         assertThat(deletedZone.getId(), is(id));
         assertThat(deletedEvent.getIdentityZone().getId(), is(id));
-        IdentityZone auditedIdentityZone = JsonUtils.readValue(deletedEvent.getAuditEvent().getData(), IdentityZone.class);
-        assertThat(auditedIdentityZone.getId(), is(id));
+        String auditedIdentityZone = deletedEvent.getAuditEvent().getData();
+        assertThat(auditedIdentityZone, containsString(id));
     }
 
     @Test
