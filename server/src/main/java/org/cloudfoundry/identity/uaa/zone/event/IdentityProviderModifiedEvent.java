@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.zone.event;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.springframework.security.core.Authentication;
 
@@ -26,6 +25,8 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
 
     private AuditEventType eventType;
 
+    protected static final String dataFormat = "id=%s; type=%s; origin=%s; zone=%s";
+
     public IdentityProviderModifiedEvent(IdentityProvider identityProvider, Authentication authentication, AuditEventType type) {
         super(identityProvider, authentication);
         eventType = type;
@@ -33,13 +34,22 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
-        return createAuditRecord(getSource().toString(), eventType, getOrigin(getAuthentication()), JsonUtils.writeValueAsString(source));
+        IdentityProvider provider = (IdentityProvider)source;
+        return createAuditRecord(getSource().toString(),
+                                 eventType,
+                                 getOrigin(getAuthentication()),
+                                 String.format(IdentityProviderModifiedEvent.dataFormat,
+                                               provider.getId(),
+                                               provider.getType(),
+                                               provider.getOriginKey(),
+                                               provider.getIdentityZoneId())
+        );
     }
-    
+
     public static IdentityProviderModifiedEvent identityProviderCreated(IdentityProvider identityProvider) {
         return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderCreatedEvent);
     }
-    
+
     public static IdentityProviderModifiedEvent identityProviderModified(IdentityProvider identityProvider) {
         return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderModifiedEvent);
     }
