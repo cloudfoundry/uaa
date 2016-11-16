@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -131,8 +132,12 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
                 success.setPasswordChangeRequired(user.isPasswordChangeRequired());
-
                 publish(new UserAuthenticationSuccessEvent(user, success));
+
+                if(user.isPasswordChangeRequired()){
+                    success.setAuthenticated(false);
+                    throw new PasswordChangeRequiredException("User password needs to be changed");
+                }
 
                 return success;
             }

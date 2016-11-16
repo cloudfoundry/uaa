@@ -10,39 +10,36 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class ResetPasswordFilter implements Filter {
-    @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+public class ResetPasswordErrorHandler implements AuthenticationFailureHandler{
+    private AuthenticationFailureHandler delegate;
 
+    public ResetPasswordErrorHandler(AuthenticationFailureHandler delegate) {
+        this.delegate = delegate;
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if ((auth != null
             && auth instanceof UaaAuthentication
             && ((UaaAuthentication)auth).isPasswordChangeRequired())) {
-            ((HttpServletResponse)response).sendRedirect("/reset_pasword");
+            ((HttpServletResponse)response).sendRedirect("/reset_password");
         }
-        chain.doFilter(request, response);
-    }
-
-    @Override
-    public void destroy() {
-
+        if(delegate != null) {
+            delegate.onAuthenticationFailure(request, response, exception);
+        }
     }
 }

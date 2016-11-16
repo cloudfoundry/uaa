@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -241,6 +242,14 @@ public class AuthzAuthenticationManagerTests {
         } catch(AccountNotVerifiedException e) {
             verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
         }
+    }
+
+    @Test(expected = PasswordChangeRequiredException.class)
+    public void authenticationWhenUserPasswordChangeRequired() throws Exception {
+        mgr.setAllowUnverifiedUsers(false);
+        user.setPasswordChangeRequired(true);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
     @Test

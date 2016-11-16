@@ -298,7 +298,6 @@
                     default-target-url="/"/>
         <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
         <custom-filter ref="clientRedirectStateCache" before="FORM_LOGIN_FILTER"/>
-        <custom-filter ref="resetPasswordFilter" after="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
@@ -314,8 +313,6 @@
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
     </http>
-    <bean name="resetPasswordFilter"
-      class="org.cloudfoundry.identity.uaa.authentication.ResetPasswordFilter" />
     <bean id="savedRequestAwareAuthenticationDetailsSource"
           class="org.cloudfoundry.identity.uaa.security.SavedRequestAwareAuthenticationDetailsSource"/>
 
@@ -336,8 +333,12 @@
         <property name="defaultFailureUrl" value="/login?error=login_failure"/>
     </bean>
 
-    <bean id="currentUserCookieDestructor" class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieDestructor">
+    <bean id="resetPasswordErrorHandler" class="org.cloudfoundry.identity.uaa.login.ResetPasswordErrorHandler">
         <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
+    </bean>
+
+    <bean id="currentUserCookieDestructor" class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieDestructor">
+        <constructor-arg name="delegate" ref="resetPasswordErrorHandler"/>
     </bean>
 
     <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"

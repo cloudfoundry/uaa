@@ -53,6 +53,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -67,6 +68,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -330,15 +332,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("password", "koala")
             .cookie(cookie)
             .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
-        getMockMvc().perform(validPost)
+        MvcResult result = getMockMvc().perform(validPost)
             .andDo(print())
             .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"))
+            .andReturn();
 
-            .andExpect(redirectedUrl("/"));
-
-        getMockMvc().perform(get("/home")
-                                 .cookie(cookie))
-//            .andExpect(status().isTemporaryRedirect())
+        session = (MockHttpSession) result.getRequest().getSession();
+        getMockMvc().perform(get("/home").session(session))
+            .andExpect(status().isTemporaryRedirect())
             .andExpect(redirectedUrl("/reset_password"));
     }
 
