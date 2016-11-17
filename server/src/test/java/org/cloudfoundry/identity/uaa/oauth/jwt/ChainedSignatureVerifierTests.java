@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.cloudfoundry.identity.uaa.oauth.CommonSigner;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -30,8 +29,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -118,6 +120,24 @@ public class ChainedSignatureVerifierTests {
     }
 
     @Test
+    public void check_that_we_use_common_signer() {
+        Map<String,Object> p = new HashMap<>();
+        p.put("kty",MAC.name());
+        p.put("kid", "macid");
+        p.put("value", "test-mac-key");
+        JsonWebKey macKey = new JsonWebKey(p);
+        verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(validKey, invalidKey, macKey)));
+        List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
+        assertNotNull(delegates);
+        assertEquals(3, delegates.size());
+        int pos = 0;
+        for (SignatureVerifier v : delegates) {
+            assertTrue("Checking "+(pos++), v instanceof CommonSignatureVerifier);
+        }
+    }
+
+
+    @Test
     public void test_multi_key_both_valid() {
         JsonWebKey jsonWebKey = mock(JsonWebKey.class);
         when(jsonWebKey.getValue()).thenReturn("mac-content");
@@ -126,7 +146,7 @@ public class ChainedSignatureVerifierTests {
         List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertNotNull(delegates);
         assertEquals(2, delegates.size());
-        assertTrue(delegates.get(1) instanceof MacSigner);
+        assertEquals("HMACSHA256", delegates.get(1).algorithm());
 
         //ensure the second signer never gets invoked upon success
         delegates.remove(1);

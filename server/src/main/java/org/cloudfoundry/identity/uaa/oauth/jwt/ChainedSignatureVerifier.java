@@ -14,11 +14,9 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
+import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 
 import java.util.ArrayList;
@@ -29,25 +27,19 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
     private final List<SignatureVerifier> delegates;
 
     public ChainedSignatureVerifier(JsonWebKeySet<? extends JsonWebKey> keys) {
-        if(keys == null || keys.getKeys() == null || keys.getKeys().size() == 0) {
-            throw new IllegalArgumentException("verificationKey cannot be null");
+        if(keys == null || keys.getKeys() == null) {
+            throw new IllegalArgumentException("keys cannot be null or empty");
         }
-
         List<SignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
-            String verificationKey = key.getValue();
-            if (KeyInfo.isAssymetricKey(verificationKey)) {
-                ds.add(new RsaVerifier(verificationKey));
-            } else {
-                ds.add(new MacSigner(verificationKey));
-            }
+            ds.add(new CommonSignatureVerifier(key.getValue()));
         }
         delegates = Collections.unmodifiableList(ds);
     }
 
     @Override
     public void verify(byte[] content, byte[] signature) {
-        Exception last = null;
+        Exception last = new InvalidSignatureException("No matching keys found.");
         for (SignatureVerifier delegate : delegates) {
             try {
                 delegate.verify(content, signature);

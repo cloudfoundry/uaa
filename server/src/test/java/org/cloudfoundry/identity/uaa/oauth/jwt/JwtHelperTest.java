@@ -1,15 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import org.junit.Test;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class JwtHelperTest {
 
     @Test
     public void testKidInHeader() {
-        Signer signer = new IdentifiedSigner("testKid", new MacSigner("symmetricKey"));
+        Signer signer = new CommonSigner("testKid", "symmetricKey");
         Jwt jwt = JwtHelper.encode("testJwtContent", signer);
         assertEquals("testKid", jwt.getHeader().getKid());
 

@@ -16,7 +16,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
-import org.cloudfoundry.identity.uaa.oauth.jwt.IdentifiedSigner;
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -52,7 +53,7 @@ public class KeyInfo {
     private String keyId;
     private String verifierKey = new RandomValueStringGenerator().generate();
     private String signingKey = verifierKey;
-    private Signer signer = new IdentifiedSigner(null, new MacSigner(verifierKey));
+    private Signer signer = new CommonSigner(null, verifierKey);
     private SignatureVerifier verifier = new MacSigner(signingKey);
     private String type = "MAC";
     private RSAPublicKey rsaPublicKey;
