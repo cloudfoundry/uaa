@@ -15,9 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
@@ -36,7 +38,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class JsonWebKeyTests {
+public class RsaJsonWebKeyTests {
 
     public static final String ISSUER = "http://localhost:8080/issuer";
 
@@ -50,7 +52,7 @@ public class JsonWebKeyTests {
         assertNotNull(keyInfo.getVerifier());
         PublicKey pk = keyInfo.getRsaPublicKey();
         JsonWebKey key =
-            RsaJsonWebKey.fromPEMPrivateKey(keyInfo.getVerifierKey())
+            JsonWebKeyHelper.fromPEMPrivateKey(keyInfo.getVerifierKey())
                 .setKid("id");
         assertEquals(RSA, key.getKty());
         assertEquals("RSA", key.getKeyProperties().get("kty"));
@@ -70,27 +72,27 @@ public class JsonWebKeyTests {
 
     @Test
     public void ensure_that_duplicates_are_removed() {
-        KeySet keys = JsonUtils.readValue(sampleRsaKeys, KeySet.class);
+        JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(sampleRsaKeys, new TypeReference<JsonWebKeySet<JsonWebKey>>() {});
         List<JsonWebKey> list = new ArrayList<>(keys.getKeys());
         list.addAll(keys.getKeys());
         assertEquals(6, list.size());
-        keys = new KeySet(list);
+        keys = new JsonWebKeySet<>(list);
         deserialize_azure_keys(JsonUtils.writeValueAsString(keys));
     }
 
     @Test
     public void ensure_that_duplicates_get_the_last_object() {
-        KeySet keys = JsonUtils.readValue(sampleRsaKeys, KeySet.class);
+        JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(sampleRsaKeys, new TypeReference<JsonWebKeySet<JsonWebKey>>() {});
         List<JsonWebKey> list = new ArrayList<>(keys.getKeys());
         list.addAll(keys.getKeys());
         assertEquals(6, list.size());
 
         Map<String, Object> p = new HashedMap(list.get(5).getKeyProperties());
         p.put("issuer", ISSUER);
-        list.add(new RsaJsonWebKey(p));
+        list.add(new VerificationKeyResponse(p));
         assertEquals(7, list.size());
 
-        keys = new KeySet(list);
+        keys = new JsonWebKeySet<>(list);
         keys = deserialize_azure_keys(JsonUtils.writeValueAsString(keys));
 
         assertEquals(ISSUER, keys.getKeys().get(2).getKeyProperties().get("issuer"));
@@ -103,7 +105,7 @@ public class JsonWebKeyTests {
         map.put("kty", "invalid");
         test_create_with_error(map);
         map.put("kty", "RSA");
-        new RsaJsonWebKey(map);
+        new VerificationKeyResponse(map);
     }
 
     @Test
@@ -111,37 +113,37 @@ public class JsonWebKeyTests {
         Map<String,Object> p1 = new HashMap<>();
         p1.put("kty", "RSA");
         Map<String,Object> p2 = new HashMap<>(p1);
-        assertEquals(new RsaJsonWebKey(p1), new RsaJsonWebKey(p2));
+        assertEquals(new VerificationKeyResponse(p1), new VerificationKeyResponse(p2));
         p1.put("kid","id");
-        assertNotEquals(new RsaJsonWebKey(p1), new RsaJsonWebKey(p2));
+        assertNotEquals(new VerificationKeyResponse(p1), new VerificationKeyResponse(p2));
         p2.put("kid","id");
-        assertEquals(new RsaJsonWebKey(p1), new RsaJsonWebKey(p2));
+        assertEquals(new VerificationKeyResponse(p1), new VerificationKeyResponse(p2));
         p1.put("issuer", "issuer1");
         p2.put("issuer", "issuer2");
-        assertEquals(new RsaJsonWebKey(p1), new RsaJsonWebKey(p2));
+        assertEquals(new VerificationKeyResponse(p1), new VerificationKeyResponse(p2));
         p1.remove("kid");
         p2.remove("kid");
-        assertNotEquals(new RsaJsonWebKey(p1), new RsaJsonWebKey(p2));
+        assertNotEquals(new VerificationKeyResponse(p1), new VerificationKeyResponse(p2));
         p2.put("issuer", "issuer1");
-        assertEquals(new RsaJsonWebKey(p1), new RsaJsonWebKey(p2));
+        assertEquals(new VerificationKeyResponse(p1), new VerificationKeyResponse(p2));
     }
 
     public void test_create_with_error(Map p) {
         try {
-            new RsaJsonWebKey(p);
+            new VerificationKeyResponse(p);
             fail("Creation of key with properties:"+p+" should fail.");
         } catch (IllegalArgumentException x) {}
     }
 
 
-    public KeySet deserialize_azure_keys(String json) {
-        KeySet keys = JsonUtils.readValue(json, KeySet.class);
+    public JsonWebKeySet<JsonWebKey> deserialize_azure_keys(String json) {
+        JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(json, new TypeReference<JsonWebKeySet<JsonWebKey>>() {});
         assertNotNull(keys);
         assertNotNull(keys.getKeys());
         assertEquals(3, keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
             assertNotNull(key);
-            assertNotNull(key.getPublicKey());
+            assertNotNull(JsonWebKeyHelper.getPublicKey(key));
 
         }
         return keys;

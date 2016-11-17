@@ -21,31 +21,22 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-public class KeySetDeserializer extends JsonDeserializer<KeySet> {
-
+/**
+ * See https://tools.ietf.org/html/rfc7517
+ */
+public class JsonWebKeyDeserializer extends JsonDeserializer<JsonWebKey> {
     @Override
-    public KeySet deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public JsonWebKey deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
         JsonNode node = JsonUtils.readTree(p);
-        ArrayNode keys = (ArrayNode) node.get("keys");
-        if (keys==null) {
-            throw new JsonParseException(p, "keys attribute cannot be null");
+        Map<String, Object> map = JsonUtils.getNodeAsMap(node);
+        if (map.get("kty")==null) {
+            throw new JsonParseException(p, "kty is a required attribute on a JsonWebKey");
         }
-        LinkedHashSet<JsonWebKey> result = new LinkedHashSet<>();
-        for (int i=0; i<keys.size(); i++) {
-            Map<String, Object> map = JsonUtils.getNodeAsMap(keys.get(i));
-            RsaJsonWebKey key = new RsaJsonWebKey(map);
-            result.remove(key);
-            result.add(key);
-        }
-        return new KeySet(result.stream().collect(Collectors.toList()));
+        return new JsonWebKey(map);
     }
-
 }

@@ -21,16 +21,20 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
 import java.io.IOException;
+import java.util.Map;
 
-public class KeySetSerializer extends JsonSerializer<KeySet> {
+/**
+ * See https://tools.ietf.org/html/rfc7517
+ */
+
+public class JsonWebKeySerializer extends JsonSerializer<JsonWebKey> {
     @Override
-    public void serialize(KeySet value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
+    public void serialize(JsonWebKey value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
         gen.writeStartObject();
-        gen.writeArrayFieldStart("keys");
-        for (JsonWebKey key : value.getKeys()) {
-            gen.writeObject(key.getKeyProperties());
+        for (Map.Entry<String, Object> entry : value.getKeyProperties().entrySet()) {
+            gen.writeFieldName(entry.getKey());
+            gen.writeObject(entry.getValue());
         }
-        gen.writeEndArray();
         gen.writeEndObject();
     }
 }

@@ -33,11 +33,11 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
 
 
-public class RsaJsonWebKey extends JsonWebKey {
+public class JsonWebKeyHelper {
 
     private static Base64 base64 = new Base64(true);
 
-    public static RsaJsonWebKey fromPEMPrivateKey(String key) {
+    public static JsonWebKey fromPEMPrivateKey(String key) {
         KeyPair pair = KeyInfo.parseKeyPair(key);
         RSAPublicKey rsaKey = (RSAPublicKey) pair.getPublic();
         BigInteger modulus = rsaKey.getModulus();
@@ -47,22 +47,17 @@ public class RsaJsonWebKey extends JsonWebKey {
         properties.put("e", base64.encodeAsString(exponent.toByteArray()));
         properties.put("kty", "RSA");
         properties.put("use", sig.name());
-        return new RsaJsonWebKey(properties);
+        return new JsonWebKey(properties);
     }
 
-    public static RsaJsonWebKey fromPEMPublicKey(String key) {
+    public static JsonWebKeyHelper fromPEMPublicKey(String key) {
         return null;
     }
 
-    public RsaJsonWebKey(Map<String, Object> json) {
-        super(json);
-    }
-
-    @Override
-    public PublicKey getPublicKey() {
+    public static PublicKey getPublicKey(JsonWebKey key) {
         final Base64 decoder = new Base64(true);
-        String e = (String) getKeyProperties().get("e");
-        String n = (String) getKeyProperties().get("n");
+        String e = (String) key.getKeyProperties().get("e");
+        String n = (String) key.getKeyProperties().get("n");
         BigInteger modulus  = new BigInteger(1, decoder.decode(n.getBytes(StandardCharsets.UTF_8)));
         BigInteger exponent = new BigInteger(1, decoder.decode(e.getBytes(StandardCharsets.UTF_8)));
         try {

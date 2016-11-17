@@ -15,24 +15,32 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import java.security.PublicKey;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class JsonWebKey {
+/**
+ * See https://tools.ietf.org/html/rfc7517
+ */
 
-    enum KeyUse {
+@JsonDeserialize(using = JsonWebKeyDeserializer.class)
+@JsonSerialize(using = JsonWebKeySerializer.class)
+public class JsonWebKey {
+
+    public enum KeyUse {
         sig,
         enc
     }
 
-    enum KeyType {
-        RSA
+    public enum KeyType {
+        RSA,
+        MAC
     }
 
-    enum KeyOperation {
+    public enum KeyOperation {
         sign,
         verify,
         encrypt,
@@ -45,7 +53,7 @@ public abstract class JsonWebKey {
 
     private final Map<String, Object> json;
 
-    protected JsonWebKey(Map<String, Object> json) {
+    public JsonWebKey(Map<String, Object> json) {
         if (json.get("kty")==null) {
             throw new IllegalArgumentException("kty field is required");
         }
@@ -91,6 +99,12 @@ public abstract class JsonWebKey {
         }
     }
 
-    abstract PublicKey getPublicKey();
+    //helper methods
+    public String getAlgorithm() {
+        return (String) getKeyProperties().get("alg");
+    }
 
+    public String getValue() {
+        return (String) getKeyProperties().get("value");
+    }
 }
