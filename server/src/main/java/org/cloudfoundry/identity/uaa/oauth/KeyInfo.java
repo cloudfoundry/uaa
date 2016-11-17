@@ -216,9 +216,16 @@ public class KeyInfo {
                 }
                 org.bouncycastle.asn1.pkcs.RSAPrivateKey key = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(seq);
                 RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
-                RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(key.getModulus(), key.getPublicExponent(),
-                        key.getPrivateExponent(), key.getPrime1(), key.getPrime2(), key.getExponent1(), key.getExponent2(),
-                        key.getCoefficient());
+                RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(
+                    key.getModulus(),
+                    key.getPublicExponent(),
+                    key.getPrivateExponent(),
+                    key.getPrime1(),
+                    key.getPrime2(),
+                    key.getExponent1(),
+                    key.getExponent2(),
+                    key.getCoefficient()
+                );
                 publicKey = fact.generatePublic(pubSpec);
                 privateKey = fact.generatePrivate(privSpec);
             } else if (type.equals("PUBLIC KEY")) {
@@ -243,7 +250,7 @@ public class KeyInfo {
         }
     }
 
-    private static String pemEncodePublicKey(PublicKey publicKey) {
+    public static String pemEncodePublicKey(PublicKey publicKey) {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "\n-----END PUBLIC KEY-----";
         byte[] data = publicKey.getEncoded();

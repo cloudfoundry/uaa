@@ -31,14 +31,6 @@ import java.util.Set;
  */
 public class JsonWebKeySet<T extends JsonWebKey> {
 
-    public static JsonWebKeySet<JsonWebKey> deserialize(String s) {
-        if (!s.contains("\"keys\"")) {
-            return new JsonWebKeySet<>(Arrays.asList(JsonUtils.readValue(s, JsonWebKey.class)));
-        } else {
-            return JsonUtils.readValue(s, new TypeReference<JsonWebKeySet<JsonWebKey>>() {});
-        }
-    }
-
     private final List<T> keys;
 
     public JsonWebKeySet(@JsonProperty("keys") List<T> keys) {

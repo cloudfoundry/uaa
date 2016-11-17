@@ -68,7 +68,7 @@ public class JsonWebKeySetTests {
     }
 
     public void test_key(String json) {
-        JsonWebKeySet<JsonWebKey> keys = JsonWebKeySet.deserialize(json);
+        JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.deserialize(json);
         assertNotNull(keys);
         assertNotNull(keys.getKeys());
         assertEquals(1, keys.getKeys().size());

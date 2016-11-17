@@ -15,8 +15,10 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +29,7 @@ import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +37,6 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
 
 
 public class JsonWebKeyHelper {
-
     private static Base64 base64 = new Base64(true);
 
     public static JsonWebKey fromPEMPrivateKey(String key) {
@@ -47,25 +49,19 @@ public class JsonWebKeyHelper {
         properties.put("e", base64.encodeAsString(exponent.toByteArray()));
         properties.put("kty", "RSA");
         properties.put("use", sig.name());
+        properties.put("value", KeyInfo.pemEncodePublicKey(rsaKey));
         return new JsonWebKey(properties);
     }
 
-    public static JsonWebKeyHelper fromPEMPublicKey(String key) {
-        return null;
+    public static JsonWebKey fromPEMPublicKey(String key) {
+        return fromPEMPrivateKey(key);
     }
 
-    public static PublicKey getPublicKey(JsonWebKey key) {
-        final Base64 decoder = new Base64(true);
-        String e = (String) key.getKeyProperties().get("e");
-        String n = (String) key.getKeyProperties().get("n");
-        BigInteger modulus  = new BigInteger(1, decoder.decode(n.getBytes(StandardCharsets.UTF_8)));
-        BigInteger exponent = new BigInteger(1, decoder.decode(e.getBytes(StandardCharsets.UTF_8)));
-        try {
-            return KeyFactory.getInstance("RSA").generatePublic(
-                new RSAPublicKeySpec(modulus, exponent)
-            );
-        } catch (InvalidKeySpecException | NoSuchAlgorithmException e1) {
-            throw new IllegalStateException(e1);
+    public static JsonWebKeySet<JsonWebKey> deserialize(String s) {
+        if (!s.contains("\"keys\"")) {
+            return new JsonWebKeySet<>(Arrays.asList(JsonUtils.readValue(s, JsonWebKey.class)));
+        } else {
+            return JsonUtils.readValue(s, new TypeReference<JsonWebKeySet<JsonWebKey>>() {});
         }
     }
 }

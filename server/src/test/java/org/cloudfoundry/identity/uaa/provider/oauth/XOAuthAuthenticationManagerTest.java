@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -22,9 +23,12 @@ import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticated
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
+import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -48,6 +52,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -79,6 +84,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -120,6 +126,7 @@ public class XOAuthAuthenticationManagerTest {
     private String rsaSigningKey;
     private RsaSigner signer;
     private Map<String, Object> header;
+    private String invalidRsaSigningKey;
 
     @Before
     @After
@@ -195,6 +202,15 @@ public class XOAuthAuthenticationManagerTest {
         mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate(config));
         reset(xoAuthAuthenticationManager);
 
+        invalidRsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe\n" +
+            "GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy\n" +
+            "sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw\n" +
+            "gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu\n" +
+            "xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex\n" +
+            "uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg\n" +
+            "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
+            "-----END RSA PRIVATE KEY-----";
     }
 
     @Test
@@ -215,14 +231,7 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals(3, userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
 
-        UaaUser uaaUser = event.getUser();
-        assertEquals("Marissa",uaaUser.getGivenName());
-        assertEquals("Bloggs", uaaUser.getFamilyName());
-        assertEquals("marissa@bloggs.com", uaaUser.getEmail());
-        assertEquals("the_origin", uaaUser.getOrigin());
-        assertEquals("1234567890", uaaUser.getPhoneNumber());
-        assertEquals("marissa",uaaUser.getUsername());
-        assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
+        assertUserCreated(event);
     }
 
     @Test
@@ -239,7 +248,80 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals(3, userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
 
+        assertUserCreated(event);
+    }
+
+    @Test
+    public void test_single_key_response() throws Exception {
+        configureTokenKeyResponse(
+            "http://oidc10.identity.cf-app.com/token_key",
+            rsaSigningKey,
+            "correctKey",
+            false);
+        addTheUserOnAuth();
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Test
+    public void test_single_key_response_without_value() throws Exception {
+        String json = getKeyJson(rsaSigningKey, "correctKey", false);
+        Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {});
+        map.remove("value");
+        json = JsonUtils.writeValueAsString(map);
+        configureTokenKeyResponse("http://oidc10.identity.cf-app.com/token_key",json);
+        addTheUserOnAuth();
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Test
+    public void test_multi_key_response_without_value() throws Exception {
+        String jsonValid = getKeyJson(rsaSigningKey, "correctKey", false);
+        String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
+        Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {});
+        mapValid.remove("value");
+        mapInvalid.remove("value");
+        String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapValid))));
+        configureTokenKeyResponse("http://oidc10.identity.cf-app.com/token_key",json);
+        addTheUserOnAuth();
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Test
+    public void test_multi_key_all_invalid() throws Exception {
+        String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
+        String jsonInvalid2 = getKeyJson(invalidRsaSigningKey, "invalidKey2", false);
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<Map<String, Object>>() {});
+        String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapInvalid2))));
+        assertTrue(json.contains("\"invalidKey\""));
+        assertTrue(json.contains("\"invalidKey2\""));
+        configureTokenKeyResponse("http://oidc10.identity.cf-app.com/token_key",json);
+        addTheUserOnAuth();
+        try {
+            xoAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof InvalidSignatureException);
+        }
+    }
+
+
+    @Test
+    public void test_multi_key_response() throws Exception {
+        configureTokenKeyResponse(
+            "http://oidc10.identity.cf-app.com/token_key",
+            rsaSigningKey,
+            "correctKey",
+            true);
+        addTheUserOnAuth();
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    public void assertUserCreated(NewUserAuthenticatedEvent event) {
+        assertNotNull(event);
         UaaUser uaaUser = event.getUser();
+        assertNotNull(uaaUser);
         assertEquals("Marissa",uaaUser.getGivenName());
         assertEquals("Bloggs", uaaUser.getFamilyName());
         assertEquals("marissa@bloggs.com", uaaUser.getEmail());
@@ -268,30 +350,35 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
-        config.setTokenKey(null);
-        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        configureTokenKeyResponse("http://oidc10.identity.cf-app.com/token_key", invalidRsaSigningKey, "wrongKey");
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
 
+    public void configureTokenKeyResponse(String keyUrl, String signingKey, String keyId) throws MalformedURLException {
+        configureTokenKeyResponse(keyUrl, signingKey, keyId, false);
+    }
+    public void configureTokenKeyResponse(String keyUrl, String signingKey, String keyId, boolean list) throws MalformedURLException {
+        String response = getKeyJson(signingKey, keyId, list);
+        configureTokenKeyResponse(keyUrl, response);
+    }
+
+    public String getKeyJson(String signingKey, String keyId, boolean list) {
         KeyInfo key = new KeyInfo();
-        key.setKeyId("wrongKey");
-        key.setSigningKey("-----BEGIN RSA PRIVATE KEY-----\n" +
-                "MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe\n" +
-                "GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy\n" +
-                "sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw\n" +
-                "gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu\n" +
-                "xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex\n" +
-                "uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg\n" +
-                "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
-                "-----END RSA PRIVATE KEY-----");
-        VerificationKeyResponse verificationKeyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
-        String response = JsonUtils.writeValueAsString(verificationKeyResponse);
+        key.setKeyId(keyId);
+        key.setSigningKey(signingKey);
+        VerificationKeyResponse keyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
+        Object verificationKeyResponse = list ? new VerificationKeysListResponse(Arrays.asList(keyResponse)) : keyResponse;
+        return JsonUtils.writeValueAsString(verificationKeyResponse);
+    }
 
+    public void configureTokenKeyResponse(String keyUrl, String response) throws MalformedURLException {
+        config.setTokenKey(null);
+        config.setTokenKeyUrl(new URL(keyUrl));
         mockToken();
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/token_key"))
+        mockUaaServer.expect(requestTo(keyUrl))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
-
-        xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
     @Test(expected = InvalidTokenException.class)

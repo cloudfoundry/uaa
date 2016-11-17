@@ -43,7 +43,7 @@ public class RsaJsonWebKeyTests {
     public static final String ISSUER = "http://localhost:8080/issuer";
 
     @Test
-    public void create_key_from_rsa_string() {
+    public void create_key_from_pem_string() {
         Base64 base64 = new Base64(true);
         KeyInfo keyInfo = new KeyInfo();
         keyInfo.setKeyId("id");
@@ -59,6 +59,31 @@ public class RsaJsonWebKeyTests {
         assertEquals("id", key.getKid());
         assertEquals(sig, key.getUse());
         assertEquals("sig", key.getKeyProperties().get("use"));
+        assertNotNull(key.getValue());
+        BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
+        BigInteger modulus = ((RSAPublicKey) pk).getModulus();
+        assertEquals(base64.encodeAsString(exponent.toByteArray()), key.getKeyProperties().get("e"));
+        assertEquals(base64.encodeAsString(modulus.toByteArray()), key.getKeyProperties().get("n"));
+    }
+
+    @Test
+    public void create_key_from_public_pem_string() {
+        Base64 base64 = new Base64(true);
+        KeyInfo keyInfo = new KeyInfo();
+        keyInfo.setKeyId("id");
+        keyInfo.setSigningKey(sampleRsaPrivateKey);
+        assertEquals("RSA", keyInfo.getType());
+        assertNotNull(keyInfo.getVerifier());
+        PublicKey pk = keyInfo.getRsaPublicKey();
+        JsonWebKey key =
+            JsonWebKeyHelper.fromPEMPublicKey(KeyInfo.pemEncodePublicKey(pk))
+                .setKid("id");
+        assertEquals(RSA, key.getKty());
+        assertEquals("RSA", key.getKeyProperties().get("kty"));
+        assertEquals("id", key.getKid());
+        assertEquals(sig, key.getUse());
+        assertEquals("sig", key.getKeyProperties().get("use"));
+        assertNotNull(key.getValue());
         BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
         BigInteger modulus = ((RSAPublicKey) pk).getModulus();
         assertEquals(base64.encodeAsString(exponent.toByteArray()), key.getKeyProperties().get("e"));
@@ -143,7 +168,7 @@ public class RsaJsonWebKeyTests {
         assertEquals(3, keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
             assertNotNull(key);
-            assertNotNull(JsonWebKeyHelper.getPublicKey(key));
+            assertNotNull(JsonWebKey.getRsaPublicKey(key));
 
         }
         return keys;

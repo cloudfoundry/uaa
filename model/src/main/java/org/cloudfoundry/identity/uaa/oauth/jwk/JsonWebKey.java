@@ -17,10 +17,20 @@ package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.apache.commons.codec.binary.Base64;
 
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
 /**
  * See https://tools.ietf.org/html/rfc7517
@@ -29,6 +39,7 @@ import java.util.Map;
 @JsonDeserialize(using = JsonWebKeyDeserializer.class)
 @JsonSerialize(using = JsonWebKeySerializer.class)
 public class JsonWebKey {
+
 
     public enum KeyUse {
         sig,
@@ -54,14 +65,14 @@ public class JsonWebKey {
     private final Map<String, Object> json;
 
     public JsonWebKey(Map<String, Object> json) {
-        if (json.get("kty")==null) {
+        if (json.get("kty") == null) {
             throw new IllegalArgumentException("kty field is required");
         }
         KeyType.valueOf((String) json.get("kty"));
         this.json = new HashMap(json);
     }
 
-    public Map<String,Object> getKeyProperties() {
+    public Map<String, Object> getKeyProperties() {
         return Collections.unmodifiableMap(json);
     }
 
@@ -92,7 +103,7 @@ public class JsonWebKey {
 
     @Override
     public int hashCode() {
-        if (getKid()==null) {
+        if (getKid() == null) {
             return getKty().hashCode();
         } else {
             return getKid().hashCode();
@@ -105,6 +116,34 @@ public class JsonWebKey {
     }
 
     public String getValue() {
-        return (String) getKeyProperties().get("value");
+        String result = (String) getKeyProperties().get("value");
+        if (result == null && RSA.equals(getKty())) {
+            result = pemEncodePublicKey(getRsaPublicKey(this));
+            this.json.put("value", result);
+        }
+        return result;
+    }
+
+    public static String pemEncodePublicKey(PublicKey publicKey) {
+        String begin = "-----BEGIN PUBLIC KEY-----\n";
+        String end = "\n-----END PUBLIC KEY-----";
+        byte[] data = publicKey.getEncoded();
+        String base64encoded = new String(new Base64(false).encode(data));
+        return begin + base64encoded + end;
+    }
+
+    public static PublicKey getRsaPublicKey(JsonWebKey key) {
+        final Base64 decoder = new Base64(true);
+        String e = (String) key.getKeyProperties().get("e");
+        String n = (String) key.getKeyProperties().get("n");
+        BigInteger modulus = new BigInteger(1, decoder.decode(n.getBytes(StandardCharsets.UTF_8)));
+        BigInteger exponent = new BigInteger(1, decoder.decode(e.getBytes(StandardCharsets.UTF_8)));
+        try {
+            return KeyFactory.getInstance("RSA").generatePublic(
+                new RSAPublicKeySpec(modulus, exponent)
+            );
+        } catch (InvalidKeySpecException | NoSuchAlgorithmException e1) {
+            throw new IllegalStateException(e1);
+        }
     }
 }
