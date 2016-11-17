@@ -24,6 +24,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
+
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
     private AuthenticationFailureHandler delegate;
 
@@ -34,7 +36,7 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         if(exception != null && exception instanceof PasswordChangeRequiredException) {
-            request.getSession().setAttribute("FORCE_PASSWORD_EXPIRED_USER", ((PasswordChangeRequiredException) exception).getAuthentication());
+            request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
             addCookie(response, request.getContextPath());
             response.sendRedirect(request.getContextPath()+"/force_password_change");
             return;

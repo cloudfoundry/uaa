@@ -31,6 +31,7 @@ import javax.servlet.http.Cookie;
 
 import java.io.IOException;
 
+import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -83,8 +84,8 @@ public class UaaAuthenticationFailureHandlerTests {
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
         when(exception.getAuthentication()).thenReturn(uaaAuthentication);
         uaaAuthenticationFailureHandler.onAuthenticationFailure(request, response, exception);
-        assertNotNull(request.getSession().getAttribute("FORCE_PASSWORD_EXPIRED_USER"));
-        assertEquals(uaaAuthentication, request.getSession().getAttribute("FORCE_PASSWORD_EXPIRED_USER"));
+        assertNotNull(request.getSession().getAttribute(FORCE_PASSWORD_EXPIRED_USER));
+        assertEquals(uaaAuthentication, request.getSession().getAttribute(FORCE_PASSWORD_EXPIRED_USER));
         validateCookie();
         assertEquals("/force_password_change", response.getRedirectedUrl());
     }

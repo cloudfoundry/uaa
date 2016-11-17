@@ -60,7 +60,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         IdentityZone zone = IdentityZoneHolder.get();
         //chain it exactly like the UAA
-          return getChainedAuthenticationManager(zone).authenticate(authentication);
+        return getChainedAuthenticationManager(zone).authenticate(authentication);
     }
 
     protected ChainedAuthenticationManager getChainedAuthenticationManager(IdentityZone zone) {

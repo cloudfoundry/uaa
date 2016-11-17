@@ -25,12 +25,14 @@ import static org.springframework.web.bind.annotation.RequestMethod.*;
 @Controller
 public class ForcePasswordChangeController {
 
+    public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
+
     @RequestMapping(value="/force_password_change", method= GET)
     public String forcePasswordChangePage(Model model, HttpSession session) throws IOException {
-        if(session.getAttribute("FORCE_PASSWORD_EXPIRED_USER") == null) {
+        if(session.getAttribute(FORCE_PASSWORD_EXPIRED_USER) == null) {
             return "redirect:/login";
         }
-        String email = ((UaaAuthentication)session.getAttribute("FORCE_PASSWORD_EXPIRED_USER")).getPrincipal().getEmail();
+        String email = ((UaaAuthentication)session.getAttribute(FORCE_PASSWORD_EXPIRED_USER)).getPrincipal().getEmail();
         model.addAttribute("email", email);
         return "force_password_change";
     }

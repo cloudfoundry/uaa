@@ -44,7 +44,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.sql.Timestamp;
@@ -93,12 +92,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
         ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
 
-        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
-        viewResolver.setPrefix("/WEB-INF/jsp");
-        viewResolver.setSuffix(".jsp");
         mockMvc = MockMvcBuilders
             .standaloneSetup(controller)
-            .setViewResolvers(viewResolver)
+            .setViewResolvers(getResolver())
             .build();
     }
 
@@ -194,12 +190,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     @Test
     public void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
         ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
-        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
-        viewResolver.setPrefix("/WEB-INF/jsp");
-        viewResolver.setSuffix(".jsp");
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
-                .setViewResolvers(viewResolver)
+                .setViewResolvers(getResolver())
                 .build();
         forgotPasswordSuccessful("http://localhost/reset_password?code=code1", "Cloud Foundry", null);
     }

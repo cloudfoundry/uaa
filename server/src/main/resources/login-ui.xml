@@ -284,7 +284,6 @@
 
     <http name="forcePasswordChangeSecurity"
           pattern="/force_password_change**"
-          disable-url-rewriting="true"
           entry-point-ref="loginEntryPoint"
           use-expressions="false"
           xmlns="http://www.springframework.org/schema/security">
