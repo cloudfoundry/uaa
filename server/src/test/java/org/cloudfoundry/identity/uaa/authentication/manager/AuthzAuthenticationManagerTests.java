@@ -35,7 +35,9 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
@@ -76,6 +78,9 @@ public class AuthzAuthenticationManagerTests {
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private String loginServerUserName="loginServerUser".toLowerCase();
     private IdentityProviderProvisioning providerProvisioning;
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -244,8 +249,10 @@ public class AuthzAuthenticationManagerTests {
         }
     }
 
-    @Test(expected = PasswordChangeRequiredException.class)
+    @Test
     public void authenticationWhenUserPasswordChangeRequired() throws Exception {
+        exception.expectMessage("User password needs to be changed");
+        exception.expect(PasswordChangeRequiredException.class);
         mgr.setAllowUnverifiedUsers(false);
         user.setPasswordChangeRequired(true);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);

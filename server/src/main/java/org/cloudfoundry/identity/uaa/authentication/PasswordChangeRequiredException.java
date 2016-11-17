@@ -16,7 +16,15 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.springframework.security.core.AuthenticationException;
 
 public class PasswordChangeRequiredException extends AuthenticationException{
-    public PasswordChangeRequiredException (String msg) {
+
+    private final UaaAuthentication authentication;
+
+    public PasswordChangeRequiredException (UaaAuthentication authentication, String msg) {
         super(msg);
+        this.authentication = authentication;
+    }
+
+    public UaaAuthentication getAuthentication() {
+        return authentication;
     }
 }

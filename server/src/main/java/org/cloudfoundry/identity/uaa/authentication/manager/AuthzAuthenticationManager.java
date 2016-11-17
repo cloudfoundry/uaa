@@ -131,13 +131,11 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                         (UaaAuthenticationDetails) req.getDetails());
 
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
-                success.setPasswordChangeRequired(user.isPasswordChangeRequired());
-                publish(new UserAuthenticationSuccessEvent(user, success));
 
                 if(user.isPasswordChangeRequired()){
-                    success.setAuthenticated(false);
-                    throw new PasswordChangeRequiredException("User password needs to be changed");
+                    throw new PasswordChangeRequiredException(success, "User password needs to be changed");
                 }
+                publish(new UserAuthenticationSuccessEvent(user, success));
 
                 return success;
             }

@@ -239,7 +239,7 @@
     <bean id="samlLogoutHandlers" class="java.util.ArrayList">
         <constructor-arg>
             <util:list>
-                <ref bean="currentUserCookieDestructor"/>
+                <ref bean="uaaAuthenticationFailureHandler"/>
                 <ref bean="samlLogoutHandler"/>
             </util:list>
         </constructor-arg>
@@ -259,7 +259,7 @@
         <constructor-arg index="0" ref="logoutHandler"/>
         <constructor-arg index="1">
             <util:list>
-                <ref bean="currentUserCookieDestructor"/>
+                <ref bean="uaaAuthenticationFailureHandler"/>
                 <bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
                 <bean class="org.springframework.security.web.csrf.CsrfLogoutHandler">
                     <constructor-arg ref="loginCookieCsrfRepository"/>
@@ -276,9 +276,22 @@
         <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
+    <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController"/>
+
     <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
         <property name="requestMatcher" ref="uiAuthorizeRequestMatcher"/>
     </bean>
+
+    <http name="forcePasswordChangeSecurity"
+          pattern="/force_password_change**"
+          disable-url-rewriting="true"
+          entry-point-ref="loginEntryPoint"
+          use-expressions="false"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <csrf disabled="false"/>
+        <access-denied-handler ref="loginEntryPoint"/>
+    </http>
 
     <http name="uiSecurity"
           request-matcher-ref="uiRequestMatcher"
@@ -293,7 +306,7 @@
                     password-parameter="password"
                     login-processing-url="/login.do"
                     authentication-success-handler-ref="accountSavingAuthenticationSuccessHandler"
-                    authentication-failure-handler-ref="currentUserCookieDestructor"
+                    authentication-failure-handler-ref="uaaAuthenticationFailureHandler"
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
         <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
@@ -333,12 +346,8 @@
         <property name="defaultFailureUrl" value="/login?error=login_failure"/>
     </bean>
 
-    <bean id="resetPasswordErrorHandler" class="org.cloudfoundry.identity.uaa.login.ResetPasswordErrorHandler">
+    <bean id="uaaAuthenticationFailureHandler" class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
         <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
-    </bean>
-
-    <bean id="currentUserCookieDestructor" class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieDestructor">
-        <constructor-arg name="delegate" ref="resetPasswordErrorHandler"/>
     </bean>
 
     <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
