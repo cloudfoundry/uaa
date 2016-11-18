@@ -17,6 +17,7 @@ import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,17 +40,22 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
 
     @Test
     public void testForcePasswordChange() throws Exception {
+        MockHttpSession session = getMockHttpSessionWithUser();
+        mockMvc.perform(get("/force_password_change")
+            .session(session))
+            .andExpect(status().isOk())
+            .andExpect(view().name("force_password_change"))
+            .andExpect(model().attribute("email", "mail"));
+    }
+
+    private MockHttpSession getMockHttpSessionWithUser() {
         MockHttpSession session = new MockHttpSession();
         UaaAuthentication auth = mock(UaaAuthentication.class);
         UaaPrincipal principal = mock(UaaPrincipal.class);
         when(auth.getPrincipal()).thenReturn(principal);
         when(principal.getEmail()).thenReturn("mail");
         session.setAttribute(FORCE_PASSWORD_EXPIRED_USER, auth);
-        mockMvc.perform(get("/force_password_change")
-            .session(session))
-            .andExpect(status().isOk())
-            .andExpect(view().name("force_password_change"))
-            .andExpect(model().attribute("email", "mail"));
+        return session;
     }
 
 
@@ -58,5 +64,37 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
         mockMvc.perform(get("/force_password_change"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    public void testHandleForcePasswordChangeNoSession() throws Exception {
+        mockMvc.perform(
+            post("/force_password_change")
+                .param("password","pwd")
+                .param("password_conf", "pwd"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    public void testHandleForcePasswordChange() throws Exception {
+        MockHttpSession session = getMockHttpSessionWithUser();
+        mockMvc.perform(
+            post("/force_password_change")
+                .session(session)
+                .param("password","pwd")
+                .param("password_conf", "pwd"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testPasswordAndConfirmAreDifferent() throws Exception {
+        MockHttpSession session = getMockHttpSessionWithUser();
+        mockMvc.perform(
+            post("/force_password_change")
+                .session(session)
+                .param("password","pwd")
+                .param("password_conf", "nopwd"))
+            .andExpect(status().isUnprocessableEntity());
     }
 }

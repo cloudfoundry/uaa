@@ -276,7 +276,9 @@
         <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
-    <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController"/>
+    <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
+      <constructor-arg ref = "resetPasswordService"/>
+    </bean>
 
     <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
         <property name="requestMatcher" ref="uiAuthorizeRequestMatcher"/>

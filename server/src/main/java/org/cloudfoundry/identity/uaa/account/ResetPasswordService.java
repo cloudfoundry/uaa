@@ -17,6 +17,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 
 public interface ResetPasswordService {
+    void resetUserPassword(String userId, String password);
+
     ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri);
 
     ResetPasswordResponse resetPassword(String code, String password) throws InvalidPasswordException;
