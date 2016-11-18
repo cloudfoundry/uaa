@@ -123,6 +123,16 @@ public class OIDCLoginIT {
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
         createOIDCProviderWithRequestedScopes();
+        validateSuccessfulOIDCLogin();
+    }
+
+    @Test
+    public void successfulLoginWithOIDCProvider_MultiKeys() throws Exception {
+        createOIDCProviderWithRequestedScopes(null,"https://oidc10.identity.cf-app.com", "https://oidc10.identity.cf-app.com/token_keys");
+        validateSuccessfulOIDCLogin();
+    }
+
+    public void validateSuccessfulOIDCLogin() {
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));

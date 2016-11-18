@@ -28,9 +28,14 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * See https://tools.ietf.org/html/rfc7517
@@ -90,7 +95,12 @@ public class JsonWebKey {
     }
 
     public final KeyUse getUse() {
-        return KeyUse.valueOf((String) getKeyProperties().get("use"));
+        String use = (String) getKeyProperties().get("use");
+        KeyUse result = null;
+        if (hasText(use)) {
+            result = KeyUse.valueOf(use);
+        }
+        return result;
     }
 
     @Override
@@ -117,11 +127,24 @@ public class JsonWebKey {
 
     public String getValue() {
         String result = (String) getKeyProperties().get("value");
-        if (result == null && RSA.equals(getKty())) {
-            result = pemEncodePublicKey(getRsaPublicKey(this));
-            this.json.put("value", result);
+        if (result == null) {
+            if (RSA.equals(getKty())) {
+                result = pemEncodePublicKey(getRsaPublicKey(this));
+                this.json.put("value", result);
+            } else if (MAC.equals(getKty())) {
+                result = (String) getKeyProperties().get("k");
+                this.json.put("value", result);
+            }
         }
         return result;
+    }
+
+    public Set<KeyOperation> getKeyOps() {
+        List<String> result = (List<String>) getKeyProperties().get("key_ops");
+        if (result==null) {
+            result = Collections.emptyList();
+        }
+        return result.stream().map(o -> KeyOperation.valueOf(o)).collect(Collectors.toSet());
     }
 
     public static String pemEncodePublicKey(PublicKey publicKey) {
