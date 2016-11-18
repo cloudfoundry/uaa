@@ -70,7 +70,7 @@ public class TokenKeyEndpointTests {
         assertEquals("someKey", response.getKey());
         assertEquals("someKeyId", response.getId());
         assertEquals("MAC", response.getType());
-        assertEquals("sig", response.getUse());
+        assertEquals("sig", response.getUse().name());
     }
 
     private void configureKeysForDefaultZone(Map<String,String> keys) {
@@ -137,7 +137,7 @@ public class TokenKeyEndpointTests {
         assertEquals("SHA256withRSA", response.getAlgorithm());
         assertEquals("key1", response.getId());
         assertEquals("RSA", response.getType());
-        assertEquals("sig", response.getUse());
+        assertEquals("sig", response.getUse().name());
     }
 
     @Test
@@ -152,7 +152,7 @@ public class TokenKeyEndpointTests {
         assertEquals("someKey", response.getKey());
         assertEquals("someKeyId", response.getId());
         assertEquals("MAC", response.getType());
-        assertEquals("sig", response.getUse());
+        assertEquals("sig", response.getUse().name());
     }
 
     @Test

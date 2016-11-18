@@ -13,7 +13,7 @@
  * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.oauth;
+package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 
 import org.junit.Test;

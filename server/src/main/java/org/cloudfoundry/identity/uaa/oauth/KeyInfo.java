@@ -1,8 +1,23 @@
+/*
+ * ****************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ * ****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
-import org.cloudfoundry.identity.uaa.oauth.jwt.IdentifiedSigner;
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -14,11 +29,10 @@ import org.springframework.util.StringUtils;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
@@ -39,7 +53,7 @@ public class KeyInfo {
     private String keyId;
     private String verifierKey = new RandomValueStringGenerator().generate();
     private String signingKey = verifierKey;
-    private Signer signer = new IdentifiedSigner(null, new MacSigner(verifierKey));
+    private Signer signer = new CommonSigner(null, verifierKey);
     private SignatureVerifier verifier = new MacSigner(signingKey);
     private String type = "MAC";
     private RSAPublicKey rsaPublicKey;
@@ -181,7 +195,7 @@ public class KeyInfo {
         this.signer = new CommonSigner(keyId, signingKey);
     }
 
-    private static KeyPair parseKeyPair(String pemData) {
+    public static KeyPair parseKeyPair(String pemData) {
         Matcher m = PEM_DATA.matcher(pemData.trim());
 
         if (!m.matches()) {
@@ -203,9 +217,16 @@ public class KeyInfo {
                 }
                 org.bouncycastle.asn1.pkcs.RSAPrivateKey key = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(seq);
                 RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
-                RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(key.getModulus(), key.getPublicExponent(),
-                        key.getPrivateExponent(), key.getPrime1(), key.getPrime2(), key.getExponent1(), key.getExponent2(),
-                        key.getCoefficient());
+                RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(
+                    key.getModulus(),
+                    key.getPublicExponent(),
+                    key.getPrivateExponent(),
+                    key.getPrime1(),
+                    key.getPrime2(),
+                    key.getExponent1(),
+                    key.getExponent2(),
+                    key.getCoefficient()
+                );
                 publicKey = fact.generatePublic(pubSpec);
                 privateKey = fact.generatePrivate(privSpec);
             } else if (type.equals("PUBLIC KEY")) {
@@ -230,7 +251,7 @@ public class KeyInfo {
         }
     }
 
-    private static String pemEncodePublicKey(PublicKey publicKey) {
+    public static String pemEncodePublicKey(PublicKey publicKey) {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "\n-----END PUBLIC KEY-----";
         byte[] data = publicKey.getEncoded();

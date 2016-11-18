@@ -19,14 +19,18 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
-import org.cloudfoundry.identity.uaa.oauth.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -36,10 +40,12 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -55,13 +61,17 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -297,14 +307,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return null;
         }
 
-        String tokenKey = config.getTokenKey();
-        URL tokenKeyUrl = config.getTokenKeyUrl();
-        if(!StringUtils.hasText(tokenKey) && tokenKeyUrl != null && StringUtils.hasText(tokenKeyUrl.toString())) {
-            tokenKey = getTokenKeyFromOAuth(config, tokenKeyUrl.toString());
-        }
+        JsonWebKeySet tokenKey = getTokenKeyFromOAuth(config);
 
         TokenValidation validation = validate(idToken)
-            .checkSignature(new CommonSignatureVerifier(tokenKey))
+            .checkSignature(new ChainedSignatureVerifier(tokenKey))
             .checkIssuer((StringUtils.isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
             .checkAudience(config.getRelyingPartyId())
             .checkExpiry()
@@ -314,13 +320,29 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>(){});
     }
 
-    private String getTokenKeyFromOAuth(AbstractXOAuthIdentityProviderDefinition config, String tokenKeyUrl) {
+    private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractXOAuthIdentityProviderDefinition config) {
+        String tokenKey = config.getTokenKey();
+        if(StringUtils.hasText(tokenKey)) {
+            Map<String,Object> p = new HashMap<>();
+            p.put("value", tokenKey);
+            p.put("kty", KeyInfo.isAssymetricKey(tokenKey) ? RSA.name() : MAC.name());
+            return new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(p)));
+        }
+        URL tokenKeyUrl = config.getTokenKeyUrl();
+        if(tokenKeyUrl == null || !StringUtils.hasText(tokenKeyUrl.toString())) {
+            return new JsonWebKeySet<>(Collections.emptyList());
+        }
+
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Authorization", getClientAuthHeader(config));
         headers.add("Accept", "application/json");
         HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
-        ResponseEntity<Map<String, Object>> responseEntity = getRestTemplate(config).exchange(tokenKeyUrl, HttpMethod.GET, tokenKeyRequest, new ParameterizedTypeReference<Map<String, Object>>() {});
-        return (String) responseEntity.getBody().get("value");
+        ResponseEntity<String> responseEntity = getRestTemplate(config).exchange(tokenKeyUrl.toString(), HttpMethod.GET, tokenKeyRequest, String.class);
+        if (responseEntity.getStatusCode() == HttpStatus.OK) {
+            return JsonWebKeyHelper.deserialize(responseEntity.getBody());
+        } else {
+            throw new InvalidTokenException("Unable to fetch verification keys, status:"+responseEntity.getStatusCode());
+        }
     }
 
     private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
