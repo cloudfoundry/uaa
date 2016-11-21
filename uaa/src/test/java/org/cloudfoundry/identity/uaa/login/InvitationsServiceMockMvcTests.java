@@ -102,7 +102,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
 
     @Before
     @After
-    public void clearOutCodeTable() {
+    public void clearOutCodeTable() throws Exception {
         getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM expiring_code_store");
         fakeJavaMailSender.clearMessage();
     }
@@ -113,7 +113,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         inviteUser(email, userInviteToken, null, clientId, OriginKeys.UAA);
     }
 
-    protected <T> T queryUserForField(String email, String field, Class<T> type) {
+    protected <T> T queryUserForField(String email, String field, Class<T> type) throws Exception {
         return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT "+field+" FROM users WHERE email=?",type, email);
     }
 

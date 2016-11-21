@@ -37,13 +37,27 @@ Browser POSTs to `/login.do` with user credentials (same as UAA).
 Login Server returns a cookie that can be used to authenticate future
 requests (until the session expires or the user logs out).
 
+In order to use this endpoint, a Cross-Site Request Forgery (CSRF) token needs to first
+be received from ``GET /login``, which will set it as a response cookie called ``X-Uaa-Csrf``.  Furthermore, the following headers are required in the POST for successful authentication:
+
+| Header        | Value            |
+| ------------- | ----------------:|
+| Accept        | application/json |
+| Content-Type  | application/x-www-form-urlencoded  |
+| Referer       | http://login.cloudfoundry.example.com/login |
+
+The raw data for the request must be submitted in the following format, and must include the CSRF token (sample below):
+```
+'username=admin&password=mypassword&X-Uaa-Csrf=abcdef'
+```
+Finally, in addition to being submitted as part of the raw data, the CSRF token must also be added to the POST request as a cookie, also named ``X-Uaa-Csrf``.
 ## Logout: `GET /logout.do`
 
 The Login Server is a Single Sign On server for the Cloud Foundry
 platform (and possibly user apps as well), so if a user logs out he
 logs out of all the apps.  Users need to be reminded of the
 consequences of their actions, so the recommendation for application
-authors is to 
+authors is to
 
 * provide a local logout feature specific to the client application
   and use that to clear state in the client

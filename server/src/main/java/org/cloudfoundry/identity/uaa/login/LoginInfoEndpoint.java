@@ -29,10 +29,12 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
+import org.cloudfoundry.identity.uaa.util.ColorHash;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -49,7 +51,6 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,20 +59,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.awt.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -91,6 +93,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
@@ -203,9 +206,36 @@ public class LoginInfoEndpoint {
         return login(model, principal, Arrays.asList(PASSCODE), false);
     }
 
+    static class SavedAccountOptionModel extends SavedAccountOption {
+        public int red, green, blue;
+        public void assignColors(Color color) {
+            red = color.getRed();
+            blue = color.getBlue();
+            green = color.getGreen();
+        }
+    }
+
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
+
+        Cookie[] cookies = request.getCookies();
+        List<SavedAccountOptionModel> savedAccounts = getSavedAccounts(cookies, SavedAccountOptionModel.class);
+        savedAccounts.forEach(account -> {
+            Color color = ColorHash.getColor(account.getUserId());
+            account.assignColors(color);
+        });
+
+        model.addAttribute("savedAccounts", savedAccounts);
+
         return login(model, principal, Arrays.asList(PASSCODE), false, request);
+    }
+
+    private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
+        return Arrays.asList(Optional.ofNullable(cookies).orElse(new Cookie[]{}))
+                .stream()
+                .filter(c -> c.getName().startsWith("Saved-Account"))
+                .map(c -> JsonUtils.readValue(c.getValue(), clazz))
+                .collect(Collectors.toList());
     }
 
     @RequestMapping(value = {"/invalid_request"})
@@ -268,10 +298,10 @@ public class LoginInfoEndpoint {
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
 
         Optional<String> loginHintParam = Optional
-                .ofNullable(session)
-                .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute("SPRING_SECURITY_SAVED_REQUEST")))
-                .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
-                .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
+            .ofNullable(session)
+            .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
+            .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
+            .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
 
         if(loginHintParam.isPresent()) {
             String loginHint = loginHintParam.get();
@@ -361,14 +391,35 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts, jsonResponse);
 
         if (principal == null) {
-            boolean discoveryPerformed = Boolean.parseBoolean(request != null ? request.getParameter("discoveryPerformed") : null);
-            if (IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() && !discoveryPerformed) {
+            boolean accountChooserNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
+                && IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()
+                && request != null && !(Boolean.parseBoolean(request.getParameter("otherAccountSignIn")) || getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty());
+
+            if(accountChooserNeeded) {
+                return "idp_discovery/account_chooser";
+            }
+
+            boolean discoveryNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
+                && (request == null || !Boolean.parseBoolean(request.getParameter("discoveryPerformed")));
+
+            if(discoveryNeeded) {
                 return "idp_discovery/email";
             }
+
             return "login";
         }
         return "home";
     }
+
+    @RequestMapping(value = {"/delete_saved_account"})
+    public String deleteSavedAccount(HttpServletRequest request, HttpServletResponse response, String userId) {
+        Cookie cookie = new Cookie("Saved-Account-" + userId, "");
+        cookie.setMaxAge(0);
+        cookie.setPath(request.getContextPath() + "/login");
+        response.addCookie(cookie);
+        return "redirect:/login";
+    }
+
 
     private String redirectToExternalProvider(AbstractIdentityProviderDefinition idpForRedirect, String alias, HttpServletRequest request) {
         if(idpForRedirect != null) {
@@ -387,19 +438,7 @@ public class LoginInfoEndpoint {
     }
 
     private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) throws UnsupportedEncodingException {
-        String authUrlBase = definition.getAuthUrl().toString();
-
-        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
-        List<String> query = new ArrayList<>();
-        query.add("client_id=" + definition.getRelyingPartyId());
-        query.add("response_type=code");
-        String requestURL = request.getRequestURL().toString();
-        String rootContext = StringUtils.hasText(request.getServletPath()) ? requestURL.substring(0, requestURL.indexOf(request.getServletPath())) : requestURL;
-        query.add("redirect_uri=" + URLEncoder.encode(rootContext + "/login/callback/" + alias, "UTF-8"));
-        if (definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
-        String queryString = String.join("&", query);
-
-        return authUrlBase + queryAppendDelimiter + queryString;
+        return definition.getCompleteAuthorizationURI(UaaUrlUtils.getBaseURL(request), alias);
     }
 
     protected Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
@@ -419,10 +458,10 @@ public class LoginInfoEndpoint {
     }
 
     protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {
-        if (session == null || session.getAttribute("SPRING_SECURITY_SAVED_REQUEST") == null) {
+        if (session == null || session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE) == null) {
             return false;
         }
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         String redirectUrl = savedRequest.getRedirectUrl();
         String[] client_ids = savedRequest.getParameterValues("client_id");
         if (redirectUrl != null && redirectUrl.contains("/oauth/authorize") && client_ids != null && client_ids.length != 0) {
@@ -435,7 +474,7 @@ public class LoginInfoEndpoint {
         if (!hasSavedOauthAuthorizeRequest(session)) {
             return null;
         }
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         String[] client_ids = savedRequest.getParameterValues("client_id");
         try {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
@@ -500,7 +539,7 @@ public class LoginInfoEndpoint {
     public String discoverIdentityProvider(@RequestParam String email, Model model, HttpSession session, HttpServletRequest request) {
         ClientDetails clientDetails = null;
         if (hasSavedOauthAuthorizeRequest(session)) {
-            SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+            SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
             String[] client_ids = savedRequest.getParameterValues("client_id");
             try {
                 clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
@@ -579,7 +618,7 @@ public class LoginInfoEndpoint {
     @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
         String redirectLocation = "home";
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
             redirectLocation = savedRequest.getRedirectUrl();
         }
@@ -587,10 +626,15 @@ public class LoginInfoEndpoint {
         return "redirect:" + redirectLocation;
     }
 
-    @RequestMapping(value = "/login/callback/{origin}", method = GET)
+    @RequestMapping(value = "/login_implicit", method = GET)
+    public String captureImplicitValuesUsingJavascript() {
+        return "login_implicit";
+    }
+
+    @RequestMapping(value = "/login/callback/{origin}")
     public String handleXOAuthCallback(HttpSession session) {
         String redirectLocation = "/home";
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
             redirectLocation = savedRequest.getRedirectUrl();
         }

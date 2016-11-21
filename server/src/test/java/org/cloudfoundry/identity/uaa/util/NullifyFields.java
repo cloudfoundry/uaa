@@ -14,8 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import org.apache.xpath.operations.Mod;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 

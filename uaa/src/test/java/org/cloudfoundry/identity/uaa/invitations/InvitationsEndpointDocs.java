@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.restdocs.snippet.Snippet;
@@ -99,7 +100,9 @@ public class InvitationsEndpointDocs extends InjectedMockContextTest {
                         preprocessRequest(prettyPrint()),
                         preprocessResponse(prettyPrint()),
                         requestHeaders(
-                                headerWithName("Authorization").description("Bearer token containing `scim.invite`")
+                                headerWithName("Authorization").description("Bearer token containing `scim.invite`"),
+                                headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id."),
+                                headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.")
                         ),
                         requestParameters,
                         requestFields,

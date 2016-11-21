@@ -12,19 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.MalformedURLException;
-import java.net.URL;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.io.IOException;
+import java.io.StringReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class SamlServiceProviderDefinition {
 
@@ -38,12 +36,14 @@ public class SamlServiceProviderDefinition {
     private String nameID;
     private int singleSignOnServiceIndex;
     private boolean metadataTrustCheck;
+    private boolean skipSslValidation = false;
 
     public SamlServiceProviderDefinition clone() {
         return new SamlServiceProviderDefinition(metaDataLocation,
-                                                  nameID,
-                                                  singleSignOnServiceIndex,
-                                                  metadataTrustCheck);
+                                                 nameID,
+                                                 singleSignOnServiceIndex,
+                                                 metadataTrustCheck,
+                                                 skipSslValidation);
     }
 
     public SamlServiceProviderDefinition() {}
@@ -51,11 +51,13 @@ public class SamlServiceProviderDefinition {
     public SamlServiceProviderDefinition(String metaDataLocation,
                                           String nameID,
                                           int singleSignOnServiceIndex,
-                                          boolean metadataTrustCheck) {
+                                          boolean metadataTrustCheck,
+                                         boolean skipSslValidation) {
         this.metaDataLocation = metaDataLocation;
         this.nameID = nameID;
         this.singleSignOnServiceIndex = singleSignOnServiceIndex;
         this.metadataTrustCheck = metadataTrustCheck;
+        this.skipSslValidation = skipSslValidation;
     }
 
     @JsonIgnore
@@ -142,6 +144,14 @@ public class SamlServiceProviderDefinition {
         result = prime * result + ((nameID == null) ? 0 : nameID.hashCode());
         result = prime * result + singleSignOnServiceIndex;
         return result;
+    }
+
+    public boolean isSkipSslValidation() {
+        return skipSslValidation;
+    }
+
+    public void setSkipSslValidation(boolean skipSslValidation) {
+        this.skipSslValidation = skipSslValidation;
     }
 
     @Override

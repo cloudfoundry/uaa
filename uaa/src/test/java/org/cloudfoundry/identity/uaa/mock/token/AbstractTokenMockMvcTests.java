@@ -28,14 +28,13 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Before;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -48,6 +47,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
+import static org.springframework.util.StringUtils.hasText;
 
 public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest {
 
@@ -55,8 +55,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
     public static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
-    protected TestClient testClient;
-    protected JdbcClientDetailsService clientDetailsService;
+    protected ClientServicesExtension clientDetailsService;
     protected JdbcScimUserProvisioning userProvisioning;
     protected JdbcScimGroupProvisioning groupProvisioning;
     protected JdbcScimGroupMembershipManager groupMembershipManager;
@@ -72,8 +71,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
 
     @Before
     public void setUpContext() throws Exception {
-        testClient = new TestClient(getMockMvc());
-        clientDetailsService = (JdbcClientDetailsService) getWebApplicationContext().getBean("jdbcClientDetailsService");
+        clientDetailsService = (ClientServicesExtension) getWebApplicationContext().getBean("jdbcClientDetailsService");
         userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");
         groupProvisioning = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");
         groupMembershipManager = (JdbcScimGroupMembershipManager) getWebApplicationContext().getBean("groupMembershipManager");
@@ -128,6 +126,13 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, -1);
     }
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, null);
+    }
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
+        IdentityZone original = IdentityZoneHolder.get();
+        if (zone!=null) {
+            IdentityZoneHolder.set(zone);
+        }
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
         if (!"implicit".equals(grantTypes)) {
             c.setClientSecret(SECRET);
@@ -139,37 +144,53 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
         c.setAdditionalInformation(additional);
-        if (StringUtils.hasText(redirectUri)) {
+        if (hasText(redirectUri)) {
             c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));
         }
         if (accessTokenValidity>0) {
             c.setAccessTokenValiditySeconds(accessTokenValidity);
         }
-        clientDetailsService.addClientDetails(c);
-        return (BaseClientDetails) clientDetailsService.loadClientByClientId(c.getClientId());
+        try {
+            clientDetailsService.addClientDetails(c);
+            return (BaseClientDetails) clientDetailsService.loadClientByClientId(c.getClientId());
+        } finally {
+            IdentityZoneHolder.set(original);
+        }
     }
 
     protected ScimUser setUpUser(String username, String scopes, String origin, String zoneId) {
+        IdentityZone original = IdentityZoneHolder.get();
         ScimUser user = new ScimUser(null, username, "GivenName", "FamilyName");
-        user.setPassword(SECRET);
-        ScimUser.Email email = new ScimUser.Email();
-        email.setValue("test@test.org");
-        email.setPrimary(true);
-        user.setEmails(Arrays.asList(email));
-        user.setVerified(true);
-        user.setOrigin(origin);
-
-        user = userProvisioning.createUser(user, SECRET);
-
-        Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
-        Set<ScimGroup> groups = new HashSet<>();
-        for (String scope : scopeSet) {
-            ScimGroup g = createIfNotExist(scope,zoneId);
-            groups.add(g);
-            addMember(user, g);
+        if (hasText(zoneId)) {
+            IdentityZone zone = identityZoneProvisioning.retrieve(zoneId);
+            IdentityZoneHolder.set(zone);
+            user.setZoneId(zoneId);
         }
+        try {
 
-        return userProvisioning.retrieve(user.getId());
+            user.setPassword(SECRET);
+            ScimUser.Email email = new ScimUser.Email();
+            email.setValue("test@test.org");
+            email.setPrimary(true);
+            user.setEmails(Arrays.asList(email));
+            user.setVerified(true);
+            user.setOrigin(origin);
+
+
+            user = userProvisioning.createUser(user, SECRET);
+
+            Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
+            Set<ScimGroup> groups = new HashSet<>();
+            for (String scope : scopeSet) {
+                ScimGroup g = createIfNotExist(scope, zoneId);
+                groups.add(g);
+                addMember(user, g);
+            }
+
+            return userProvisioning.retrieve(user.getId());
+        } finally {
+            IdentityZoneHolder.set(original);
+        }
     }
 
     protected ScimUser syncGroups(ScimUser user) {

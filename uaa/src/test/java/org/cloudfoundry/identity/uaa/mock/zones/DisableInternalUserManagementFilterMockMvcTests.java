@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class DisableInternalUserManagementFilterMockMvcTests extends InjectedMockContextTest{
 
     @After
-    public void resetInternalUserManagement() {
+    public void resetInternalUserManagement() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
     }
 

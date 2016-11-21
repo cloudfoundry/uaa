@@ -43,6 +43,9 @@ public class UserInfoResponse {
     @JsonProperty(PHONE_NUMBER)
     private String phoneNumber;
 
+    @JsonProperty(SUB)
+    private String sub;
+
     public String getUserId() {
         return userId;
     }
@@ -96,5 +99,13 @@ public class UserInfoResponse {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getSub() {
+        return sub;
+    }
+
+    public void setSub(String sub) {
+        this.sub = sub;
     }
 }

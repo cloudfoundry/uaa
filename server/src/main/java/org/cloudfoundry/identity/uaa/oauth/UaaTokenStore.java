@@ -75,7 +75,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     private final DataSource dataSource;
     private final long expirationTime;
-    private final RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private final RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
     private final AtomicLong lastClean = new AtomicLong(0);

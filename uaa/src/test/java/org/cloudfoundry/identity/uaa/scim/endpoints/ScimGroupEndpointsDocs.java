@@ -20,8 +20,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -46,6 +48,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
@@ -69,8 +72,13 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor memberValueRequestField = fieldWithPath("members[].value").constrained("Required for each item in `members`").type(STRING).description("The globally-unique ID of the member entity, either a user ID or another group ID");
     private final FieldDescriptor memberTypeRequestField = fieldWithPath("members[].type").optional(USER).type(STRING).description("Either `\"USER\"` or `\"GROUP\"`");
     private final FieldDescriptor memberOriginRequestField = fieldWithPath("members[].origin").optional("uaa").type(STRING).description("The alias of the identity provider that authenticated this user. `\"uaa\"` is an internal UAA user.");
+    private final FieldDescriptor memberOperationRequestField = fieldWithPath("members[].operation").optional(null).type(STRING).description("\"delete\" if the corresponding member shall be deleted");
+    private final FieldDescriptor metaAttributesRequestField = fieldWithPath("meta.attributes").optional(null).type(ARRAY).description("Names of attributes that shall be deleted");
     private String scimReadToken;
     private String scimWriteToken;
+
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
     FieldDescriptor[] responseFieldDescriptors = {
         fieldWithPath("id").description("The globally unique group ID"),
@@ -95,6 +103,17 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         memberTypeRequestField,
         memberOriginRequestField
     );
+
+    private final Snippet scimGroupPatchRequestFields = requestFields(
+            displayNameRequestField,
+            descriptionRequestField,
+            membersRequestField,
+            memberValueRequestField,
+            memberTypeRequestField,
+            memberOriginRequestField,
+            memberOperationRequestField,
+            metaAttributesRequestField
+        );
 
     @Before
     public void setUp() throws Exception {
@@ -123,7 +142,9 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.write`")
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 scimGroupRequestFields,
                 responseFields));
@@ -150,11 +171,33 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token with scope `scim.write` or `groups.update`"),
-                    headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
+                    headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 scimGroupRequestFields,
                 responseFields));
 
+        // Patch
+        MockHttpServletRequestBuilder patch = patch("/Groups/{groupId}", scimGroup.getId())
+                .header("Authorization", "Bearer " + scimWriteToken)
+                .header("If-Match", "*")
+                .contentType(APPLICATION_JSON)
+                .content(serializeWithoutMeta(scimGroup));
+
+            ResultActions patchResult = getMockMvc().perform(patch).andExpect(status().isOk())
+                .andDo(document("{ClassName}/patchScimGroup",
+                    preprocessRequest(prettyPrint()),
+                    preprocessResponse(prettyPrint()),
+                    pathParameters(
+                        parameterWithName("groupId").description("Globally unique identifier of the group to update")
+                    ),
+                    requestHeaders(
+                        headerWithName("Authorization").description("Bearer token with scope `scim.write` or `groups.update`"),
+                        headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
+                    ),
+                    scimGroupPatchRequestFields,
+                    responseFields));
 
         // Retrieve
 
@@ -170,7 +213,9 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("groupId").description("Globally unique identifier of the group to retrieve")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields));
 
@@ -209,7 +254,10 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 preprocessResponse(prettyPrint()),
                 requestParameters,
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
+                    headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 listGroupResponseFields));
 
@@ -232,7 +280,9 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("memberId").description("The globally unique identifier the user or group which is a member of the specified by `groupId`")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields(
                     idempotentMembershipFields
@@ -252,7 +302,9 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("memberId").description("The globally unique identifier of the entity, i.e. the user or group, to be removed from membership in the group specified by `groupId`")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.write`")
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields(
                     fieldWithPath("origin").description("The originating IDP of the entity"),
@@ -277,7 +329,9 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("groupId").description("The globally unique identifier of the group")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.write`")
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields(
                     idempotentMembershipFields
@@ -303,7 +357,9 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("returnEntities").type(BOOLEAN).optional("false").description("Set to `true` to return the SCIM entities which have membership in the group")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields(
                     subFields("[]", ArrayUtils.addAll(idempotentMembershipFields, fieldWithPath("entity").description("Present only if requested with `returnEntities`; user or group with membership in the group")))
@@ -323,7 +379,9 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
-                    headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.").attributes(key("constraints").value("Optional (defaults to `*`)")).optional()
+                    headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.").attributes(key("constraints").value("Optional (defaults to `*`)")).optional(),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields));
 

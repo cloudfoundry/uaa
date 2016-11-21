@@ -20,6 +20,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,8 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 
 
 public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthenticationToken {
+
+    public static final String AUTHENTICATION_CONTEXT_CLASS_REFERENCE = "acr";
 
     private final UaaPrincipal uaaPrincipal;
 
@@ -52,6 +55,10 @@ public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthentication
         }
         UaaAuthentication authentication = new UaaAuthentication(getUaaPrincipal(), getCredentials(), uaaAuthorityList, externalGroups, customAttributes, null, isAuthenticated(), System.currentTimeMillis(), getTokenExpiration()==null ? -1l : getTokenExpiration().getTime());
         authentication.setAuthenticationMethods(Collections.singleton("ext"));
+        List<String> acrValues = userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE);
+        if (acrValues !=null) {
+            authentication.setAuthContextClassRef(new HashSet<>(acrValues));
+        }
         return authentication;
     }
 }

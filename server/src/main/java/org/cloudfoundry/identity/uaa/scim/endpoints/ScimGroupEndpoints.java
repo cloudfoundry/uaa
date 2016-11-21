@@ -385,21 +385,23 @@ public class ScimGroupEndpoints {
         }
     }
 
-    /*
-     * SCIM spec lists the PATCH operation as optional, so leaving it
-     * un-implemented for now while we wait for
-     * https://jira.springsource.org/browse/SPR-7985 which adds support for
-     * RequestMethod.PATCH in version '3.2 M2'
-     */
-    /*
-     * @RequestMapping(value = { "/Group/{groupId}", "/Groups/{groupId}" },
-     * method = RequestMethod.PATCH)
-     * @ResponseBody
-     * public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable
-     * String groupId,
-     * @RequestHeader(value = "If-Match", required = false) String etag) {
-     * }
-     */
+    @RequestMapping(value = { "/Group/{groupId}", "/Groups/{groupId}" },
+    method = RequestMethod.PATCH)
+    @ResponseBody
+    public ScimGroup patchGroup(@RequestBody ScimGroup patch, @PathVariable
+                                String groupId,
+                                @RequestHeader(value = "If-Match", required = false) String etag,
+                                HttpServletResponse httpServletResponse) {
+        if (etag == null) {
+            throw new ScimException("Missing If-Match for PATCH", HttpStatus.BAD_REQUEST);
+        }
+        logger.debug("patching group: " + groupId);
+        int version = getVersion(groupId, etag);
+        patch.setVersion(version);
+        ScimGroup current = getGroup(groupId, httpServletResponse);
+        current.patch(patch);
+        return updateGroup(current, groupId, etag, httpServletResponse);
+    }
 
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.DELETE)
     @ResponseBody

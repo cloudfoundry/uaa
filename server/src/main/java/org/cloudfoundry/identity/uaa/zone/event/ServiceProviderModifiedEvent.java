@@ -17,17 +17,15 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 
 public class ServiceProviderModifiedEvent extends AbstractUaaEvent {
 
-    /**
-     * Generated serialization id.
-     */
     private static final long serialVersionUID = -204120790766086570L;
 
     private AuditEventType eventType;
+
+    protected static final String dataFormat = "id=%s; name=%s; entityID=%s";
 
     public ServiceProviderModifiedEvent(SamlServiceProvider serviceProvider, Authentication authentication, AuditEventType type) {
         super(serviceProvider, authentication);
@@ -36,7 +34,14 @@ public class ServiceProviderModifiedEvent extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
-        return createAuditRecord(getSource().toString(), eventType, getOrigin(getAuthentication()), JsonUtils.writeValueAsString(source));
+        SamlServiceProvider provider = (SamlServiceProvider)source;
+        return createAuditRecord(getSource().toString(),
+                                 eventType,
+                                 getOrigin(getAuthentication()),
+                                 String.format(dataFormat,
+                                               provider.getId(),
+                                               provider.getName(),
+                                               provider.getEntityId()));
     }
 
     public static ServiceProviderModifiedEvent serviceProviderCreated(SamlServiceProvider serviceProvider) {

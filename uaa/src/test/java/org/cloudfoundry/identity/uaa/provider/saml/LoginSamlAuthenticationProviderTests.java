@@ -18,6 +18,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -33,14 +35,15 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Attribute;
+import org.opensaml.saml2.core.AuthnContext;
+import org.opensaml.saml2.core.AuthnContextClassRef;
+import org.opensaml.saml2.core.AuthnStatement;
 import org.opensaml.saml2.core.NameID;
 import org.opensaml.ws.wsaddressing.impl.AttributedURIImpl;
 import org.opensaml.ws.wssecurity.impl.AttributedStringImpl;
@@ -271,9 +274,22 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributes.put("XSDateTime", new DateTime(0));
         attributes.put("XSBase64Binary", "00001111");
 
+
+        AuthnContextClassRef contextClassRef = mock(AuthnContextClassRef.class);
+        when(contextClassRef.getAuthnContextClassRef()).thenReturn(AuthnContext.PASSWORD_AUTHN_CTX);
+
+        AuthnContext authenticationContext = mock(AuthnContext.class);
+        when(authenticationContext.getAuthnContextClassRef()).thenReturn(contextClassRef);
+
+        AuthnStatement statement = mock(AuthnStatement.class);
+        when(statement.getAuthnContext()).thenReturn(authenticationContext);
+
+        Assertion authenticationAssertion = mock(Assertion.class);
+        when(authenticationAssertion.getAuthnStatements()).thenReturn(Arrays.asList(statement));
+
         return new SAMLCredential(
             usernameID,
-            mock(Assertion.class),
+            authenticationAssertion,
             "remoteEntityID",
             getAttributes(attributes),
             "localEntityID");
@@ -283,6 +299,16 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public void testAuthenticateSimple() {
         authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
     }
+
+    @Test
+    public void saml_authentication_contains_acr() {
+        Authentication authentication = authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
+        assertNotNull("Authentication cannot be null", authentication);
+        assertTrue("Authentication should be of type:"+UaaAuthentication.class.getName(), authentication instanceof UaaAuthentication);
+        UaaAuthentication uaaAuthentication = (UaaAuthentication)authentication;
+        assertThat(uaaAuthentication.getAuthContextClassRef(),containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+    }
+
 
     @Test
     public void test_multiple_group_attributes() throws Exception {
@@ -636,6 +662,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         ExtendedMetadata metadata = mock(ExtendedMetadata.class);
         when(metadata.getAlias()).thenReturn(originKey);
         SAMLMessageContext contxt = mock(SAMLMessageContext.class);
+
         when(contxt.getPeerExtendedMetadata()).thenReturn(metadata);
         when(contxt.getCommunicationProfileId()).thenReturn(SAMLConstants.SAML2_WEBSSO_PROFILE_URI);
         return new SAMLAuthenticationToken(contxt);

@@ -441,6 +441,10 @@ ldap:
 </pre>
 
 ### Populating External Group Mappings
+Once you have configured UAA to map Ldap Groups to Scopes, you can use the Cloud Controller API to manage the group mappings:
+* [List External Group mapping](https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.rst#list-external-group-mapping-get-groups-external)
+* [Create a Group mapping](https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.rst#create-a-group-mapping-post-groups-external)
+* [Remove a group mapping](https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.rst#remove-a-group-mapping-delete-groups-external-displayname-displayname-externalgroup-externalgroup-origin-origin)
 
 # LDAP Email integration
 As you may have noticed through the different examples, the property `ldap.base.mailAttributeName` is always 

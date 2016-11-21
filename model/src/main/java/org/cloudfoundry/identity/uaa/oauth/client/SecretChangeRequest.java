@@ -13,18 +13,29 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.UPDATE;
 
 /**
  * @author Dave Syer
  * @author Luke Taylor
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SecretChangeRequest {
+
+    public enum ChangeMode {
+        UPDATE,
+        ADD,
+        DELETE
+    }
 
     private String oldSecret;
     private String secret;
     private String clientId;
+    private ChangeMode changeMode = UPDATE;
 
     public SecretChangeRequest() {
     }
@@ -59,4 +70,11 @@ public class SecretChangeRequest {
         this.clientId = clientId;
     }
 
+    public ChangeMode getChangeMode() {
+        return changeMode;
+    }
+
+    public void setChangeMode(ChangeMode changeMode) {
+        this.changeMode = changeMode;
+    }
 }

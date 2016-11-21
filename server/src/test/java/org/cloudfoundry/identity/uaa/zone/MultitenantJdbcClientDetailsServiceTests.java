@@ -7,7 +7,9 @@ import org.flywaydb.core.api.MigrationVersion;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
@@ -26,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -51,6 +54,9 @@ public class MultitenantJdbcClientDetailsServiceTests {
     private IdentityZone otherIdentityZone;
 
     private RandomValueStringGenerator generate = new RandomValueStringGenerator();
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -347,6 +353,35 @@ public class MultitenantJdbcClientDetailsServiceTests {
         assertEquals("newClientIdWithNoDetails", map.get("client_id"));
         assertTrue(map.containsKey("client_secret"));
         assertEquals("BAR", map.get("client_secret"));
+    }
+
+    @Test
+    public void testDeleteClientSecret() {
+        String clientId = "client_id_test_delete";
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(clientId);
+        clientDetails.setClientSecret(SECRET);
+        service.addClientDetails(clientDetails);
+        service.addClientSecret(clientId, "new_secret");
+
+        Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL, clientId);
+        String clientSecretBeforeDelete = (String) map.get("client_secret");
+        assertNotNull(clientSecretBeforeDelete);
+        assertEquals(2, clientSecretBeforeDelete.split(" ").length);
+        service.deleteClientSecret(clientId);
+
+        map = jdbcTemplate.queryForMap(SELECT_SQL, clientId);
+        String clientSecret = (String) map.get("client_secret");
+        assertNotNull(clientSecret);
+        assertEquals(1, clientSecret.split(" ").length);
+        assertEquals(clientSecretBeforeDelete.split(" ")[1], clientSecret);
+    }
+
+    @Test
+    public void testDeleteClientSecretForInvalidClient() {
+        expectedEx.expect(NoSuchClientException.class);
+        expectedEx.expectMessage("No client with requested id: invalid_client_id");
+        service.deleteClientSecret("invalid_client_id");
     }
 
     @Test

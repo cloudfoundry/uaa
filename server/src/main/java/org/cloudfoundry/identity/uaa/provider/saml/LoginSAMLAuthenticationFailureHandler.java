@@ -1,13 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import java.io.IOException;
-import java.net.URI;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
@@ -16,12 +8,21 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.net.URI;
+
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+
 /**
  * This class is used to provide OAuth error redirects when SAML login fails
  * with LoginSAMLException. Currently, the only scenario for this is when a
  * shadow account does not exist for the user and the IdP configuration does not
  * allow automatic creation of the shadow account.
- * 
+ *
  */
 public class LoginSAMLAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
     private static final Log LOG = LogFactory.getLog(LoginSAMLAuthenticationFailureHandler.class);
@@ -37,7 +38,7 @@ public class LoginSAMLAuthenticationFailureHandler extends SimpleUrlAuthenticati
             HttpSession session = request.getSession();
             if (session != null) {
                 DefaultSavedRequest savedRequest =
-                        (DefaultSavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+                        (DefaultSavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
                 if (savedRequest != null) {
                     String[] redirectURI = savedRequest.getParameterMap().get("redirect_uri");
 

@@ -198,7 +198,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         if (environment.containsProperty("spring_profiles")) {
             String profiles = environment.getProperty("spring_profiles");
             servletContext.log("Setting active profiles: " + profiles);
-            environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+            environment.setActiveProfiles(StringUtils.tokenizeToStringArray(profiles, ",", true, true));
         }
     }
 

@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -190,4 +191,20 @@ public class LoginAuthenticationManagerTests {
         Assert.assertEquals(1, publisher.getEventCount());
         Assert.assertEquals("foo", publisher.getLatestEvent().getUser().getUsername());
     }
+
+    @Test
+    public void testNoOutOfBoundsInCaseOfWrongEmailFormat() {
+        // use an email without the '@' sign and provide no name and familyname to trigger the potential bug
+        String username = "newuser";
+        String email = "noAtSign";
+        AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username, true);
+        Map<String,String> info = new HashMap<>(req1.getInfo());
+        info.put("email", email);
+        UaaUser u1 = manager.getUser(req1, info);
+        assertNotNull(u1);
+        assertEquals(username, u1.getUsername());
+        assertNotNull(u1.getFamilyName());
+        assertNotNull(u1.getGivenName());
+    }
+
 }

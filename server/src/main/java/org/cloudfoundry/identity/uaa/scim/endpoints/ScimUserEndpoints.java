@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -36,6 +35,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -245,6 +245,33 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             return scimUser;
         } catch (OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
+        }
+    }
+
+    @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PATCH)
+    @ResponseBody
+    public ScimUser patchUser(@RequestBody ScimUser patch, @PathVariable String userId,
+                              @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
+                              HttpServletRequest request,
+                              HttpServletResponse response) {
+
+        if (etag.equals("NaN")) {
+            throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
+        }
+
+        int version = getVersion(userId, etag);
+        ScimUser existing = dao.retrieve(userId);
+        try {
+            existing.patch(patch);
+            existing.setVersion(version);
+            if (existing.getEmails()!=null && existing.getEmails().size()>1) {
+                String primary = existing.getPrimaryEmail();
+                existing.setEmails(new ArrayList<>());
+                existing.setPrimaryEmail(primary);
+            }
+            return updateUser(existing, userId, etag, request, response);
+        } catch (IllegalArgumentException x) {
+            throw new InvalidScimResourceException(x.getMessage());
         }
     }
 

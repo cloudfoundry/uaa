@@ -45,19 +45,38 @@ public interface ComparableProvider extends Comparable<ComparableProvider> {
     }
 
     default int compareTo(ComparableProvider that) {
-        if (this == that) return 0;
-        int result = this.getAlias().compareTo(that.getAlias());
-        if (0!=result) return result;
-        result = this.getZoneId().compareTo(that.getZoneId());
-        if (0!=result) return result;
-        return 0;
-    }
+        int result = 0;
 
-    default int getHashCode() {
-        int result = getZoneId().hashCode();
-        result = 31 * result + getAlias().hashCode();
+        if (this == that) return 0;
+
+        if (this.getAlias() == null) {
+            if(that.getAlias() != null) {
+                return -1;
+            }
+        } else {
+            if(that.getAlias() == null) {
+                return 1;
+            }
+            result = this.getAlias().compareTo(that.getAlias());
+            if(0!=result) return result;
+        }
+
+        if (this.getZoneId() == null) {
+            if(that.getZoneId() != null) {
+                return -1;
+            }
+        } else {
+            if(that.getZoneId() == null) {
+                return 1;
+            }
+            result = this.getZoneId().compareTo(that.getZoneId());
+        }
         return result;
     }
 
-
+    default int getHashCode() {
+        int result = getZoneId() !=null ? getZoneId().hashCode():0;
+        result = 31 * result + (getAlias() != null ? getAlias().hashCode():0);
+        return result;
+    }
 }

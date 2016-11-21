@@ -16,50 +16,30 @@
        xmlns:security="http://www.springframework.org/schema/security"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:sec="http://www.springframework.org/schema/security"
-       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
-              http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+              http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd">
 
+    <context:annotation-config />
 
+    <bean id="ldapGroupsMappedToScopesConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapGroupsMappedToScopesConfig" />
 
-    <bean id="ldapPooled" class="java.lang.Boolean">
-        <constructor-arg value="false"/>
-    </bean>
+    <bean id="ldapGroupsAsScopesConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapGroupsAsScopesConfig" />
 
-    <util:map id="initialLdapProperties">
-        <entry key="com.sun.jndi.ldap.connect.pool" value-ref="ldapPooled" />
-        <entry key="java.naming.referral" value="${ldap.base.referral:follow}"/>
-    </util:map>
+    <bean id="ldapGroupsNullConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapGroupsNullConfig" />
 
-    <bean id="ldapPropertyProcessor" class="org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties">
-        <constructor-arg name="disableSslVerification" value="${ldap.ssl.skipverification:false}"/>
-        <constructor-arg name="baseUrl" value="${ldap.base.url:ldap://localhost:389/dc=test,dc=com}"/>
-    </bean>
+    <bean id="ldapSearchAndBindConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapSearchAndBindConfig" />
 
-    <bean id="ldapProperties" factory-bean="ldapPropertyProcessor" factory-method="process">
-        <constructor-arg ref="initialLdapProperties"/>
-    </bean>
+    <bean id="ldapSearchAndCompareConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapSearchAndCompareConfig" />
 
-    <bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.LdapGroupMappingAuthorizationManager">
-        <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
-        <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
-    </bean>
+    <bean id="ldapSimpleBindConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapSimpleBindConfig" />
 
-    <bean id="extendedLdapUserDetailsMapper" class="org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserMapper">
-        <property name="mailAttributeName" value="${ldap.base.mailAttributeName:mail}"/>
-        <property name="givenNameAttributeName" value="${ldap.attributeMappings.first_name:givenname}"/>
-        <property name="familyNameAttributeName" value="${ldap.attributeMappings.family_name:sn}"/>
-        <property name="phoneNumberAttributeName" value="${ldap.attributeMappings.phone_number:telephonenumber}"/>
-        <property name="mailSubstitute" value="${ldap.base.mailSubstitute:null}"/>
-        <property name="mailSubstituteOverridesLdap" value="${ldap.base.mailSubstituteOverridesLdap:false}"/>
-    </bean>
-
-    <import resource="${ldap.profile.file:ldap/ldap-simple-bind.xml}" />
-    <import resource="${ldap.groups.file:ldap/ldap-groups-null.xml}" />
+    <bean id="ldapIntegrationConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapIntegrationConfig" />
 
     <security:authentication-manager id="ldapAuthenticationManager">
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
+
 
 </beans>

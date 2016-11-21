@@ -699,4 +699,63 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         }
         assertEquals(status.value(), response.getStatus());
     }
+
+    @Test
+    public void testPatch() {
+        ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        g1.setDescription("description");
+
+        g1 = dao.create(g1);
+
+        ScimGroup patch = new ScimGroup("NewName");
+        patch.setId(g1.getId());
+
+        patch = endpoints.patchGroup(patch, patch.getId(), Integer.toString(g1.getVersion()), new MockHttpServletResponse());
+
+        assertEquals("NewName", patch.getDisplayName());
+        assertEquals(g1.getDescription(), patch.getDescription());
+    }
+
+    @Test(expected=ScimException.class)
+    public void testPatchInvalidResourceFails() {
+        ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        g1.setDescription("description");
+
+        ScimGroup patch = endpoints.patchGroup(g1, "id", "0", new MockHttpServletResponse());
+
+    }
+
+    @Test
+    public void testPatchAddMembers(){
+        ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        g1.setDescription("description");
+
+        g1 = dao.create(g1);
+
+        ScimGroup patch = new ScimGroup();
+        assertEquals(null, g1.getMembers());
+        assertEquals(null, patch.getMembers());
+        patch.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        assertEquals(1, patch.getMembers().size());
+
+        patch = endpoints.patchGroup(patch, g1.getId(), "0", new MockHttpServletResponse());
+
+        assertEquals(1, patch.getMembers().size());
+        ScimGroupMember member = patch.getMembers().get(0);
+        assertEquals(ScimGroupMember.Type.USER, member.getType());
+        assertEquals(ScimGroupMember.GROUP_ADMIN, member.getRoles());
+    }
+
+    @Test(expected = ScimException.class)
+    public void testPatchIncorrectEtagFails() {
+        ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        g1.setDescription("description");
+
+        g1 = dao.create(g1);
+
+        ScimGroup patch = new ScimGroup("NewName");
+        patch.setId(g1.getId());
+
+        patch = endpoints.patchGroup(patch, patch.getId(), Integer.toString(g1.getVersion() +1), new MockHttpServletResponse());
+    }
 }

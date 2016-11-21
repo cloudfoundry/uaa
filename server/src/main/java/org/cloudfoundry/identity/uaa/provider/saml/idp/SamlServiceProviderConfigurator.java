@@ -19,13 +19,18 @@ import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.provider.saml.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.opensaml.common.xml.SAMLConstants;
+import org.opensaml.saml2.core.NameIDType;
+import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.URI;
@@ -33,11 +38,14 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -49,6 +57,8 @@ public class SamlServiceProviderConfigurator {
     private final Map<IdentityZone, Map<String, SamlServiceProviderHolder>> zoneServiceProviders = new HashMap<>();
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
+    private Set<String> supportedNameIDs = new HashSet<>(Arrays.asList(NameIDType.EMAIL, NameIDType.PERSISTENT,
+            NameIDType.UNSPECIFIED));
 
     private Timer dummyTimer = new Timer() {
 
@@ -126,7 +136,7 @@ public class SamlServiceProviderConfigurator {
         }
         return serviceProviders;
     }
-    
+
     /**
      * adds or replaces a SAML service provider for the current zone.
      *
@@ -147,9 +157,6 @@ public class SamlServiceProviderConfigurator {
         if (provider == null) {
             throw new NullPointerException();
         }
-        if (!StringUtils.hasText(provider.getEntityId())) {
-            throw new NullPointerException("You must set the SAML SP Entity.");
-        }
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new NullPointerException("You must set the SAML SP Identity Zone Id.");
         }
@@ -160,11 +167,29 @@ public class SamlServiceProviderConfigurator {
         ExtendedMetadataDelegate added = getExtendedMetadataDelegate(provider);
         // Extract the entityId directly from the SAML metadata.
         String metadataEntityId = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
-        if (!provider.getEntityId().equals(metadataEntityId)) {
+        if (provider.getEntityId() == null) {
+            provider.setEntityId(metadataEntityId);
+        }
+        else if (!metadataEntityId.equals(provider.getEntityId())) {
             throw new MetadataProviderException(
                     "Metadata entity id does not match SAML SP entity id: " + provider.getEntityId());
         }
 
+        // Initializing here is necessary to access the SPSSODescriptor, otherwise an exception is thrown.
+        added.initialize();
+        SPSSODescriptor spSsoDescriptor = added.getEntityDescriptor(metadataEntityId).
+                getSPSSODescriptor(SAMLConstants.SAML20P_NS);
+        if (null != spSsoDescriptor &&
+            null != spSsoDescriptor.getNameIDFormats() &&
+            !spSsoDescriptor.getNameIDFormats().isEmpty()) {
+            // The SP explicitly states the NameID formats it supports, we should check that we support at least one.
+            if (!spSsoDescriptor.getNameIDFormats().stream().anyMatch(
+                    format -> this.supportedNameIDs.contains(format.getFormat()))) {
+                throw new MetadataProviderException(
+                        "UAA does not support any of the NameIDFormats specified in the metadata for entity: "
+                                + provider.getEntityId());
+            }
+        }
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
 
         ExtendedMetadataDelegate deleted = null;
@@ -180,14 +205,19 @@ public class SamlServiceProviderConfigurator {
     public synchronized ExtendedMetadataDelegate removeSamlServiceProvider(String entityId) {
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
                 IdentityZoneHolder.get());
-        return serviceProviders.remove(entityId).getExtendedMetadataDelegate();
+
+        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.remove(entityId);
+        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(String entityId)
             throws MetadataProviderException {
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
                 IdentityZoneHolder.get());
-        return serviceProviders.get(entityId).getExtendedMetadataDelegate();
+
+        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.get(entityId);
+        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
+
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlServiceProvider provider)
@@ -240,8 +270,12 @@ public class SamlServiceProviderConfigurator {
         extendedMetadata.setAlias(provider.getEntityId());
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
         try {
-            fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(dummyTimer, getClientParams(),
-                    adjustURIForPort(def.getMetaDataLocation()));
+            fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(
+                dummyTimer, getClientParams(),
+                adjustURIForPort(def.getMetaDataLocation()),
+                new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation()))
+
+            );
         } catch (URISyntaxException e) {
             throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);
         }
@@ -280,5 +314,9 @@ public class SamlServiceProviderConfigurator {
 
     public void setParserPool(BasicParserPool parserPool) {
         this.parserPool = parserPool;
+    }
+
+    public void setSupportedNameIDs(Set<String> supportedNameIDs) {
+        this.supportedNameIDs = supportedNameIDs;
     }
 }
