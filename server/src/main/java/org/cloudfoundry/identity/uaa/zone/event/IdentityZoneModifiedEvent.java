@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.zone.event;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.security.core.Authentication;
 
@@ -25,6 +24,8 @@ public class IdentityZoneModifiedEvent extends AbstractUaaEvent {
 
     private AuditEventType eventType;
 
+    protected static final String dataFormat = "id=%s; subdomain=%s";
+
     public IdentityZoneModifiedEvent(IdentityZone identityZone, Authentication authentication, AuditEventType type) {
         super(identityZone, authentication);
         eventType = type;
@@ -32,8 +33,15 @@ public class IdentityZoneModifiedEvent extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
-        return createAuditRecord(getSource().toString(), eventType, getOrigin(getAuthentication()),
-                JsonUtils.writeValueAsString(source));
+        IdentityZone zone = (IdentityZone)source;
+        return createAuditRecord(
+            getSource().toString(),
+            eventType,
+            getOrigin(getAuthentication()),
+            String.format(IdentityZoneModifiedEvent.dataFormat,
+                          zone.getId(),
+                          zone.getSubdomain())
+        );
     }
 
     public static IdentityZoneModifiedEvent identityZoneCreated(IdentityZone identityZone) {

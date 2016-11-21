@@ -22,8 +22,10 @@ import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -173,6 +175,11 @@ public final class UaaTokenUtils {
     }
 
     public static String constructTokenEndpointUrl(String issuer) throws URISyntaxException {
+        try {
+            new URL(issuer);
+        } catch (MalformedURLException x) {
+            throw new URISyntaxException(issuer, x.getMessage());
+        }
         URI uri = new URI(issuer);
         String hostToUse = uri.getHost();
         if (hasText(IdentityZoneHolder.get().getSubdomain())) {

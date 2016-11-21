@@ -27,6 +27,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.springframework.restdocs.JUnitRestDocumentation;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -47,6 +48,8 @@ public class InjectedMockContextTest implements Contextable {
 
     @Rule
     public JUnitRestDocumentation restDocumentation = new JUnitRestDocumentation("build/generated-snippets");
+
+    protected static RandomValueStringGenerator gen = new RandomValueStringGenerator(8);
 
     private static XmlWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
@@ -119,7 +122,7 @@ public class InjectedMockContextTest implements Contextable {
     }
 
     public class TestClient {
-        private TestClient() {
+        public TestClient() {
         }
 
         public String getClientCredentialsOAuthAccessToken(String username, String password, String scope) throws Exception {

@@ -74,7 +74,6 @@ import org.springframework.security.oauth2.provider.token.AuthorizationServerTok
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -1044,8 +1043,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         Authentication userAuthentication = null;
-        // Is this a user token?
-        if (claims.containsKey(EMAIL)) {
+        // Is this a user token - minimum info is user_id
+        if (claims.containsKey(USER_ID)) {
             UaaUser user = userDatabase.retrieveUserById((String)claims.get(USER_ID));
             UaaPrincipal principal = new UaaPrincipal(user);
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
@@ -1082,16 +1081,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
         if (null != scopes && scopes.size() > 0) {
-            token.setScope(new HashSet<String>(scopes));
+            token.setScope(new HashSet<>(scopes));
         }
         String clientId = (String) claims.get(CID);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-        String email = (String) claims.get(EMAIL);
-
+        String userId = (String)claims.get(USER_ID);
         // Only check user access tokens
-        if (null != email) {
-            String userId = (String)claims.get(USER_ID);
-
+        if (null != userId) {
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
@@ -1203,19 +1199,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return null;
     }
 
-    public void setIssuer(String issuer) {
+    public void setIssuer(String issuer) throws URISyntaxException {
+        Assert.notNull(issuer);
+        UaaTokenUtils.constructTokenEndpointUrl(issuer);
         this.issuer = issuer;
     }
 
     public String getTokenEndpoint() {
-        if(issuer == null){
-            return null;
-        }
         try {
             return UaaTokenUtils.constructTokenEndpointUrl(issuer);
         } catch (URISyntaxException e) {
             logger.error("Failed to get token endpoint for issuer " + issuer, e);
-            return null;
+            throw new IllegalArgumentException(e);
         }
     }
 

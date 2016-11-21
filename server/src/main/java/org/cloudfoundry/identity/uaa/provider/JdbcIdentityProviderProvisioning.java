@@ -196,7 +196,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                         definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
                         break;
                     case OriginKeys.OIDC10 :
-                        definition = JsonUtils.readValue(config, XOIDCIdentityProviderDefinition.class);
+                        definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);
                         break;
                     case OriginKeys.UAA :
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);

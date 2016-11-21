@@ -269,6 +269,17 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         }
     }
 
+    @Override
+    public void deleteClientSecret(String clientId) throws NoSuchClientException {
+        ClientDetails clientDetails = loadClientByClientId(clientId);
+        String clientSecret = clientDetails.getClientSecret().split(" ")[1];
+        int count = jdbcTemplate.update(updateClientSecretSql, clientSecret, clientId, IdentityZoneHolder.get().getId());
+        if (count != 1) {
+            throw new NoSuchClientException("Unable to update client with " + clientId);
+        }
+    }
+
+
     /**
      * Row mapper for ClientDetails.
      *

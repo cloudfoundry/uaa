@@ -16,6 +16,15 @@
                    th:autofocus="${iter.index} == 0"
                    class="form-control"/>
             <input type="submit" value="Sign in" class="island-button"/>
+            <input th:if="${session.SPRING_SECURITY_SAVED_REQUEST}"
+                   th:unless="${form_redirect_uri}"
+                   th:name="form_redirect_uri"
+                   th:type="hidden"
+                   th:value="${session.SPRING_SECURITY_SAVED_REQUEST.redirectUrl}"/>
+            <input th:if="${form_redirect_uri}"
+                   th:name="form_redirect_uri"
+                   th:type="hidden"
+                   th:value="${form_redirect_uri}"/>
         </form>
         </th:block>
         <div class="saml-login">
@@ -24,11 +33,8 @@
                 <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
             </div>
             <div th:each="oauthIdp : ${oauthDefinitions}" th:if="${oauthIdp.value.showLinkText}">
-                <div th:if="${oauthIdp.value.scopes == null}">
-                    <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link">Use your corporate credentials</a>
-                </div>
-                <div th:if="${oauthIdp.value.scopes != null}">
-                    <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key},scope=${#strings.listJoin(oauthIdp.value.scopes,' ')})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                <div>
+                    <a href="" th:href="@{${oauthIdp.value.getCompleteAuthorizationURI(T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getBaseURL(#httpServletRequest), oauthIdp.key)}}" th:text="${oauthIdp.value.linkText}" class="saml-login-link">Use your corporate credentials</a>
                 </div>
             </div>
         </div>

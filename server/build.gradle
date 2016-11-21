@@ -22,6 +22,7 @@ dependencies {
   compile group: 'org.springframework.security', name: 'spring-security-core', version: parent.springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-jwt', version: parent.springSecurityJwtVersion
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
+  compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
   compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
     exclude(module: 'opensaml')
   }
@@ -31,6 +32,7 @@ dependencies {
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
     exclude(module: 'jackson-mapper-asl')
+    exclude(module: 'spring-security-web')
   }
 
   compile group: 'com.google.guava', name:'guava', version:parent.guavaVersion

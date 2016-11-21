@@ -28,7 +28,8 @@ public class SecretChangeRequest {
 
     public enum ChangeMode {
         UPDATE,
-        ADD
+        ADD,
+        DELETE
     }
 
     private String oldSecret;

@@ -11,6 +11,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 import javax.servlet.ServletException;
@@ -27,6 +29,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 @RunWith(Parameterized.class)
@@ -43,6 +46,18 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         return asList(new Object[][]{
                 {false}, {true}
         });
+    }
+
+    @Test
+    public void invalid_principal_throws() {
+        Authentication a = mock(Authentication.class);
+        when(a.getPrincipal()).thenReturn(new Object());
+        try {
+            new AccountSavingAuthenticationSuccessHandler().setSavedAccountOptionCookie(new MockHttpServletRequest(), new MockHttpServletResponse(), a);
+        }catch (IllegalArgumentException x) {
+            assertEquals("Unrecognized authentication principle.", x.getMessage());
+        }
+
     }
 
     @Test

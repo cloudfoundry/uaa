@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Map;
 
 
@@ -146,6 +147,35 @@ public class JsonUtils {
             }
         }
         return JsonUtils.writeValueAsString(properties);
+    }
+
+    public static String getNodeAsString(JsonNode node, String fieldName, String defaultValue) {
+        JsonNode typeNode = node.get(fieldName);
+        return typeNode == null ? defaultValue : typeNode.asText(defaultValue);
+    }
+
+    public static int getNodeAsInt(JsonNode node, String fieldName, int defaultValue) {
+        JsonNode typeNode = node.get(fieldName);
+        return typeNode == null ? defaultValue : typeNode.asInt(defaultValue);
+    }
+
+    public static boolean getNodeAsBoolean(JsonNode node, String fieldName, boolean defaultValue) {
+        JsonNode typeNode = node.get(fieldName);
+        return typeNode == null ? defaultValue : typeNode.asBoolean(defaultValue);
+    }
+
+    public static Date getNodeAsDate(JsonNode node, String fieldName) {
+        JsonNode typeNode = node.get(fieldName);
+        long date = typeNode == null ? -1 : typeNode.asLong(-1);
+        if (date==-1) {
+            return null;
+        } else {
+            return new Date(date);
+        }
+    }
+
+    public static Map<String,Object> getNodeAsMap(JsonNode node) {
+        return objectMapper.convertValue(node, Map.class);
     }
 
 }

@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
-import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
@@ -36,7 +34,6 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -46,6 +43,7 @@ import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
+import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -250,16 +248,10 @@ public class BootstrapTests {
         assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
 
         PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getDefaultLockoutPolicy();
         Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(5));
         Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(1200));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
-
-        PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
-        Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(5));
-        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(1200));
-        Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
         TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
         Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(60 * 60 * 12));
@@ -281,7 +273,7 @@ public class BootstrapTests {
 
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
         assertTrue(zoneAwareMetadataGenerator.isRequestSigned());
-        assertFalse(zoneAwareMetadataGenerator.isWantAssertionSigned());
+        assertTrue(zoneAwareMetadataGenerator.isWantAssertionSigned());
 
         CorsFilter corFilter = context.getBean(CorsFilter.class);
 
@@ -359,6 +351,8 @@ public class BootstrapTests {
         assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), zoneConfiguration.getSamlConfig().getPrivateKeyPassword().trim());
 
         assertTrue(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
+        ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
+        assertFalse(zoneAwareMetadataGenerator.isWantAssertionSigned());
 
         assertEquals(
             Arrays.asList(
@@ -373,6 +367,23 @@ public class BootstrapTests {
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
         assertFalse(uaaIdp.isActive());
+
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
+        assertNotNull(oidcProvider);
+        assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
+        assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
+        assertNull(oidcProvider.getConfig().getIssuer());
+        assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
+        assertEquals(true, oidcProvider.getConfig().isShowLinkText());
+        assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
+        assertEquals("secret", oidcProvider.getConfig().getRelyingPartySecret());
+        assertEquals("my-oidc-provider", oidcProvider.getOriginKey());
+        assertEquals("first_name", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
+        assertEquals("last_name", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertTrue(oidcProvider.getConfig().isAddShadowUserOnLogin());
+        assertEquals(OIDC10, oidcProvider.getType());
+        assertEquals(Collections.singletonList("requested_scope"), oidcProvider.getConfig().getScopes());
+        assertEquals("code id_token", oidcProvider.getConfig().getResponseType());
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
         assertNotNull(oauthProvider);
@@ -390,22 +401,7 @@ public class BootstrapTests {
         assertEquals(OAUTH20, oauthProvider.getType());
         assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
         assertEquals(Collections.singletonList("example.com"), oauthProvider.getConfig().getEmailDomain());
-
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
-        assertNotNull(oidcProvider);
-        assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
-        assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
-        assertNull(oidcProvider.getConfig().getIssuer());
-        assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
-        assertEquals(true, oidcProvider.getConfig().isShowLinkText());
-        assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
-        assertEquals("secret", oidcProvider.getConfig().getRelyingPartySecret());
-        assertEquals("my-oidc-provider", oidcProvider.getOriginKey());
-        assertEquals("first_name", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
-        assertEquals("last_name", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
-        assertTrue(oidcProvider.getConfig().isAddShadowUserOnLogin());
-        assertEquals(OIDC10, oidcProvider.getType());
-        assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
+        assertEquals("code", oauthProvider.getConfig().getResponseType());
 
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -446,23 +442,17 @@ public class BootstrapTests {
         assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
         assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
 
-        PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
-        Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(10));
-        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(7200));
-        Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(600));
-
         PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
-        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getDefaultLockoutPolicy();
         Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
         Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
 
         AuthzAuthenticationManager manager = (AuthzAuthenticationManager) context.getBean("uaaUserDatabaseAuthenticationManager");
         PeriodLockoutPolicy accountLoginPolicy = (PeriodLockoutPolicy) manager.getAccountLoginPolicy();
-        assertEquals(2222, accountLoginPolicy.getLockoutPolicy().getCountFailuresWithin());
-        assertEquals(152, accountLoginPolicy.getLockoutPolicy().getLockoutPeriodSeconds());
-        assertEquals(1, accountLoginPolicy.getLockoutPolicy().getLockoutAfterFailures());
+        assertEquals(2222, accountLoginPolicy.getDefaultLockoutPolicy().getCountFailuresWithin());
+        assertEquals(152, accountLoginPolicy.getDefaultLockoutPolicy().getLockoutPeriodSeconds());
+        assertEquals(1, accountLoginPolicy.getDefaultLockoutPolicy().getLockoutAfterFailures());
 
         UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
         Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));
@@ -615,13 +605,18 @@ public class BootstrapTests {
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider = providerProvisioning.retrieveByOrigin("okta-local", IdentityZone.getUaa().getId());
         assertEquals("Test Okta Preview 1 Description", samlProvider.getConfig().getProviderDescription());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED, samlProvider.getConfig().getGroupMappingMode());
+        assertTrue(samlProvider.getConfig().isSkipSslValidation());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = providerProvisioning.retrieveByOrigin("okta-local-2", IdentityZone.getUaa().getId());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES, samlProvider2.getConfig().getGroupMappingMode());
+        assertFalse(samlProvider2.getConfig().isSkipSslValidation());
+
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider3 = providerProvisioning.retrieveByOrigin("vsphere.local", IdentityZone.getUaa().getId());
+        assertTrue(samlProvider3.getConfig().isSkipSslValidation());
 
         CorsFilter filter = context.getBean(CorsFilter.class);
 
-        for (CorsFilter.CorsConfiguration configuration : Arrays.asList(filter.getXhrConfiguration(), filter.getDefaultConfiguration())) {
+        for (CorsConfiguration configuration : Arrays.asList(filter.getXhrConfiguration(), filter.getDefaultConfiguration())) {
             assertEquals(1999999, configuration.getMaxAge());
             assertEquals(1, configuration.getAllowedUris().size());
             assertEquals(".*token$", configuration.getAllowedUris().get(0));
@@ -675,10 +670,6 @@ public class BootstrapTests {
             SamlIdentityProviderDefinition.MetadataLocation.URL,
             findProvider(defs, "testIDPFile").getType());
         assertEquals(
-            DefaultProtocolSocketFactory.class.getName(),
-            findProvider(defs, "testIDPFile").getSocketFactoryClassName()
-        );
-        assertEquals(
             SamlIdentityProviderDefinition.MetadataLocation.URL,
             defs.get(defs.size() - 1).getType()
         );
@@ -709,7 +700,8 @@ public class BootstrapTests {
     @Test
     public void testLegacySamlProfileHttpsMetaUrl() throws Exception {
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "https://simplesamlphp.identity.cf-app.com:443/saml2/idp/metadata.php");
+        System.setProperty("login.saml.metadataTrustCheck", "false");
+        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.identity.cf-app.com:80/saml2/idp/metadata.php");
         System.setProperty("login.idpEntityAlias", "testIDPUrl");
 
         context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
@@ -717,8 +709,7 @@ public class BootstrapTests {
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderConfigurator.class).getIdentityProviderDefinitions();
-        assertEquals(
-            EasySSLProtocolSocketFactory.class.getName(),
+        assertNull(
             defs.get(defs.size() - 1).getSocketFactoryClassName()
         );
         assertEquals(
@@ -731,7 +722,7 @@ public class BootstrapTests {
     @Test
     public void testLegacySamlProfileHttpsMetaUrlWithoutPort() throws Exception {
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "https://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php");
+        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php");
         System.setProperty("login.idpEntityAlias", "testIDPUrl");
 
         context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
@@ -742,8 +733,7 @@ public class BootstrapTests {
         assertFalse(
             context.getBean(BootstrapSamlIdentityProviderConfigurator.class).getIdentityProviderDefinitions().isEmpty()
         );
-        assertEquals(
-            EasySSLProtocolSocketFactory.class.getName(),
+        assertNull(
             defs.get(defs.size() - 1).getSocketFactoryClassName()
         );
         assertEquals(

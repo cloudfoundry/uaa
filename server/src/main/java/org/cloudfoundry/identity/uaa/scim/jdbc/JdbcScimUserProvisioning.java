@@ -12,22 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Pattern;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -38,7 +22,6 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -50,7 +33,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -58,6 +40,19 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static java.sql.Types.VARCHAR;
 import static org.springframework.util.StringUtils.hasText;
@@ -89,9 +84,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String DELETE_USER_SQL = "delete from users where id=? and identity_zone_id=?";
 
+    public static final String UPDATE_PASSWD_LASTMODIFIED_SQL = "update users set passwd_lastmodified=? where id=? and identity_zone_id=?";
+
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
+
+    public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where id=? and identity_zone_id=?";
+
+    public static final String READ_PASSWORD_CHANGE_REQUIRED_SQL = "select passwd_change_required from users where id=? and identity_zone_id=?";
 
     public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=? and identity_zone_id=?";
 
@@ -165,12 +166,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser create(final ScimUser user) {
+        if (!hasText(user.getOrigin())) {
+            user.setOrigin(OriginKeys.UAA);
+        }
         validate(user);
         logger.debug("Creating new user: " + user.getUserName());
 
         final String id = UUID.randomUUID().toString();
         final String identityZoneId = IdentityZoneHolder.get().getId();
-        final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
+        final String origin = user.getOrigin();
 
         try {
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
@@ -199,7 +203,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     ps.setString(13, hasText(user.getExternalId())?user.getExternalId():null);
                     ps.setString(14, identityZoneId);
                     ps.setString(15, user.getSalt());
-                    
+
                     ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
                     ps.setString(17, user.getPassword());
                 }
@@ -233,7 +237,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (!hasText(user.getUserName())) {
             throw new InvalidScimResourceException("A username must be provided.");
         }
-        if (!usernamePattern.matcher(user.getUserName()).matches()) {
+        if (OriginKeys.UAA.equals(user.getOrigin()) && !usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
         }
         if (user.getEmails() == null || user.getEmails().size() != 1) {
@@ -340,6 +344,24 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         }
 
         return passwordEncoder.matches(password, currentPassword);
+    }
+
+    @Override
+    public boolean checkPasswordChangeIndividuallyRequired(String userId) throws ScimResourceNotFoundException {
+        return jdbcTemplate.queryForObject(READ_PASSWORD_CHANGE_REQUIRED_SQL, boolean.class, userId, IdentityZoneHolder.get().getId());
+    }
+
+    @Override
+    public void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired) throws ScimResourceNotFoundException {
+        final String zoneId = IdentityZoneHolder.get().getId();
+        int updated = jdbcTemplate.update(UPDATE_PASSWORD_CHANGE_REQUIRED_SQL, ps -> {
+            ps.setBoolean(1, passwordChangeRequired);
+            ps.setString(2, userId);
+            ps.setString(3, zoneId);
+        });
+        if (updated == 0) {
+            throw new ScimResourceNotFoundException("User " + userId + " does not exist");
+        }
     }
 
     @Override

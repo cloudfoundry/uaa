@@ -1,4 +1,15 @@
-package org.cloudfoundry.identity.uaa.login;
+/*******************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -14,6 +25,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
@@ -61,12 +74,13 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         currentUserInformation.setUserId(uaaPrincipal.getId());
         Cookie currentUserCookie;
         try {
-            currentUserCookie = new Cookie("Current-User", URLEncoder.encode(JsonUtils.writeValueAsString(currentUserInformation), "UTF-8"));
+            currentUserCookie = new Cookie("Current-User", URLEncoder.encode(JsonUtils.writeValueAsString(currentUserInformation), UTF_8.name()));
         } catch (UnsupportedEncodingException e) {
             throw new IllegalArgumentException(e);
         }
         currentUserCookie.setMaxAge(365*24*60*60);
         currentUserCookie.setHttpOnly(false);
+        currentUserCookie.setPath(request.getContextPath());
 
         response.addCookie(currentUserCookie);
     }

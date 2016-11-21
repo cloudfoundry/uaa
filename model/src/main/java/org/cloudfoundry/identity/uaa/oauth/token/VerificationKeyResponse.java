@@ -14,95 +14,55 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 
+import java.util.Map;
+
+@Deprecated
 /**
- * Created by pivotal on 11/18/15.
+ * Use {@link JsonWebKey}
  */
-@JsonAutoDetect(fieldVisibility = Visibility.ANY, getterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class VerificationKeyResponse {
+public class VerificationKeyResponse extends JsonWebKey{
 
-    @JsonProperty("kid")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private String kid;
 
-    @JsonProperty("alg")
-    private String algorithm;
+    public VerificationKeyResponse(Map<String, Object> json) {
+        super(json);
+    }
 
-    @JsonProperty("value")
-    private String key;
-
-    @JsonProperty("kty")
-    private String type;
-
-    @JsonProperty("use")
-    private String use;
-
-    @JsonProperty("n")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private String modulus;
-
-    @JsonProperty("e")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private String exponent;
-
+    @JsonIgnore
     public String getId() {
-        return kid;
+        return getKid();
     }
 
-    public void setId(String kid) {
-        this.kid = kid;
-    }
-
-    public void setAlgorithm(String algorithm) {
-        this.algorithm = algorithm;
-    }
-
+    @JsonIgnore
     public String getAlgorithm() {
-        return algorithm;
+        return (String) getKeyProperties().get("alg");
     }
 
-    public void setKey(String key) {
-        this.key = key;
-    }
-
+    @JsonIgnore
     public String getKey() {
-        return key;
+        return (String) getKeyProperties().get("value");
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
+    @JsonIgnore
     public String getType() {
-        return type;
+        return getKty().name();
     }
 
-    public void setUse(String use) {
-        this.use = use;
+    @JsonIgnore
+    public String getKeyUse() {
+        return getUse().name();
     }
 
-    public String getUse() {
-        return use;
-    }
-
-    public void setModulus(String modulus) {
-        this.modulus = modulus;
-    }
-
+    @JsonIgnore
     public String getModulus() {
-        return modulus;
+        return (String) getKeyProperties().get("n");
     }
 
-    public void setExponent(String exponent) {
-        this.exponent = exponent;
-    }
-
+    @JsonIgnore
     public String getExponent() {
-        return exponent;
+        return (String) getKeyProperties().get("e");
     }
 
 }

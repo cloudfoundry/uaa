@@ -87,6 +87,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
     private final static Log logger = LogFactory.getLog(LoginSamlAuthenticationProvider.class);
@@ -342,23 +343,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Authentication success = new UaaAuthentication(result, user.getAuthorities(), null);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return user;
-    }
-
-    protected boolean isAcceptedInvitationAuthentication() {
-        try {
-            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
-            if (attr!=null) {
-                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
-                if (result!=null) {
-                    return result.booleanValue();
-                }
-            }
-        } catch (IllegalStateException x) {
-            //nothing bound on thread.
-            logger.debug("Unable to retrieve request attributes during SAML authentication.");
-
-        }
-        return false;
     }
 
     protected UaaUser getUser(UaaPrincipal principal, MultiValueMap<String,String> userAttributes) {
