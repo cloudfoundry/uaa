@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
@@ -8,12 +9,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -28,10 +31,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
 
     private MockMvc mockMvc;
+    private ResetPasswordService resetPasswordService;
 
     @Before
     public void setUp() throws Exception {
         ForcePasswordChangeController controller = new ForcePasswordChangeController();
+        resetPasswordService = mock(ResetPasswordService.class);
+        controller.setResetPasswordService(resetPasswordService);
         mockMvc = MockMvcBuilders
             .standaloneSetup(controller)
             .setViewResolvers(getResolver())
@@ -71,7 +77,7 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
         mockMvc.perform(
             post("/force_password_change")
                 .param("password","pwd")
-                .param("password_conf", "pwd"))
+                .param("password_confirmation", "pwd"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login"));
     }
@@ -80,11 +86,30 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
     public void testHandleForcePasswordChange() throws Exception {
         MockHttpSession session = getMockHttpSessionWithUser();
         mockMvc.perform(
+            post("/uaa/force_password_change")
+                .session(session)
+                .param("password","pwd")
+                .param("password_confirmation", "pwd")
+                .contextPath("/uaa"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/uaa/"));
+    }
+
+    @Test
+    public void testHandleForcePasswordChangeWithRedirect() throws Exception {
+        MockHttpSession session = getMockHttpSessionWithUser();
+        SavedRequest savedRequest = mock(SavedRequest.class);
+        String redirectUrl = "/test";
+        when(savedRequest.getRedirectUrl()).thenReturn(redirectUrl);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+
+        mockMvc.perform(
             post("/force_password_change")
                 .session(session)
                 .param("password","pwd")
-                .param("password_conf", "pwd"))
-                .andExpect(status().isOk());
+                .param("password_confirmation", "pwd"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl(redirectUrl));
     }
 
     @Test
@@ -94,7 +119,7 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
             post("/force_password_change")
                 .session(session)
                 .param("password","pwd")
-                .param("password_conf", "nopwd"))
+                .param("password_confirmation", "nopwd"))
             .andExpect(status().isUnprocessableEntity());
     }
 }

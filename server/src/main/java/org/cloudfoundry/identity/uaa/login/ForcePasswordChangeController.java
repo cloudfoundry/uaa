@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,22 +28,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
 import java.io.IOException;
 
-import static org.springframework.web.bind.annotation.RequestMethod.*;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 
 @Controller
 public class ForcePasswordChangeController {
 
     public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
 
-
+    @Autowired
     private ResetPasswordService resetPasswordService;
-
-    public ForcePasswordChangeController(ResetPasswordService resetPasswordService) {
-        this.resetPasswordService = resetPasswordService;
-    }
 
     @RequestMapping(value="/force_password_change", method= GET)
     public String forcePasswordChangePage(Model model, HttpSession session) throws IOException {
@@ -55,15 +53,14 @@ public class ForcePasswordChangeController {
     }
 
     @RequestMapping(value="/force_password_change", method = POST)
-    public void handleForcePasswordChange(Model model,
+    public String handleForcePasswordChange(Model model,
                                             @RequestParam("password")  String password,
-                                            @RequestParam("password_conf") String passwordConf,
+                                            @RequestParam("password_confirmation") String passwordConfirmation,
                                             HttpServletRequest request,
                                             HttpServletResponse response,
                                             HttpSession session) throws IOException {
         if(session.getAttribute(FORCE_PASSWORD_EXPIRED_USER) == null) {
-           response.sendRedirect(request.getContextPath()+"/login");
-           return;
+            return "redirect:" + request.getContextPath()+"/login";
         }
         UaaPrincipal principal = ((UaaAuthentication)session
             .getAttribute(FORCE_PASSWORD_EXPIRED_USER))
@@ -72,15 +69,31 @@ public class ForcePasswordChangeController {
         String email = principal.getEmail();
 
         PasswordConfirmationValidation validation =
-            new PasswordConfirmationValidation(email, password, passwordConf);
+            new PasswordConfirmationValidation(email, password, passwordConfirmation);
         if(!validation.valid()) {
-            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-            return;
+            return handleUnprocessableEntity(model, response, email);
         }
 
         resetPasswordService.resetUserPassword(principal.getId(), password);
         SecurityContextHolder.getContext().setAuthentication(((UaaAuthentication)session
             .getAttribute(FORCE_PASSWORD_EXPIRED_USER)));
-        //TODO redirect to save request
+
+        SavedRequest savedRequest = (SavedRequest) request.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        if(savedRequest != null) {
+            return "redirect:" + savedRequest.getRedirectUrl();
+        } else {
+            return "redirect:/";
+        }
+    }
+
+    public void setResetPasswordService(ResetPasswordService resetPasswordService) {
+        this.resetPasswordService = resetPasswordService;
+    }
+
+    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email) {
+        model.addAttribute("message_code", "form_error");
+        model.addAttribute("email",  email);
+        response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+        return "force_password_change";
     }
 }
