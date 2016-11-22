@@ -19,7 +19,6 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
@@ -61,7 +60,7 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         MockEnvironment mockEnvironment = getMockEnvironment();
         webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml,required_configuration.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
@@ -72,7 +71,9 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
     protected static MockEnvironment getMockEnvironment() {
         MockEnvironment mockEnvironment = new MockEnvironment();
         if (System.getProperty("spring.profiles.active")!=null) {
-            mockEnvironment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
+            mockEnvironment.setProperty("spring_profiles", System.getProperty("spring.profiles.active"));
+        } else {
+            mockEnvironment.setProperty("spring_profiles", "default");
         }
         return mockEnvironment;
     }

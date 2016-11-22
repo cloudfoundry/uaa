@@ -440,9 +440,9 @@
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
         <property name="prompts" ref="prompts"/>
         <property name="branding" value="#{@config['login']['branding']}" />
-        <property name="samlSpPrivateKey" value="#{'${login.serviceProviderKey:' + @defaultSamlKey + '}'}" />
-        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:password}" />
-        <property name="samlSpCertificate" value="#{'${login.serviceProviderCertificate:' + @defaultSamlCert + '}'}" />
+        <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword}" />
+        <property name="samlSpCertificate" value="${login.serviceProviderCertificate}" />
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
