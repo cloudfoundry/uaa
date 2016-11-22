@@ -20,7 +20,7 @@ public final class LegacyTokenKey {
 
     public static final String LEGACY_TOKEN_KEY_ID = "legacy-token-key";
 
-    private static String legacySigningKey = "tokenkey";
+    private static String legacySigningKey = null;
     private static KeyInfo keyInfo;
     static {
         setLegacySigningKey(legacySigningKey);
