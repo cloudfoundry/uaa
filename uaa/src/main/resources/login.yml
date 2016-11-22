@@ -249,9 +249,6 @@ uaa:
   login:
     url: http://localhost:8080/uaa/authenticate
 
-# The secret that this login server will use to authenticate to the uaa
-LOGIN_SECRET: loginsecret
-
 # Google Analytics
 #analytics:
 #  code: secret_code

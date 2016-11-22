@@ -36,7 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
 import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
@@ -194,11 +196,19 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     }
 
-    private void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {
+    protected void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {
+        String systemProfiles = System.getProperty("spring.profiles.active");
+        environment.setDefaultProfiles(new String[0]);
         if (environment.containsProperty("spring_profiles")) {
             String profiles = environment.getProperty("spring_profiles");
             servletContext.log("Setting active profiles: " + profiles);
             environment.setActiveProfiles(StringUtils.tokenizeToStringArray(profiles, ",", true, true));
+        } else {
+            if (isEmpty(systemProfiles)) {
+                environment.setActiveProfiles("hsqldb");
+            } else {
+                environment.setActiveProfiles(commaDelimitedListToStringArray(systemProfiles));
+            }
         }
     }
 

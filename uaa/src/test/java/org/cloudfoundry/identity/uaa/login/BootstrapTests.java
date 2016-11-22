@@ -100,7 +100,9 @@ import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItemInArray;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -118,30 +120,32 @@ public class BootstrapTests {
 
     private ConfigurableApplicationContext context;
 
-    private static String activeProfiles;
+    private static String systemConfiguredProfiles;
+    private String profiles;
 
     @BeforeClass
     public static void saveProfiles() {
-        activeProfiles = System.getProperty("spring.profiles.active");
+        systemConfiguredProfiles = System.getProperty("spring.profiles.active");
     }
 
     @AfterClass
     public static void restoreProfiles() {
-        if (activeProfiles != null) {
-            System.setProperty("spring.profiles.active", activeProfiles);
+        if (systemConfiguredProfiles != null) {
+            System.setProperty("spring.profiles.active", systemConfiguredProfiles);
         } else {
             System.clearProperty("spring.profiles.active");
         }
     }
 
     @Before
-    public void setup() throws Exception {
+    public synchronized void setup() throws Exception {
         System.clearProperty("spring.profiles.active");
         IdentityZoneHolder.clear();
+        profiles = systemConfiguredProfiles==null ? "default,hsqldb" : (systemConfiguredProfiles != null && systemConfiguredProfiles.contains("default")) ? systemConfiguredProfiles : systemConfiguredProfiles+",default";
     }
 
     @After
-    public void cleanup() throws Exception {
+    public synchronized void cleanup() throws Exception {
         System.clearProperty("spring.profiles.active");
         System.clearProperty("uaa.url");
         System.clearProperty("login.url");
@@ -162,13 +166,24 @@ public class BootstrapTests {
     }
 
     @Test
+    public void testNoDefaultProfileIsLoaded() throws Exception {
+        System.clearProperty("spring.profiles.active");
+        context = getServletContext(null, false, new String[] {"login.yml", "test/bootstrap/uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        String[] profiles = context.getEnvironment().getActiveProfiles();
+        assertThat("'default' profile should not be loaded", profiles, not(hasItemInArray("default")));
+        profiles = context.getEnvironment().getDefaultProfiles();
+        assertThat("'default' profile should not be default", profiles, not(hasItemInArray("default")));
+    }
+
+    @Test
     public void testRootContextDefaults() throws Exception {
         String originalSmtpHost = System.getProperty("smtp.host");
         System.setProperty("smtp.host","");
-        context = getServletContext(activeProfiles, "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        context = getServletContext(profiles +",default", false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
-        if (activeProfiles != null && activeProfiles.contains("mysql")) {
+        if (profiles != null && profiles.contains("mysql")) {
             assertTrue(userDatabase.isCaseInsensitive());
             assertEquals("marissa", userDatabase.retrieveUserByName("marissa", OriginKeys.UAA).getUsername());
             assertEquals("marissa", userDatabase.retrieveUserByName("MArissA", OriginKeys.UAA).getUsername());
@@ -315,7 +330,7 @@ public class BootstrapTests {
         String uaa = "uaa.some.test.domain.com";
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
-        context = getServletContext(profiles, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml", "test/bootstrap/bootstrap-test.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         assertTrue(userDatabase.isCaseInsensitive());
@@ -784,9 +799,17 @@ public class BootstrapTests {
     }
 
     private ConfigurableApplicationContext getServletContext(String profiles, String loginYmlPath, String uaaYamlPath, String... resources) {
-        return getServletContext(profiles, false, loginYmlPath, uaaYamlPath, resources);
+        return getServletContext(profiles, false, new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath}, resources);
     }
     private ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String loginYmlPath, String uaaYamlPath, String... resources) {
+        return getServletContext(
+            profiles,
+            mergeProfiles,
+            new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath},
+            resources
+        );
+    }
+    private ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String[] yamlFiles, String... resources) {
         String[] resourcesToLoad = resources;
         if (!resources[0].endsWith(".xml")) {
             resourcesToLoad = new String[resources.length - 1];
@@ -842,7 +865,7 @@ public class BootstrapTests {
         };
         context.setServletContext(servletContext);
         MockServletConfig servletConfig = new MockServletConfig(servletContext);
-        servletConfig.addInitParameter("environmentConfigLocations", loginYmlPath+","+uaaYamlPath);
+        servletConfig.addInitParameter("environmentConfigLocations", StringUtils.arrayToCommaDelimitedString(yamlFiles));
         context.setServletConfig(servletConfig);
 
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
