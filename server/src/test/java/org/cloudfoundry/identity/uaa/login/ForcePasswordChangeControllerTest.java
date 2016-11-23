@@ -32,12 +32,15 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
 
     private MockMvc mockMvc;
     private ResetPasswordService resetPasswordService;
+    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
 
     @Before
     public void setUp() throws Exception {
         ForcePasswordChangeController controller = new ForcePasswordChangeController();
         resetPasswordService = mock(ResetPasswordService.class);
         controller.setResetPasswordService(resetPasswordService);
+        successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
+        controller.setSuccessHandler(successHandler);
         mockMvc = MockMvcBuilders
             .standaloneSetup(controller)
             .setViewResolvers(getResolver())

@@ -319,32 +319,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testLoginWithPasswordChange() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        String csrfValue = "12345";
-        Cookie cookie = new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
-
-        ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'").get(0);
-
-        MockHttpServletRequestBuilder validPost = post("/login.do")
-            .session(session)
-            .param("username", "marissa")
-            .param("password", "koala")
-            .cookie(cookie)
-            .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
-        MvcResult result = getMockMvc().perform(validPost)
-            .andDo(print())
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"))
-            .andReturn();
-
-        session = (MockHttpSession) result.getRequest().getSession();
-        getMockMvc().perform(get("/home").session(session))
-            .andExpect(status().isTemporaryRedirect())
-            .andExpect(redirectedUrl("/reset_password"));
-    }
-
-    @Test
     public void testLogin_Post_When_DisableInternalUserManagement_Is_True() throws Exception {
         ScimUser user = createUser("", adminToken);
         setDisableInternalAuth(true);

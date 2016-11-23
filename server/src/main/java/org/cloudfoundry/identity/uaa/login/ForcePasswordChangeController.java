@@ -12,11 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.SavedRequest;
@@ -29,17 +33,29 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.LinkedList;
 
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
-import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 
 @Controller
 public class ForcePasswordChangeController {
 
     public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
+    private Log logger = LogFactory.getLog(getClass());
+
+    public void setSuccessHandler(AccountSavingAuthenticationSuccessHandler successHandler) {
+        this.successHandler = successHandler;
+    }
 
     @Autowired
+    @Qualifier("accountSavingAuthenticationSuccessHandler")
+    private AccountSavingAuthenticationSuccessHandler successHandler;
+
+    @Autowired
+    @Qualifier("resetPasswordService")
     private ResetPasswordService resetPasswordService;
 
     @RequestMapping(value="/force_password_change", method= GET)
@@ -62,9 +78,9 @@ public class ForcePasswordChangeController {
         if(session.getAttribute(FORCE_PASSWORD_EXPIRED_USER) == null) {
             return "redirect:" + request.getContextPath()+"/login";
         }
-        UaaPrincipal principal = ((UaaAuthentication)session
-            .getAttribute(FORCE_PASSWORD_EXPIRED_USER))
-            .getPrincipal();
+        UaaAuthentication authentication = ((UaaAuthentication)session
+            .getAttribute(FORCE_PASSWORD_EXPIRED_USER));
+        UaaPrincipal principal = authentication.getPrincipal();
 
         String email = principal.getEmail();
 
@@ -73,12 +89,25 @@ public class ForcePasswordChangeController {
         if(!validation.valid()) {
             return handleUnprocessableEntity(model, response, email);
         }
-
+        logger.debug("Processing handleForcePasswordChange for user: "+ email);
         resetPasswordService.resetUserPassword(principal.getId(), password);
-        SecurityContextHolder.getContext().setAuthentication(((UaaAuthentication)session
-            .getAttribute(FORCE_PASSWORD_EXPIRED_USER)));
-
         SavedRequest savedRequest = (SavedRequest) request.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+
+        request.getSession().invalidate();
+        request.getSession(true);
+        if (authentication instanceof UaaAuthentication) {
+            UaaAuthentication uaaAuthentication = (UaaAuthentication)authentication;
+            authentication = new UaaAuthentication(
+                uaaAuthentication.getPrincipal(),
+                new LinkedList<>(uaaAuthentication.getAuthorities()),
+                new UaaAuthenticationDetails(request)
+            );
+            ofNullable(successHandler).ifPresent(handler ->
+                handler.setSavedAccountOptionCookie(request, response, uaaAuthentication)
+            );
+        }
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
         if(savedRequest != null) {
             return "redirect:" + savedRequest.getRedirectUrl();
         } else {

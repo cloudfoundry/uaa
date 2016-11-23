@@ -133,6 +133,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
 
                 if(user.isPasswordChangeRequired()){
+                    logger.info("Password change required for user: "+user.getEmail());
                     throw new PasswordChangeRequiredException(success, "User password needs to be changed");
                 }
                 publish(new UserAuthenticationSuccessEvent(user, success));
