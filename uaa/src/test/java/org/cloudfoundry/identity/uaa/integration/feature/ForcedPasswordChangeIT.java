@@ -117,6 +117,18 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
+    public void testHandleForceChangingPasswordWithNewPasswordSameAsOld() throws Exception {
+
+        navigateToForcePasswordChange();
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(),
+            containsString("Your new password cannot be the same as the old password."));
+    }
+
+    @Test
     public void testHandleForcePasswordChangeInvalidConfirmation() throws Exception {
 
         navigateToForcePasswordChange();

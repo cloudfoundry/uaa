@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -87,10 +88,14 @@ public class ForcePasswordChangeController {
         PasswordConfirmationValidation validation =
             new PasswordConfirmationValidation(email, password, passwordConfirmation);
         if(!validation.valid()) {
-            return handleUnprocessableEntity(model, response, email);
+            return handleUnprocessableEntity(model, response, email, "form_error");
         }
         logger.debug("Processing handleForcePasswordChange for user: "+ email);
-        resetPasswordService.resetUserPassword(principal.getId(), password);
+        try {
+            resetPasswordService.resetUserPassword(principal.getId(), password);
+        } catch(InvalidPasswordException exception) {
+            return handleUnprocessableEntity(model, response, email, "same_as_old");
+        }
         SavedRequest savedRequest = (SavedRequest) request.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
 
         request.getSession().invalidate();
@@ -119,8 +124,8 @@ public class ForcePasswordChangeController {
         this.resetPasswordService = resetPasswordService;
     }
 
-    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email) {
-        model.addAttribute("message_code", "form_error");
+    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email, String messageCode) {
+        model.addAttribute("message_code", messageCode);
         model.addAttribute("email",  email);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "force_password_change";

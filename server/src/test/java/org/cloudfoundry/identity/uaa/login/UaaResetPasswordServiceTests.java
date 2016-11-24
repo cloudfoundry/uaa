@@ -273,6 +273,20 @@ public class UaaResetPasswordServiceTests {
         verify(scimUserProvisioning, times(1)).updatePasswordChangeRequired(userId, false);
         verify(scimUserProvisioning, times(1)).changePassword(userId, null, "password");
     }
+
+    @Test (expected = InvalidPasswordException.class)
+    public void resetPassword_ForcedChange_NewPasswordSameAsOld() {
+        String userId = "user-id";
+        ScimUser user = new ScimUser(userId, "username", "firstname", "lastname");
+        user.setMeta(new ScimMeta(new Date(), new Date(), 0));
+        user.setPrimaryEmail("foo@example.com");
+        when(scimUserProvisioning.retrieve(userId)).thenReturn(user);
+        when(scimUserProvisioning.checkPasswordMatches("user-id", "password"))
+            .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
+        uaaResetPasswordService.resetUserPassword(userId, "password");
+
+    }
+
     private void setupResetPassword(String clientId, String redirectUri) {
         ScimUser user = new ScimUser("usermans-id","userman","firstName","lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
