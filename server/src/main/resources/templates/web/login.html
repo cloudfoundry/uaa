@@ -15,6 +15,9 @@
                    th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
                    th:autofocus="${iter.index} == 0"
                    class="form-control"/>
+            <div style="float: left;">
+             <input type="checkbox" style="display:inline-block" name="remember-me" value="true" checked="checked"/><label for="remember-me" style="margin-left: 5px"  th:text="#{'prompt.rememberme'}">Se souvenir de moi</label>
+            </div>
             <input type="submit" value="Sign in" class="island-button"/>
             <input th:if="${session.SPRING_SECURITY_SAVED_REQUEST}"
                    th:unless="${form_redirect_uri}"
