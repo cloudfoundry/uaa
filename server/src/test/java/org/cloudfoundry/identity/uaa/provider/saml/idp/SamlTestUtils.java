@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.UUID;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -17,27 +18,43 @@ import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
+import org.opensaml.common.SAMLException;
 import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
+import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.Subject;
 import org.opensaml.saml2.core.NameID;
+import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.Subject;
+import org.opensaml.saml2.core.impl.AssertionMarshaller;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObjectBuilderFactory;
+import org.opensaml.xml.io.Marshaller;
+import org.opensaml.xml.io.MarshallingException;
+import org.opensaml.xml.security.SecurityException;
+import org.opensaml.xml.security.SecurityHelper;
+import org.opensaml.xml.signature.Signature;
+import org.opensaml.xml.signature.SignatureException;
+import org.opensaml.xml.signature.Signer;
+import org.opensaml.xml.signature.impl.SignatureBuilder;
+import org.opensaml.xml.util.XMLHelper;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.w3c.dom.Element;
 
 public class SamlTestUtils {
 
@@ -151,6 +168,54 @@ public class SamlTestUtils {
 
     public AuthnRequest mockAuthnRequest() {
         return mockAuthnRequest(null);
+    }
+
+    public Assertion mockAssertion(String issuer, String format, String nameId) throws MessageEncodingException, SAMLException,
+    MetadataProviderException, SecurityException, MarshallingException, SignatureException  {
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = mockSamlMessageContext();
+        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+        DateTime until = new DateTime().plusHours(1);
+        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setRecipient("http://localhost:8080/uaa/oauth/token");
+        assertion.getConditions().getAudienceRestrictions().get(0).getAudiences().get(0).setAudienceURI("http://localhost:8080/uaa/oauth/token");
+        assertion.getIssuer().setValue(issuer);
+        assertion.getSubject().getNameID().setValue(nameId);
+        assertion.getSubject().getNameID().setFormat(format);
+        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
+        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
+        assertion.getConditions().setNotOnOrAfter(until);
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
+        SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory
+                .getBuilder(Signature.DEFAULT_ELEMENT_NAME);
+        Signature signature = signatureBuilder.buildObject();
+        signature.setSigningCredential(keyManager.getDefaultCredential());
+        SecurityHelper.prepareSignatureParams(signature, keyManager.getDefaultCredential(), null, null);
+        assertion.setSignature(signature);
+        Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
+        marshaller.marshall(assertion);
+        Signer.signObject(signature);
+        return assertion;
+    }
+
+    public String mockAssertionEncoded(Assertion assertion, String issuer, String format, String nameId) {
+        try {
+            Assertion _in = assertion == null ? mockAssertion(issuer, format, nameId) : assertion;
+            AssertionMarshaller marshaller = new AssertionMarshaller();
+            Element plaintextElement = marshaller.marshall(_in);
+            String serializedElement = XMLHelper.nodeToString(plaintextElement);
+            return Base64.encodeBase64URLSafeString(serializedElement.getBytes("utf-8"));
+        } catch(Exception e) {
+        }
+        return null;
+    }
+    public String mockAssertionEncoded(String issuer, String format, String nameId) {
+        return mockAssertionEncoded(null, issuer, format, nameId);
     }
 
     public AuthnRequest mockAuthnRequest(String nameIDFormat) {

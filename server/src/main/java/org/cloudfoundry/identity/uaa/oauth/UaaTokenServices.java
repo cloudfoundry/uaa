@@ -126,6 +126,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenForm
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
@@ -957,7 +958,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             return "authorization_code".equals(grantType) ||
                 "password".equals(grantType) ||
                 GRANT_TYPE_USER_TOKEN.equals(grantType) ||
-                GRANT_TYPE_REFRESH_TOKEN.equals(grantType);
+                GRANT_TYPE_REFRESH_TOKEN.equals(grantType) ||
+                GRANT_TYPE_SAML2_BEARER.equals(grantType);
         } else {
             return scope.contains(UAA_REFRESH_TOKEN);
         }

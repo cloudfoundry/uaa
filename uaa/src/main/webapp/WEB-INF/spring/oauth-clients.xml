@@ -160,6 +160,13 @@
                             <entry key="secret" value="secret" />
                         </map>
                     </entry>
+                    <entry key="oauth_showcase_saml2_bearer">
+                        <map>
+                            <entry key="authorized-grant-types" value="password,urn:ietf:params:oauth:grant-type:saml2-bearer" />
+                            <entry key="scope" value="openid,uaa.user" />
+                            <entry key="secret" value="secret" />
+                        </map>
+                    </entry>
 
                 </map>
             </property>
