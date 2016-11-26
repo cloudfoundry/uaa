@@ -272,6 +272,32 @@ _Response Fields_
 
 </aside>
 
+## SAML2 Bearer Grant
+
+<aside class="notice">
+  Planed for UAA 3.9.x
+</aside>
+
+The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in 
+[RFC 7522](https://tools.ietf.org/html/rfc7522). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer`.
+In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
+
+This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
+The endpoint of the bearer assertion is `/oauth/token` so the Recipient attribute in
+the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token.
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/response-fields.md")).result(binding) %>
 
 ## Refresh Token
 

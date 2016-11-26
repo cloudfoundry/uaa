@@ -40,6 +40,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityC
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
@@ -313,6 +314,37 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
 
         getMockMvc().perform(postForToken)
             .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, requestParameters, responseFields));
+    }
+
+    @Test
+    public void getTokenUsingSaml2BearerGrant() throws Exception {
+        /*MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param(CLIENT_ID, "oauth_showcase_saml2_bearer")
+            .param("client_secret", "secret")
+            .param(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER)
+            .param("assertion", "PEFzc2VydGlvbiBJ...");*/
+
+        final ParameterDescriptor assertionFormatParameter = parameterWithName("assertion").required().type(STRING).description("An XML based SAML 2.0 bearer assertion, which is Base64URl encoded.");
+        Snippet requestParameters = requestParameters(
+            clientIdParameter.description("The client ID of the receiving client, this client must have `urn:ietf:params:oauth:grant-type:saml2-bearer` grant type"),
+            grantTypeParameter.description("The type of token grant requested, in this case `"+GRANT_TYPE_SAML2_BEARER+"`"),
+            assertionFormatParameter,
+            scopeParameter
+        );
+
+        Snippet responseFields = responseFields(
+            fieldWithPath("access_token").description("Always null"),
+            fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
+            fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
+            fieldWithPath("scope").description("Space-delimited list of scopes authorized by the user for this client"),
+            fieldWithPath("refresh_token").description("An OAuth refresh token for refresh grants"),
+            fieldWithPath("jti").description("A globally unique identifier for this refresh token")
+        );
+
+        /*getMockMvc().perform(postForToken)
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));*/
     }
 
     @Test
