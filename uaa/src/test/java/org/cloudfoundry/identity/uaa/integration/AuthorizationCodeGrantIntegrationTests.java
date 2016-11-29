@@ -12,8 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
+import static org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -21,8 +23,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,11 +80,20 @@ public class AuthorizationCodeGrantIntegrationTests {
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
+
         ResponseEntity<String> response = serverRunning.getForString(location, headers);
+
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
+
         // should be directed to the login screen...
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
@@ -89,14 +102,17 @@ public class AuthorizationCodeGrantIntegrationTests {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("username", testAccounts.getUserName());
         formData.add("password", testAccounts.getPassword());
-
+        String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
+        formData.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", headers, formData);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
+        headers.remove("Cookie");
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
@@ -105,7 +121,8 @@ public class AuthorizationCodeGrantIntegrationTests {
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
 
             formData.clear();
-            formData.add("user_oauth_approval", "true");
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();
