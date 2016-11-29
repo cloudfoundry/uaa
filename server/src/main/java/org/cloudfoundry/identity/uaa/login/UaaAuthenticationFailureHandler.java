@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
@@ -23,15 +24,23 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class CurrentUserCookieDestructor implements AuthenticationFailureHandler, LogoutHandler {
+import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
+
+public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
     private AuthenticationFailureHandler delegate;
 
-    public CurrentUserCookieDestructor(AuthenticationFailureHandler delegate) {
+    public UaaAuthenticationFailureHandler(AuthenticationFailureHandler delegate) {
         this.delegate = delegate;
     }
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        if(exception != null && exception instanceof PasswordChangeRequiredException) {
+            request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
+            addCookie(response, request.getContextPath());
+            response.sendRedirect(request.getContextPath()+"/force_password_change");
+            return;
+        }
         addCookie(response, request.getContextPath());
         if (delegate!=null) {
             delegate.onAuthenticationFailure(request, response, exception);

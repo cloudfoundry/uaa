@@ -67,6 +67,8 @@ public class UaaUser {
 
     private boolean legacyVerificationBehavior = false;
 
+    private boolean passwordChangeRequired;
+
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
                 new Date(), null, null, false, null, null, new Date());
@@ -122,6 +124,7 @@ public class UaaUser {
         this.passwordLastModified = prototype.getPasswordLastModified();
         this.phoneNumber = prototype.getPhoneNumber();
         this.legacyVerificationBehavior = prototype.isLegacyVerificationBehavior();
+        this.passwordChangeRequired = prototype.isPasswordChangeRequired();
     }
 
     public String getId() {
@@ -341,5 +344,13 @@ public class UaaUser {
 
     public boolean isLegacyVerificationBehavior() {
         return legacyVerificationBehavior;
+    }
+
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public void setPasswordChangeRequired(boolean passwordChangeRequired) {
+        this.passwordChangeRequired = passwordChangeRequired;
     }
 }

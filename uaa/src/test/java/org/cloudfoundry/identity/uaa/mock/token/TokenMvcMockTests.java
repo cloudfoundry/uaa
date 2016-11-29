@@ -160,6 +160,32 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void passcode_with_client_parameters_when_password_change_required_for_user() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        userProvisioning.updatePasswordChangeRequired(user.getId(), true);
+
+        String response = getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", username)
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isUnauthorized())
+            .andReturn().getResponse().getContentAsString();
+
+        Map<String, String> error = (JsonUtils.readValue(response, new TypeReference<Map<String, String>>() {}));
+        String error_description = error.get("error_description");
+        assertNotNull(error_description);
+        assertEquals("User password needs to be changed", error_description);
+
+    }
+
+    @Test
     public void passcode_with_client_parameters() throws Exception {
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";

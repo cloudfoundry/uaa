@@ -350,7 +350,7 @@
 
     <bean id="promptOauthAuthorizeEntryPoint" class="org.cloudfoundry.identity.uaa.oauth.AuthorizePromptNoneEntryPoint">
         <constructor-arg name="failureHandler">
-            <bean class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieDestructor">
+            <bean class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
                 <constructor-arg name="delegate">
                     <null/>
                 </constructor-arg>

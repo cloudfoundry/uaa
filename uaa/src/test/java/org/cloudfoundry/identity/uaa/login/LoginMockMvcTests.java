@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -52,6 +53,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -66,6 +68,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -118,6 +121,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -1797,7 +1801,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         request.setUsername("marissa");
         request.setPassword("koala");
         getMockMvc().perform(post("/autologin")
-                .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -1819,7 +1823,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         request.setUsername("marissa");
         request.setPassword("koala");
         getMockMvc().perform(post("/autologin")
-                .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());

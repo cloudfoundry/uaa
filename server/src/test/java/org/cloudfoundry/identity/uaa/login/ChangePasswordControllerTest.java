@@ -27,12 +27,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import java.util.Arrays;
 
-import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,12 +52,9 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
         changePasswordService = mock(ChangePasswordService.class);
         ChangePasswordController controller = new ChangePasswordController(changePasswordService);
 
-        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
-        viewResolver.setPrefix("/WEB-INF/jsp");
-        viewResolver.setSuffix(".jsp");
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
-                .setViewResolvers(viewResolver)
+                .setViewResolvers(getResolver())
                 .build();
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(

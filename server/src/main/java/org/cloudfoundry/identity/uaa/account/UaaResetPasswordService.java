@@ -78,6 +78,17 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         }
     }
 
+    @Override
+    public void resetUserPassword(String userId, String password) {
+        if (scimUserProvisioning.checkPasswordMatches(userId, password)) {
+            throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+        }
+        ScimUser user = scimUserProvisioning.retrieve(userId);
+        UaaUser uaaUser = getUaaUser(user);
+        Authentication authentication = constructAuthentication(uaaUser);
+        updatePasswordAndPublishEvent(scimUserProvisioning, uaaUser, authentication, password);
+    }
+
     private ResetPasswordResponse changePasswordCodeAuthenticated(String code, String newPassword) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
         if (expiringCode == null) {
@@ -102,7 +113,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
         ScimUser user = scimUserProvisioning.retrieve(userId);
         UaaUser uaaUser = getUaaUser(user);
-        Authentication authentication = new UaaAuthentication(new UaaPrincipal(uaaUser), emptyList(), null);
+        Authentication authentication = constructAuthentication(uaaUser);
         try {
             if (isUserModified(user, expiringCode.getExpiresAt(), userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
@@ -113,8 +124,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             if (scimUserProvisioning.checkPasswordMatches(userId, newPassword)) {
                 throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
-            scimUserProvisioning.changePassword(userId, null, newPassword);
-            publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
+
+            updatePasswordAndPublishEvent(scimUserProvisioning, uaaUser, authentication, newPassword);
 
             String redirectLocation = "home";
             if (!isEmpty(clientId) && !isEmpty(redirectUri)) {
@@ -188,4 +199,15 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             publisher.publishEvent(event);
         }
     }
+
+    private UaaAuthentication constructAuthentication(UaaUser uaaUser) {
+        return new UaaAuthentication(new UaaPrincipal(uaaUser), emptyList(), null);
+    }
+
+    private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword){
+        scimUserProvisioning.changePassword(uaaUser.getId(), null, newPassword);
+        scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false);
+        publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
+    }
+
 }
