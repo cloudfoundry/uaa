@@ -23,6 +23,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -111,6 +112,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         }
     }
 
+    @Ignore //self registration is disabled
     @Test
     public void testCreateActivationEmailPage() throws Exception {
         getMockMvc().perform(get("/create_account"))
@@ -127,6 +129,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("Create your account")));
     }
 
+    @Ignore //email activation is not used
     @Test
     public void testActivationEmailSentPage() throws Exception {
         getMockMvc().perform(get("/accounts/email_sent"))
@@ -135,6 +138,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
     }
 
+    @Ignore //email activation is not used
     @Test
     public void testActivationEmailSentPageWithinZone() throws Exception {
         String subdomain = generator.generate();
@@ -151,7 +155,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testPageTitle() throws Exception {
         getMockMvc().perform(get("/create_account"))
-            .andExpect(content().string(containsString("<title>Cloud Foundry</title>")));
+            .andExpect(content().string(containsString("<title>Predix</title>")));
     }
 
     @Test
@@ -164,6 +168,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
     }
 
+    @Ignore //predix branding does not have this image.
     @Test
     public void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
@@ -243,16 +248,19 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
+    @Ignore //account creation is disabled
     @Test
     public void testCreatingAnAccountWithClientRedirect() throws Exception {
         createAccount("http://client.redirect.uri", "http://client.redirect.uri");
     }
 
+    @Ignore //account creation is disabled
     @Test
     public void testCreatingAnAccountWithFallbackClientRedirect() throws Exception {
         createAccount("http://fallback.redirect.uri", null);
     }
 
+    @Ignore //account creation is disabled
     @Test
     public void testCreatingAnAccountWithNoClientRedirect() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
@@ -390,6 +398,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
+    @Ignore // user verification is disabled
     @Test
     public void redirectToSavedRequest_ifPresent() throws Exception {
         MockHttpSession session = mockMvcUtils.getSavedRequestSession();

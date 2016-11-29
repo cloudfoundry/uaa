@@ -22,6 +22,15 @@ eclipse {
 
 repositories {
   maven { url 'https://repo.spring.io/libs-milestone' }
+  mavenLocal()
+  mavenCentral()
+  maven {
+   credentials {
+     username 'svc-dsp-reader'
+     password 'xeY3MegUdr'
+    }
+    url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+  }
 }
 
 description = 'UAA'
@@ -38,6 +47,18 @@ dependencies {
   runtime group: 'javax.servlet', name: 'jstl', version:parent.jstlVersion
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+  runtime group: 'com.ge.predix', name: 'spring-log-filter', version:'1.0.0'
+
+  // For Spring Metering Filter support
+  runtime group: 'com.ge.predix', name: 'spring-metering-filter', version:'1.2.1'
+  runtime group: 'org.apache.httpcomponents', name: 'httpasyncclient', version:'4.1'
+  runtime group: 'org.springframework.data', name: 'spring-data-commons', version:'1.9.1.RELEASE'
+  runtime group: 'com.nurego', name: 'nurego-java', version:'1.0.10'
+  runtime group: 'com.github.fge', name: 'json-schema-validator', version:'2.2.6'
+  
+  // For dynamic log level configuration
+  runtime group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.0'
+
 
   testCompile identityServer.configurations.testCompile.dependencies
   testCompile identityServer.sourceSets.test.output
@@ -52,6 +73,7 @@ dependencies {
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
+  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile group: 'junit', name: 'junit', version: parent.junitVersion
   testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
   testCompile(group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0') {
@@ -62,18 +84,28 @@ dependencies {
   testCompile group: 'org.skyscreamer', name:'jsonassert', version: '0.9.0'
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
   testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
-  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
+  testCompile group: 'com.nurego', name: 'nurego-java', version:'1.0.10'
   testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
 }
 ext {
   snippetsDir = file('build/generated-snippets')
 }
+
+def proxyHost  = System.getenv('PROXY_HOST')
+def proxyPort  = System.getenv('PROXY_PORT')
+def nonProxyHosts = 'localhost|*.localhost'
+
 test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
   systemProperty "mock.suite.test", "true"
+  systemProperty "http.proxyHost", proxyHost
+  systemProperty "http.proxyPort", proxyPort
+  systemProperty "https.proxyHost", proxyHost
+  systemProperty "https.proxyPort", proxyPort
+  systemProperty "http.nonProxyHosts", nonProxyHosts
 }
 task docsTestRestDocs(type: Test) {
   include '**/DefaultDocsTestSuite.class'
@@ -94,6 +126,11 @@ generateDocs {
 }
 
 integrationTest {
+  systemProperty "http.proxyHost", proxyHost
+  systemProperty "http.proxyPort", proxyPort
+  systemProperty "https.proxyHost", proxyHost
+  systemProperty "https.proxyPort", proxyPort
+  systemProperty "http.nonProxyHosts", nonProxyHosts
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
     includeTestsMatching "*IT"

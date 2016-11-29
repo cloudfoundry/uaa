@@ -25,6 +25,8 @@ buildscript {
     classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
     classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.2.2"
     classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+    classpath 'org.springframework.cloud:spring-cloud-spring-service-connector:1.1.1.RELEASE'
+    classpath 'org.springframework.cloud:spring-cloud-cloudfoundry-connector:1.1.1.RELEASE'
   }
 }
 
@@ -47,6 +49,11 @@ ext {
 apply from: file('shared_versions.gradle')
 
 def uaaVersion = version
+def geArtifactoryReader = System.getenv('ARTIFACTORY_READER')
+def geArtifactoryReaderPassword  = System.getenv('ARTIFACTORY_READER_PW')
+def proxyHost  = System.getenv('PROXY_HOST')
+def proxyPort  = System.getenv('PROXY_PORT')
+def nonProxyHosts = 'localhost|*.localhost'
 
 allprojects {
   apply plugin: 'maven'
@@ -63,6 +70,15 @@ allprojects {
 
   repositories {
     mavenCentral()
+  }
+
+  test {
+    systemProperty "http.proxyHost", proxyHost
+    systemProperty "http.proxyPort", proxyPort
+    systemProperty "https.proxyHost", proxyHost
+    systemProperty "https.proxyPort", proxyPort
+    systemProperty "http.nonProxyHosts", nonProxyHosts
+    systemProperty "java.io.tmpdir", "/tmp"
   }
 }
 
@@ -235,15 +251,29 @@ cargo {
   }
 
   local {
-    jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
+    //jacoco agent jar is causing startup to fail. see defect DE30159
+    //jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
+    jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+    //jvmArgs = ""
     outputFile = file('uaa/build/reports/tests/uaa-server.log')
     configFile {
       file = file('scripts/travis/tomcat-conf/context.xml')
       toDir = 'conf'
-
     }
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+      if (System.getProperty('mode') == 'truststoreWithLdapCerts') {
+        property 'javax.net.ssl.trustStore', "${projectDir}/scripts/ldap/truststore-with-ldap-certs.jks"
+        property 'javax.net.ssl.trustStoreType', 'JKS'
+      }
+      property 'http.proxyHost', proxyHost
+      property 'http.proxyPort', proxyPort
+      property 'https.proxyHost', proxyHost
+      property 'https.proxyPort', proxyPort
+      property 'http.nonProxyHosts', nonProxyHosts
+      property 'NUREGO_BATCH_INTERVAL_SECONDS', '1'
+      property 'NUREGO_BATCH_MAX_MAP_SIZE', '1'
+      property 'METER_BASE_DOMAIN', 'localhost'
     }
 
     installer {
@@ -262,7 +292,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     }
 
     local {
-//      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+      //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
       systemProperties {
           //property 'uaa.allowUnverifiedUsers', 'false'

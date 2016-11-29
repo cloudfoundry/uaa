@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd">
+
+    <bean id="meteringFilter"
+        class="com.ge.predix.metering.filter.MeteringFilter" />
+
+    <bean id="meteredResourceRepository"
+        class="com.ge.predix.metering.data.repository.DefaultMeteredResourceRepository" />
+
+    <bean id="customerResolver"
+        class="com.ge.predix.metering.customer.ZoneBasedCustomerResolver">
+        <property name="serviceBaseDomain" value="${METER_BASE_DOMAIN:localhost}" />
+    </bean>
+
+    <bean id="nuregoClient"
+        class="com.ge.predix.metering.nurego.AsyncNuregoClient">
+        <constructor-arg name="url" value="${NUREGO_API_URL:https://am-staging.nurego.com}" />
+        <constructor-arg name="apiKey" value="${NUREGO_API_KEY:l4d7f4be-6812-44bd-b95e-9d415210fe14}" />
+        <constructor-arg name="batchIntervalSeconds" value="${NUREGO_BATCH_INTERVAL_SECONDS:3600}" />
+        <constructor-arg name="batchMaxMapSize" value="${NUREGO_BATCH_MAX_MAP_SIZE:1024}" />
+    </bean>
+
+    <bean id="asyncRestTemplate"
+        class="org.springframework.web.client.AsyncRestTemplate">
+        <property name="asyncRequestFactory" ref="asyncRequestFactory" />
+    </bean>
+
+    <!-- Begin constructing Apache HttpAsyncClient request factory for REST template. -->
+
+    <bean id="asyncRequestFactory"
+        class="org.springframework.http.client.HttpComponentsAsyncClientHttpRequestFactory">
+        <constructor-arg ref="springMeteringHttpClient" />
+    </bean>
+
+    <bean id="springMeteringHttpClient" factory-bean="springMeteringSystemHttpClientBuilder"
+        factory-method="build">
+    </bean>
+
+    <bean id="springMeteringSystemHttpClientBuilder" factory-bean="springMeteringHttpClientBuilder"
+        factory-method="useSystemProperties">
+        <property name="connectionManager" ref="springMeteringConnectionManager" />
+    </bean>
+
+    <bean id="springMeteringConnectionManager" class="org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager">
+        <constructor-arg ref="springMeteringConnectingIoReactor" />
+        <property name="maxTotal" value="${httpAsyncClient.maxTotal:64}" />
+    </bean>
+
+    <bean id="springMeteringConnectingIoReactor" class="org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor" />
+
+    <bean id="springMeteringHttpClientBuilder" class="org.apache.http.impl.nio.client.HttpAsyncClientBuilder"
+        factory-method="create">
+    </bean>
+
+    <!-- End constructing Apache HttpAsyncClient request factory for REST template. -->
+
+</beans>

@@ -1,0 +1,684 @@
+///--------------------------
+/// Mixins
+@mixin media-query($media) {
+	 @if $media==mobile{
+		@media only screen and (max-width: 320px) {
+			 @content;
+		}
+	}
+	@else if $media==tablet {
+		 @media only screen and (min-width: 321px) and (max-width: 1024px){
+			@content;
+		}
+	}
+	@else if $media==desktop {
+		 @media only screen and (min-width: 1024px){
+			@content;
+		}
+	}
+	@else {
+		 @warn"Unfortunately, no value could be retrieved from `#{$breakpoint}`. " + "Available breakpoints are: #{map-keys($breakpoints)}.";
+	}
+}
+//Mixin to center all content
+@mixin centerer {
+	position : absolute;
+	top      : 50%;
+	left     : 50%;
+	transform: translate(-50%, -50%);
+}
+@mixin xs-down() {
+	 @media (max-width: 31.93333rem){
+		@content;
+	}
+}
+@mixin sm-down() {
+	 @media (max-width: 51.13333rem){
+		@content;
+	}
+}
+@mixin md-down() {
+	 @media (max-width: 68.2rem){
+		@content;
+	}
+}
+@mixin lg-down() {
+	 @media (max-width: 79.93333rem){
+		@content;
+	}
+}
+@mixin xl-down() {
+	 @media (min-width: 80rem){
+		@content;
+	}
+}
+@mixin geFonts() {
+	 @font-face{
+		font-family: 'GE Inspira';
+		font-weight: normal;
+		font-style : normal;
+		src        : url('../fonts/GEInspMd.eot');
+		src        : url('../fonts/GEInspMd.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspMd.woff') format("woff"), url('../fonts/GEInspMd.ttf') format("truetype"), url('../fonts/GEInspMd.svg#GE Inspira') format("svg");
+	}
+	@font-face {
+		font-family: 'GE Inspira';
+		font-weight: normal;
+		font-style : italic;
+		src        : url('../fonts/GEInspMdIt.eot');
+		src        : url('../fonts/GEInspMdIt.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspMdIt.woff') format("woff"), url('../fonts/GEInspMdIt.ttf') format("truetype"), url('../fonts/GEInspMdIt.svg#GE Inspira') format("svg");
+	}
+	@font-face {
+		font-family: 'GE Inspira';
+		font-weight: bold;
+		font-style : normal;
+		src        : url('../fonts/GEInspBd.eot');
+		src        : url('../fonts/GEInspBd.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspBd.woff') format("woff"), url('../fonts/GEInspBd.ttf') format("truetype"), url('../fonts/GEInspBd.svg#GE Inspira') format("svg");
+	}
+	@font-face {
+		font-family: 'GE Inspira';
+		font-weight: bold;
+		font-style : italic;
+		src        : url('../fonts/GEInspBI.eot');
+		src        : url('../fonts/GEInspBI.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspBI.woff') format("woff"), url('../fonts/GEInspBI.ttf') format("truetype"), url('../fonts/GEInspBI.svg#GE Inspira') format("svg");
+	}
+	@font-face {
+		font-family: 'GE Inspira Sans';
+		font-weight: normal;
+		font-style : normal;
+		src        : url('../fonts/GEInspiraSans-Regular-v01.eot');
+		src        : url('../fonts/GEInspiraSans-Regular-v01.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspiraSans-Regular-v01.woff') format("woff"), url('../fonts/GEInspiraSans-Regular-v01.ttf') format("truetype"), url('../fonts/GEInspiraSans-Regular-v01.svg#GE Inspira Sans') format("svg");
+	}
+	@font-face {
+		font-family: 'GE Inspira Sans';
+		font-weight: normal;
+		font-style : italic;
+		src        : url('../fonts/GEInspiraSans-Italic-v01.eot');
+		src        : url('../fonts/GEInspiraSans-Italic-v01.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspiraSans-Italic-v01.woff') format("woff"), url('../fonts/GEInspiraSans-Italic-v01.ttf') format("truetype"), url('../fonts/GEInspiraSans-Italic-v01.svg#GE Inspira Sans') format("svg");
+	}
+	@font-face {
+		font-family: 'GE Inspira Sans';
+		font-weight: bold;
+		font-style : normal;
+		src        : url('../fonts/GEInspiraSans-Bold-v01.eot');
+		src        : url('../fonts/GEInspiraSans-Bold-v01.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspiraSans-Bold-v01.woff') format("woff"), url('../fonts/GEInspiraSans-Bold-v01.ttf') format("truetype"), url('../fonts/GEInspiraSans-Bold-v01.svg#GE Inspira Sans') format("svg");
+	}
+	@font-face {
+		font-family: 'GE Inspira Sans';
+		font-weight: bold;
+		font-style : italic;
+		src        : url('../fonts/GEInspiraSans-BoldItalic-v01.eot');
+		src        : url('../fonts/GEInspiraSans-BoldItalic-v01.eot?#iefix') format("embedded-opentype"), url('../fonts/GEInspiraSans-BoldItalic-v01.woff') format("woff"), url('../fonts/GEInspiraSans-BoldItalic-v01.ttf') format("truetype"), url('../fonts/GEInspiraSans-BoldItalic-v01.svg#GE Inspira Sans') format("svg");
+	}
+
+	html {
+		font-family: 'GE Inspira Sans', sans-serif;
+	}
+}
+@mixin paddings() {
+	/**
+	     * Padding helper classes.
+	     *
+	     * Add paddings.
+	     */
+	.u-p {
+		padding: 1rem !important;
+	}
+
+	.u-pt {
+		padding-top: 1rem !important;
+	}
+
+	.u-pr {
+		padding-right: 1rem !important;
+	}
+
+	.u-pb {
+		padding-bottom: 1rem !important;
+	}
+
+	.u-pl {
+		padding-left: 1rem !important;
+	}
+
+	.u-ph {
+		padding-right: 1rem !important;
+		padding-left : 1rem !important;
+	}
+
+	.u-pv {
+		padding-top   : 1rem !important;
+		padding-bottom: 1rem !important;
+	}
+
+	/**
+	     * Add tiny paddings.
+	     */
+	.u-p-- {
+		padding: 0.33333rem !important;
+	}
+
+	.u-pt-- {
+		padding-top: 0.33333rem !important;
+	}
+
+	.u-pr-- {
+		padding-right: 0.33333rem !important;
+	}
+
+	.u-pb-- {
+		padding-bottom: 0.33333rem !important;
+	}
+
+	.u-pl-- {
+		padding-left: 0.33333rem !important;
+	}
+
+	.u-ph-- {
+		padding-right: 0.33333rem !important;
+		padding-left : 0.33333rem !important;
+	}
+
+	.u-pv-- {
+		padding-top   : 0.33333rem !important;
+		padding-bottom: 0.33333rem !important;
+	}
+
+	/**
+	     * Add small paddings.
+	     */
+	.u-p- {
+		padding: 0.66667rem !important;
+	}
+
+	.u-pt- {
+		padding-top: 0.66667rem !important;
+	}
+
+	.u-pr- {
+		padding-right: 0.66667rem !important;
+	}
+
+	.u-pb- {
+		padding-bottom: 0.66667rem !important;
+	}
+
+	.u-pl- {
+		padding-left: 0.66667rem !important;
+	}
+
+	.u-ph- {
+		padding-right: 0.66667rem !important;
+		padding-left : 0.66667rem !important;
+	}
+
+	.u-pv- {
+		padding-top   : 0.66667rem !important;
+		padding-bottom: 0.66667rem !important;
+	}
+
+	/**
+	     * Add large paddings.
+	     */
+	.u-p\00002b {
+		padding: 1.33333rem !important;
+	}
+
+	.u-pt\00002b {
+		padding-top: 1.33333rem !important;
+	}
+
+	.u-pr\00002b {
+		padding-right: 1.33333rem !important;
+	}
+
+	.u-pb\00002b {
+		padding-bottom: 1.33333rem !important;
+	}
+
+	.u-pl\00002b {
+		padding-left: 1.33333rem !important;
+	}
+
+	.u-ph\00002b {
+		padding-right: 1.33333rem !important;
+		padding-left : 1.33333rem !important;
+	}
+
+	.u-pv\00002b {
+		padding-top   : 1.33333rem !important;
+		padding-bottom: 1.33333rem !important;
+	}
+
+	/**
+	     * Add huge paddings.
+	     */
+	.u-p\00002b\00002b {
+		padding: 2rem !important;
+	}
+
+	.u-pt\00002b\00002b {
+		padding-top: 2rem !important;
+	}
+
+	.u-pr\00002b\00002b {
+		padding-right: 2rem !important;
+	}
+
+	.u-pb\00002b\00002b {
+		padding-bottom: 2rem !important;
+	}
+
+	.u-pl\00002b\00002b {
+		padding-left: 2rem !important;
+	}
+
+	.u-ph\00002b\00002b {
+		padding-right: 2rem !important;
+		padding-left : 2rem !important;
+	}
+
+	.u-pv\00002b\00002b {
+		padding-top   : 2rem !important;
+		padding-bottom: 2rem !important;
+	}
+
+	/**
+	     * Remove paddings.
+	     */
+	.u-p0 {
+		padding: 0 !important;
+	}
+
+	.u-pt0 {
+		padding-top: 0 !important;
+	}
+
+	.u-pr0 {
+		padding-right: 0 !important;
+	}
+
+	.u-pb0 {
+		padding-bottom: 0 !important;
+	}
+
+	.u-pl0 {
+		padding-left: 0 !important;
+	}
+
+	.u-ph0 {
+		padding-right: 0 !important;
+		padding-left : 0 !important;
+	}
+
+	.u-pv0 {
+		padding-top   : 0 !important;
+		padding-bottom: 0 !important;
+	}
+
+}
+@mixin margins() {
+	/**
+	     * Margin helper classes.
+	     *
+	     * Add margins.
+	     */
+	.u-m {
+		margin: 1rem !important;
+	}
+
+	.u-mt {
+		margin-top: 1rem !important;
+	}
+
+	.u-mr {
+		margin-right: 1rem !important;
+	}
+
+	.u-mb {
+		margin-bottom: 1rem !important;
+	}
+
+	.u-ml {
+		margin-left: 1rem !important;
+	}
+
+	.u-mh {
+		margin-right: 1rem !important;
+		margin-left : 1rem !important;
+	}
+
+	.u-mv {
+		margin-top   : 1rem !important;
+		margin-bottom: 1rem !important;
+	}
+
+	/**
+	     * Add tiny margins.
+	     */
+	.u-m-- {
+		margin: 0.33333rem !important;
+	}
+
+	.u-mt-- {
+		margin-top: 0.33333rem !important;
+	}
+
+	.u-mr-- {
+		margin-right: 0.33333rem !important;
+	}
+
+	.u-mb-- {
+		margin-bottom: 0.33333rem !important;
+	}
+
+	.u-ml-- {
+		margin-left: 0.33333rem !important;
+	}
+
+	.u-mh-- {
+		margin-right: 0.33333rem !important;
+		margin-left : 0.33333rem !important;
+	}
+
+	.u-mv-- {
+		margin-top   : 0.33333rem !important;
+		margin-bottom: 0.33333rem !important;
+	}
+
+	/**
+	     * Add small margins.
+	     */
+	.u-m- {
+		margin: 0.66667rem !important;
+	}
+
+	.u-mt- {
+		margin-top: 0.66667rem !important;
+	}
+
+	.u-mr- {
+		margin-right: 0.66667rem !important;
+	}
+
+	.u-mb- {
+		margin-bottom: 0.66667rem !important;
+	}
+
+	.u-ml- {
+		margin-left: 0.66667rem !important;
+	}
+
+	.u-mh- {
+		margin-right: 0.66667rem !important;
+		margin-left : 0.66667rem !important;
+	}
+
+	.u-mv- {
+		margin-top   : 0.66667rem !important;
+		margin-bottom: 0.66667rem !important;
+	}
+
+	/**
+	     * Add large margins.
+	     */
+	.u-m\00002b {
+		margin: 1.33333rem !important;
+	}
+
+	.u-mt\00002b {
+		margin-top: 1.33333rem !important;
+	}
+
+	.u-mr\00002b {
+		margin-right: 1.33333rem !important;
+	}
+
+	.u-mb\00002b {
+		margin-bottom: 1.33333rem !important;
+	}
+
+	.u-ml\00002b {
+		margin-left: 1.33333rem !important;
+	}
+
+	.u-mh\00002b {
+		margin-right: 1.33333rem !important;
+		margin-left : 1.33333rem !important;
+	}
+
+	.u-mv\00002b {
+		margin-top   : 1.33333rem !important;
+		margin-bottom: 1.33333rem !important;
+	}
+
+	/**
+	     * Add huge margins.
+	     */
+	.u-m\00002b\00002b {
+		margin: 2rem !important;
+	}
+
+	.u-mt\00002b\00002b {
+		margin-top: 2rem !important;
+	}
+
+	.u-mr\00002b\00002b {
+		margin-right: 2rem !important;
+	}
+
+	.u-mb\00002b\00002b {
+		margin-bottom: 2rem !important;
+	}
+
+	.u-ml\00002b\00002b {
+		margin-left: 2rem !important;
+	}
+
+	.u-mh\00002b\00002b {
+		margin-right: 2rem !important;
+		margin-left : 2rem !important;
+	}
+
+	.u-mv\00002b\00002b {
+		margin-top   : 2rem !important;
+		margin-bottom: 2rem !important;
+	}
+
+	/**
+	     * Remove margins.
+	     */
+	.u-m0 {
+		margin: 0 !important;
+	}
+
+	.u-mt0 {
+		margin-top: 0 !important;
+	}
+
+	.u-mr0 {
+		margin-right: 0 !important;
+	}
+
+	.u-mb0 {
+		margin-bottom: 0 !important;
+	}
+
+	.u-ml0 {
+		margin-left: 0 !important;
+	}
+
+	.u-mh0 {
+		margin-right: 0 !important;
+		margin-left : 0 !important;
+	}
+
+	.u-mv0 {
+		margin-top   : 0 !important;
+		margin-bottom: 0 !important;
+	}
+
+	/**
+	     * Negative margins.
+	     */
+	.u--m {
+		margin: -1rem !important;
+	}
+
+	.u--mt {
+		margin-top: -1rem !important;
+	}
+
+	.u--mr {
+		margin-right: -1rem !important;
+	}
+
+	.u--mb {
+		margin-bottom: -1rem !important;
+	}
+
+	.u--ml {
+		margin-left: -1rem !important;
+	}
+
+	.u--mh {
+		margin-right: -1rem !important;
+		margin-left : -1rem !important;
+	}
+
+	.u--mv {
+		margin-top   : -1rem !important;
+		margin-bottom: -1rem !important;
+	}
+
+	/**
+	     * Tiny negative margins.
+	     */
+	.u--m-- {
+		margin: -0.33333rem !important;
+	}
+
+	.u--mt-- {
+		margin-top: -0.33333rem !important;
+	}
+
+	.u--mr-- {
+		margin-right: -0.33333rem !important;
+	}
+
+	.u--mb-- {
+		margin-bottom: -0.33333rem !important;
+	}
+
+	.u--ml-- {
+		margin-left: -0.33333rem !important;
+	}
+
+	.u--mh-- {
+		margin-right: -0.33333rem !important;
+		margin-left : -0.33333rem !important;
+	}
+
+	.u--mv-- {
+		margin-top   : -0.33333rem !important;
+		margin-bottom: -0.33333rem !important;
+	}
+
+	/**
+	     * Small negative margins.
+	     */
+	.u--m- {
+		margin: -0.66667rem !important;
+	}
+
+	.u--mt- {
+		margin-top: -0.66667rem !important;
+	}
+
+	.u--mr- {
+		margin-right: -0.66667rem !important;
+	}
+
+	.u--mb- {
+		margin-bottom: -0.66667rem !important;
+	}
+
+	.u--ml- {
+		margin-left: -0.66667rem !important;
+	}
+
+	.u--mh- {
+		margin-right: -0.66667rem !important;
+		margin-left : -0.66667rem !important;
+	}
+
+	.u--mv- {
+		margin-top   : -0.66667rem !important;
+		margin-bottom: -0.66667rem !important;
+	}
+
+	/**
+	     * Large negative margins.
+	     */
+	.u--m\00002b {
+		margin: -1.33333rem !important;
+	}
+
+	.u--mt\00002b {
+		margin-top: -1.33333rem !important;
+	}
+
+	.u--mr\00002b {
+		margin-right: -1.33333rem !important;
+	}
+
+	.u--mb\00002b {
+		margin-bottom: -1.33333rem !important;
+	}
+
+	.u--ml\00002b {
+		margin-left: -1.33333rem !important;
+	}
+
+	.u--mh\00002b {
+		margin-right: -1.33333rem !important;
+		margin-left : -1.33333rem !important;
+	}
+
+	.u--mv\00002b {
+		margin-top   : -1.33333rem !important;
+		margin-bottom: -1.33333rem !important;
+	}
+
+	/**
+	     * Huge negative margins.
+	     */
+	.u--m\00002b\00002b {
+		margin: -2rem !important;
+	}
+
+	.u--mt\00002b\00002b {
+		margin-top: -2rem !important;
+	}
+
+	.u--mr\00002b\00002b {
+		margin-right: -2rem !important;
+	}
+
+	.u--mb\00002b\00002b {
+		margin-bottom: -2rem !important;
+	}
+
+	.u--ml\00002b\00002b {
+		margin-left: -2rem !important;
+	}
+
+	.u--mh\00002b\00002b {
+		margin-right: -2rem !important;
+		margin-left : -2rem !important;
+	}
+
+	.u--mv\00002b\00002b {
+		margin-top   : -2rem !important;
+		margin-bottom: -2rem !important;
+	}
+}

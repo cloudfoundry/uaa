@@ -2,22 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorator="layouts/main">
-<head>
-    <th:block layout:include="nav :: head"></th:block>
-    <style th:each="tile,status : ${tiles}" th:utext="'.tile-' + ${status.count} + ' .tile-icon {background-image: url(&#34;' + @{${tile.appIcon}} + '&#34;)}'"></style>
-</head>
-<div layout:fragment="page-nav">
-    <th:block layout:replace="nav :: nav"></th:block>
-</div>
 <div class="island" layout:fragment="page-content">
-    <h1>Where to?</h1>
-    <ul class="tiles">
-        <li th:each="tile,status : ${tiles}" th:id="'tile-' + ${status.count}">
-            <a href="https://www.cloudfoundry.org/" target="_blank" th:href="${tile.appLaunchUrl}" th:class="'tile-' + ${status.count}">
-                <div class="tile-icon"></div>
-            </a>
-            <th:block th:text="${#strings.isEmpty(tile.clientName) ? ' ' : tile.clientName}" />
-        </li>
-    </ul>
+    <div class="box box--huge">
+        <h1 class="text--custom">You should not see this page. Set up your redirect URI.</h1>
+    </div>
 </div>
 </html>

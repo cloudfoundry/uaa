@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,6 +60,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
+@Ignore // Invitations flow is disabled in Predix.
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class InvitationsIT {
@@ -118,6 +120,7 @@ public class InvitationsIT {
     }
 
     @Test
+    @Ignore
     public void testInviteUserWithClientRedirect() throws Exception {
         String userEmail = "user-" + new RandomValueStringGenerator().generate() + "@example.com";
         //user doesn't exist
@@ -185,6 +188,7 @@ public class InvitationsIT {
     }
 
     @Test
+    @Ignore
     public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
         String code = createInvitation();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
