@@ -6,7 +6,7 @@ buildscript {
 
   repositories {
     mavenCentral()
-    jcenter()
+    //jcenter()
     maven {
       url 'http://repo.spring.io/plugins-release'
     }
@@ -253,8 +253,8 @@ cargo {
   local {
     //jacoco agent jar is causing startup to fail. see defect DE30159
     //jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
-    jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-    //jvmArgs = ""
+    //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+    jvmArgs = ""
     outputFile = file('uaa/build/reports/tests/uaa-server.log')
     configFile {
       file = file('scripts/travis/tomcat-conf/context.xml')
