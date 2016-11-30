@@ -12,11 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.Test;
-
 import java.security.Security;
 import java.security.cert.CertificateException;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.Test;
 
 
 public class KeyWithCertTest {
@@ -62,10 +62,53 @@ public class KeyWithCertTest {
             "-----END CERTIFICATE-----\n";
     public static final String password = "password";
 
+    public static final String encryptedKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "Proc-Type: 4,ENCRYPTED\n" +
+            "DEK-Info: DES-EDE3-CBC,BE03AC562D734AB1\n" +
+            "mvMS20ddwCJ6A+ABJKWViGTgLpWUVA5ZqKYU6Q3N+le769s4uygcMOtvTcjgH46E\n" +
+            "3gIDR+Qt+UO/Yv+EgIJnga+vLMayjg/pl2bR8p1lK7gUkAb7DwDviySSi18tAt0O\n" +
+            "NTyJEzy6G+WnlSs+3tzRUCneaoFB1/LDdUSOzaSLRtU/r+Vt/9BYBQbZMalnSQRE\n" +
+            "U17VhISbfj4MgNIfZU+7+ALfE0+Muno4WDk+IJXArAk7wckF6NO7M4EKHlLzrHI0\n" +
+            "+PccNBKN/rAevYZrZOmGCw4jKu5JJDtt6SgQJIp/XGEZlv+KD2cWPBC4nj7nJHAz\n" +
+            "ezt9SfnL8jQlClTwQyPHjwDPlL/WHQrBpxpFF83FnN8B02DWwXQE2oTC7RtijQVT\n" +
+            "NKto/vSODK0RfaulLHNx6RvJF0YFWSSofTm0G5TLwWCCrVekK0N5zAYPeG9LgjlG\n" +
+            "4xILPSE+Y6hYIVN2gXNZOVB8T5O+Jf1KQlmMnZ9A5o1gcUJq0rCBa6i2D2rveQGE\n" +
+            "eLm3BgyMp5v0JsyuzDBuxVWSgJFt+KHz/mhdgdG8End3QBF2BBaHpLP0+5BqIZHX\n" +
+            "NYCDBwWK/k40oxT8KLdFfkBU48Yndq7ARFdq3YzPU6FdSpgwZM5p8HYkl1THcskI\n" +
+            "Ri7zVHxpm0tPZqqqgzr6HBvSiQhACT4dOXV5V8bEoL5tlyuZllq2MBayl9yd0+bq\n" +
+            "6hVZXUYewtPyE2Wj2PDr2F7fGtYhKcrnQxH63w3OhIzgkxUTQ63h710QDJjOtYCm\n" +
+            "/PCAsNBePrnjrHHxMxkMVCtTYSeBePk0vkUtFOE5hIc=\n" +
+            "-----END RSA PRIVATE KEY-----\n";
+
+    public static final String goodCert = "-----BEGIN CERTIFICATE-----\n" +
+            "MIIC6TCCAlICCQDN85uMN+4K5jANBgkqhkiG9w0BAQsFADCBuDELMAkGA1UEBhMC\n" +
+            "VVMxCzAJBgNVBAgMAkNBMRYwFAYDVQQHDA1TYW4gRnJhbmNpc2NvMR0wGwYDVQQK\n" +
+            "DBRQaXZvdGFsIFNvZnR3YXJlIEluYzEeMBwGA1UECwwVQ2xvdWRmb3VuZHJ5IElk\n" +
+            "ZW50aXR5MRswGQYDVQQDDBJ1YWEucnVuLnBpdm90YWwuaW8xKDAmBgkqhkiG9w0B\n" +
+            "CQEWGXZjYXAtZGV2QGNsb3VkZm91bmRyeS5vcmcwHhcNMTUwMzAyMTQyMDQ4WhcN\n" +
+            "MjUwMjI3MTQyMDQ4WjCBuDELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkNBMRYwFAYD\n" +
+            "VQQHDA1TYW4gRnJhbmNpc2NvMR0wGwYDVQQKDBRQaXZvdGFsIFNvZnR3YXJlIElu\n" +
+            "YzEeMBwGA1UECwwVQ2xvdWRmb3VuZHJ5IElkZW50aXR5MRswGQYDVQQDDBJ1YWEu\n" +
+            "cnVuLnBpdm90YWwuaW8xKDAmBgkqhkiG9w0BCQEWGXZjYXAtZGV2QGNsb3VkZm91\n" +
+            "bmRyeS5vcmcwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAN0u5J4BJUDgRv6I\n" +
+            "h5/r7rZjSrFVLL7bl71CzBIaVk1BQPYfBC8gggGAWmYYxJV0Kz+2Vx0Z96OnXhJk\n" +
+            "gG46Zo2KMDudEeSdXou+dSBNISDv4VpLKUGnVU4n/L0khbI+jX51aS80ub8vThca\n" +
+            "bkdY5x4Ir8G3QCQvCGKgU2emfFe7AgMBAAEwDQYJKoZIhvcNAQELBQADgYEAXghg\n" +
+            "PwMhO0+dASJ83e2Bu63pKO808BrVjD51sSEMb0qwFc5IV6RzK/mkJgO0fphhoqOm\n" +
+            "ZLzGcSYwCmj0Vc0GO5NgnFVZg4N9CyYCpDMeQynumlrNhRgnZRzlqXtQgL2bQDiu\n" +
+            "coxNL/KY05iVlE1bmq/fzNEmEi2zf3dQV8CNSYs=\n" +
+            "-----END CERTIFICATE----\n";
+
     @Test(expected = CertificateException.class)
     public void test_invalid_cert() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         new KeyWithCert(key, password, cert);
 
     }
+    @Test()
+    public void test_valid_cert() throws Exception {
+        Security.addProvider(new BouncyCastleProvider());
+        new KeyWithCert(encryptedKey, password, goodCert);
+    }
+
 }
