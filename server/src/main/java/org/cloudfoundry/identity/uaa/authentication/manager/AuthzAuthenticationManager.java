@@ -48,6 +48,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Locale;
 
 /**
@@ -132,6 +133,14 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
 
+                Date passwordNewerThan = getPasswordNewerThan();
+                if(passwordNewerThan != null) {
+                    if(user.getPasswordLastModified() == null || (passwordNewerThan.getTime() > user.getPasswordLastModified().getTime())) {
+                        logger.info("Password change required for user: "+user.getEmail());
+                        throw new PasswordChangeRequiredException(success, "User password needs to be changed");
+                    }
+                }
+                
                 if(user.isPasswordChangeRequired()){
                     logger.info("Password change required for user: "+user.getEmail());
                     throw new PasswordChangeRequiredException(success, "User password needs to be changed");
@@ -156,6 +165,18 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 if (null!=idpDefinition.getPasswordPolicy()) {
                     return idpDefinition.getPasswordPolicy().getExpirePasswordInMonths();
                 }
+            }
+        }
+        return result;
+    }
+
+    protected Date getPasswordNewerThan() {
+        Date result = null;
+        IdentityProvider provider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        if(provider != null) {
+            UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
+            if(idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
+                return idpDefinition.getPasswordPolicy().getPasswordNewerThan();
             }
         }
         return result;

@@ -272,6 +272,19 @@ public class AuthzAuthenticationManagerTests {
         }
     }
 
+    @Test (expected = PasswordChangeRequiredException.class)
+    public void testSystemWidePasswordExpiry() {
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
+        UaaIdentityProviderDefinition idpDefinition = mock(UaaIdentityProviderDefinition.class);
+        provider.setConfig(idpDefinition);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        PasswordPolicy policy = new PasswordPolicy();
+        policy.setPasswordNewerThan(new Date());
+        when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
+        when(db.retrieveUserByName("auser",OriginKeys.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
+    }
+
     @Test
     public void userIsLockedOutAfterNumberOfFailedTriesIsExceeded() throws Exception {
         AccountLoginPolicy lockoutPolicy = mock(PeriodLockoutPolicy.class);
