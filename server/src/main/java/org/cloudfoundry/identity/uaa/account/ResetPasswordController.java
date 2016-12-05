@@ -220,6 +220,7 @@ public class ResetPasswordController {
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "reset_password";
         }
+        return "";
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
