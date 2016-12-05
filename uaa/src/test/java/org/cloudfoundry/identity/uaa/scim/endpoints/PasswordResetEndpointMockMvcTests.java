@@ -18,10 +18,10 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.SavedAccountOption;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.After;
@@ -30,7 +30,7 @@ import org.junit.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.io.UnsupportedEncodingException;
@@ -46,13 +46,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,11 +64,9 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
     private RandomValueStringGenerator originalGenerator;
     private String adminToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    private TestClient testClient;
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
@@ -78,7 +76,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     @After
-    public void resetGenerator() {
+    public void resetGenerator() throws Exception {
         getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
 
@@ -188,7 +186,21 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post)
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("http://localhost:8080/app/"));
+            .andExpect(redirectedUrl("http://localhost:8080/app/"))
+            .andExpect(savedAccountCookie(user));
+    }
+
+    private ResultMatcher savedAccountCookie(ScimUser user) {
+        return result -> {
+            SavedAccountOption savedAccountOption = new SavedAccountOption();
+            savedAccountOption.setEmail(user.getPrimaryEmail());
+            savedAccountOption.setUsername(user.getUserName());
+            savedAccountOption.setOrigin(user.getOrigin());
+            savedAccountOption.setUserId(user.getId());
+            String cookieName = "Saved-Account-" + user.getId();
+            cookie().value(cookieName, JsonUtils.writeValueAsString(savedAccountOption)).match(result);
+            cookie().maxAge(cookieName, 365*24*60*60);
+        };
     }
 
     @Test
@@ -263,16 +275,16 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
         userInZone.setPassword("secr3T");
         userInZone = MockMvcUtils.utils().createUserInZone(getMockMvc(), adminToken, userInZone, "",identityZone.getId());
 
-        ResultActions resultActions = getMockMvc().perform(post("/password_resets")
-          .header("Authorization", "Bearer " + zoneAdminAccessToken)
-          .header(HEADER, identityZone.getId())
-          .contentType(APPLICATION_JSON)
-          .content(userInZone.getPrimaryEmail())
-          .accept(APPLICATION_JSON))
-          .andExpect(status().isCreated());
-
-        String code = resultActions.andReturn().getResponse().getContentAsString();
-        assertNotNull(code);
+        getMockMvc().perform(
+            post("/password_resets")
+                .header("Authorization", "Bearer " + zoneAdminAccessToken)
+                .header(HEADER, identityZone.getId())
+                .contentType(APPLICATION_JSON)
+                .content(userInZone.getPrimaryEmail())
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.user_id").exists())
+            .andExpect(jsonPath("$.code").isNotEmpty());
     }
 
     private String getExpiringCode(String clientId, String redirectUri) throws Exception {

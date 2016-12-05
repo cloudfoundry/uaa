@@ -33,6 +33,8 @@ public class UaaAuthenticationSerializer extends JsonSerializer<UaaAuthenticatio
         gen.writeNumberField(AUTH_TIME, value.getAuthenticatedTime());
         gen.writeBooleanField(AUTHENTICATED, value.isAuthenticated());
         gen.writeObjectField(USER_ATTRIBUTES, value.getUserAttributesAsMap());
+        gen.writeObjectField(AUTHENTICATION_METHODS, value.getAuthenticationMethods());
+        gen.writeObjectField(AUTHN_CONTEXT_CLASS_REF, value.getAuthContextClassRef());
         gen.writeEndObject();
     }
 }

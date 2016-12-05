@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -123,7 +124,7 @@ public class UaaAuthenticationSerializationTests {
         assertEquals(1438649464353l, authentication1.getAuthenticatedTime());
         assertEquals(-1l, authentication1.getExpiresAt());
         assertTrue(authentication1.isAuthenticated());
-
+        assertNull(authentication1.getAuthContextClassRef());
         String dataWithoutTime ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"name\":\"username\"}";
         UaaAuthentication authentication2 = JsonUtils.readValue(dataWithoutTime, UaaAuthentication.class);
         assertEquals(-1, authentication2.getAuthenticatedTime());

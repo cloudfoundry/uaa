@@ -173,7 +173,7 @@ public class BootstrapTests {
         };
         context.setServletContext(servletContext);
         MockServletConfig servletConfig = new MockServletConfig(servletContext);
-        servletConfig.addInitParameter("environmentConfigLocations", "file:${UAA_CONFIG_PATH}/uaa.yml,login.yml");
+        servletConfig.addInitParameter("environmentConfigLocations", "required_configuration.yml,file:${UAA_CONFIG_PATH}/uaa.yml,login.yml");
         context.setServletConfig(servletConfig);
 
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();

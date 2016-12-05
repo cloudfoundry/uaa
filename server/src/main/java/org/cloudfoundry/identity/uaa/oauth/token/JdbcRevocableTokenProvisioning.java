@@ -83,6 +83,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
 
     @Override
     public RevocableToken create(RevocableToken t) {
+        checkExpired();
         String zoneId = IdentityZoneHolder.get().getId();
         template.update(INSERT_QUERY,
                         t.getTokenId(),

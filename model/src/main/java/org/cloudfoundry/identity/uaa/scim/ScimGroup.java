@@ -15,12 +15,17 @@ package org.cloudfoundry.identity.uaa.scim;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.util.Optional.ofNullable;
 
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ScimGroup extends ScimCore {
+public class ScimGroup extends ScimCore<ScimGroup> {
 
     private String displayName;
     private String zoneId;
@@ -75,6 +80,53 @@ public class ScimGroup extends ScimCore {
         super(id);
         this.displayName = name;
         this.zoneId = zoneId;
+    }
+
+    @Override
+    public void patch(ScimGroup patch) {
+        String[] attributes = ofNullable(patch.getMeta().getAttributes()).orElse(new String[0]);
+        for (String attribute : attributes) {
+            switch (attribute.toUpperCase()) {
+                case "DESCRIPTION":
+                    setDescription(null);
+                    break;
+                case "DISPLAYNAME":
+                    setDisplayName(null);
+                    break;
+                case "ZONEID":
+                    throw new IllegalArgumentException("Cannot delete or change ZoneId");
+                case "ID":
+                    throw new IllegalArgumentException("Cannot delete or change ID");
+                case "MEMBERS":
+                    setMembers(new ArrayList<>());
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+            }
+        }
+
+        if (patch.getMembers() != null) {
+            //remove all members that are in the patch list
+            Set<String> patchMemberIds = patch
+                .getMembers()
+                .stream()
+                .map(member -> member.getMemberId())
+                .collect(Collectors.toSet());
+            List<ScimGroupMember> newMembers = new ArrayList<>(getMembers());
+            newMembers.removeIf(member -> patchMemberIds.contains(member.getMemberId()));
+
+            //add back all members that don't have "delete" as operation
+            newMembers.addAll(
+                patch.getMembers()
+                .stream()
+                .filter(member -> !("delete".equalsIgnoreCase(member.getOperation())))
+                .collect(Collectors.toList())
+            );
+
+            setMembers(newMembers);
+        }
+        ofNullable(patch.getDescription()).ifPresent(d -> setDescription(d));
+        ofNullable(patch.getDisplayName()).ifPresent(d -> setDisplayName(d));
     }
 
     @Override

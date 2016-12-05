@@ -4,6 +4,7 @@ import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SingleLogoutService;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.SAMLCredential;
 import org.springframework.security.saml.SAMLLogoutFilter;
@@ -13,20 +14,19 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
 import org.springframework.util.Assert;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 public class UaaSamlLogoutFilter extends SAMLLogoutFilter {
 
 
-    public UaaSamlLogoutFilter(LogoutSuccessHandler logoutSuccessHandler, LogoutHandler[] localHandler, LogoutHandler[] globalHandlers) {
-        super(logoutSuccessHandler, localHandler, globalHandlers);
+    public UaaSamlLogoutFilter(LogoutSuccessHandler logoutSuccessHandler, LogoutHandler... handlers) {
+        super(logoutSuccessHandler, handlers, handlers);
         setFilterProcessesUrl("/logout.do");
     }
 
     @Override
     protected boolean isGlobalLogout(HttpServletRequest request, Authentication auth) {
-        if (!(auth.getCredentials() instanceof SAMLCredential)) { return false; }
-
         SAMLMessageContext context;
         try {
             SAMLCredential credential = (SAMLCredential) auth.getCredentials();
@@ -40,5 +40,11 @@ public class UaaSamlLogoutFilter extends SAMLLogoutFilter {
             logger.debug("Error processing metadata", e);
             return false;
         }
+    }
+
+    @Override
+    protected boolean requiresLogout(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getCredentials() instanceof SAMLCredential && super.requiresLogout(request, response);
     }
 }

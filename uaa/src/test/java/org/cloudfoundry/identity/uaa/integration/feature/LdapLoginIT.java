@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,15 +23,17 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
+
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class LdapLoginIT {
-
-
 
     @Autowired
     @Rule
@@ -55,31 +56,25 @@ public class LdapLoginIT {
 
     ServerRunning serverRunning = ServerRunning.isRunning();
 
-
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         screenShootRule.setWebDriver(webDriver);
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
-        webDriver.get(baseUrl.replace("localhost", "testzone2.localhost") + "/logout.do");
-        webDriver.manage().deleteAllCookies();
+        for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
+            webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
+            webDriver.manage().deleteAllCookies();
+        }
     }
-
     @Test
-    @Ignore
-    public void ldapLogin_withValidSelfSignedCert() throws Exception {
-        performLdapLogin("testzone2", "ldaps://52.87.212.253:636/");
-        assertThat("Unable to verify non expired cert. Did you run:scripts/travis/install-ldap-certs.sh ?", webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
-    }
-
-    @Test
-    @Ignore
-    public void ldapLogin_withExpiredSelfSignedCert() throws Exception {
-        performLdapLogin("testzone1", "ldaps://52.20.5.106:636/");
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone1]!"));
+    public void ldapLogin_with_StartTLS() throws Exception {
+        performLdapLogin("testzone2", "ldap://52.87.212.253:389/", true, true);
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost","testzone2.localhost"), webDriver);
     }
 
     private void performLdapLogin(String subdomain, String ldapUrl) throws Exception {
+        performLdapLogin(subdomain, ldapUrl, false, false);
+    }
+    private void performLdapLogin(String subdomain, String ldapUrl, boolean startTls, boolean skipSSLVerification) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone2.localhost
         assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         //ensure that certs have been added to truststore via gradle
@@ -126,6 +121,8 @@ public class LdapLoginIT {
           true,
           100,
           false);
+        ldapIdentityProviderDefinition.setTlsConfiguration(startTls ? LDAP_TLS_SIMPLE : LDAP_TLS_NONE);
+        ldapIdentityProviderDefinition.setSkipSSLVerification(skipSSLVerification);
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);

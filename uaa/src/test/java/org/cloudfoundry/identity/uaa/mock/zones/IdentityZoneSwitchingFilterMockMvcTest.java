@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -42,14 +41,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextTest {
 
-    private TestClient testClient;
     private String identityToken;
     private String adminToken;
     private RandomValueStringGenerator generator;
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         identityToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",

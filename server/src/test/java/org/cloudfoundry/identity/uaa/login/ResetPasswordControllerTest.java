@@ -18,19 +18,18 @@ import org.cloudfoundry.identity.uaa.account.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.account.NotFoundException;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
-import org.cloudfoundry.identity.uaa.account.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +38,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -50,8 +48,6 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Date;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
@@ -86,6 +82,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     @Autowired
     @Qualifier("mailTemplateEngine")
     private SpringTemplateEngine templateEngine;
+    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
 
     @Before
     public void setUp() throws Exception {
@@ -96,7 +93,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         codeStore = mock(ExpiringCodeStore.class);
         userDatabase = mock(UaaUserDatabase.class);
         when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
@@ -145,7 +142,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         IdentityZoneHolder.get().setConfig(config);
 
         try {
-            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
             String domain = zoneDomain == null ? "localhost" : zoneDomain + ".localhost";
             when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd"));
             MockHttpServletRequestBuilder post = post("/forgot_password.do")
@@ -198,7 +195,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
         viewResolver.setSuffix(".jsp");

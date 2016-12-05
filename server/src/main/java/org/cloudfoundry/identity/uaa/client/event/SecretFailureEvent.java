@@ -39,12 +39,16 @@ public class SecretFailureEvent extends AbstractClientAdminEvent {
     public AuditEvent getAuditEvent() {
         ClientDetails client = getClient();
         if (client == null) {
-            return createAuditRecord(getPrincipal().getName(), AuditEventType.SecretChangeFailure,
-                            getOrigin(getPrincipal()), message);
+            return createAuditRecord(getPrincipal().getName(),
+                                     AuditEventType.SecretChangeFailure,
+                                     getOrigin(getPrincipal()),
+                                     message);
         }
         else {
-            return createAuditRecord(client.getClientId(), AuditEventType.SecretChangeFailure,
-                            getOrigin(getPrincipal()), message);
+            return createAuditRecord(client.getClientId(),
+                                     AuditEventType.SecretChangeFailure,
+                                     getOrigin(getPrincipal()),
+                                     message);
         }
     }
 

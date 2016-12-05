@@ -37,7 +37,7 @@
 #  driverClassName: org.mariadb.jdbc.Driver
 #  url: jdbc:mysql://localhost:3306/uaa
 #  username: root
-#  password:
+#  password: blabla
 
 #mysql commands that were run
 #create database uaa;
@@ -89,6 +89,7 @@
 #    lQ23NhTaljASF0g8AZ7SZEItU8JFYqf/KnNJ7FPwo4LbMbr7Zg6BRKBvnQ==
 #    -----END CERTIFICATE-----'
 #    sslCertificateAlias: ldaps
+#    tls: <none | simple | external>
 #  externalGroupsWhitelist:
 #    - admin
 #    - user

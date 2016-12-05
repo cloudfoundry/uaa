@@ -32,9 +32,14 @@ import org.springframework.security.oauth2.provider.client.InMemoryClientDetails
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.EMPTY_LIST;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
@@ -58,6 +63,8 @@ public class TokenValidationTest {
     private Map<String, Object> content;
     private Signer signer;
     private RevocableTokenProvisioning revocableTokenProvisioning;
+    private InMemoryClientDetailsService clientDetailsService;
+    private UaaUserDatabase userDb;
 
     @Before
     public void setup() {
@@ -89,26 +96,35 @@ public class TokenValidationTest {
         );
 
         signer = new MacSigner("secret");
+
+        clientDetailsService = new InMemoryClientDetailsService();
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap("app", new BaseClientDetails("app", "acme", "acme.dev", "authorization_code", "")));
+        revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+            .thenReturn(new RevocableToken().setValue(UaaTokenUtils.constructToken(header, content, signer)));
+
+        userDb = new MockUaaUserDatabase(u -> u
+            .withUsername("marissa")
+            .withId("a7f07bf6-e720-4652-8999-e980189cef54")
+            .withEmail("marissa@test.org")
+            .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("acme.dev"))));
+
     }
 
     private String getToken() {
+        return getToken(EMPTY_LIST);
+    }
+    private String getToken(Collection<String> excludedClaims) {
+        Map<String, Object> content = this.content != null ? new HashMap(this.content) : null;
+        for (String key : excludedClaims) {
+            content.remove(key);
+        }
         return UaaTokenUtils.constructToken(header, content, signer);
     }
 
     @Test
     public void validateToken() throws Exception {
-        InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("app", new BaseClientDetails("app", "acme", "acme.dev", "authorization_code", "")));
-
-        revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
-            .thenReturn(new RevocableToken().setValue(UaaTokenUtils.constructToken(header, content, signer)));
-
-        UaaUserDatabase userDb = new MockUaaUserDatabase(u -> u
-                .withUsername("marissa")
-                .withId("a7f07bf6-e720-4652-8999-e980189cef54")
-                .withEmail("marissa@test.org")
-                .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("acme.dev"))));
 
         TokenValidation validation = validate(getToken())
                 .checkSignature(verifier)
@@ -118,10 +134,29 @@ public class TokenValidationTest {
                 .checkUser(userDb)
                 .checkScopesInclude("acme.dev")
                 .checkScopesWithin("acme.dev", "another.scope")
-                .checkRevocationSignature("fa1c787d")
+                .checkRevocationSignature(Collections.singletonList("fa1c787d"))
                 .checkAudience("acme", "app")
                 .checkRevocableTokenStore(revocableTokenProvisioning)
                 ;
+
+        assertThat(validation.getValidationErrors(), empty());
+        assertTrue(validation.isValid());
+    }
+
+    @Test
+    public void validateToken_Without_Email_And_Username() throws Exception {
+        TokenValidation validation = validate(getToken(Arrays.asList(EMAIL, USER_NAME)))
+            .checkSignature(verifier)
+            .checkIssuer("http://localhost:8080/uaa/oauth/token")
+            .checkClient(clientDetailsService)
+            .checkExpiry(oneSecondBeforeTheTokenExpires)
+            .checkUser(userDb)
+            .checkScopesInclude("acme.dev")
+            .checkScopesWithin("acme.dev", "another.scope")
+            .checkRevocationSignature(Collections.singletonList("fa1c787d"))
+            .checkAudience("acme", "app")
+            .checkRevocableTokenStore(revocableTokenProvisioning)
+            ;
 
         assertThat(validation.getValidationErrors(), empty());
         assertTrue(validation.isValid());
@@ -235,11 +270,21 @@ public class TokenValidationTest {
 
     @Test
     public void clientRevocationHashChanged() {
-        TokenValidation validation = validate(getToken())
-                .checkRevocationSignature("New-Hash");
+        TokenValidation validation = validate(getToken()).checkRevocationSignature(Collections.singletonList("New-Hash"));
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
+
+    @Test
+    public void clientRevocationHashChanged_and_Should_Pass() {
+        TokenValidation validation = validate(getToken()).checkRevocationSignature(Arrays.asList("fa1c787d", "New-Hash"));
+        assertTrue(validation.isValid());
+
+        validation = validate(getToken()).checkRevocationSignature(Arrays.asList("New-Hash", "fa1c787d"));
+        assertTrue(validation.isValid());
+
+    }
+
 
     @Test
     public void incorrectAudience() {

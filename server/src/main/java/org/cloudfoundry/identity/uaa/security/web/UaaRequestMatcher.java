@@ -99,11 +99,10 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     @Override
     public boolean matches(HttpServletRequest request) {
-        String message = "";
-        if (logger.isDebugEnabled()) {
-            message = request.getRequestURI() + "'; '" + request.getContextPath() + path + "' with parameters="
-                            + parameters + " and headers " + expectedHeaders;
-            logger.debug("["+name+"] Checking match of request : '" + message);
+        String message = request.getRequestURI() + "'; '" + request.getContextPath() + path + "' with parameters="
+            + parameters + " and headers " + expectedHeaders;
+        if (logger.isTraceEnabled()) {
+            logger.trace("["+name+"] Checking match of request : '" + message);
         }
 
         if (!request.getRequestURI().startsWith(request.getContextPath() + path)) {

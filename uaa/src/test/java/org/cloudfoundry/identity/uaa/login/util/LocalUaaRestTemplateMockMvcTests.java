@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 public class LocalUaaRestTemplateMockMvcTests extends InjectedMockContextTest {
 
     @Test
-    public void testLocalUaaRestTemplateAcquireToken() {
+    public void testLocalUaaRestTemplateAcquireToken() throws Exception {
         LocalUaaRestTemplate restTemplate = getWebApplicationContext().getBean(LocalUaaRestTemplate.class);
         OAuth2AccessToken token = restTemplate.acquireAccessToken(new DefaultOAuth2ClientContext());
         assertTrue("Scopes should contain oauth.login", token.getScope().contains("oauth.login"));

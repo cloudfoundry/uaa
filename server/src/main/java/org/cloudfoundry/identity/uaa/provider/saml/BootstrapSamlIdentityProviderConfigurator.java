@@ -120,6 +120,15 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             String groupMappingMode = (String)((Map)entry.getValue()).get("groupMappingMode");
             String providerDescription = (String)((Map)entry.getValue()).get(PROVIDER_DESCRIPTION);
             Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
+            Boolean skipSslValidation = (Boolean)((Map)entry.getValue()).get("skipSslValidation");
+            if (skipSslValidation==null) {
+                if (socketFactoryClassName != null) {
+                    skipSslValidation = false;
+                } else {
+                    skipSslValidation = true;
+                }
+            }
+
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
             List<String> externalGroupsWhitelist = (List<String>) saml.get(EXTERNAL_GROUPS_WHITELIST);
             Map<String, Object> attributeMappings = (Map<String, Object>) saml.get(ATTRIBUTE_MAPPINGS);
@@ -148,6 +157,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             def.setAttributeMappings(attributeMappings);
             def.setZoneId(hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
+            def.setSkipSslValidation(skipSslValidation);
             toBeFetchedProviders.add(def);
         }
     }

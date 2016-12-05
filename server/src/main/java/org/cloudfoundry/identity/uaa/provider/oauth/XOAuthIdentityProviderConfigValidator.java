@@ -31,7 +31,7 @@ public class XOAuthIdentityProviderConfigValidator implements IdentityProviderCo
             errors.add("Relying Party Id must be the client-id for the UAA that is registered with the external IDP");
         }
 
-        if(!StringUtils.hasText(def.getRelyingPartySecret())) {
+        if(!StringUtils.hasText(def.getRelyingPartySecret()) && !def.getResponseType().contains("token")) {
             errors.add("Relying Party Secret must be the client-secret for the UAA that is registered with the external IDP");
         }
 

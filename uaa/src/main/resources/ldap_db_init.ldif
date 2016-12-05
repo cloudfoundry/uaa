@@ -56,11 +56,20 @@ olcAttributeTypes: (
 
 dn: cn=schema,cn=config
 changetype: modify
+add: olcAttributeTypes
+olcAttributeTypes: (
+  1.3.6.1.4.1.35015.1.2.6
+  NAME 'memberOf'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+ )
+
+dn: cn=schema,cn=config
+changetype: modify
 add: olcObjectClasses
 olcObjectClasses: (
   1.3.6.1.4.1.35015.1.2.6
   NAME 'customUaaUser'
   SUP top
   AUXILIARY
-  MUST (uaaManager $ costCenter)
+  MUST (uaaManager $ costCenter $ memberOf)
  )

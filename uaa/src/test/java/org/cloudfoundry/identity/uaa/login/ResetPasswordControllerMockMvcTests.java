@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -61,10 +62,10 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest {
 
@@ -76,7 +77,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     }
 
     @After
-    public void resetGenerator() {
+    public void resetGenerator() throws Exception {
         getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
 
@@ -93,7 +94,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("home"))
+            .andExpect(redirectedUrl("/"))
             .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
@@ -161,7 +162,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertNotEquals(code.getCode(), newCode);
         getMockMvc().perform(createChangePasswordRequest(user, newCode, true, "secret1", "secret1"))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("home"));
+            .andExpect(redirectedUrl("/"));
     }
 
     @Test
@@ -222,7 +223,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             @Override public List<Locale> getLocales() { return null; }
             @Override public Map<String, String[]> getParameterMap() { return null; }
         };
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
@@ -283,7 +284,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         MvcResult mvcResult = getMockMvc().perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("home"))
+            .andExpect(redirectedUrl("/"))
             .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
@@ -310,8 +311,8 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
         getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
             .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("forgot_password"))
-            .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
+            .andExpect(request().attribute("message", equalTo("Your new password cannot be the same as the old password.")))
+            .andExpect(forwardedUrl("/forgot_password"));
     }
 
     private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF) throws Exception {

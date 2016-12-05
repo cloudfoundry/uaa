@@ -11,7 +11,7 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -208,7 +208,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
 
-        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("https://oidc10.auth.url"));
 
         IdentityProvider provider = new IdentityProvider();

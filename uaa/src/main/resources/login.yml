@@ -76,6 +76,7 @@ login:
 #            - roles_example_group
   url: http://localhost:8080/uaa
 #  idpDiscoveryEnabled: true
+#  accountChooserEnabled: true
 
   # SAML Key Configuration
   # The location and credentials of the certificate for this SP
@@ -247,9 +248,6 @@ uaa:
     url: http://localhost:8080/uaa/approvals
   login:
     url: http://localhost:8080/uaa/authenticate
-
-# The secret that this login server will use to authenticate to the uaa
-LOGIN_SECRET: loginsecret
 
 # Google Analytics
 #analytics:

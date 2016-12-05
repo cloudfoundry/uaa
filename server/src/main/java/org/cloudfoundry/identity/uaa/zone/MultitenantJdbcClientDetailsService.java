@@ -31,11 +31,8 @@ import org.springframework.security.oauth2.common.util.DefaultJdbcListFactory;
 import org.springframework.security.oauth2.common.util.JdbcListFactory;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -48,8 +45,8 @@ import java.util.*;
 /**
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
  */
-public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsService implements ClientDetailsService,
-    ClientRegistrationService, ResourceMonitor<ClientDetails>, SystemDeletable {
+public class MultitenantJdbcClientDetailsService implements ClientServicesExtension,
+    ResourceMonitor<ClientDetails>, SystemDeletable {
 
     private static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
 
@@ -101,7 +98,6 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     private JdbcListFactory listFactory;
 
     public MultitenantJdbcClientDetailsService(DataSource dataSource) {
-        super(dataSource);
         Assert.notNull(dataSource, "DataSource required");
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.listFactory = new DefaultJdbcListFactory(new NamedParameterJdbcTemplate(jdbcTemplate));
@@ -118,6 +114,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     public ClientDetails loadClientByClientId(String clientId) throws InvalidClientException {
         ClientDetails details;
         try {
+
             details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
@@ -260,6 +257,28 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     public Log getLogger() {
         return logger;
     }
+
+    @Override
+    public void addClientSecret(String clientId, String newSecret) throws NoSuchClientException {
+        ClientDetails clientDetails = loadClientByClientId(clientId);
+        String encodedNewSecret = passwordEncoder.encode(newSecret);
+        StringBuilder newSecretBuilder = new StringBuilder().append(clientDetails.getClientSecret()==null?"":clientDetails.getClientSecret()+" ").append(encodedNewSecret);
+        int count = jdbcTemplate.update(updateClientSecretSql, newSecretBuilder.toString(), clientId, IdentityZoneHolder.get().getId());
+        if (count != 1) {
+            throw new NoSuchClientException("No client found with id = " + clientId);
+        }
+    }
+
+    @Override
+    public void deleteClientSecret(String clientId) throws NoSuchClientException {
+        ClientDetails clientDetails = loadClientByClientId(clientId);
+        String clientSecret = clientDetails.getClientSecret().split(" ")[1];
+        int count = jdbcTemplate.update(updateClientSecretSql, clientSecret, clientId, IdentityZoneHolder.get().getId());
+        if (count != 1) {
+            throw new NoSuchClientException("Unable to update client with " + clientId);
+        }
+    }
+
 
     /**
      * Row mapper for ClientDetails.

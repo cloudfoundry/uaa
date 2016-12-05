@@ -1,21 +1,21 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.ServletException;
-
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LoginSAMLAuthenticationFailureHandlerTest {
 
@@ -29,7 +29,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -53,7 +53,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -77,14 +77,14 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         AuthenticationException exception = new AuthenticationException("Authentication Exception") {
             /**
-             * 
+             *
              */
             private static final long serialVersionUID = 1L;
         };
@@ -143,7 +143,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();

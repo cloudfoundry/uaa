@@ -64,6 +64,7 @@ public final class LdapUtils {
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_GROUPS_SEARCH_SUBTREE, definition.isGroupSearchSubTree(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_PROFILE_FILE, definition.getLdapProfileFile(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_SKIPVERIFICATION, definition.isSkipSSLVerification(), properties);
+        setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_TLS, definition.getTlsConfiguration(), properties);
         setIfNotNull("ldap.addShadowUserOnLogin",  definition.isAddShadowUserOnLogin(), properties);
 
         MapPropertySource source = new NestedMapPropertySource("ldap", properties);
@@ -132,6 +133,7 @@ public final class LdapUtils {
 
         definition.setBaseUrl((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_URL));
         definition.setSkipSSLVerification((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_SSL_SKIPVERIFICATION));
+        definition.setTlsConfiguration((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_SSL_TLS));
         definition.setReferral((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_REFERRAL));
         definition.setMailSubstituteOverridesLdap((Boolean)ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP));
         if (StringUtils.hasText((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_ATTRIBUTE_NAME))) {

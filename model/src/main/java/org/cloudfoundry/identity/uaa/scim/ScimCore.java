@@ -17,7 +17,7 @@ import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
-public abstract class ScimCore {
+public abstract class ScimCore<T extends ScimCore> {
 
     public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
 
@@ -75,6 +75,10 @@ public abstract class ScimCore {
 
     public String[] getSchemas() {
         return SCHEMAS;
+    }
+
+    public void patch(T patch) {
+        //no op - we don't patch metadata
     }
 
     @Override

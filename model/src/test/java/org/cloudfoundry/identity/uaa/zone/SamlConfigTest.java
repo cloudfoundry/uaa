@@ -40,7 +40,7 @@ public class SamlConfigTest {
 
     @Test
     public void testIsWantAssertionSigned() throws Exception {
-        assertFalse(config.isWantAssertionSigned());
+        assertTrue(config.isWantAssertionSigned());
     }
 
     @Test

@@ -32,8 +32,11 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.ISO_8859_1;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.convertISO8859_1_to_UTF_8;
+import static org.springframework.util.StringUtils.hasText;
 
 public class UTF8ConversionFilter implements Filter {
+
+    public static final String NULL_STRING = new String(new char[] {'\u0000'});
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -51,10 +54,25 @@ public class UTF8ConversionFilter implements Filter {
         if (MediaType.APPLICATION_FORM_URLENCODED_VALUE.equals(request.getContentType()) &&
             (request.getCharacterEncoding() == null ||  ISO_8859_1.equalsIgnoreCase(request.getCharacterEncoding()))
            ) {
-            chain.doFilter(new UtfConverterRequestWrapper(request), response);
-        } else {
-            chain.doFilter(request, response);
+            request = new UtfConverterRequestWrapper(request);
         }
+        validateParamsAndContinue(request, response, chain);
+    }
+
+    protected void validateParamsAndContinue(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+        for (Map.Entry<String, String[]> entry : request.getParameterMap().entrySet()) {
+            if (entry.getValue() != null && entry.getValue().length >0) {
+                for (String s : entry.getValue()) {
+                    if (hasText(s) && s.contains(NULL_STRING)) {
+                        response.setStatus(400);
+                        request.setAttribute("error_message_code", "request.invalid_parameter");
+                        request.getRequestDispatcher("/error").forward(request,response);
+                        return;
+                    }
+                }
+            }
+        }
+        chain.doFilter(request, response);
     }
 
     @Override

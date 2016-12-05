@@ -120,6 +120,7 @@ public class UserTokenGranter  extends AbstractTokenGranter {
 
     @Override
     protected OAuth2AccessToken getAccessToken(ClientDetails client, TokenRequest tokenRequest) {
-        return prepareForSerialization((DefaultOAuth2AccessToken) super.getAccessToken(client, tokenRequest));
+        ClientDetails receivingClient = clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID));
+        return prepareForSerialization((DefaultOAuth2AccessToken) super.getAccessToken(receivingClient, tokenRequest));
     }
 }

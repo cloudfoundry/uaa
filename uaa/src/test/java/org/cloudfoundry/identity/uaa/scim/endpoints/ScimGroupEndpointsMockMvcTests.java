@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -96,7 +95,6 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     private List<ScimGroupExternalMember> databaseExternalMembers;
     private String clientId;
     private String clientSecret;
-    private TestClient testClient;
     private JdbcTemplate template;
     private ScimExternalGroupBootstrap bootstrap;
 
@@ -120,7 +118,6 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         template.update("delete from external_group_mapping");
         bootstrap.afterPropertiesSet();
 
-        testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
                 "clients.read clients.write clients.secret clients.admin");
         clientId = generator.generate().toLowerCase();
@@ -494,7 +491,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .param("password", "password")
                 .param("scope", "scim.read");
         MvcResult tokenResult = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        TestClient.OAuthToken oauthToken = JsonUtils.readValue(tokenResult.getResponse().getContentAsString(), TestClient.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(tokenResult.getResponse().getContentAsString(), OAuthToken.class);
         String zoneUserToken = oauthToken.accessToken;
 
         MockHttpServletRequestBuilder get = get("/Groups")

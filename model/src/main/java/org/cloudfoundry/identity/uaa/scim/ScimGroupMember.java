@@ -44,6 +44,8 @@ public class ScimGroupMember<TEntity extends ScimCore> {
 
     private String origin = OriginKeys.UAA;
 
+    private String operation;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public enum Type {
         USER, GROUP
@@ -78,6 +80,14 @@ public class ScimGroupMember<TEntity extends ScimCore> {
 
     public void setType(Type type) {
         this.type = type;
+    }
+
+    public String getOperation() {
+        return operation;
+    }
+
+    public void setOperation(String operation) {
+        this.operation = operation;
     }
 
     @Override

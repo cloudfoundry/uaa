@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -63,6 +62,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -131,7 +131,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     private String identityClientZonesReadToken = null;
     private String identityClientZonesWriteToken = null;
     private String adminToken = null;
-    private TestClient testClient = null;
     private MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private TestApplicationEventListener<IdentityZoneModifiedEvent> zoneModifiedEventListener;
@@ -144,7 +143,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         zoneModifiedEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), IdentityZoneModifiedEvent.class);
         clientCreateEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), ClientCreateEvent.class);
         clientDeleteEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), ClientDeleteEvent.class);
@@ -181,7 +179,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @After
-    public void after() {
+    public void after() throws Exception {
         IdentityZoneHolder.clear();
         mockMvcUtils.removeEventListener(getWebApplicationContext(), zoneModifiedEventListener);
         mockMvcUtils.removeEventListener(getWebApplicationContext(), clientCreateEventListener);
@@ -912,8 +910,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone deletedZone = (IdentityZone) deletedEvent.getDeleted();
         assertThat(deletedZone.getId(), is(id));
         assertThat(deletedEvent.getIdentityZone().getId(), is(id));
-        IdentityZone auditedIdentityZone = JsonUtils.readValue(deletedEvent.getAuditEvent().getData(), IdentityZone.class);
-        assertThat(auditedIdentityZone.getId(), is(id));
+        String auditedIdentityZone = deletedEvent.getAuditEvent().getData();
+        assertThat(auditedIdentityZone, containsString(id));
     }
 
     @Test

@@ -25,7 +25,7 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
@@ -78,7 +78,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             IdentityProvider provider = new IdentityProvider();
             if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
                 provider.setType(OriginKeys.OAUTH20);
-            } else if(XOIDCIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
+            } else if(OIDCIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
                 provider.setType(OriginKeys.OIDC10);
             } else {
                 throw new IllegalArgumentException("Unknown provider type.");

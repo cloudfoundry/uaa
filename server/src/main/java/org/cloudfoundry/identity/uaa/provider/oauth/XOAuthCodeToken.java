@@ -23,12 +23,25 @@ public class XOAuthCodeToken implements Authentication {
     private String code;
     private String origin;
     private String redirectUrl;
+    private String idToken;
+    private String accessToken;
     private UaaAuthenticationDetails details;
 
     public XOAuthCodeToken(String code, String origin, String redirectUrl) {
         this.code = code;
         this.origin = origin;
         this.redirectUrl = redirectUrl;
+    }
+
+    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken) {
+        this(code, origin, redirectUrl);
+        this.idToken = idToken;
+        this.accessToken = accessToken;
+    }
+
+    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, UaaAuthenticationDetails details) {
+        this(code, origin, redirectUrl, idToken, accessToken);
+        this.details = details;
     }
 
     public String getCode() {
@@ -91,5 +104,21 @@ public class XOAuthCodeToken implements Authentication {
     @Override
     public String getName() {
         return getCode();
+    }
+
+    public String getIdToken() {
+        return idToken;
+    }
+
+    public void setIdToken(String idToken) {
+        this.idToken = idToken;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
     }
 }

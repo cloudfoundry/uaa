@@ -15,17 +15,12 @@ package org.cloudfoundry.identity.uaa.account;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -33,10 +28,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -47,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.sql.Timestamp;
@@ -65,15 +58,17 @@ public class ResetPasswordController {
     private final Pattern emailPattern;
     private final ExpiringCodeStore codeStore;
     private final UaaUserDatabase userDatabase;
+    private final AccountSavingAuthenticationSuccessHandler successHandler;
 
     public ResetPasswordController(ResetPasswordService resetPasswordService,
                                    MessageService messageService,
                                    TemplateEngine templateEngine,
                                    ExpiringCodeStore codeStore,
-                                   UaaUserDatabase userDatabase) {
+                                   UaaUserDatabase userDatabase, AccountSavingAuthenticationSuccessHandler successHandler) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
+        this.successHandler = successHandler;
         emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
         this.codeStore = codeStore;
         this.userDatabase = userDatabase;
@@ -212,6 +207,7 @@ public class ResetPasswordController {
                                 @RequestParam("email") String email,
                                 @RequestParam("password") String password,
                                 @RequestParam("password_confirmation") String passwordConfirmation,
+                                HttpServletRequest request,
                                 HttpServletResponse response,
                                 HttpSession session) {
 
@@ -223,26 +219,6 @@ public class ResetPasswordController {
             model.addAttribute("passwordPolicy", resetPasswordService.getPasswordPolicy());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "reset_password";
-        }
-
-        try {
-            ResetPasswordService.ResetPasswordResponse resetPasswordResponse = resetPasswordService.resetPassword(code, password);
-            ScimUser user = resetPasswordResponse.getUser();
-            UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
-            UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
-            SecurityContextHolder.getContext().setAuthentication(token);
-
-            String redirectLocation = resetPasswordResponse.getRedirectUri();
-            SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
-            if (redirectLocation.equals("home") && savedRequest != null && savedRequest.getRedirectUrl() != null) {
-                redirectLocation = savedRequest.getRedirectUrl();
-            }
-
-            return "redirect:" + redirectLocation;
-        } catch (UaaException e) {
-            return handleUnprocessableEntity(model, response, "message_code", "bad_code");
-        } catch (InvalidPasswordException e) {
-            return handleUnprocessableEntity(model, response, "message", e.getMessagesAsOneString());
         }
     }
 
