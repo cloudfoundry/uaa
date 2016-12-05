@@ -30,11 +30,13 @@ If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
     $ cd uaa
-    $ LOGIN_CONFIG_URL=file://$PWD/uaa/src/main/resources/required_configuration.yml ./gradlew -Dspring.profiles.active=default run
+    $ ./gradlew  run
     
     
-NOTE: Recent changes removed default keys and default users from the UAA. We currently enable default keys using the LOGIN_CONFIG_URL variable and load 
-default sample data is loaded using the `default` spring profile.
+NOTE: Recent changes removed default keys and default users from the UAA.
+We currently enable default keys using the LOGIN_CONFIG_URL variable and load
+default sample data is loaded using the `default` spring profile (`spring.profiles.active`).
+In the gradle script we set `LOGIN_CONFIG_URL=file://$PWD/uaa/src/main/resources/required_configuration.yml`
 
 The apps all work together with the apps running on the same port
 (8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
