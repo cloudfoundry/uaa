@@ -1,3 +1,14 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Installing Keystone](#installing-keystone)
+- [Creating a test user (no tenant/domain)](#creating-a-test-user-no-tenantdomain)
+- [Getting an user token, version 2,  (simple authentication)](#getting-an-user-token-version-2--simple-authentication)
+- [Getting an user token, version 3,  (simple authentication)](#getting-an-user-token-version-3--simple-authentication)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 
 Installing Keystone
 ==================================

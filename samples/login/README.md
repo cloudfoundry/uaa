@@ -1,3 +1,17 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Login Sample Application](#login-sample-application)
+  - [Quick start](#quick-start)
+  - [Customizing the application](#customizing-the-application)
+    - [Using a different token server](#using-a-different-token-server)
+    - [Customizing the user interface](#customizing-the-user-interface)
+    - [Logging](#logging)
+  - [Playing with the entire flow](#playing-with-the-entire-flow)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Login Sample Application
 
 This login application is a sample for how you can set up your own custom login user interface using the UAA as a backend Identity Provider. The application also supports different openid identity providers. The application is written in ruby and uses the sinatra framework. You may choose to embed it along with your code to provide a customized look and feel for the login interface using the UAA as an identity provider and a token server to issue Oauth access tokens.

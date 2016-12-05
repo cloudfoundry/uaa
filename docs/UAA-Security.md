@@ -1,3 +1,35 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [UAA Security Features and Configuration](#uaa-security-features-and-configuration)
+  - [User Accounts](#user-accounts)
+    - [Security Metadata](#security-metadata)
+    - [Bootstrap](#bootstrap)
+    - [Account lockout policy](#account-lockout-policy)
+  - [OAuth Client Applications](#oauth-client-applications)
+    - [Security Metadata](#security-metadata-1)
+    - [Bootstrap](#bootstrap-1)
+    - [Demo Environment](#demo-environment)
+    - [VCAP Dev Setup](#vcap-dev-setup)
+  - [Token Scope Rules](#token-scope-rules)
+    - [User Tokens](#user-tokens)
+    - [Client Tokens](#client-tokens)
+  - [UAA Resources](#uaa-resources)
+    - [Token Management](#token-management)
+    - [Client Registration](#client-registration)
+    - [Client Secret Mangagement](#client-secret-mangagement)
+    - [Password Change](#password-change)
+    - [User Account Management](#user-account-management)
+    - [Username from ID Queries](#username-from-id-queries)
+    - [User Profiles](#user-profiles)
+    - [Groups & Membership Management](#groups-&-membership-management)
+    - [Token Resources for Providers](#token-resources-for-providers)
+    - [Management Information](#management-information)
+    - [Login Prompts](#login-prompts)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # UAA Security Features and Configuration
 
 It is the responsibility of a Resource Server to extract information

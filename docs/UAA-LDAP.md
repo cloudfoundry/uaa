@@ -1,3 +1,41 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [User Account and Authentication LDAP Integration](#user-account-and-authentication-ldap-integration)
+- [Overview](#overview)
+- [Authentication](#authentication)
+  - [Chained Authentication](#chained-authentication)
+  - [UAA Authentication](#uaa-authentication)
+  - [LDAP Authentication](#ldap-authentication)
+    - [Ldap Search and Bind](#ldap-search-and-bind)
+    - [Ldap Bind](#ldap-bind)
+    - [Ldap Search and Compare](#ldap-search-and-compare)
+  - [Ldap Authentication Configuration](#ldap-authentication-configuration)
+    - [Overview](#overview-1)
+      - [Selecting an authentication method](#selecting-an-authentication-method)
+        - [Configuring Simple Bind](#configuring-simple-bind)
+        - [Configuring Search and Bind](#configuring-search-and-bind)
+        - [Configuring Search and Compare](#configuring-search-and-compare)
+- [LDAP Group Mapping](#ldap-group-mapping)
+  - [Scopes](#scopes)
+  - [Selecting a Group Mapping](#selecting-a-group-mapping)
+    - [No Group Integration](#no-group-integration)
+    - [LDAP Groups as Scopes](#ldap-groups-as-scopes)
+    - [LDAP Groups to Scopes](#ldap-groups-to-scopes)
+  - [Group Mapping Configuration](#group-mapping-configuration)
+    - [No Group Integration Configuration](#no-group-integration-configuration)
+    - [Ldap Groups as Scopes Configuration](#ldap-groups-as-scopes-configuration)
+    - [Ldap Groups to Scopes Configuration](#ldap-groups-to-scopes-configuration)
+    - [Populating External Group Mappings](#populating-external-group-mappings)
+- [LDAP Email integration](#ldap-email-integration)
+  - [Generating an email address if LDAP mail attribute is empty](#generating-an-email-address-if-ldap-mail-attribute-is-empty)
+  - [Overriding the LDAP email address](#overriding-the-ldap-email-address)
+- [Samples](#samples)
+- [Configuration References](#configuration-references)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ==================================================
 User Account and Authentication LDAP Integration
 ==================================================

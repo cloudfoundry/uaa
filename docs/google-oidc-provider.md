@@ -1,3 +1,11 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Registering google as external OAuth provider in UAA](#registering-google-as-external-oauth-provider-in-uaa)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Registering google as external OAuth provider in UAA
  
 Google can be setup as an OIDC provider for UAA. 

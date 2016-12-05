@@ -1,3 +1,31 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [CloudFoundry User Account and Authentication (UAA) Server](#cloudfoundry-user-account-and-authentication-uaa-server)
+  - [Co-ordinates](#co-ordinates)
+  - [Quick Start](#quick-start)
+    - [Deploy to Cloud Foundry](#deploy-to-cloud-foundry)
+    - [Demo of command line usage on local server](#demo-of-command-line-usage-on-local-server)
+    - [Running local system against default MySQL and PostgreSQL settings (and Flyway migration script information)](#running-local-system-against-default-mysql-and-postgresql-settings-and-flyway-migration-script-information)
+    - [Demo of command line usage on run.pivotal.io](#demo-of-command-line-usage-on-runpivotalio)
+  - [Integration tests](#integration-tests)
+    - [Custom YAML Configuration](#custom-yaml-configuration)
+    - [Using Gradle to test with postgresql or mysql](#using-gradle-to-test-with-postgresql-or-mysql)
+  - [Inventory](#inventory)
+    - [Organization of Code](#organization-of-code)
+  - [UAA Server](#uaa-server)
+    - [Use Cases](#use-cases)
+    - [Configuration](#configuration)
+    - [User Account Data](#user-account-data)
+  - [The API Sample Application](#the-api-sample-application)
+  - [The App Sample Application](#the-app-sample-application)
+    - [Use Cases](#use-cases-1)
+- [Contributing to the UAA](#contributing-to-the-uaa)
+  - [Acknowledgements](#acknowledgements)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 <link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
 # CloudFoundry User Account and Authentication (UAA) Server
 

@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Introduction](#introduction)
+  - [Step 1](#step-1)
+  - [Step 2](#step-2)
+  - [Step 3](#step-3)
+  - [Step 4](#step-4)
+  - [Step 5](#step-5)
+  - [Step 6](#step-6)
+  - [Step 7](#step-7)
+  - [Step 8](#step-8)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ##Introduction
 This document outlines a very simple SAML integration between the OpenAM server and the 
 Cloud Foundry UAA.

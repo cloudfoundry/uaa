@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [User Account and Authentication - A note on Tokens](#user-account-and-authentication---a-note-on-tokens)
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+  - [Users and Clients and other actors](#users-and-clients-and-other-actors)
+  - [Grant types](#grant-types)
+  - [Scopes](#scopes)
+    - [Client authorities, UAA groups and scopes](#client-authorities-uaa-groups-and-scopes)
+    - [Wildcard scopes](#wildcard-scopes)
+  - [Token enhancers](#token-enhancers)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ==================================================
 User Account and Authentication - A note on Tokens
 ==================================================
