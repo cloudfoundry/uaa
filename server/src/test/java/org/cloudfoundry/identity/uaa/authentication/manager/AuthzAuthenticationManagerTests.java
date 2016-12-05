@@ -106,6 +106,7 @@ public class AuthzAuthenticationManagerTests {
             .withOrigin(OriginKeys.UAA)
             .withZoneId(IdentityZoneHolder.get().getId())
             .withExternalId(id)
+            .withPasswordLastModified(new Date(System.currentTimeMillis()))
             .withVerified(true);
     }
 
@@ -279,7 +280,21 @@ public class AuthzAuthenticationManagerTests {
         provider.setConfig(idpDefinition);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
         PasswordPolicy policy = new PasswordPolicy();
-        policy.setPasswordNewerThan(new Date());
+        policy.setPasswordNewerThan(new Date(System.currentTimeMillis() + 1000));
+        when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
+        when(db.retrieveUserByName("auser",OriginKeys.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
+    }
+
+    @Test
+    public void testSystemWidePasswordExpiryWithPastDate() {
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
+        UaaIdentityProviderDefinition idpDefinition = mock(UaaIdentityProviderDefinition.class);
+        provider.setConfig(idpDefinition);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        PasswordPolicy policy = new PasswordPolicy();
+        Date past = new Date(System.currentTimeMillis() - 10000000);
+        policy.setPasswordNewerThan(past);
         when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
         when(db.retrieveUserByName("auser",OriginKeys.UAA)).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
