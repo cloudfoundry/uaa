@@ -1,0 +1,4 @@
+#!/bin/sh
+
+export LOGIN_CONFIG_URL=file://$(realpath uaa/src/main/resources/required_configuration.yml)
+./gradlew integrationTest
