@@ -54,6 +54,7 @@ which you should find under something like:-
 Currently you are also required to set the following values that are not included with the defaults:
 https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/required_configuration.yml
 
+
 You can also build the app and push it to Cloud Foundry, e.g.
 Our recommended way is to use a manifest file, but you can do everything on the command line.
 
