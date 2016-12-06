@@ -19,8 +19,11 @@
         </property>
     </bean>
 
-    <bean id="identityZoneHolderInitializer" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.Initializer"
-          depends-on="identityZoneConfigurationBootstrap, setUpBouncyCastle" lazy-init="false">
+    <bean id="identityZoneHolderInitializer"
+          class="org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.Initializer"
+          depends-on="identityZoneConfigurationBootstrap, setUpBouncyCastle"
+          lazy-init="false"
+          destroy-method="reset">
         <constructor-arg ref="identityZoneProvisioning"/>
     </bean>
 

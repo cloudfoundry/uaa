@@ -50,6 +50,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -122,10 +123,12 @@ public class BootstrapTests {
 
     private static String systemConfiguredProfiles;
     private String profiles;
+    private static volatile boolean initialized;
 
     @BeforeClass
     public static void saveProfiles() {
         systemConfiguredProfiles = System.getProperty("spring.profiles.active");
+        initialized = false;
     }
 
     @AfterClass
@@ -142,6 +145,10 @@ public class BootstrapTests {
         System.clearProperty("spring.profiles.active");
         IdentityZoneHolder.clear();
         profiles = systemConfiguredProfiles==null ? "default,hsqldb" : (systemConfiguredProfiles != null && systemConfiguredProfiles.contains("default")) ? systemConfiguredProfiles : systemConfiguredProfiles+",default";
+        if (!initialized) {
+            getServletContext(profiles +",default", false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, true, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+            initialized = true;
+        }
     }
 
     @After
@@ -799,17 +806,27 @@ public class BootstrapTests {
     }
 
     private ConfigurableApplicationContext getServletContext(String profiles, String loginYmlPath, String uaaYamlPath, String... resources) {
-        return getServletContext(profiles, false, new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath}, resources);
+        return getServletContext(profiles, false, new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath}, false, resources);
     }
     private ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String loginYmlPath, String uaaYamlPath, String... resources) {
         return getServletContext(
             profiles,
             mergeProfiles,
             new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath},
+            false,
             resources
         );
     }
     private ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String[] yamlFiles, String... resources) {
+        return getServletContext(
+            profiles,
+            mergeProfiles,
+            yamlFiles,
+            false,
+            resources
+        );
+    }
+    private static ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String[] yamlFiles, boolean cleandb, String... resources) {
         String[] resourcesToLoad = resources;
         if (!resources[0].endsWith(".xml")) {
             resourcesToLoad = new String[resources.length - 1];
@@ -876,6 +893,10 @@ public class BootstrapTests {
         }
 
         context.refresh();
+        if (cleandb) {
+            context.getBean(Flyway.class).clean();
+            context.getBean(Flyway.class).migrate();
+        }
 
         return context;
     }
