@@ -202,25 +202,16 @@ public class ResetPasswordController {
     }
 
     @RequestMapping(value = "/reset_password.do", method = RequestMethod.POST)
-    public String resetPassword(Model model,
-                                @RequestParam("code") String code,
-                                @RequestParam("email") String email,
-                                @RequestParam("password") String password,
-                                @RequestParam("password_confirmation") String passwordConfirmation,
-                                HttpServletRequest request,
-                                HttpServletResponse response,
-                                HttpSession session) {
+    public void resetPassword(Model model,
+                              @RequestParam("code") String code,
+                              @RequestParam("email") String email,
+                              @RequestParam("password") String password,
+                              @RequestParam("password_confirmation") String passwordConfirmation,
+                              HttpServletRequest request,
+                              HttpServletResponse response,
+                              HttpSession session) {
 
-        PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
-        if (!validation.valid()) {
-            model.addAttribute("message_code", validation.getMessageCode());
-            model.addAttribute("email", email);
-            model.addAttribute("code", code);
-            model.addAttribute("passwordPolicy", resetPasswordService.getPasswordPolicy());
-            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-            return "reset_password";
-        }
-        return "";
+
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
