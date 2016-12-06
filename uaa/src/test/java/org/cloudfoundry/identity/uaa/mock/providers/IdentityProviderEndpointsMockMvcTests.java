@@ -40,6 +40,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
@@ -63,6 +64,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     private String adminToken;
@@ -106,6 +108,30 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     public void testCreateAndUpdateIdentityProvider() throws Exception {
         String accessToken = setUpAccessToken();
         createAndUpdateIdentityProvider(accessToken, null);
+    }
+
+    @Test
+    public void testCreateAndUpdateIdentityProviderWithMissingConfig() throws Exception {
+        String accessToken = setUpAccessToken();
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testnoconfig", IdentityZone.getUaa().getId());
+        Map<String, Object> identityProviderFields = JsonUtils.convertValue(identityProvider, HashMap.class);
+
+        identityProviderFields.remove("config");
+
+        MvcResult create = getMockMvc().perform(post("/identity-providers/")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityProviderFields)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        identityProvider = JsonUtils.readValue(create.getResponse().getContentAsString(), IdentityProvider.class);
+
+        getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityProviderFields)))
+                .andExpect(status().isOk());
     }
 
     @Test
