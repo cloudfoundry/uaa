@@ -139,6 +139,7 @@ subprojects {
 
   task integrationTest(type: Test) {
     dependsOn rootProject.cargoStartLocal
+    finalizedBy rootProject.cargoStopLocal
   }
 
   task packageSources(type: Jar) {
@@ -319,6 +320,7 @@ def publishedProjects = subprojects
 assemble.dependsOn subprojects.assemble
 
 task integrationTest {
+  dependsOn cargoStartLocal
   finalizedBy cargoStopLocal
 }
 integrationTest.dependsOn subprojects.integrationTest
