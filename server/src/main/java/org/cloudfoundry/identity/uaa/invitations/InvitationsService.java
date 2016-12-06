@@ -1,8 +1,12 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 public interface InvitationsService {
+
+    PasswordPolicy getPasswordPolicy();
 
     AcceptedInvitation acceptInvitation(String code, String password);
 

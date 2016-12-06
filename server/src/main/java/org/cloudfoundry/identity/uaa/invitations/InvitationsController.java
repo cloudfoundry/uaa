@@ -170,6 +170,7 @@ public class InvitationsController {
                 model.addAttribute(provider.getType(), provider);
                 model.addAttribute("code", newCode);
                 model.addAttribute("email", codeData.get("email"));
+                model.addAttribute("passwordPolicy", invitationsService.getPasswordPolicy());
                 logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
             return "invitations/accept_invite";

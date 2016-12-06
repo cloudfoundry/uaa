@@ -7,8 +7,10 @@ import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,9 @@ public class EmailInvitationsService implements InvitationsService {
 
     @Autowired
     private ScimUserProvisioning scimUserProvisioning;
+
+    @Autowired
+    private PasswordValidator passwordValidator;
 
     @Autowired
     private ExpiringCodeStore expiringCodeStore;
@@ -78,5 +83,10 @@ public class EmailInvitationsService implements InvitationsService {
             logger.error("Unable to resolve redirect for clientID:"+clientId, x);
         }
         return new AcceptedInvitation(redirectLocation, user);
+    }
+
+    @Override
+    public PasswordPolicy getPasswordPolicy() {
+        return passwordValidator.getPasswordPolicy();
     }
 }
