@@ -437,7 +437,7 @@ public class BootstrapTests {
         Properties mailProperties = mailSender.getJavaMailProperties();
         assertEquals("true", mailProperties.getProperty("mail.smtp.auth"));
         assertEquals("true", mailProperties.getProperty("mail.smtp.starttls.enable"));
-        assertEquals("admin@login.some.test.domain.com", emailService.getFromAddress());
+        assertEquals("test@example.com", emailService.getFromAddress());
 
         PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
         assertEquals(8, passwordPolicy.getMinLength());
