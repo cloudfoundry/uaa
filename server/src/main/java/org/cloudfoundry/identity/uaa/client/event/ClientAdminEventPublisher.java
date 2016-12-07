@@ -120,13 +120,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
     }
 
     public void secretFailure(String clientId, Exception e) {
-        ClientDetails client = getClient(clientId);
-        if (client == null) {
-            publish(new SecretFailureEvent(e.getMessage(), client, getPrincipal()));
-        }
-        else {
-            publish(new SecretFailureEvent(e.getMessage(), getPrincipal()));
-        }
+        publish(new SecretFailureEvent(e.getMessage(), getClient(clientId), getPrincipal()));
     }
 
     public void secretChange(String clientId) {

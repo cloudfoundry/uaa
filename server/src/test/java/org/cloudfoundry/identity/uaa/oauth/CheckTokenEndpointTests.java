@@ -50,6 +50,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -187,11 +188,11 @@ public class CheckTokenEndpointTests {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         setUp(useOpaque);
     }
 
-    public void setUp(boolean opaque) {
+    public void setUp(boolean opaque) throws URISyntaxException {
         defaultZone = IdentityZone.getUaa();
 
         userAuthorities = new ArrayList<>();
@@ -272,6 +273,8 @@ public class CheckTokenEndpointTests {
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setTokenProvisioning(tokenProvisioning);
+        tokenServices.setIssuer("http://localhost:8080/uaa");
+        tokenServices.afterPropertiesSet();
     }
 
     private void configureDefaultZoneKeys(Map<String, String> keys) {
@@ -321,7 +324,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testRejectInvalidIssuer() {
+    public void testRejectInvalidIssuer() throws URISyntaxException {
         setAccessToken(tokenServices.createAccessToken(authentication));
         tokenServices.setIssuer("http://some.other.issuer");
         endpoint.checkToken(getAccessToken(), Collections.emptyList());
@@ -560,6 +563,33 @@ public class CheckTokenEndpointTests {
         } catch (InvalidTokenException ex) {
             assertFalse("Opaque tokens should not be considered invalid due to JWT key issues.", useOpaque);
         }
+    }
+
+    @Test
+    public void testClientAddSecret() {
+        String firstClientSecret = "oldsecret";
+        String secondClientSecret = "newsecret";
+        defaultClient.setClientSecret(firstClientSecret);
+        setAccessToken(tokenServices.createAccessToken(authentication));
+
+        defaultClient.setClientSecret(firstClientSecret + " " +  secondClientSecret);
+        endpoint.checkToken(getAccessToken(), Collections.emptyList());
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        endpoint.checkToken(getAccessToken(), Collections.emptyList());
+    }
+
+    @Test
+    public void testClientDeleteSecret() {
+        String firstClientSecret = "oldsecret";
+        String secondClientSecret = "newsecret";
+
+        defaultClient.setClientSecret(firstClientSecret + " " +  secondClientSecret);
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        endpoint.checkToken(getAccessToken(), Collections.emptyList());
+
+        defaultClient.setClientSecret(secondClientSecret);
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        endpoint.checkToken(getAccessToken(), Collections.emptyList());
     }
 
     @Test

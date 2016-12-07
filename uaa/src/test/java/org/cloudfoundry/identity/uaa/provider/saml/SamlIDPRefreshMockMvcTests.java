@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.IdpMetadataGenerator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -32,20 +33,29 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensaml.saml2.metadata.NameIDFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+import org.opensaml.saml2.core.NameIDType;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -492,6 +502,33 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void test_nameID_formats() throws Exception {
+        IdpMetadataGenerator generator = new IdpMetadataGenerator();
+        generator.setKeyManager(mock(KeyManager.class));
+        generator.setEntityId("Test-Entity");
+        generator.setEntityBaseURL("/test/entity");
+        generator.setNameID(Arrays.asList(NameIDType.EMAIL, NameIDType.PERSISTENT,
+                NameIDType.UNSPECIFIED));
+        List<NameIDFormat> formats =  generator.generateMetadata().getIDPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol").getNameIDFormats();
+        List<String> nameIDFormats = formats.stream().map(format -> format.getFormat()).collect(Collectors.toList());
+
+        //Uaa supported formats
+        assertTrue(nameIDFormats.contains(NameIDType.EMAIL));
+        assertTrue(nameIDFormats.contains(NameIDType.PERSISTENT));
+        assertTrue(nameIDFormats.contains(NameIDType.UNSPECIFIED));
+        //Uaa unsupported formats
+        assertFalse(nameIDFormats.contains(NameIDType.TRANSIENT));
+        assertFalse(nameIDFormats.contains(NameIDType.ENCRYPTED));
+        assertFalse(nameIDFormats.contains(NameIDType.ENTITY));
+        assertFalse(nameIDFormats.contains(NameIDType.KERBEROS));
+        assertFalse(nameIDFormats.contains(NameIDType.NAME_QUALIFIER_ATTRIB_NAME));
+        assertFalse(nameIDFormats.contains(NameIDType.SP_NAME_QUALIFIER_ATTRIB_NAME));
+        assertFalse(nameIDFormats.contains(NameIDType.SPPROVIDED_ID_ATTRIB_NAME));
+        assertFalse(nameIDFormats.contains(NameIDType.X509_SUBJECT));
+        assertFalse(nameIDFormats.contains(NameIDType.WIN_DOMAIN_QUALIFIED));
+    }
+
+    @Test
     public void test_zone_saml_properties() throws Exception {
         String zone1Name = new RandomValueStringGenerator().generate();
         String zone2Name = new RandomValueStringGenerator().generate();
@@ -544,6 +581,57 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         assertFalse(generator.generateMetadata().getSPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol").isAuthnRequestsSigned());
 
     }
+
+    @Test
+    public void metadataGeneratesCorrectNameIdFormats() throws Exception {
+        getMockMvc().perform(
+                get("/saml/idp/metadata"))
+                //positive tests...
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(NameIDType.EMAIL)))
+                .andExpect(content().string(containsString(NameIDType.UNSPECIFIED)))
+                .andExpect(content().string(containsString(NameIDType.PERSISTENT)))
+                //negative tests...
+                .andExpect(content().string(not(containsString(NameIDType.TRANSIENT))))
+                .andExpect(content().string(not(containsString(NameIDType.ENCRYPTED))))
+                .andExpect(content().string(not(containsString(NameIDType.ENTITY))))
+                .andExpect(content().string(not(containsString(NameIDType.KERBEROS))))
+                .andExpect(content().string(not(containsString(NameIDType.NAME_QUALIFIER_ATTRIB_NAME))))
+                .andExpect(content().string(not(containsString(NameIDType.SP_NAME_QUALIFIER_ATTRIB_NAME))))
+                .andExpect(content().string(not(containsString(NameIDType.SPPROVIDED_ID_ATTRIB_NAME))))
+                .andExpect(content().string(not(containsString(NameIDType.WIN_DOMAIN_QUALIFIED))))
+                .andExpect(content().string(not(containsString(NameIDType.X509_SUBJECT))));
+    }
+
+    @Test
+    public void metadataInZoneGeneratesSupportedNameIdFormats() throws Exception {
+        String zoneName = new RandomValueStringGenerator().generate();
+        IdentityZone zone = new IdentityZone();
+        zone.setName(zoneName);
+        zone.setSubdomain(zoneName);
+        zone.setId(zoneName);
+        zone = zoneProvisioning.create(zone);
+
+        getMockMvc().perform(
+                get("/saml/idp/metadata")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                //positive tests...
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(NameIDType.EMAIL)))
+                .andExpect(content().string(containsString(NameIDType.UNSPECIFIED)))
+                .andExpect(content().string(containsString(NameIDType.PERSISTENT)))
+                //negative tests...
+                .andExpect(content().string(not(containsString(NameIDType.TRANSIENT))))
+                .andExpect(content().string(not(containsString(NameIDType.ENCRYPTED))))
+                .andExpect(content().string(not(containsString(NameIDType.ENTITY))))
+                .andExpect(content().string(not(containsString(NameIDType.KERBEROS))))
+                .andExpect(content().string(not(containsString(NameIDType.NAME_QUALIFIER_ATTRIB_NAME))))
+                .andExpect(content().string(not(containsString(NameIDType.SP_NAME_QUALIFIER_ATTRIB_NAME))))
+                .andExpect(content().string(not(containsString(NameIDType.SPPROVIDED_ID_ATTRIB_NAME))))
+                .andExpect(content().string(not(containsString(NameIDType.WIN_DOMAIN_QUALIFIED))))
+                .andExpect(content().string(not(containsString(NameIDType.X509_SUBJECT))));
+    }
+
 
     public IdentityProvider<SamlIdentityProviderDefinition> createSamlProvider(String metadata, String alias, String linkText) throws Exception {
         SamlIdentityProviderDefinition definition = createSimplePHPSamlIDP(IdentityZone.getUaa().getId(), metadata, alias, linkText);

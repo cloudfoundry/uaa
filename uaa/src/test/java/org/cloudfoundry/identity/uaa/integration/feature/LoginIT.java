@@ -16,6 +16,7 @@ import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -48,6 +49,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -117,7 +120,9 @@ public class LoginIT {
                                           new HttpEntity<>(requestBody, headers),
                                           String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertEquals(3, cookies.size());
+        MatcherAssert.assertThat(cookies, hasItem(startsWith("JSESSIONID")));
+        MatcherAssert.assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
+        MatcherAssert.assertThat(cookies, hasItem(startsWith("Current-User")));
         headers.clear();
         boolean jsessionIdValidated = false;
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
@@ -137,6 +142,7 @@ public class LoginIT {
         assertEquals("Cloud Foundry", webDriver.getTitle());
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
     @Test

@@ -25,6 +25,8 @@ import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Issuer;
+import org.opensaml.saml2.core.Subject;
+import org.opensaml.saml2.core.NameID;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
@@ -91,6 +93,11 @@ public class SamlTestUtils {
 
     @SuppressWarnings("unchecked")
     public SAMLMessageContext mockSamlMessageContext() {
+        return mockSamlMessageContext(mockAuthnRequest());
+    }
+
+    @SuppressWarnings("unchecked")
+    public SAMLMessageContext mockSamlMessageContext(AuthnRequest authnRequest) {
         SAMLMessageContext context = new SAMLMessageContext();
 
         context.setLocalEntityId(IDP_ENTITY_ID);
@@ -106,8 +113,6 @@ public class SamlTestUtils {
         context.setPeerEntityMetadata(spMetadata);
         SPSSODescriptor spDescriptor = spMetadata.getSPSSODescriptor(SAML20P_NS);
         context.setPeerEntityRoleMetadata(spDescriptor);
-
-        AuthnRequest authnRequest = mockAuthnRequest();
         context.setInboundSAMLMessage(authnRequest);
 
         KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
@@ -145,6 +150,10 @@ public class SamlTestUtils {
     }
 
     public AuthnRequest mockAuthnRequest() {
+        return mockAuthnRequest(null);
+    }
+
+    public AuthnRequest mockAuthnRequest(String nameIDFormat) {
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<AuthnRequest> builder = (SAMLObjectBuilder<AuthnRequest>) builderFactory
                 .getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
@@ -154,6 +163,15 @@ public class SamlTestUtils {
         request.setIssuer(getIssuer(SP_ENTITY_ID));
         request.setVersion(SAMLVersion.VERSION_20);
         request.setIssueInstant(new DateTime());
+        if (null != nameIDFormat) {
+            NameID nameID = ((SAMLObjectBuilder<NameID>) builderFactory.getBuilder(NameID.DEFAULT_ELEMENT_NAME))
+                    .buildObject();
+            nameID.setFormat(nameIDFormat);
+            Subject subject = ((SAMLObjectBuilder<Subject>) builderFactory.getBuilder(Subject.DEFAULT_ELEMENT_NAME))
+                    .buildObject();
+            subject.setNameID(nameID);
+            request.setSubject(subject);
+        }
         return request;
     }
 
@@ -466,15 +484,23 @@ public class SamlTestUtils {
                     + "</md:KeyDescriptor>"
                     + "<md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"http://localhost:8080/uaa/saml/SingleLogout/alias/cloudfoundry-saml-login\"/>"
                     + "<md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://localhost:8080/uaa/saml/SingleLogout/alias/cloudfoundry-saml-login\"/>"
-                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>"
-                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>"
-                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>"
-                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"
-                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName</md:NameIDFormat>"
+                    + "%s"
                     + "<md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"http://localhost:8080/uaa/saml/SSO/alias/cloudfoundry-saml-login\" index=\"0\" isDefault=\"true\"/>"
                     + "<md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact\" Location=\"http://localhost:8080/uaa/saml/SSO/alias/cloudfoundry-saml-login\" index=\"1\"/>"
                 + "</md:SPSSODescriptor>"
             + "</md:EntityDescriptor>";
+
+    public static final String UNSIGNED_SAML_SP_METADATA_WITHOUT_SPSSODESCRIPTOR = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" ID=\"%s\" entityID=\"cloudfoundry-saml-login\">"
+                + "</md:EntityDescriptor>";
+
+
+    public static final String DEFAULT_NAME_ID_FORMATS =
+            "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>"
+                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>"
+                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>"
+                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"
+                    + "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName</md:NameIDFormat>";
 
     public static final String UNSIGNED_SAML_SP_METADATA_WITHOUT_HEADER = UNSIGNED_SAML_SP_METADATA_WITHOUT_ID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
 
@@ -486,14 +512,19 @@ public class SamlTestUtils {
                         new RandomValueStringGenerator().generate()))
                 .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
                 .setMetadataTrustCheck(true).build();
+
         return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
                 .setConfig(singleAddDef);
     }
 
     public static SamlServiceProvider mockSamlServiceProvider(String entityId) {
+        return mockSamlServiceProvider(entityId, DEFAULT_NAME_ID_FORMATS);
+    }
+
+    public static SamlServiceProvider mockSamlServiceProvider(String entityId, String nameIdFormatsXML) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
                 .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
-                        new RandomValueStringGenerator().generate(), entityId))
+                        new RandomValueStringGenerator().generate(), entityId, nameIdFormatsXML))
                 .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
                 .setMetadataTrustCheck(true).build();
         return new SamlServiceProvider().setEntityId(entityId).setIdentityZoneId("uaa")
@@ -509,4 +540,14 @@ public class SamlTestUtils {
         return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId("uaa")
                 .setConfig(singleAddWithoutHeaderDef);
     }
+
+    public static SamlServiceProvider mockSamlServiceProviderForZoneWithoutSPSSOInMetadata(String zoneId) {
+        SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_SPSSODESCRIPTOR,
+                        new RandomValueStringGenerator().generate()))
+                .setMetadataTrustCheck(true).build();
+        return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
+                .setConfig(singleAddDef);
+     }
+
 }

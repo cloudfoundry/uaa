@@ -14,9 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -51,7 +49,6 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
     private String scimLookupIdUserToken;
     private String adminToken;
-    private TestClient testClient;
 
     private int testUserCount = 25, pageSize = 5;
     private static String[][] testUsers;
@@ -62,7 +59,6 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
@@ -81,7 +77,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
     }
 
     @After
-    public void restoreEnabled() {
+    public void restoreEnabled() throws Exception {
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(originalEnabled);
     }
 

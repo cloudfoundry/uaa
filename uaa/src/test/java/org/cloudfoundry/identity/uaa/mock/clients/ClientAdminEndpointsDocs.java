@@ -5,8 +5,8 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.restdocs.headers.HeaderDescriptor;
@@ -26,6 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.UPDATE;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;
@@ -56,10 +59,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
     private String clientAdminToken;
-    private TestClient testClient;
 
-    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client");
+    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client. To support secret rotation this can be space delimited string of two secrets.");
     private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`");
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id.");
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+
     private static final FieldDescriptor lastModifiedField = fieldWithPath("lastModified").description("Epoch of the moment the client information was last altered");
     private static final String clientIdDescription = "Client identifier, unique within identity zone";
 
@@ -70,7 +75,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
         fieldWithPath("autoapprove").optional(Collections.emptySet()).type(ARRAY).description("Scopes that do not require user approval"),
-        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization"),
+        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. A null value (not recommended) matches any uri."),
+        fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
+        fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
         fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
         fieldWithPath(ClientConstants.CLIENT_NAME).optional(null).type(STRING).description("A human readable name for the client"),
         fieldWithPath(ClientConstants.TOKEN_SALT).optional(null).type(STRING).description("A random string used to generate the client's revokation key. Change this value to revoke all active tokens for the client"),
@@ -80,13 +87,13 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
         fieldWithPath("clientId").required().description(clientIdDescription),
-        fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("The client secret before updating"),
-        fieldWithPath("secret").required().description("The new client secret")
+        fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("A valid client secret before updating"),
+        fieldWithPath("secret").required().description("The new client secret"),
+        fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `"+ADD+"`, the new `secret` will be added to the existing one and if the change mode is set to `"+DELETE+"`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
     @Before
     public void setup() throws Exception {
-        testClient = new TestClient(getMockMvc());
         clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
@@ -113,7 +120,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
             preprocessRequest(prettyPrint()),
             preprocessResponse(prettyPrint()),
             requestHeaders(
-                authorizationHeader
+                authorizationHeader,
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
             ),
             requestFields,
             responseFields
@@ -156,7 +165,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         resultActions.andDo(document("{ClassName}/{methodName}",
             preprocessResponse(prettyPrint()),
             requestHeaders(
-                headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`")
+                headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`"),
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
             ),
             requestParameters,
             responseFields
@@ -177,7 +188,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
                 parameterWithName("client_id").required().description(clientIdDescription)
             ),
             requestHeaders(
-                headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`")
+                headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`"),
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
             ),
             responseFields(
                 (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
@@ -219,7 +232,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    authorizationHeader
+                    authorizationHeader,
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields,
                 responseFields)
@@ -245,7 +260,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    authorizationHeader
+                    authorizationHeader,
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields(secretChangeFields)
             )
@@ -265,7 +282,9 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    authorizationHeader
+                    authorizationHeader,
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
                     new FieldDescriptor[]{
@@ -301,7 +320,11 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         createResultActions
             .andExpect(status().isCreated())
             .andDo(document("{ClassName}/createClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(authorizationHeader),
+                    requestHeaders(
+                        authorizationHeader,
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                    ),
                     requestFields(fieldsWithSecret),
                     responseFields
                 )
@@ -321,7 +344,11 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         updateResultActions
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/updateClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(authorizationHeader),
+                    requestHeaders(
+                        authorizationHeader,
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                    ),
                     requestFields(fieldsNoSecret),
                     responseFields
                 )
@@ -349,7 +376,11 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         secretResultActions
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/secretClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(authorizationHeader),
+                    requestHeaders(
+                        authorizationHeader,
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                    ),
                     requestFields(subFields("[]", secretChangeFields)),
                     responseFields((FieldDescriptor[]) ArrayUtils.addAll(
                         fieldsNoSecret,
@@ -387,7 +418,7 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         modifyResultActions
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/modifyClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(authorizationHeader),
+                    requestHeaders(authorizationHeader, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER),
                     requestFields(
                         fieldWithPath("[]").required().description("Modification objects which will each be processed."),
                         fieldWithPath("[].client_id").required().description(clientIdDescription),
@@ -415,7 +446,7 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         deleteResultActions
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/deleteClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(authorizationHeader),
+                    requestHeaders(authorizationHeader, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER),
                     requestFields(fieldWithPath("[].client_id").required().description(clientIdDescription)),
                     responseFields((FieldDescriptor[]) ArrayUtils.addAll(
                         fieldsNoSecret,
@@ -452,6 +483,8 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
             client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
         }
         client.setClientSecret("secret");
+        client.setAccessTokenValiditySeconds(2700);
+        client.setRefreshTokenValiditySeconds(7000);
 
         Map<String, Object> additionalInformation = new HashMap<>();
         additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http*://ant.path.wildcard/**/passback/*"));

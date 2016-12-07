@@ -9,13 +9,16 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
@@ -32,6 +35,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests.SECRET;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
@@ -49,6 +53,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -67,13 +72,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TokenEndpointDocs extends InjectedMockContextTest {
 
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
-    private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).required().type(STRING).description("the type of token that should be issued.");
-    private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).required().type(STRING).description("a unique string representing the registration information provided by the client, the recipient of the token");
-    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").required().type(STRING).description("the secret passphrase configured for the OAuth client");
+    private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).required().type(STRING).description("The type of token that should be issued.");
+    private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.");
+    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to '"+ OPAQUE+"' to retrieve an opaque and revocable token.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
 
     private final SnippetUtils.ConstrainableHeader authorizationHeader = SnippetUtils.headerWithName("Authorization");
+
+    Snippet listTokenResponseFields = responseFields(
+        fieldWithPath("[].zoneId").type(STRING).description("The zone ID for the token"),
+        fieldWithPath("[].tokenId").type(STRING).description("The unique ID for the token"),
+        fieldWithPath("[].clientId").type(STRING).description("Client ID for this token, will always match the client_id claim in the access token used for this call"),
+        fieldWithPath("[].userId").type(STRING).description("User ID for this token, will always match the user_id claim in the access token used for this call"),
+        fieldWithPath("[].format").type(STRING).description("What format was requested, OPAQUE or JWT"),
+        fieldWithPath("[].expiresAt").type(NUMBER).description("Epoch time - token expiration date"),
+        fieldWithPath("[].issuedAt").type(NUMBER).description("Epoch time - token issue date"),
+        fieldWithPath("[].scope").type(STRING).description("Comma separated list of scopes this token holds, up to 1000 characters"),
+        fieldWithPath("[].responseType").type(STRING).description("response type requested during the token request, possible values ID_TOKEN, ACCESS_TOKEN, REFRESH_TOKEN"),
+        fieldWithPath("[].value").type(STRING).description("Access token value will always be null")
+    );
+
+
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+    private static final HeaderDescriptor CLIENT_BASIC_AUTH_HEADER = headerWithName(HttpHeaders.AUTHORIZATION).optional().description("Client ID and secret may be passed as a basic authorization header, per <a href=\"https://tools.ietf.org/html/rfc6749#section-2.3.1\">RFC 6749</a> or as request parameters.");
 
     private ScimUser user;
 
@@ -105,7 +128,11 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         UriComponents location = UriComponentsBuilder.fromUri(URI.create(authCodeResponse.getHeader("Location"))).build();
         String code = location.getQueryParams().getFirst("code");
 
+        String clientAuthBase64 = new String(org.springframework.security.crypto.codec.Base64.encode(("login:loginsecret".getBytes())));
+        Snippet headerFields = requestHeaders(CLIENT_BASIC_AUTH_HEADER);
+
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+            .header(HttpHeaders.AUTHORIZATION, "Basic "+clientAuthBase64)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "login")
@@ -136,7 +163,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         );
 
         getMockMvc().perform(postForToken)
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), headerFields, requestParameters, responseFields));
     }
 
     @Test
@@ -430,7 +458,6 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
     }
 
     private void createUser() throws Exception {
-        TestClient testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "name", "familyName");
         user.setPrimaryEmail(user.getUserName());
@@ -479,7 +506,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
             .param(REDIRECT_URI, redirect);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter,
+            parameterWithName(RESPONSE_TYPE).required().type(STRING).description("the type of token that should be issued. possible values are `id_token token` and `id_token`."),
             clientIdParameter,
             parameterWithName(REDIRECT_URI).type(STRING).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(SnippetUtils.constraints.value("Required if provided on authorization request")),
             parameterWithName("code").required().type(STRING).description("the authorization code, obtained from /oauth/authorize, issued for the user"),
@@ -511,7 +538,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 "",
                 null
         );
-        BaseClientDetails client = createClient(adminToken);
+        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
 
         createUser();
         String userInfoToken = getUserOAuthAccessToken(
@@ -523,7 +550,11 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 ""
         );
 
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Bearer token with uaa.admin scope."));
+        Snippet requestHeaders = requestHeaders(
+            headerWithName("Authorization").description("Bearer token with uaa.admin scope."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
         Snippet pathParameters = pathParameters(parameterWithName("userId").description("The identifier for the user to revoke all tokens for"));
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/user/{userId}", user.getId());
 
@@ -549,7 +580,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 null,
                 true
         );
-        BaseClientDetails client = createClient(adminToken);
+        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
         String readClientsToken =
                 getClientCredentialsOAuthAccessToken(
                         getMockMvc(),
@@ -559,7 +590,11 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                         null,
                         true
                 );
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Bearer token with uaa.admin scope."));
+        Snippet requestHeaders = requestHeaders(
+            headerWithName("Authorization").description("Bearer token with uaa.admin scope."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
         Snippet pathParameters = pathParameters(parameterWithName("clientId").description("The identifier for the client to revoke all tokens for"));
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/client/{clientId}", client.getClientId());
         getMockMvc().perform(get
@@ -585,7 +620,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 true
         );
 
-        BaseClientDetails client = createClient(adminToken);
+        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
         createUser();
 
         String userInfoToken = getUserOAuthAccessToken(
@@ -599,29 +634,124 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 true
         );
 
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Bearer token with tokens.revoke scope. If token being revoked is for self, use the token to be revoked in this header."));
+        Snippet requestHeaders = requestHeaders(
+            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with tokens.revoke scope. If token being revoked is for self, use the token to be revoked in this header."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
         Snippet pathParameters = pathParameters(parameterWithName("tokenId").description("The identifier for the token to be revoked. For JWT tokens use the jti claim in the token."));
 
         MockHttpServletRequestBuilder delete = RestDocumentationRequestBuilders.delete("/oauth/token/revoke/{tokenId}", userInfoToken);
 
         getMockMvc().perform(delete
-                .header("Authorization", "Bearer " + adminToken))
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters));
     }
 
+    @Test
+    public void listTokens_client() throws Exception {
+        String adminToken =  getClientCredentialsOAuthAccessToken(
+            getMockMvc(),
+            "admin",
+            "adminsecret",
+            "",
+            null,
+            true
+        );
 
+        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
+        String clientToken = getClientCredentialsOAuthAccessToken(
+            getMockMvc(),
+            client.getClientId(),
+            client.getClientSecret(),
+            "",
+            null,
+            true
+        );
 
-    private BaseClientDetails createClient(String token) throws Exception {
+        Snippet requestHeaders = requestHeaders(
+            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token containing the `tokens.list` scope."),
+            headerWithName(HttpHeaders.ACCEPT).description("Set to "+ MediaType.APPLICATION_JSON_VALUE),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
+
+        Snippet pathParameters = pathParameters(parameterWithName("clientId").description("The client ID to retrieve tokens for"));
+
+        MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/list/client/{clientId}", client.getClientId());
+
+        getMockMvc().perform(
+            get
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + clientToken)
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters, listTokenResponseFields));
+    }
+
+    @Test
+    public void listTokens_user() throws Exception {
+        String adminToken =  getClientCredentialsOAuthAccessToken(
+            getMockMvc(),
+            "admin",
+            "adminsecret",
+            "",
+            null,
+            true
+        );
+
+        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
+        String clientToken = getClientCredentialsOAuthAccessToken(
+            getMockMvc(),
+            client.getClientId(),
+            client.getClientSecret(),
+            "",
+            null,
+            true
+        );
+
+        createUser();
+
+        getUserOAuthAccessToken(
+            getMockMvc(),
+            client.getClientId(),
+            client.getClientSecret(),
+            user.getUserName(),
+            user.getPassword(),
+            "",
+            null,
+            true
+        );
+
+        Snippet requestHeaders = requestHeaders(
+            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token containing the `tokens.list` scope."),
+            headerWithName(HttpHeaders.ACCEPT).description("Set to "+ MediaType.APPLICATION_JSON_VALUE),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
+
+        Snippet pathParameters = pathParameters(parameterWithName("userId").description("The user ID to retrieve tokens for"));
+
+        MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/list/user/{userId}", user.getId());
+
+        getMockMvc().perform(
+            get
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + clientToken)
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters, listTokenResponseFields));
+    }
+
+    private BaseClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
         BaseClientDetails client = new BaseClientDetails(
                 new RandomValueStringGenerator().generate(),
                 "",
-                "openid",
-                "client_credentials,password",
-                "clients.read");
-        client.setClientSecret("secret");
+                scopes,
+                grantTypes,
+                authorities);
+        client.setClientSecret(SECRET);
         BaseClientDetails clientDetails = MockMvcUtils.createClient(getMockMvc(), token, client);
-        clientDetails.setClientSecret("secret");
+        clientDetails.setClientSecret(SECRET);
         return clientDetails;
     }
 }

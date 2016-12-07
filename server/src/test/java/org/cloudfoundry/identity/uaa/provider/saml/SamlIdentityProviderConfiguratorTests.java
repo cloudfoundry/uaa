@@ -161,11 +161,11 @@ public class SamlIdentityProviderConfiguratorTests {
     @Test
     public void testIdentityProviderDefinitionSocketFactoryTest() {
         singleAdd.setMetaDataLocation("http://www.test.org/saml/metadata");
-        assertEquals(SamlIdentityProviderDefinition.DEFAULT_HTTP_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
+        assertNull(singleAdd.getSocketFactoryClassName());
         singleAdd.setMetaDataLocation("https://www.test.org/saml/metadata");
-        assertEquals(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
+        assertNull(singleAdd.getSocketFactoryClassName());
         singleAdd.setSocketFactoryClassName(TLSProtocolSocketFactory.class.getName());
-        assertEquals(TLSProtocolSocketFactory.class.getName(), singleAdd.getSocketFactoryClassName());
+        assertNull(singleAdd.getSocketFactoryClassName());
     }
 
     protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> clientIdpAliases ) {

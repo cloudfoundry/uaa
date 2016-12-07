@@ -14,11 +14,16 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
+import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +48,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpCertificate;
     private boolean idpDiscoveryEnabled = false;
 
+    private boolean accountChooserEnabled;
+
     @Autowired
     private IdentityZoneValidator validator = (config, mode) -> config;
     private Map<String, Object> branding;
@@ -65,6 +72,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
+        definition.setAccountChooserEnabled(accountChooserEnabled);
 
         if (selfServiceLinks!=null) {
             String signup = selfServiceLinks.get("signup");
@@ -159,6 +167,14 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setIdpDiscoveryEnabled(boolean idpDiscoveryEnabled) {
         this.idpDiscoveryEnabled = idpDiscoveryEnabled;
+    }
+
+    public boolean isAccountChooserEnabled() {
+        return accountChooserEnabled;
+    }
+
+    public void setAccountChooserEnabled(boolean accountChooserEnabled) {
+        this.accountChooserEnabled = accountChooserEnabled;
     }
 
     public void setBranding(Map<String, Object> branding) {

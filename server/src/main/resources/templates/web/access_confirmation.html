@@ -12,7 +12,7 @@
 <div class="panel-container" layout:fragment="page-content">
     <div class="panel">
         <h1>Application Authorization</h1>
-        <form id="application_authorization" action="/oauth/authorize" th:action="@{/oauth/authorize}" method="POST" class="panel-content">
+        <form id="application_authorization" action="/oauth/authorize" th:action="@{${original_uri}}" method="POST" class="panel-content">
             <h2 th:text="${client_display_name}">Cloudbees</h2>
             <a class="application-link"
                href="https://cloudfoundry.cloudbees.com/authenticate"
@@ -68,6 +68,7 @@
                         value="true"
                         class="btn btn-primary">Authorize</button>
             </div>
+            <input th:if="${original_uri}" th:name="form_redirect_uri" th:type="hidden" th:value="${original_uri}"/>
         </form>
     </div>
 </div>

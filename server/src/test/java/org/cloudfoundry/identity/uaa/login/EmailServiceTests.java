@@ -28,7 +28,7 @@ public class EmailServiceTests {
 
     @Test
     public void testSendOssMimeMessage() throws Exception {
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "", null);
+        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", null);
 
         emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
@@ -52,7 +52,7 @@ public class EmailServiceTests {
         config.setBranding(branding);
         IdentityZoneHolder.get().setConfig(config);
         try{
-            EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "Best Company", "something-specific@bestcompany.example.com");
+            EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "something-specific@bestcompany.example.com");
 
             emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 

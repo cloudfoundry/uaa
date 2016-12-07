@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.restdocs.snippet.Snippet;
@@ -32,8 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
 
   private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
-  private JdbcClientDetailsService clients;
-  private TestClient testClient;
+  private MultitenantJdbcClientDetailsService clients;
   private String adminClientTokenWithClientsWrite;
   private UaaTestAccounts testAccounts;
   private static final String CLIENT_ID_DESC = "Client identifier, unique within identity zone";
@@ -49,9 +48,8 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
 
   @Before
   public void setUp() throws Exception {
-    testClient = new TestClient(getMockMvc());
     testAccounts = UaaTestAccounts.standard(null);
-    clients = getWebApplicationContext().getBean(JdbcClientDetailsService.class);
+    clients = getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class);
     adminClientTokenWithClientsWrite = testClient.getClientCredentialsOAuthAccessToken(
       testAccounts.getAdminClientId(),
       testAccounts.getAdminClientSecret(),

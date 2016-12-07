@@ -73,7 +73,7 @@ public class CorsFilterTests {
     @Test
     public void test_NonXHR_Default_Allowed_Methods() {
         CorsFilter filter = new CorsFilter();
-        assertThat(filter.getDefaultConfiguration().getAllowedMethods(), containsInAnyOrder("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        assertThat(filter.getDefaultConfiguration().getAllowedMethods(), containsInAnyOrder("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     }
 
     @Test
@@ -396,7 +396,7 @@ public class CorsFilterTests {
 
         corsFilter.doFilter(request, response, filterChain);
 
-        assertStandardCorsPreFlightResponse(response, "GET, OPTIONS, POST, PUT, DELETE", AUTHORIZATION, ACCEPT, CONTENT_TYPE, ACCEPT_LANGUAGE, CONTENT_LANGUAGE);
+        assertStandardCorsPreFlightResponse(response, "GET, OPTIONS, POST, PUT, DELETE, PATCH", AUTHORIZATION, ACCEPT, CONTENT_TYPE, ACCEPT_LANGUAGE, CONTENT_LANGUAGE);
     }
 
     @Test

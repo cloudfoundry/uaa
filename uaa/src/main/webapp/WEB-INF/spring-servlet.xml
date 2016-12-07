@@ -90,6 +90,7 @@
     <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
+    <sec:http name="secFilterOpen18" pattern="/session" security="none" />
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
@@ -118,10 +119,10 @@
                            @config['cors']['default']['allowed']['headers']}"/>
 
         <property name="corsAllowedMethods"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
-                           @config['cors']['default']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
-                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
-                           @config['cors']['default']['allowed']['methods']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
+                           @config['cors']['default']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
+                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
+                           @config['cors']['default']['allowed']['methods']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
                            @config['cors']['default']['allowed']['methods']}"/>
 
 
@@ -429,6 +430,7 @@
         <property name="selfServiceLinks" ref="links" />
         <property name="homeRedirect" value="${login.homeRedirect:null}"/>
         <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}" />
+        <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}" />
         <property name="logoutRedirectWhitelist"
                   value="#{@config['logout']==null ? null :
                            @config['logout']['redirect']==null ? null :
@@ -439,9 +441,9 @@
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
         <property name="prompts" ref="prompts"/>
         <property name="branding" value="#{@config['login']['branding']}" />
-        <property name="samlSpPrivateKey" value="#{'${login.serviceProviderKey:' + @defaultSamlKey + '}'}" />
-        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:password}" />
-        <property name="samlSpCertificate" value="#{'${login.serviceProviderCertificate:' + @defaultSamlCert + '}'}" />
+        <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword}" />
+        <property name="samlSpCertificate" value="${login.serviceProviderCertificate}" />
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

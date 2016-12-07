@@ -17,9 +17,15 @@ package org.cloudfoundry.identity.uaa.util;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -31,6 +37,7 @@ import java.util.regex.Pattern;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.springframework.util.StringUtils.hasText;
 
 public final class UaaTokenUtils {
 
@@ -129,10 +136,10 @@ public final class UaaTokenUtils {
         return !"client_credentials".equals(claims.get(GRANT_TYPE)) || (claims.get(SUB)!=null && claims.get(SUB) == claims.get(CID));
     }
 
-    public static String getRevocableTokenSignature(ClientDetails client, UaaUser user) {
+    public static String getRevocableTokenSignature(ClientDetails client, String clientSecret, UaaUser user) {
         String[] salts = new String[] {
             client.getClientId(),
-            client.getClientSecret(),
+            clientSecret,
             (String)client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT),
             user == null ? null : user.getId(),
             user == null ? null : user.getPassword(),
@@ -165,5 +172,19 @@ public final class UaaTokenUtils {
 
     public static boolean isJwtToken(String token) {
         return jwtPattern.matcher(token).matches();
+    }
+
+    public static String constructTokenEndpointUrl(String issuer) throws URISyntaxException {
+        try {
+            new URL(issuer);
+        } catch (MalformedURLException x) {
+            throw new URISyntaxException(issuer, x.getMessage());
+        }
+        URI uri = new URI(issuer);
+        String hostToUse = uri.getHost();
+        if (hasText(IdentityZoneHolder.get().getSubdomain())) {
+            hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
+        }
+        return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
     }
 }

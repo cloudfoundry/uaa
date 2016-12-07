@@ -39,6 +39,7 @@ import org.flywaydb.core.internal.util.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +49,7 @@ import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntry;
+import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -121,15 +123,12 @@ public class SamlLoginIT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         screenShootRule.setWebDriver(webDriver);
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.manage().deleteAllCookies();
-        webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
-        webDriver.manage().deleteAllCookies();
-        webDriver.get(baseUrl.replace("localhost", "testzone2.localhost") + "/logout.do");
-        webDriver.manage().deleteAllCookies();
+        for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
+            webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
+            webDriver.manage().deleteAllCookies();
+        }
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.get("http://simplesamlphp2.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
-
     }
 
     @Test
@@ -291,6 +290,7 @@ public class SamlLoginIT {
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
 
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
@@ -423,6 +423,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {
@@ -869,6 +870,10 @@ public class SamlLoginIT {
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
+        assertNotNull("id_token should contain ACR claim", claims.get(ClaimConstants.ACR));
+        Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
+        assertNotNull("acr claim should contain values attribute", acr.get("values"));
+        assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
     }
 
     @Test
@@ -1237,6 +1242,36 @@ public class SamlLoginIT {
         def.setIdpEntityAlias(alias);
         def.setLinkText("Login with Simple SAML PHP("+alias+")");
         return def;
+    }
+
+    public SamlIdentityProviderDefinition getTestURLDefinition() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setZoneId("uaa");
+        def.setMetaDataLocation("https://branding.login.identity.cf-app.com/saml/metadata?random="+new RandomValueStringGenerator().generate());
+        //def.setMetaDataLocation("https://login.run.pivotal.io/saml/metadata");
+        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+        def.setAssertionConsumerIndex(0);
+        def.setMetadataTrustCheck(false);
+        def.setShowSamlLink(true);
+        //def.setSocketFactoryClassName(DEFAULT_HTTPS_SOCKET_FACTORY);
+        String urlAlias = "Test URL Create - "+new RandomValueStringGenerator().generate();
+        def.setIdpEntityAlias(urlAlias);
+        def.setLinkText("Login with Simple SAML PHP("+ urlAlias +")");
+        return def;
+    }
+
+    @Test
+    @Ignore("was used to test self signed URLs - but this test can only be run once")
+    public void test_url_provider() throws  Exception {
+        SamlIdentityProviderDefinition definition = getTestURLDefinition();
+        IntegrationTestUtils.createIdentityProvider(
+            "test saml url provider",
+            OriginKeys.SAML,
+            true,
+            baseUrl,
+            serverRunning,
+            definition
+        );
     }
 
 }

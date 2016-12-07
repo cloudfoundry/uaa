@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import org.opensaml.saml2.core.NameIDType;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -33,6 +34,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * The filter expects calls on configured URL and presents user with SAML2 metadata representing this application
@@ -127,6 +130,11 @@ public class IdpMetadataGeneratorFilter extends GenericFilterBean {
                         if (generator.getEntityId() == null) {
                             generator.setEntityId(getDefaultEntityID(baseURL, alias));
                         }
+
+                        // Ensure supported nameID formats in uaa are listed in the metadata
+                        Collection<String> supportedNameID = Arrays.asList(NameIDType.EMAIL, NameIDType.PERSISTENT,
+                                NameIDType.UNSPECIFIED);
+                        generator.setNameID(supportedNameID);
 
                         EntityDescriptor descriptor = generator.generateMetadata();
                         ExtendedMetadata extendedMetadata = generator.generateExtendedMetadata();

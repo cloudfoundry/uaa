@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -18,22 +18,16 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 
-/**
- * @author Luke Taylor
- * @author Dave Syer
- */
+
 public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryable<ScimUser> {
 
-    public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException,
-        InvalidScimResourceException;
+    ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidScimResourceException;
 
-    public void changePassword(String id, String oldPassword, String newPassword)
-        throws ScimResourceNotFoundException;
+    void changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException;
 
-    public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException,
-        InvalidScimResourceException;
+    ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException, InvalidScimResourceException;
 
-    public boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException;
+    boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException;
 
 }
 

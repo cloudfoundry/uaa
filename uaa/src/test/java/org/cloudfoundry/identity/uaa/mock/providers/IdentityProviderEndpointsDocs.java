@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -96,6 +95,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion.";
     private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion.";
 
+    private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(STRING).description("Map external attribute to UAA recognized mappings.");
     private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).description("Whether users should be allowed to authenticate from LDAP without having a user pre-populated in the users database");
     private static final FieldDescriptor GIVEN_NAME = fieldWithPath("config.attributeMappings.given_name").optional(null).type(STRING).description(GIVEN_NAME_DESC);
@@ -119,7 +119,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("<small><mark>UAA 3.4.0</mark></small> Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
     private final String ldapServerUrl = "ldap://localhost:33389";
 
-    private TestClient testClient = null;
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
 
@@ -152,7 +151,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor LDAP_BIND_PASSWORD = fieldWithPath("config.bindPassword").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Password for the LDAP ID that performs a search of the LDAP tree for user information.");
     private final FieldDescriptor LDAP_USER_SEARCH_BASE = fieldWithPath("config.userSearchBase").optional("dc=test,dc=com").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Define a base where the search starts at.");
     private final FieldDescriptor LDAP_USER_SEARCH_FILTER = fieldWithPath("config.userSearchFilter").optional("cn={0}").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Search filter used. Takes one parameter, user ID defined as `{0}`");
-    private final FieldDescriptor LDAP_GROUP_SEARCH_BASE = fieldWithPath("config.groupSearchBase").required().type(STRING).description("Search start point for a user group membership search");
+    private final FieldDescriptor LDAP_GROUP_SEARCH_BASE = fieldWithPath("config.groupSearchBase").required().type(STRING).description("Search start point for a user group membership search, use the value `memberOf` to skip group search, and use the memberOf attributes of the user.");
     private final FieldDescriptor LDAP_GROUP_SEARCH_FILTER = fieldWithPath("config.groupSearchFilter").required().type(STRING).description("Search query filter to find the groups a user belongs to, or for a nested search, groups that a group belongs to");
     private final FieldDescriptor LDAP_GROUP_AUTO_ADD = fieldWithPath("config.autoAddGroups").optional(true).type(BOOLEAN).description("Set to true when `profile_type=groups_as_scopes` to auto create scopes for a user. Ignored for other profiles.");
     private final FieldDescriptor LDAP_GROUP_SEARCH_SUBTREE = fieldWithPath("config.groupSearchSubTree").optional(true).type(BOOLEAN).description("Boolean value, set to true to search below the search base");
@@ -161,6 +160,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE = fieldWithPath("config.mailSubstitute").optional(null).type(STRING).description("Defines an email pattern containing a `{0}` to generate an email address for an LDAP user during authentication");
     private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP = fieldWithPath("config.mailSubstituteOverridesLdap").optional(false).type(BOOLEAN).description("Set to true if you wish to override an LDAP user email address with a generated one");
     private final FieldDescriptor LDAP_SSL_SKIP_VERIFICATION = fieldWithPath("config.skipSSLVerification").optional(false).type(BOOLEAN).description("Skips validation of the LDAP cert if set to true.");
+    private final FieldDescriptor LDAP_SSL_TLS = fieldWithPath("config.tlsConfiguration").optional("none").type(STRING).description("Sets the StartTLS options, valid values are `none`, `simple` or `external`");
     private final FieldDescriptor LDAP_REFERRAL = fieldWithPath("config.referral").optional("follow").type(STRING).description("Configures the UAA LDAP referral behavior. The following values are possible:" +
                                                                                                                                    "  <ul><li>follow &rarr; Referrals are followed</li>" +
                                                                                                                                    "  <li>ignore &rarr; Referrals are ignored and the partial result is returned</li>" +
@@ -197,6 +197,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_GROUPS_IGNORE_PARTIAL,
         LDAP_USER_DN_PATTERN,
@@ -232,6 +233,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_GROUPS_IGNORE_PARTIAL,
         LDAP_USER_DN_PATTERN.ignored(),
@@ -257,6 +259,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_USER_DN_PATTERN,
         LDAP_USER_DN_PATTERN_DELIM,
@@ -302,6 +305,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_GROUPS_IGNORE_PARTIAL,
         LDAP_USER_DN_PATTERN.ignored(),
@@ -319,7 +323,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
@@ -341,6 +344,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
             fieldWithPath("type").required().description("`saml`"),
             fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
+            SKIP_SSL_VALIDATION,
             fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content"),
             fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\"."),
             fieldWithPath("config.assertionConsumerIndex").optional(null).type(NUMBER).description("SAML assertion consumer index, default is 0"),
@@ -425,6 +429,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
             fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
             fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use."),
+            fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
             ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS,
             ATTRIBUTE_MAPPING,
@@ -691,8 +696,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.passwordPolicy.requireDigit").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of digits required for password to be considered valid (defaults to 0).").optional(),
             fieldWithPath("config.passwordPolicy.requireSpecialCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of special characters required for password to be considered valid (defaults to 0).").optional(),
             fieldWithPath("config.passwordPolicy.expirePasswordInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
-            fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),
-            fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
+            fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
+            fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),
             fieldWithPath("config.lockoutPolicy.countFailuresWithin").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).").optional(),
             fieldWithPath("config.disableInternalUserManagement").optional(null).type(BOOLEAN).description("When set to true, user management is disabled for this provider, defaults to false").optional()
         });

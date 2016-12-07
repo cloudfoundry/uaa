@@ -9,8 +9,6 @@ set -x
 
 sudo apt-get -qy update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils
-sudo ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/src/main/resources/ldap_db_init.ldif
-sudo ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/src/main/resources/ldap_init.ldif
 
 # SSH Installation notes - from https://help.ubuntu.com/14.04/serverguide/openldap-server.html#openldap-tls
 if test "$1" == "ssl"
@@ -29,7 +27,12 @@ then
     signing_key
     expiration_days = 3650" >  /etc/ssl/ldap01.info'
     sudo certtool --generate-certificate --load-privkey /etc/ssl/private/ldap01_slapd_key.pem --load-ca-certificate /etc/ssl/certs/cacert.pem --load-ca-privkey /etc/ssl/private/cakey.pem --template /etc/ssl/ldap01.info --outfile /etc/ssl/certs/ldap01_slapd_cert.pem
+    sudo adduser openldap ssl-cert
+    sudo chgrp ssl-cert /etc/ssl/private/ldap01_slapd_key.pem
+    sudo chmod g+r /etc/ssl/private/ldap01_slapd_key.pem
+    sudo chmod o-r /etc/ssl/private/ldap01_slapd_key.pem
     sudo sh -c 'echo "dn: cn=config
+changetype: modify
 add: olcTLSCACertificateFile
 olcTLSCACertificateFile: /etc/ssl/certs/cacert.pem
 -
@@ -38,11 +41,13 @@ olcTLSCertificateFile: /etc/ssl/certs/ldap01_slapd_cert.pem
 -
 add: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: /etc/ssl/private/ldap01_slapd_key.pem" > /etc/ssl/certinfo.ldif'
+    echo "Adding LDAP Certs"
     sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f /etc/ssl/certinfo.ldif
+    echo "LDAP Certs added"
     sudo sed -i "s/^SLAPD_SERVICES.*/SLAPD_SERVICES=\"ldap\:\/\/\/ ldapi\:\/\/\/ ldaps\:\/\/\/\"/g" /etc/default/slapd
-    sudo adduser openldap ssl-cert
-    sudo chgrp ssl-cert /etc/ssl/private/ldap01_slapd_key.pem
-    sudo chmod g+r /etc/ssl/private/ldap01_slapd_key.pem
-    sudo chmod o-r /etc/ssl/private/ldap01_slapd_key.pem
     sudo /etc/init.d/slapd restart
+
 fi
+
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/src/main/resources/ldap_db_init.ldif
+sudo ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/src/main/resources/ldap_init.ldif

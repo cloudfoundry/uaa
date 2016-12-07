@@ -21,11 +21,12 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthent
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.oauth.CommonSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -65,11 +66,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
-import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getNoValidatingClientHttpRequestFactory;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
-    private RestTemplate restTemplate = new RestTemplate();
     private IdentityProviderProvisioning providerProvisioning;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
@@ -123,6 +124,26 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             if(claims.get("amr") != null) {
                 authentication.getAuthenticationMethods().addAll((Collection<String>) claims.get("amr"));
             }
+
+            Object acr = claims.get(ClaimConstants.ACR);
+            if (acr !=null) {
+                if (acr instanceof Map) {
+                    Map<String,Object> acrMap = (Map)acr;
+                    Object values = acrMap.get("values");
+                    if (values instanceof Collection) {
+                        authentication.setAuthContextClassRef(new HashSet<>((Collection)values));
+                    } else if (values instanceof String[]) {
+                        authentication.setAuthContextClassRef(new HashSet<>(Arrays.asList((String[])values)));
+                    } else {
+                        logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", values, authentication.getPrincipal().getId()));
+                    }
+                } else if (acr instanceof String) {
+                    authentication.setAuthContextClassRef(new HashSet(Arrays.asList((String)acr)));
+                } else {
+                    logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", acr, authentication.getPrincipal().getId()));
+                }
+            }
+
         }
     }
 
@@ -221,39 +242,57 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return provider.getConfig().isAddShadowUserOnLogin();
     }
 
-    protected boolean isAcceptedInvitationAuthentication() {
-        try {
-            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
-            if (attr!=null) {
-                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
-                if (result!=null) {
-                    return result.booleanValue();
-                }
-            }
-        } catch (IllegalStateException x) {
-            //nothing bound on thread.
-            logger.debug("Unable to retrieve request attributes during SAML authentication.");
+    /*
+     * BEGIN
+     * The following thread local only exists to satisfy that the unit test
+     * that require the template to be bound to the mock server
+     */
+    public static class RestTemplateHolder {
+        private final RestTemplate skipSslValidationTemplate;
+        private final RestTemplate restTemplate;
 
+        public RestTemplateHolder() {
+            skipSslValidationTemplate = new RestTemplate(createRequestFactory(true));
+            restTemplate = new RestTemplate(createRequestFactory(false));
         }
-        return false;
+
+        public RestTemplate getRestTemplate(boolean skipSslValidation) {
+            return skipSslValidation ? skipSslValidationTemplate : restTemplate;
+        }
     }
 
-    public RestTemplate getRestTemplate() {
-        return restTemplate;
+    private ThreadLocal<RestTemplateHolder> restTemplateHolder = new ThreadLocal<RestTemplateHolder>() {
+        @Override
+        protected RestTemplateHolder initialValue() {return new RestTemplateHolder();
+        }
+    };
+
+    public RestTemplate getRestTemplate(AbstractXOAuthIdentityProviderDefinition config) {
+        return restTemplateHolder.get().getRestTemplate(config.isSkipSslValidation());
     }
+
+    /*
+     * END
+     * The following thread local only exists to satisfy that the unit test
+     * that require the template to be bound to the mock server
+     */
 
     private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "token";
-        } else if (XOIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
+        } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "id_token";
         } else {
             throw new IllegalArgumentException("Unknown type for provider.");
         }
     }
 
-    private Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+    protected Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
         String idToken = getTokenFromCode(codeToken, config);
+        return getClaimsFromToken(idToken, config);
+    }
+
+    protected Map<String,Object> getClaimsFromToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
         if(idToken == null) {
             return null;
         }
@@ -280,11 +319,14 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         headers.add("Authorization", getClientAuthHeader(config));
         headers.add("Accept", "application/json");
         HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
-        ResponseEntity<Map<String, Object>> responseEntity = restTemplate.exchange(tokenKeyUrl, HttpMethod.GET, tokenKeyRequest, new ParameterizedTypeReference<Map<String, Object>>() {});
+        ResponseEntity<Map<String, Object>> responseEntity = getRestTemplate(config).exchange(tokenKeyUrl, HttpMethod.GET, tokenKeyRequest, new ParameterizedTypeReference<Map<String, Object>>() {});
         return (String) responseEntity.getBody().get("value");
     }
 
     private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+        if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
+            return codeToken.getIdToken();
+        }
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "authorization_code");
         body.add("response_type", getResponseType(config));
@@ -305,12 +347,17 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
 
         try {
-            if (config.isSkipSslValidation()) {
-                restTemplate.setRequestFactory(getNoValidatingClientHttpRequestFactory());
-            }
-            ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<Map<String, String>>() {});
+            // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
+            // setup by the bean initializer.
+            ResponseEntity<Map<String, String>> responseEntity =
+                getRestTemplate(config)
+                    .exchange(requestUri,
+                              HttpMethod.POST,
+                              requestEntity,
+                              new ParameterizedTypeReference<Map<String, String>>() {}
+                    );
             return responseEntity.getBody().get(ID_TOKEN);
-        } catch (HttpServerErrorException|HttpClientErrorException ex) {
+        } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;
         }
     }

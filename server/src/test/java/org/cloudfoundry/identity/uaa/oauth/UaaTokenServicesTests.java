@@ -53,6 +53,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.stubbing.Answer;
+import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -69,13 +70,17 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
+import org.springframework.util.ReflectionUtils;
 
+import java.lang.reflect.Field;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -88,9 +93,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
@@ -124,6 +131,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -321,6 +329,37 @@ public class UaaTokenServicesTests {
         IdentityZoneHolder.clear();
         tokens.clear();
     }
+
+    @Test
+    public void null_issuer_should_fail() throws URISyntaxException {
+        tokenServices = new UaaTokenServices();
+        tokenServices.setClientDetailsService(mock(ClientDetailsService.class));
+        try {
+            tokenServices.afterPropertiesSet();
+            fail();
+        } catch (IllegalArgumentException x) {
+            assertTrue(x.getMessage().contains("issuer must be set"));
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void do_not_allow_set_of_null_issuer() throws URISyntaxException {
+        tokenServices.setIssuer(null);
+    }
+
+    @Test(expected = URISyntaxException.class)
+    public void do_not_allow_set_of_non_url_issuer() throws URISyntaxException {
+        tokenServices.setIssuer("some bla bla bla");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getTokenEndpoint_Fails_If_Issuer_Is_Wrong() throws Exception {
+        Field field = UaaTokenServices.class.getDeclaredField("issuer");
+        field.setAccessible(true);
+        ReflectionUtils.setField(field, tokenServices, "adasdas");
+        tokenServices.getTokenEndpoint();
+    }
+
 
     @Test
     public void is_opaque_token_required() {
@@ -539,9 +578,49 @@ public class UaaTokenServicesTests {
         tokenServices.loadAuthentication(accessToken.getValue());
 
         //ensure that we can load without user_name claim
-        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME)));
+        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME, ClaimConstants.EMAIL)));
         accessToken = tokenServices.createAccessToken(authentication);
+        assertNotNull(tokenServices.loadAuthentication(accessToken.getValue()).getUserAuthentication());
+
+    }
+
+
+    @Test
+    public void testClientSecret_Added_Token_Validation_Still_Works() {
+
+        defaultClient.setClientSecret(SECRET);
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, PASSWORD);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        //normal token validation
         tokenServices.loadAuthentication(accessToken.getValue());
+
+        //add a 2nd secret
+        defaultClient.setClientSecret(defaultClient.getClientSecret()+" newsecret");
+        tokenServices.loadAuthentication(accessToken.getValue());
+
+        //generate a token when we have two secrets
+        OAuth2AccessToken accessToken2 = tokenServices.createAccessToken(authentication);
+
+        //remove the 1st secret
+        defaultClient.setClientSecret("newsecret");
+        try {
+            tokenServices.loadAuthentication(accessToken.getValue());
+            fail("Token should fail to validate on the revocation signature");
+        } catch (InvalidTokenException e) {
+            assertTrue(e.getMessage().contains("revocable signature mismatch"));
+        }
+        tokenServices.loadAuthentication(accessToken2.getValue());
+
+        OAuth2AccessToken accessToken3 = tokenServices.createAccessToken(authentication);
+        tokenServices.loadAuthentication(accessToken3.getValue());
     }
 
     @Test
@@ -985,8 +1064,13 @@ public class UaaTokenServicesTests {
     @Test
     public void create_id_token_with_amr_claim() throws Exception {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, ROLES));
-        assertTrue(idTokenJwt.getClaims().contains("\"roles\":[\"group2\",\"group1\"]"));
+        assertTrue(idTokenJwt.getClaims().contains("\"amr\":[\"ext\",\"rba\",\"mfa\"]"));
+    }
 
+    @Test
+    public void create_id_token_with_acr_claim() throws Exception {
+        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, ROLES));
+        assertTrue(idTokenJwt.getClaims().contains("\"" + ClaimConstants.ACR + "\":{\"values\":[\""));
     }
 
     @Test
@@ -1021,6 +1105,7 @@ public class UaaTokenServicesTests {
         Set<String> amr = new HashSet<>();
         amr.addAll(Arrays.asList("ext", "mfa", "rba"));
         userAuthentication.setAuthenticationMethods(amr);
+        userAuthentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX)));
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -1540,6 +1625,16 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testReadAccessToken() {
+        readAccessToken(EMPTY_SET);
+    }
+
+    @Test
+    public void testReadAccessToken_No_PII() {
+        readAccessToken(new HashSet<>(Arrays.asList(ClaimConstants.EMAIL, ClaimConstants.USER_NAME)));
+    }
+
+    public void readAccessToken(Set<String> excludedClaims) {
+        tokenServices.setExcludedClaims(excludedClaims);
         AuthorizationRequest authorizationRequest =new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -1566,18 +1661,27 @@ public class UaaTokenServicesTests {
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(updatedAt.getTime()));
+        Approval approval = new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(OPENID)
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime());
         approvalStore.addApproval(
-            new Approval()
-                .setUserId(userId)
-                .setClientId(CLIENT_ID)
-                .setScope(OPENID)
-                .setExpiresAt(expiresAt.getTime())
-                .setStatus(ApprovalStatus.APPROVED)
-                .setLastUpdatedAt(updatedAt.getTime()));
+            approval);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));
+
+        approvalStore.revokeApproval(approval);
+        try {
+            tokenServices.readAccessToken(accessToken.getValue());
+            fail("Approval has been revoked");
+        } catch (InvalidTokenException x) {
+            assertThat("Exception should be about approvals", x.getMessage().contains("some requested scopes are not approved"));
+        }
     }
 
     @Test(expected = InvalidTokenException.class)

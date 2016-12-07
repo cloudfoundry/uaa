@@ -18,6 +18,7 @@ import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.Subject;
 import org.opensaml.saml2.core.SubjectConfirmation;
 import org.opensaml.saml2.core.SubjectConfirmationData;
+import org.opensaml.saml2.core.NameIDType;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.ConfigurationException;
@@ -38,6 +39,90 @@ public class IdpWebSsoProfileImplTest {
     }
 
     @Test
+    public void testBuildResponseForSamlRequestWithPersistentNameID() throws MessageEncodingException, SAMLException,
+            MetadataProviderException, SecurityException, MarshallingException, SignatureException {
+        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
+
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+                samlTestUtils.mockAuthnRequest(NameIDType.PERSISTENT));
+
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+
+        AuthnRequest request = (AuthnRequest) context.getInboundSAMLMessage();
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+        Subject subject = assertion.getSubject();
+        assertEquals(authenticationId, subject.getNameID().getValue());
+        assertEquals(NameIDType.PERSISTENT, subject.getNameID().getFormat());
+
+        SubjectConfirmation subjectConfirmation = subject.getSubjectConfirmations().get(0);
+        SubjectConfirmationData subjectConfirmationData = subjectConfirmation.getSubjectConfirmationData();
+        assertEquals(request.getID(), subjectConfirmationData.getInResponseTo());
+
+        verifyAssertionAttributes(authenticationId, assertion);
+    }
+
+    @Test
+    public void testBuildResponseForSamlRequestWithUnspecifiedNameID() throws MessageEncodingException, SAMLException,
+            MetadataProviderException, SecurityException, MarshallingException, SignatureException {
+        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
+
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+                samlTestUtils.mockAuthnRequest(NameIDType.UNSPECIFIED));
+
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+
+        AuthnRequest request = (AuthnRequest) context.getInboundSAMLMessage();
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+        Subject subject = assertion.getSubject();
+        assertEquals("marissa", subject.getNameID().getValue());
+        assertEquals(NameIDType.UNSPECIFIED, subject.getNameID().getFormat());
+
+        SubjectConfirmation subjectConfirmation = subject.getSubjectConfirmations().get(0);
+        SubjectConfirmationData subjectConfirmationData = subjectConfirmation.getSubjectConfirmationData();
+        assertEquals(request.getID(), subjectConfirmationData.getInResponseTo());
+
+        verifyAssertionAttributes(authenticationId, assertion);
+    }
+
+    @Test
+    public void testBuildResponseForSamlRequestWithEmailAddressNameID() throws MessageEncodingException, SAMLException,
+            MetadataProviderException, SecurityException, MarshallingException, SignatureException {
+        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
+
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+                samlTestUtils.mockAuthnRequest(NameIDType.EMAIL));
+
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+
+        AuthnRequest request = (AuthnRequest) context.getInboundSAMLMessage();
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+        Subject subject = assertion.getSubject();
+        assertEquals("marissa@testing.org", subject.getNameID().getValue());
+        assertEquals(NameIDType.EMAIL, subject.getNameID().getFormat());
+
+        SubjectConfirmation subjectConfirmation = subject.getSubjectConfirmations().get(0);
+        SubjectConfirmationData subjectConfirmationData = subjectConfirmation.getSubjectConfirmationData();
+        assertEquals(request.getID(), subjectConfirmationData.getInResponseTo());
+
+        verifyAssertionAttributes(authenticationId, assertion);
+    }
+
+    @Test
     public void testBuildResponse() throws MessageEncodingException, SAMLException, MetadataProviderException,
             SecurityException, MarshallingException, SignatureException {
         IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
@@ -52,9 +137,12 @@ public class IdpWebSsoProfileImplTest {
 
         AuthnRequest request = (AuthnRequest) context.getInboundSAMLMessage();
         Response response = (Response) context.getOutboundSAMLMessage();
+        assertEquals(request.getID(), response.getInResponseTo());
+
         Assertion assertion = response.getAssertions().get(0);
         Subject subject = assertion.getSubject();
         assertEquals("marissa", subject.getNameID().getValue());
+        assertEquals(NameIDType.UNSPECIFIED, subject.getNameID().getFormat());
 
         SubjectConfirmation subjectConfirmation = subject.getSubjectConfirmations().get(0);
         SubjectConfirmationData subjectConfirmationData = subjectConfirmation.getSubjectConfirmationData();

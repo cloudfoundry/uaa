@@ -46,7 +46,7 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
     public static final int ENTITY_COUNT = 5;
 
     @Before
-    public void populateDataUsingEndpoints() {
+    public void populateDataUsingEndpoints() throws Exception {
 
         RandomValueStringGenerator generator = new RandomValueStringGenerator(16);
 
@@ -110,7 +110,7 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
 
 
     @Test
-    public void test_Ensure_That_New_Fields_NotNull() {
+    public void test_Ensure_That_New_Fields_NotNull() throws Exception {
         Assert.assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL", Integer.class), is(0));
         Assert.assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL", Integer.class), is(0));
     }

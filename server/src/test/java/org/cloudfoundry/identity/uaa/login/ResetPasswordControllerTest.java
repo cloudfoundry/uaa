@@ -18,19 +18,18 @@ import org.cloudfoundry.identity.uaa.account.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.account.NotFoundException;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
-import org.cloudfoundry.identity.uaa.account.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +38,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -50,8 +48,6 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Date;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
@@ -60,9 +56,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -86,6 +80,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     @Autowired
     @Qualifier("mailTemplateEngine")
     private SpringTemplateEngine templateEngine;
+    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
 
     @Before
     public void setUp() throws Exception {
@@ -96,7 +91,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         codeStore = mock(ExpiringCodeStore.class);
         userDatabase = mock(UaaUserDatabase.class);
         when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
@@ -145,7 +140,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         IdentityZoneHolder.get().setConfig(config);
 
         try {
-            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
             String domain = zoneDomain == null ? "localhost" : zoneDomain + ".localhost";
             when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd"));
             MockHttpServletRequestBuilder post = post("/forgot_password.do")
@@ -198,7 +193,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
         viewResolver.setSuffix(".jsp");
@@ -286,99 +281,4 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(view().name("reset_password"));
     }
 
-    @Test
-    public void testResetPasswordSuccess() throws Exception {
-        ScimUser user = new ScimUser("user-id", "foo@example.com", "firstName", "lastName");
-        user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
-        user.setPrimaryEmail("foo@example.com");
-        when(resetPasswordService.resetPassword("secret_code", "password")).thenReturn(new ResetPasswordResponse(user, "redirect.example.com", null));
-
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "secret_code")
-            .param("email", "foo@example.com")
-            .param("password", "password")
-            .param("password_confirmation", "password");
-        mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("redirect.example.com"))
-            .andExpect(model().attributeDoesNotExist("code"))
-            .andExpect(model().attributeDoesNotExist("password"))
-            .andExpect(model().attributeDoesNotExist("password_confirmation"));
-    }
-
-    @Test
-    public void testResetPasswordFormValidationFailure() throws Exception {
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "123456")
-            .param("email", "foo@example.com")
-            .param("password", "pass")
-            .param("password_confirmation", "word");
-
-        mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("reset_password"))
-            .andExpect(model().attribute("message_code", "form_error"))
-            .andExpect(model().attribute("email", "foo@example.com"))
-            .andExpect(model().attribute("code", "123456"));
-
-        verify(resetPasswordService, times(1)).getPasswordPolicy();
-        verifyNoMoreInteractions(resetPasswordService);
-    }
-
-    @Test
-    public void testResetPasswordFormWithInvalidCode() throws Exception {
-        when(resetPasswordService.resetPassword("bad_code", "password")).thenThrow(new UaaException("Bad code!"));
-
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "bad_code")
-            .param("email", "foo@example.com")
-            .param("password", "password")
-            .param("password_confirmation", "password");
-
-        mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("forgot_password"))
-            .andExpect(model().attribute("message_code", "bad_code"));
-
-        verify(resetPasswordService).resetPassword("bad_code", "password");
-    }
-
-    @Test
-    public void testResetPasswordFormWithInvalidPassword() throws Exception {
-        when(resetPasswordService.resetPassword("bad_code", "password")).thenThrow(new InvalidPasswordException(Arrays.asList("Msg 2a", "Msg 1a")));
-
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "bad_code")
-            .param("email", "foo@example.com")
-            .param("password", "password")
-            .param("password_confirmation", "password");
-
-        mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("forgot_password"))
-            .andExpect(model().attribute("message", "Msg 1a Msg 2a"));
-    }
-
-    @Test
-    public void resetPassword_Returns422UnprocessableEntity_NewPasswordSameAsOld() throws Exception {
-        when(resetPasswordService.resetPassword("good_code", "n3wPasswordSam3AsOld")).
-            thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.",
-                HttpStatus.UNPROCESSABLE_ENTITY));
-
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "good_code")
-            .param("email", "foo@example.com")
-            .param("password", "n3wPasswordSam3AsOld")
-            .param("password_confirmation", "n3wPasswordSam3AsOld");
-
-        mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("forgot_password"))
-            .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
-    }
 }

@@ -31,12 +31,12 @@ public class IdentityZoneResolvingMockMvcTest extends InjectedMockContextTest {
 
     private Set<String> originalHostnames;
     @Before
-    public void storeSettings() {
+    public void storeSettings() throws Exception {
         originalHostnames = getWebApplicationContext().getBean(IdentityZoneResolvingFilter.class).getDefaultZoneHostnames();
     }
 
     @After
-    public void restoreSettings() {
+    public void restoreSettings() throws Exception {
         getWebApplicationContext().getBean(IdentityZoneResolvingFilter.class).restoreDefaultHostnames(originalHostnames);
     }
 

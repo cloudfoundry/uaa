@@ -17,11 +17,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +28,9 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Optional.ofNullable;
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
@@ -41,7 +43,7 @@ import java.util.Set;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
-public class ScimUser extends ScimCore {
+public class ScimUser extends ScimCore<ScimUser> {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
@@ -406,7 +408,7 @@ public class ScimUser extends ScimCore {
             list.addAll(phoneNumbers);
             for (int i=(list.size()-1); i>=0; i--) {
                 PhoneNumber pn = list.get(i);
-                if (pn==null || (!StringUtils.hasText(pn.getValue()))) {
+                if (pn==null || (!hasText(pn.getValue()))) {
                     list.remove(i);
                 }
             }
@@ -633,7 +635,7 @@ public class ScimUser extends ScimCore {
         }
 
         if (phoneNumbers == null) {
-            phoneNumbers = new ArrayList<PhoneNumber>(1);
+            phoneNumbers = new ArrayList<>(1);
         }
         for (PhoneNumber phoneNumber : phoneNumbers) {
             if (phoneNumber.value.equals(newPhoneNumber) && phoneNumber.getType() == null) {
@@ -676,6 +678,129 @@ public class ScimUser extends ScimCore {
         }
 
         return words;
+    }
+
+    @Override
+    public void patch(ScimUser patch) {
+        //Delete Attributes specified in Meta.attributes
+        String[] attributes = ofNullable(patch.getMeta().getAttributes()).orElse(new String[0]);
+        for (String attribute : attributes) {
+            switch (attribute.toUpperCase()) {
+                case "USERNAME":
+                    if (!hasText(patch.getUserName())) {
+                        throw new IllegalArgumentException("Can not drop username, field is required.");
+                    }
+                    setUserName(null);
+                    break;
+                case "EMAILS":
+                    setEmails(new ArrayList<>());
+                    break;
+                case "PHONENUMBERS":
+                    setPhoneNumbers(new ArrayList<>());
+                    break;
+                case "DISPLAYNAME":
+                    setDisplayName(null);
+                    break;
+                case "NICKNAME":
+                    setNickName(null);
+                    break;
+                case "PROFILEURL":
+                    setProfileUrl(null);
+                    break;
+                case "TITLE":
+                    setTitle(null);
+                    break;
+                case "PREFERREDLANGUAGE":
+                    setPreferredLanguage(null);
+                    break;
+                case "LOCALE":
+                    setLocale(null);
+                    break;
+                case "TIMEZONE":
+                    setTimezone(null);
+                    break;
+                case "NAME":
+                    setName(new Name());
+                    break;
+                case "NAME.FAMILYNAME":
+                    ofNullable(getName()).ifPresent(name -> name.setFamilyName(null));
+                    break;
+                case "NAME.GIVENNAME":
+                    ofNullable(getName()).ifPresent(name -> name.setGivenName(null));
+                    break;
+                case "NAME.FORMATTED":
+                    ofNullable(getName()).ifPresent(name -> name.setFormatted(null));
+                    break;
+                case "NAME.HONORIFICPREFIX":
+                    ofNullable(getName()).ifPresent(name -> name.setHonorificPrefix(null));
+                    break;
+                case "NAME.HONORIFICSUFFIX":
+                    ofNullable(getName()).ifPresent(name -> name.setHonorificSuffix(null));
+                    break;
+                case "NAME.MIDDLENAME":
+                    ofNullable(getName()).ifPresent(name -> name.setMiddleName(null));
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+            }
+        }
+
+        //Merge simple Attributes, that are stored
+        ofNullable(patch.getUserName()).ifPresent(p -> setUserName(p));
+
+        setActive(patch.isActive());
+        setVerified(patch.isVerified());
+
+        //Merge complex attributes
+        ScimUser.Name patchName = patch.getName();
+        if (patchName != null) {
+            ScimUser.Name currentName = ofNullable(getName()).orElse(new Name());
+            ofNullable(patchName.getFamilyName()).ifPresent(n -> currentName.setFamilyName(n));
+            ofNullable(patchName.getGivenName()).ifPresent(n -> currentName.setGivenName(n));
+            ofNullable(patchName.getMiddleName()).ifPresent(n -> currentName.setMiddleName(n));
+            ofNullable(patchName.getFormatted()).ifPresent(n -> currentName.setFormatted(n));
+            ofNullable(patchName.getHonorificPrefix()).ifPresent(n -> currentName.setHonorificPrefix(n));
+            ofNullable(patchName.getHonorificSuffix()).ifPresent(n -> currentName.setHonorificSuffix(n));
+            setName(currentName);
+        }
+
+        ofNullable(patch.getDisplayName()).ifPresent(
+            s -> setDisplayName(s)
+        );
+        ofNullable(patch.getNickName()).ifPresent(s -> setNickName(s));
+        ofNullable(patch.getTimezone()).ifPresent(s -> setTimezone(s));
+        ofNullable(patch.getTitle()).ifPresent(s -> setTitle(s));
+        ofNullable(patch.getProfileUrl()).ifPresent(s -> setProfileUrl(s));
+        ofNullable(patch.getLocale()).ifPresent(s -> setLocale(s));
+        ofNullable(patch.getPreferredLanguage()).ifPresent(s -> setPreferredLanguage(s));
+
+        //Only one email stored, use Primary or first.
+        if (patch.getEmails() != null && patch.getEmails().size()>0) {
+            ScimUser.Email primary = null;
+            for (ScimUser.Email email : patch.getEmails()) {
+                if (email.isPrimary()) {
+                   primary = email;
+                   break;
+                }
+            }
+            List<Email> currentEmails = ofNullable(getEmails()).orElse(new ArrayList());
+            if (primary != null) {
+                for (Email e : currentEmails) {
+                    e.setPrimary(false);
+                }
+            }
+            currentEmails.addAll(patch.getEmails());
+            setEmails(currentEmails);
+        }
+
+        //Only one PhoneNumber stored, use first, as primary does not exist
+        if (patch.getPhoneNumbers() != null && patch.getPhoneNumbers().size()>0) {
+            List<PhoneNumber> current = ofNullable(getPhoneNumbers()).orElse(new ArrayList<>());
+            for (int index=0; index<patch.getPhoneNumbers().size(); index++) {
+                current.add(index, patch.getPhoneNumbers().get(index));
+            }
+            setPhoneNumbers(current);
+        }
     }
 
 }

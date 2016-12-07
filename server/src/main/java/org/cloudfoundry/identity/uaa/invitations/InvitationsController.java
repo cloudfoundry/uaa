@@ -62,6 +62,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -169,6 +170,7 @@ public class InvitationsController {
                 model.addAttribute(provider.getType(), provider);
                 model.addAttribute("code", newCode);
                 model.addAttribute("email", codeData.get("email"));
+                model.addAttribute("passwordPolicy", invitationsService.getPasswordPolicy());
                 logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
             return "invitations/accept_invite";
@@ -184,7 +186,7 @@ public class InvitationsController {
         HttpServletRequestWrapper wrapper = getNewCodeWrapper(request, newCode);
 
         SavedRequest savedRequest = new DefaultSavedRequest(wrapper, new PortResolverImpl());
-        RequestContextHolder.getRequestAttributes().setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest, RequestAttributes.SCOPE_SESSION);
+        RequestContextHolder.getRequestAttributes().setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest, RequestAttributes.SCOPE_SESSION);
     }
 
     protected HttpServletRequestWrapper getNewCodeWrapper(final HttpServletRequest request, final String newCode) {

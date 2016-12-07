@@ -34,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,6 +45,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.util.Assert;
+
+import static java.util.Optional.ofNullable;
 
 /**
  * Filter which processes authentication submitted through the
@@ -76,6 +79,8 @@ public class AuthzAuthenticationFilter implements Filter {
 
     private Set<String> methods = Collections.singleton(HttpMethod.POST.toString());
 
+    private AccountSavingAuthenticationSuccessHandler successHandler;
+
     /**
      * The filter fails on requests that don't have one of these HTTP methods.
      *
@@ -93,6 +98,10 @@ public class AuthzAuthenticationFilter implements Filter {
      */
     public void setAuthenticationEntryPoint(AuthenticationEntryPoint authenticationEntryPoint) {
         this.authenticationEntryPoint = authenticationEntryPoint;
+    }
+
+    public void setSuccessHandler(AccountSavingAuthenticationSuccessHandler successHandler) {
+        this.successHandler = successHandler;
     }
 
     /**
@@ -136,6 +145,9 @@ public class AuthzAuthenticationFilter implements Filter {
                 Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
                     new UaaAuthenticationDetails(req)));
                 SecurityContextHolder.getContext().setAuthentication(result);
+                ofNullable(successHandler).ifPresent(
+                    s -> s.setSavedAccountOptionCookie(req, res, result)
+                );
             }
         } catch (AuthenticationException e) {
             logger.debug("Authentication failed");
