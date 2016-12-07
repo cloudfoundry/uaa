@@ -604,6 +604,8 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     @Test
     public void testUpdatePasswordPolicyWithPasswordNewerThan() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
+        identityProviderProvisioning.update(identityProvider);
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         identityProviderStatus.setRequirePasswordChange(true);
         String accessToken = setUpAccessToken();

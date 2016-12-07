@@ -165,15 +165,22 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     @RequestMapping (value = "{id}/status", method = PATCH)
     public ResponseEntity<IdentityProviderStatus> updateIdentityProviderStatus(@PathVariable String id, @RequestBody IdentityProviderStatus body) {
         IdentityProvider existing = identityProviderProvisioning.retrieve(id);
-        if(body.getRequirePasswordChange() == null || !OriginKeys.UAA.equals(existing.getType())) {
+        if(body.getRequirePasswordChange() == null || body.getRequirePasswordChange() != true) {
+            logger.debug("Invalid payload. The property requirePasswwordChangeRequired needs to be set");
+            return new ResponseEntity<>(body, BAD_REQUEST);
+        }
+        if(!OriginKeys.UAA.equals(existing.getType())) {
+            logger.debug("Invalid operation. This operation is not supported on external IDP");
             return new ResponseEntity<>(body, BAD_REQUEST);
         }
         UaaIdentityProviderDefinition uaaIdentityProviderDefinition = ObjectUtils.castInstance(existing.getConfig(), UaaIdentityProviderDefinition.class);
         if(uaaIdentityProviderDefinition == null || uaaIdentityProviderDefinition.getPasswordPolicy() == null) {
+            logger.debug("IDP does not have an existing PasswordPolicy. Operation not supported");
             return new ResponseEntity<>(body, BAD_REQUEST);
         }
         uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(new Date(System.currentTimeMillis()));
         identityProviderProvisioning.update(existing);
+        logger.info("PasswordChangeRequired property set for Identity Provider: " + existing.getId());
         return  new ResponseEntity<>(body, OK);
     }
 
