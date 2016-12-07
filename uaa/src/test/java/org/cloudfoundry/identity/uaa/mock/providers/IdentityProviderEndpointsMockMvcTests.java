@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -62,6 +63,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -597,6 +599,22 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
                 .content(JsonUtils.writeValueAsString(identityProvider))
                 .contentType(APPLICATION_JSON)
         ).andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    public void testUpdatePasswordPolicyWithPasswordNewerThan() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
+        identityProviderStatus.setRequirePasswordChange(true);
+        String accessToken = setUpAccessToken();
+        MvcResult mvcResult = getMockMvc().perform(patch("/identity-providers/"+ identityProvider.getId() + "/status")
+            .header("Authorization", "Bearer " + accessToken)
+            .content(JsonUtils.writeValueAsString(identityProviderStatus))
+            .contentType(APPLICATION_JSON)
+        ).andExpect(status().isOk()).andReturn();
+
+        IdentityProviderStatus updatedStatus = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), IdentityProviderStatus.class);
+        assertEquals(identityProviderStatus.getRequirePasswordChange(), updatedStatus.getRequirePasswordChange());
     }
 
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getOAuthProviderConfig() throws MalformedURLException {

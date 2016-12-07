@@ -155,6 +155,9 @@
         <intercept-url pattern="/**"
                        access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="PUT"/>
+      <intercept-url pattern="/**"
+                     access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                     method="PATCH"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="DELETE"/>
