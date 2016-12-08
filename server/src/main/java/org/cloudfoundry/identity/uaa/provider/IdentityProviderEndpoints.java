@@ -46,6 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Date;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -57,6 +58,7 @@ import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.PATCH;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
@@ -158,6 +160,28 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
         updatedIdp.setSerializeConfigRaw(rawConfig);
         return new ResponseEntity<>(updatedIdp, OK);
+    }
+
+    @RequestMapping (value = "{id}/status", method = PATCH)
+    public ResponseEntity<IdentityProviderStatus> updateIdentityProviderStatus(@PathVariable String id, @RequestBody IdentityProviderStatus body) {
+        IdentityProvider existing = identityProviderProvisioning.retrieve(id);
+        if(body.getRequirePasswordChange() == null || body.getRequirePasswordChange() != true) {
+            logger.debug("Invalid payload. The property requirePasswwordChangeRequired needs to be set");
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+        }
+        if(!OriginKeys.UAA.equals(existing.getType())) {
+            logger.debug("Invalid operation. This operation is not supported on external IDP");
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+        }
+        UaaIdentityProviderDefinition uaaIdentityProviderDefinition = ObjectUtils.castInstance(existing.getConfig(), UaaIdentityProviderDefinition.class);
+        if(uaaIdentityProviderDefinition == null || uaaIdentityProviderDefinition.getPasswordPolicy() == null) {
+            logger.debug("IDP does not have an existing PasswordPolicy. Operation not supported");
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+        }
+        uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(new Date(System.currentTimeMillis()));
+        identityProviderProvisioning.update(existing);
+        logger.info("PasswordChangeRequired property set for Identity Provider: " + existing.getId());
+        return  new ResponseEntity<>(body, OK);
     }
 
     @RequestMapping(method = GET)

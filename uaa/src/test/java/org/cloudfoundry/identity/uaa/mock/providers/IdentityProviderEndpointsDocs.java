@@ -21,8 +21,10 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreation
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -65,6 +67,7 @@ import static org.springframework.restdocs.headers.HeaderDocumentation.requestHe
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
@@ -696,6 +699,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.passwordPolicy.requireDigit").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of digits required for password to be considered valid (defaults to 0).").optional(),
             fieldWithPath("config.passwordPolicy.requireSpecialCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of special characters required for password to be considered valid (defaults to 0).").optional(),
             fieldWithPath("config.passwordPolicy.expirePasswordInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
+            fieldWithPath("config.passwordPolicy.passwordNewerThan").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("This timestamp value can be used to force change password for every user. If the user's passwordLastModified is older than this value, the password is expired (defaults to null)."),
             fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
             fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),
             fieldWithPath("config.lockoutPolicy.countFailuresWithin").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).").optional(),
@@ -730,6 +734,43 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 commonRequestParams,
                 requestFields,
                 responseFields));
+    }
+
+    @Test
+    public void patchIdentityProviderStatus() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
+        identityProviderProvisioning.update(identityProvider);
+        IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
+        identityProviderStatus.setRequirePasswordChange(true);
+
+        FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
+            fieldWithPath("requirePasswordChange").required().description("Set to `true` in order to force password change for all users. The `passwordNewerThan` property in PasswordPolicy of the IdentityProvider will be updated with current system time. If the user's passwordLastModified is older than this value, the password is expired.")
+        };
+
+        Snippet requestFields = requestFields(idempotentFields);
+        Snippet responseFields = responseFields(idempotentFields);
+
+        getMockMvc().perform(patch("/identity-providers/{id}/status", identityProvider.getId())
+                    .header("Authorization", "Bearer " + adminToken)
+                    .contentType(APPLICATION_JSON)
+                    .content(serializeExcludingProperties(identityProviderStatus)))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(parameterWithName("id").description(ID_DESC)
+                        ),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                        ),
+                        requestFields,
+                        responseFields));
+
+
+
+
+
     }
 
     @Test
