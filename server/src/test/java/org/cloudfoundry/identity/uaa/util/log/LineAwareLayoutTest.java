@@ -1,18 +1,19 @@
 /*
- * ******************************************************************************
- *       Cloud Foundry Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * ****************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
- *       This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *       You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- *       This product includes a number of subcomponents with
- *       separate copyright notices and license terms. Your use of these
- *       subcomponents is subject to the terms and conditions of the
- *       subcomponent's license, as noted in the LICENSE file.
- * ******************************************************************************
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.audit;
+package org.cloudfoundry.identity.uaa.util.log;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.Layout;
@@ -21,7 +22,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
-import org.cloudfoundry.identity.uaa.util.LineAwareLayout;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
