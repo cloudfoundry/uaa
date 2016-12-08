@@ -35,7 +35,7 @@ public class IdentityProviderEndpointsTest {
     public void testPatchIdentityProviderStatusInvalidPayload () {
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
@@ -47,7 +47,7 @@ public class IdentityProviderEndpointsTest {
         notUAAIDP.setConfig(new SamlIdentityProviderDefinition());
         when(identityProviderProvisioning.retrieve(anyString())).thenReturn(notUAAIDP);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
@@ -59,7 +59,7 @@ public class IdentityProviderEndpointsTest {
         invalidIDP.setType(OriginKeys.UAA);
         when(identityProviderProvisioning.retrieve(anyString())).thenReturn(invalidIDP);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
@@ -71,7 +71,7 @@ public class IdentityProviderEndpointsTest {
         invalidIDP.setConfig(new UaaIdentityProviderDefinition(null, null));
         when(identityProviderProvisioning.retrieve(anyString())).thenReturn(invalidIDP);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test

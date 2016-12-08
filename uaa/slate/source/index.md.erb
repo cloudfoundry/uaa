@@ -979,6 +979,36 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity                                                  |
 
+## Force pasword change for Users
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/request-headers.md")).result(binding) %>
+
+<aside class="notice">
+  This example is for updating the internal (uaa) identity provider only. <br/>
+  It is not a valid operation to update SAML or LDAP identity providers <br/>
+</aside>
+
+_Request and Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/request-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 422        | Unprocessable Entity - Invalid config                                 |
+
+
 # Service Providers
 
 UAA is capable of acting as a SAML Identity Provider (IdP). When UAA receives a SAML authentication request from a recognized SAML Service Provider (SP), UAA will authenticate the user then send a SAML authentication response back to the SAML SP. If UAA succesfully authenticated the user the SAML authentication response will contain a SAML assertion as per specification.

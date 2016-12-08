@@ -167,16 +167,16 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         IdentityProvider existing = identityProviderProvisioning.retrieve(id);
         if(body.getRequirePasswordChange() == null || body.getRequirePasswordChange() != true) {
             logger.debug("Invalid payload. The property requirePasswwordChangeRequired needs to be set");
-            return new ResponseEntity<>(body, BAD_REQUEST);
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         if(!OriginKeys.UAA.equals(existing.getType())) {
             logger.debug("Invalid operation. This operation is not supported on external IDP");
-            return new ResponseEntity<>(body, BAD_REQUEST);
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         UaaIdentityProviderDefinition uaaIdentityProviderDefinition = ObjectUtils.castInstance(existing.getConfig(), UaaIdentityProviderDefinition.class);
         if(uaaIdentityProviderDefinition == null || uaaIdentityProviderDefinition.getPasswordPolicy() == null) {
             logger.debug("IDP does not have an existing PasswordPolicy. Operation not supported");
-            return new ResponseEntity<>(body, BAD_REQUEST);
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(new Date(System.currentTimeMillis()));
         identityProviderProvisioning.update(existing);
