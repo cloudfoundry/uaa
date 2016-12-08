@@ -542,6 +542,29 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void getOauthToken_usingPassword_withNoCommonScopes_shouldBeUnauthorized() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        setUpClients(clientId, "uaa.user", "something_else", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        MvcResult result = getMockMvc().perform(post("/oauth/token")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param("client_secret", SECRET)
+            .param("username", username)
+            .param("password", SECRET))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+
+        assertThat(result.getResponse().getErrorMessage(), containsString("Invalid scope (empty) - this user is not allowed any of the requested scopes: [something_else]"));
+    }
+
+    @Test
     public void getOauthToken_usingClientCredentials_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
         String clientId = "testclient"+ generator.generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "client_credentials", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));

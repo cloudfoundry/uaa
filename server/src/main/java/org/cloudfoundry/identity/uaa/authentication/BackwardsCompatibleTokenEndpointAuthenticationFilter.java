@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -22,6 +23,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -45,6 +47,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 /**
  * Provides an implementation that sets the UserAuthentication
@@ -159,6 +163,10 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             }
             onUnsuccessfulAuthentication(request, response, failed);
             authenticationEntryPoint.commence(request, response, failed);
+            return;
+        } catch (InvalidScopeException ex) {
+            String message = ex.getMessage();
+            response.sendError(UNAUTHORIZED.value(), message);
             return;
         }
 
