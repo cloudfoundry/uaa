@@ -45,13 +45,13 @@ public class ScimCoreTests {
         ScimCore c2 = new ScimGroup();
         ScimMeta meta1 = c1.getMeta();
         ScimMeta meta2 = c2.getMeta();
+        Date meta2Timestamp = meta2.getCreated();
         meta1.setCreated(new Date());
         meta1.setVersion(0);
         meta2.setVersion(1);
         meta2.setAttributes(new String[]{"Description"});
         c2.patch(c1);
-
-        assertEquals(meta1.getCreated(), meta2.getCreated());
+        assertEquals(meta2Timestamp, c2.getMeta().getCreated());
         assertEquals(1, meta2.getVersion());
         assertEquals(1, meta2.getAttributes().length);
         assertEquals("Description", meta2.getAttributes()[0]);
