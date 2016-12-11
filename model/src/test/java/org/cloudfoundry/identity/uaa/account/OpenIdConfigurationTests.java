@@ -39,8 +39,10 @@ public class OpenIdConfigurationTests {
         assertArrayEquals(new String[]{"client_secret_basic"}, defaultConfig.getTokenAMR());
         assertArrayEquals(new String[]{"SHA256withRSA", "HMACSHA256"}, defaultConfig.getTokenEndpointAuthSigningValues());
         assertEquals("/uaa/userInfo", defaultConfig.getUserInfoUrl());
+        assertEquals("/uaa/token_keys", defaultConfig.getJwksUri());
         assertArrayEquals(new String[]{"openid", "profile", "email", "phone"}, defaultConfig.getScopes());
         assertArrayEquals(new String[]{"code", "code id_token", "id_token", "token id_token"}, defaultConfig.getResponseTypes());
+        assertArrayEquals(new String[]{"public"}, defaultConfig.getSubjectTypesSupported());
         assertArrayEquals(new String[]{"SHA256withRSA", "HMACSHA256"}, defaultConfig.getIdTokenSigningAlgValues());
         assertArrayEquals(new String[]{"none"}, defaultConfig.getRequestObjectSigningAlgValues());
         assertArrayEquals(new String[]{"normal"}, defaultConfig.getClaimTypesSupported());

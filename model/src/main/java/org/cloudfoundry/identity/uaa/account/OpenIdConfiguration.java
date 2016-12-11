@@ -30,10 +30,14 @@ public class OpenIdConfiguration {
     private String[] tokenEndpointAuthSigningValues = new String[]{"SHA256withRSA", "HMACSHA256"};
     @JsonProperty("userinfo_endpoint")
     private String userInfoUrl;
+    @JsonProperty("jwks_uri")
+    private String jwksUri;
     @JsonProperty("scopes_supported")
     private String[] scopes = new String[]{"openid", "profile", "email", "phone"};
     @JsonProperty("response_types_supported")
     private String[] responseTypes = new String[]{"code", "code id_token", "id_token", "token id_token"};
+    @JsonProperty("subject_types_supported")
+    private String[] subjectTypesSupported = new String[]{"public"};
     @JsonProperty("id_token_signing_alg_values_supported")
     private String[] idTokenSigningAlgValues = new String[]{"SHA256withRSA", "HMACSHA256"};
     @JsonProperty("id_token_encryption_alg_values_supported")
@@ -58,6 +62,7 @@ public class OpenIdConfiguration {
         this.authUrl = contextPath + "/oauth/authorize";
         this.tokenUrl = contextPath + "/oauth/token";
         this.userInfoUrl = contextPath + "/userInfo";
+        this.jwksUri = contextPath + "/token_keys";
     }
 
     public String getIssuer() {
@@ -108,6 +113,14 @@ public class OpenIdConfiguration {
         this.userInfoUrl = userInfoUrl;
     }
 
+    public String getJwksUri() {
+        return jwksUri;
+    }
+
+    public void setJwksUri(String jwksUri) {
+        this.jwksUri = jwksUri;
+    }
+
     public String[] getScopes() {
         return scopes;
     }
@@ -122,6 +135,14 @@ public class OpenIdConfiguration {
 
     public void setResponseTypes(String[] responseTypes) {
         this.responseTypes = responseTypes;
+    }
+
+    public String[] getSubjectTypesSupported() {
+        return subjectTypesSupported;
+    }
+
+    public void setSubjectTypesSupported(String[] subjectTypesSupported) {
+        this.subjectTypesSupported = subjectTypesSupported;
     }
 
     public String[] getIdTokenSigningAlgValues() {
