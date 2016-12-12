@@ -551,12 +551,13 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName("Authorization").description("Bearer token with uaa.admin scope."),
+            headerWithName("Authorization").description("Bearer token with uaa.admin or tokens.revoke scope. Any token with the matching user_id may also be used for self revocation."),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
         Snippet pathParameters = pathParameters(parameterWithName("userId").description("The identifier for the user to revoke all tokens for"));
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/user/{userId}", user.getId());
+
 
         getMockMvc().perform(get
                         .header("Authorization", "Bearer "+adminToken))
@@ -591,7 +592,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                         true
                 );
         Snippet requestHeaders = requestHeaders(
-            headerWithName("Authorization").description("Bearer token with uaa.admin scope."),
+            headerWithName("Authorization").description("Bearer token with uaa.admin or tokens.revoke scope. Any token with the matching client_id may also be used for self revocation."),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
@@ -635,7 +636,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with tokens.revoke scope. If token being revoked is for self, use the token to be revoked in this header."),
+            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with uaa.admin or tokens.revoke scope. You can use any token with matching token ID to revoke itself."),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );

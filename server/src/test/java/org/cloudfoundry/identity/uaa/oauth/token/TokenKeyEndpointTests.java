@@ -66,7 +66,7 @@ public class TokenKeyEndpointTests {
     public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
         configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
-        assertEquals("HMACSHA256", response.getAlgorithm());
+        assertEquals("HS256", response.getAlgorithm());
         assertEquals("someKey", response.getKey());
         assertEquals("someKeyId", response.getId());
         assertEquals("MAC", response.getType());
@@ -102,7 +102,7 @@ public class TokenKeyEndpointTests {
         String serialized = JsonUtils.writeValueAsString(response);
 
         Map<String, String> deserializedMap = JsonUtils.readValue(serialized, Map.class);
-        assertEquals("HMACSHA256", deserializedMap.get("alg"));
+        assertEquals("HS256", deserializedMap.get("alg"));
         assertEquals("someKey", deserializedMap.get("value"));
         assertEquals("MAC", deserializedMap.get("kty"));
         assertEquals("sig", deserializedMap.get("use"));
@@ -134,7 +134,7 @@ public class TokenKeyEndpointTests {
         assertEquals(response.getModulus(), Base64Utils.encodeToUrlSafeString(Base64Utils.decodeFromUrlSafeString(response.getModulus())));
         assertEquals(response.getExponent(), Base64Utils.encodeToUrlSafeString(Base64Utils.decodeFromUrlSafeString(response.getExponent())));
 
-        assertEquals("SHA256withRSA", response.getAlgorithm());
+        assertEquals("RS256", response.getAlgorithm());
         assertEquals("key1", response.getId());
         assertEquals("RSA", response.getType());
         assertEquals("sig", response.getUse().name());
@@ -148,7 +148,7 @@ public class TokenKeyEndpointTests {
 
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
 
-        assertEquals("HMACSHA256", response.getAlgorithm());
+        assertEquals("HS256", response.getAlgorithm());
         assertEquals("someKey", response.getKey());
         assertEquals("someKeyId", response.getId());
         assertEquals("MAC", response.getType());

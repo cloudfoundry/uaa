@@ -28,7 +28,7 @@ import static org.junit.Assert.assertNull;
 public class JsonWebKeySetTests {
 
     public static final String singleKeyJson = "{\n" +
-        "    \"alg\": \"SHA256withRSA\",\n" +
+        "    \"alg\": \"RS256\",\n" +
         "    \"e\": \"AQAB\",\n" +
         "    \"kid\": \"legacy\",\n" +
         "    \"kty\": \"RSA\",\n" +
@@ -40,7 +40,7 @@ public class JsonWebKeySetTests {
     public static final String multiKeyJson = "{\n" +
         "    \"keys\": [\n" +
         "        {\n" +
-        "            \"alg\": \"SHA256withRSA\",\n" +
+        "            \"alg\": \"RS256\",\n" +
         "            \"e\": \"AQAB\",\n" +
         "            \"kid\": \"legacy\",\n" +
         "            \"kty\": \"RSA\",\n" +
@@ -49,7 +49,7 @@ public class JsonWebKeySetTests {
         "            \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
         "        },\n" +
         "        {\n" +
-        "            \"alg\": \"SHA256withRSA\",\n" +
+        "            \"alg\": \"RS256\",\n" +
         "            \"e\": \"AQAB\",\n" +
         "            \"kid\": \"legacy\",\n" +
         "            \"kty\": \"RSA\",\n" +
@@ -99,7 +99,7 @@ public class JsonWebKeySetTests {
         assertNotNull(keys);
         assertNotNull(keys.getKeys());
         JsonWebKey key = keys.getKeys().get(0);
-        assertEquals("SHA256withRSA", key.getAlgorithm());
+        assertEquals("RS256", key.getAlgorithm());
         assertEquals(
             "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\nspULZVNRxq7veq/fzwIDAQAB\n-----END PUBLIC KEY-----",
             key.getValue()
