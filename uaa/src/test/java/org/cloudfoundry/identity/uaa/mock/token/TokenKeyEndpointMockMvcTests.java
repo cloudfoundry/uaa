@@ -232,7 +232,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         //optional - algorithm of key
         assertNotNull(alg);
         assertTrue(alg instanceof String);
-        assertEquals("SHA256withRSA", alg);
+        assertEquals("RS256", alg);
 
         Object kid = key.get("kid");
         //optional - indicates the id for a certain key

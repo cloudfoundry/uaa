@@ -48,6 +48,12 @@ public class CommonSigner implements Signer {
 
     @Override
     public String algorithm() {
+        return JwtAlgorithms.sigAlg(delegate.algorithm());
+    }
+
+    public String getJavaAlgorithm() {
         return delegate.algorithm();
     }
+
+
 }

@@ -42,28 +42,28 @@ public class CommonSignerTest {
     @Test
     public void test_rsa_key_null_id() {
         CommonSigner signer = new CommonSigner(null, rsaSigningKey);
-        assertEquals("SHA256withRSA", signer.algorithm());
+        assertEquals("RS256", signer.algorithm());
         assertNull(signer.keyId());
     }
 
     @Test
     public void test_rsa_key_with_id() {
         CommonSigner signer = new CommonSigner("id", rsaSigningKey);
-        assertEquals("SHA256withRSA", signer.algorithm());
+        assertEquals("RS256", signer.algorithm());
         assertEquals("id", signer.keyId());
     }
 
     @Test
     public void test_mac_key_null_id() {
         CommonSigner signer = new CommonSigner(null, macSigningKey);
-        assertEquals("HMACSHA256", signer.algorithm());
+        assertEquals("HS256", signer.algorithm());
         assertNull(signer.keyId());
     }
 
     @Test
     public void test_mac_key_with_id() {
         CommonSigner signer = new CommonSigner("id", macSigningKey);
-        assertEquals("HMACSHA256", signer.algorithm());
+        assertEquals("HS256", signer.algorithm());
         assertEquals("id", signer.keyId());
     }
 

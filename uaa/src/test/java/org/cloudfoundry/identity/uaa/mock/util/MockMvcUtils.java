@@ -958,6 +958,7 @@ public final class MockMvcUtils {
             oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         }
         MvcResult result = mockMvc.perform(oauthTokenPost)
+            .andDo(print())
             .andExpect(status().isOk())
             .andReturn();
         InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), InjectedMockContextTest.OAuthToken.class);
