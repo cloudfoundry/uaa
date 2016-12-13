@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -32,6 +33,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * @author Luke Taylor
@@ -59,6 +62,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private JdbcTemplate jdbcTemplate;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
+    private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
 
     private Set<String> defaultAuthorities = new HashSet<String>();
 
@@ -121,6 +125,36 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
         else {
             throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
+        }
+    }
+
+    @Override
+    public UserInfo getUserInfo(String id) {
+        return jdbcTemplate.queryForObject("select user_id, info from user_info where user_id = ?", userInfoMapper, id);
+    }
+
+    @Override
+    public UserInfo storeUserInfo(String id, UserInfo info) {
+        if (StringUtils.isEmpty(id)) {
+            throw new NullPointerException("id is a required field");
+        }
+        final String insertUserInfoSQL = "insert into user_info(user_id, info) values (?,?)";
+        if (info == null) {
+            info = new UserInfo();
+        }
+        info.setUserId(id);
+        jdbcTemplate.update(insertUserInfoSQL, id, JsonUtils.writeValueAsString(info));
+        return getUserInfo(id);
+    }
+
+    private final class UserInfoRowMapper implements RowMapper<UserInfo> {
+        @Override
+        public UserInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+            String id = rs.getString(1);
+            String info = rs.getString(2);
+            UserInfo userInfo = hasText(info) ? JsonUtils.readValue(info, UserInfo.class) : new UserInfo();
+            userInfo.setUserId(id);
+            return userInfo;
         }
     }
 
