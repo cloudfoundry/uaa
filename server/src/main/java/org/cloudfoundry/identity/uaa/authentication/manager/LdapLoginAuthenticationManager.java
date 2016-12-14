@@ -15,6 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -41,6 +43,8 @@ import static java.util.Collections.EMPTY_LIST;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
+    protected static Log logger = LogFactory.getLog(LdapLoginAuthenticationManager.class);
+
     public LdapLoginAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
         super(providerProvisioning);
     }
@@ -54,6 +58,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     @Override
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
         MultiValueMap<String, String> result = super.getUserAttributes(request);
+        logger.debug(String.format("Mapping custom attributes for origin:%s and zone:%s", getOrigin(), IdentityZoneHolder.get().getId()));
         if (getProviderProvisioning()!=null) {
             IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (request instanceof ExtendedLdapUserDetails) {
@@ -66,10 +71,13 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                         String[] values = ldapDetails.getAttribute((String) entry.getValue(), false);
                         if (values != null && values.length > 0) {
                             result.put(key, Arrays.asList(values));
+                            logger.debug(String.format("Mappcustom attribute key:%s and value:%s", key, result.get(key)));
                         }
                     }
                 }
             }
+        } else {
+            logger.debug(String.format("Did not find custom attribute configuration for origin:%s and zone:%s", getOrigin(), IdentityZoneHolder.get().getId()));
         }
         return result;
     }
