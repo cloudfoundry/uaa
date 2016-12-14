@@ -142,7 +142,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         if (info == null) {
             info = new UserInfo();
         }
-        info.setUserId(id);
         jdbcTemplate.update(insertUserInfoSQL, id, JsonUtils.writeValueAsString(info));
         return getUserInfo(id);
     }

@@ -133,7 +133,6 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         info.setUserId(id);
         info.put("family_name","Somelastname");
         info.put("given_name","Somefirstname");
-        info.put("some int", 4);
         db.storeUserInfo(id1, info);
         UserInfo info2 = db.getUserInfo(id1);
         info.setUserId(id1);
@@ -148,7 +147,6 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         info.setUserId(id);
         info.put("family_name","Somelastname");
         info.put("given_name","Somefirstname");
-        info.put("some int", 4);
         db.storeUserInfo(id, info);
         UserInfo info2 = db.getUserInfo(id);
         assertEquals(info, info2);
