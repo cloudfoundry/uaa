@@ -109,6 +109,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
+        logger.debug("Starting external authentication for:"+request);
         ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
         UaaUser userFromRequest = getUser(request, authenticationData);
         if (userFromRequest == null) {
@@ -118,8 +119,10 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         UaaUser userFromDb;
 
         try {
+            logger.debug(String.format("Searching for user by (username:%s , origin:%s)", userFromRequest.getUsername(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
+            logger.debug(String.format("Searching for user by (email:%s , origin:%s)", userFromRequest.getEmail(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByEmail(userFromRequest.getEmail(), getOrigin());
         }
 
@@ -165,6 +168,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         if (authentication.getUserAttributes()!=null && authentication.getUserAttributes().size()>0 && getProviderProvisioning()!=null) {
             IdentityProvider<ExternalIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (provider.getConfig()!=null && provider.getConfig().areCustomAttributesStored()) {
+                logger.debug("Storing custom attributes for user_id:"+authentication.getPrincipal().getId());
                 getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), new UserInfo(authentication.getUserAttributes()));
             }
         }
