@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +46,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -105,7 +107,8 @@ public class LdapLoginAuthenticationManagerTests {
 
     @Before
     public void setUp() {
-        am = new LdapLoginAuthenticationManager();
+        provisioning = mock(IdentityProviderProvisioning.class);
+        am = new LdapLoginAuthenticationManager(provisioning);
         publisher = mock(ApplicationEventPublisher.class);
         am.setApplicationEventPublisher(publisher);
         am.setOrigin(origin);
@@ -119,7 +122,7 @@ public class LdapLoginAuthenticationManagerTests {
         when(auth.getAuthorities()).thenReturn(null);
 
         provider = mock(IdentityProvider.class);
-        provisioning = mock(IdentityProviderProvisioning.class);
+
         when(provisioning.retrieveByOrigin(anyString(),anyString())).thenReturn(provider);
         Map attributeMappings = new HashMap<>();
         definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
@@ -141,7 +144,6 @@ public class LdapLoginAuthenticationManagerTests {
         definition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, UAA_MANAGER);
         definition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
         when(provider.getConfig()).thenReturn(definition);
-        am.setProvisioning(provisioning);
     }
 
     @Test
@@ -218,6 +220,15 @@ public class LdapLoginAuthenticationManagerTests {
 
     @Test
     public void test_authentication_attributes() throws Exception {
+        test_authentication_attributes(false);
+    }
+
+    @Test
+    public void test_authentication_attributes_store_custom_attributes() throws Exception {
+        test_authentication_attributes(true);
+    }
+
+    public void test_authentication_attributes(boolean storeUserInfo) throws Exception {
 
         UaaUser user = getUaaUser();
         ExtendedLdapUserImpl authDetails =
@@ -237,7 +248,17 @@ public class LdapLoginAuthenticationManagerTests {
         am.setOrigin(OriginKeys.LDAP);
         am.setUserDatabase(db);
 
+
+            //set the config flag
+        definition.setStoreCustomAttributes(storeUserInfo);
+
         UaaAuthentication authentication = (UaaAuthentication)am.authenticate(auth);
+        UserInfo info = new UserInfo(authentication.getUserAttributes());
+        if (storeUserInfo) {
+            verify(db, times(1)).storeUserInfo(anyString(), eq(info));
+        } else {
+            verify(db, never()).storeUserInfo(anyString(), eq(info));
+        }
 
         assertEquals("Expected two user attributes", 2, authentication.getUserAttributes().size());
         assertNotNull("Expected cost center attribute", authentication.getUserAttributes().get(COST_CENTERS));

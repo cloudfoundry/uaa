@@ -68,7 +68,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
@@ -81,10 +84,9 @@ import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedI
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
-    private IdentityProviderProvisioning providerProvisioning;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
-        this.providerProvisioning = providerProvisioning;
+        super(providerProvisioning);
     }
 
     @Override
@@ -92,7 +94,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         XOAuthCodeToken codeToken = (XOAuthCodeToken) authentication;
         setOrigin(codeToken.getOrigin());
-        IdentityProvider provider = providerProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
 
         if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
             AuthenticationData authenticationData = new AuthenticationData();
@@ -118,7 +120,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             authenticationData.setUsername(username);
 
             authenticationData.setAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims));
-
+            Optional.ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
         }
 
@@ -127,12 +129,14 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     @Override
     protected void populateAuthenticationAttributes(UaaAuthentication authentication, Authentication request, AuthenticationData authenticationData) {
-        super.populateAuthenticationAttributes(authentication, request, authenticationData);
-
         Map<String, Object> claims = authenticationData.getClaims();
         if (claims != null) {
             if (claims.get("amr") != null) {
-                authentication.getAuthenticationMethods().addAll((Collection<String>) claims.get("amr"));
+                if (authentication.getAuthenticationMethods()==null) {
+                    authentication.setAuthenticationMethods(new HashSet<>((Collection<String>) claims.get("amr")));
+                } else {
+                    authentication.getAuthenticationMethods().addAll((Collection<String>) claims.get("amr"));
+                }
             }
 
             Object acr = claims.get(ClaimConstants.ACR);
@@ -153,8 +157,30 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                     logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", acr, authentication.getPrincipal().getId()));
                 }
             }
+            MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
+            for (Map.Entry<String, Object> entry : authenticationData.getAttributeMappings().entrySet()) {
+                if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX) && entry.getValue() != null) {
+                    String key = entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length());
+                    Object values = claims.get(entry.getValue());
+                    if (values != null) {
+                        if (values instanceof List) {
+                            List list = (List)values;
+                            List<String> strings = (List<String>) list.stream()
+                                .map(object -> Objects.toString(object, null))
+                                .collect(Collectors.toList());
+                            userAttributes.put(key, strings);
+                        } else if (values instanceof String) {
+                            userAttributes.put(key, Arrays.asList((String) values));
+                        } else {
+                            userAttributes.put(key, Arrays.asList(values.toString()));
+                        }
+                    }
+                }
+            }
+            authentication.setUserAttributes(userAttributes);
 
         }
+        super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 
     @Override
@@ -250,7 +276,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         if (!super.isAddNewShadowUser()) {
             return false;
         }
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
         return provider.getConfig().isAddShadowUserOnLogin();
     }
 
@@ -399,6 +425,15 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         private Map<String, Object> claims;
         private String username;
         private List<? extends GrantedAuthority> authorities;
+        private Map<String, Object> attributeMappings;
+
+        public Map<String, Object> getAttributeMappings() {
+            return attributeMappings;
+        }
+
+        public void setAttributeMappings(Map<String, Object> attributeMappings) {
+            this.attributeMappings = attributeMappings;
+        }
 
         public void setClaims(Map<String, Object> claims) {
             this.claims = claims;

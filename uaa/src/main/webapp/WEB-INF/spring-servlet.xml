@@ -446,9 +446,9 @@
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
+        <constructor-arg index="0" ref="identityProviderProvisioning"/>
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
-        <property name="provisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.authentication.listener.UserAuthenticationSuccessListener">

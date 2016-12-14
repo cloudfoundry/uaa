@@ -17,13 +17,22 @@ package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 
 public class UserInfo extends LinkedMultiValueMap<String,String> {
+
+    public UserInfo(){}
+
+    @JsonIgnore
+    public UserInfo(MultiValueMap<String, String> map) {
+        super(map);
+    }
+
     @JsonIgnore
     public String getUserId() {
-        return (String) getFirst("user_id");
+        return getFirst("user_id");
     }
 
     @JsonIgnore

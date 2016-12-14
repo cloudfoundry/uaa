@@ -264,6 +264,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     protected static class NoOpLdapLoginAuthenticationManager extends LdapLoginAuthenticationManager {
+        public NoOpLdapLoginAuthenticationManager() {
+            super(null);
+        }
+
         @Override
         public Authentication authenticate(Authentication request) throws AuthenticationException {
             return request;

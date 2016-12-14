@@ -41,11 +41,8 @@ import static java.util.Collections.EMPTY_LIST;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
-    public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
-    private IdentityProviderProvisioning provisioning;
-
-    public void setProvisioning(IdentityProviderProvisioning provisioning) {
-        this.provisioning = provisioning;
+    public LdapLoginAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
+        super(providerProvisioning);
     }
 
     @Override
@@ -57,8 +54,8 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     @Override
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
         MultiValueMap<String, String> result = super.getUserAttributes(request);
-        if (provisioning!=null) {
-            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        if (getProviderProvisioning()!=null) {
+            IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (request instanceof ExtendedLdapUserDetails) {
                 ExtendedLdapUserDetails ldapDetails = ((ExtendedLdapUserDetails) request);
                 LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(),LdapIdentityProviderDefinition.class);
@@ -80,8 +77,8 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     @Override
     protected List<String> getExternalUserAuthorities(UserDetails request) {
         List<String> result = super.getExternalUserAuthorities(request);
-        if (provisioning!=null) {
-            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        if (getProviderProvisioning()!=null) {
+            IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(),LdapIdentityProviderDefinition.class);
             List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
             result = new LinkedList<>(getAuthoritesAsNames(request.getAuthorities()));
@@ -122,8 +119,8 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     protected boolean isAutoAddAuthorities() {
         Boolean result = true;
-        if (provisioning!=null) {
-            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        if (getProviderProvisioning()!=null) {
+            IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
             if (ldapIdentityProviderDefinition!=null) {
                 result = ldapIdentityProviderDefinition.isAutoAddGroups();
@@ -135,8 +132,8 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     @Override
     protected boolean isAddNewShadowUser() {
         Boolean result = true;
-        if (provisioning!=null) {
-            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        if (getProviderProvisioning()!=null) {
+            IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
             if (ldapIdentityProviderDefinition!=null) {
                 result = ldapIdentityProviderDefinition.isAddShadowUserOnLogin();
