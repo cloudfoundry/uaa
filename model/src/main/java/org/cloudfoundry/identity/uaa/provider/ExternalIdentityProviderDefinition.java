@@ -37,6 +37,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     private List<String> externalGroupsWhitelist = new LinkedList<>();
     private Map<String, Object> attributeMappings = new HashMap<>();
     private boolean addShadowUserOnLogin = true;
+    private boolean storeCustomAttributes = false;
 
     public List<String> getExternalGroupsWhitelist() {
         return Collections.unmodifiableList(externalGroupsWhitelist);
@@ -87,7 +88,8 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
         ExternalIdentityProviderDefinition that = (ExternalIdentityProviderDefinition) o;
 
         if (addShadowUserOnLogin != that.addShadowUserOnLogin) return false;
-        if (externalGroupsWhitelist != null ? !externalGroupsWhitelist.equals(that.externalGroupsWhitelist) : that.externalGroupsWhitelist != null)
+        if(this.areCustomAttributesStored() != that.areCustomAttributesStored()) return false;
+        if (getExternalGroupsWhitelist() != null ? !getExternalGroupsWhitelist().equals(that.getExternalGroupsWhitelist()) : that.getExternalGroupsWhitelist() != null)
             return false;
         return attributeMappings != null ? attributeMappings.equals(that.attributeMappings) : that.attributeMappings == null;
     }
@@ -99,5 +101,13 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
         result = 31 * result + (attributeMappings != null ? attributeMappings.hashCode() : 0);
         result = 31 * result + (addShadowUserOnLogin ? 1 : 0);
         return result;
+    }
+
+    public boolean areCustomAttributesStored() {
+        return storeCustomAttributes;
+    }
+
+    public void setStoreCustomAttributes(boolean storeCustomAttributes) {
+        this.storeCustomAttributes = storeCustomAttributes;
     }
 }
