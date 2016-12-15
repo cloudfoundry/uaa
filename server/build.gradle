@@ -50,7 +50,6 @@ dependencies {
 
   compile group: 'org.hibernate', name: 'hibernate-validator', version: parent.hibernateValidatorVersion
   compile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
-  compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: parent.mariaDBClientVersion
   compile group: 'org.hsqldb', name: 'hsqldb', version: parent.hsqldbVersion
   compile group: 'org.springframework.cloud', name: 'spring-cloud-spring-service-connector', version:'1.2.1.RELEASE'
   compile group: 'org.springframework.cloud', name: 'spring-cloud-cloudfoundry-connector', version:'1.2.1.RELEASE'
