@@ -86,17 +86,18 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
 
         ExternalIdentityProviderDefinition that = (ExternalIdentityProviderDefinition) o;
 
-        if (getExternalGroupsWhitelist() != null ? !getExternalGroupsWhitelist().equals(that.getExternalGroupsWhitelist()) : that.getExternalGroupsWhitelist() != null)
+        if (addShadowUserOnLogin != that.addShadowUserOnLogin) return false;
+        if (externalGroupsWhitelist != null ? !externalGroupsWhitelist.equals(that.externalGroupsWhitelist) : that.externalGroupsWhitelist != null)
             return false;
-        return !(getAttributeMappings() != null ? !getAttributeMappings().equals(that.getAttributeMappings()) : that.getAttributeMappings() != null);
-
+        return attributeMappings != null ? attributeMappings.equals(that.attributeMappings) : that.attributeMappings == null;
     }
 
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + (getExternalGroupsWhitelist() != null ? getExternalGroupsWhitelist().hashCode() : 0);
-        result = 31 * result + (getAttributeMappings() != null ? getAttributeMappings().hashCode() : 0);
+        result = 31 * result + (externalGroupsWhitelist != null ? externalGroupsWhitelist.hashCode() : 0);
+        result = 31 * result + (attributeMappings != null ? attributeMappings.hashCode() : 0);
+        result = 31 * result + (addShadowUserOnLogin ? 1 : 0);
         return result;
     }
 }
