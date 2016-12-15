@@ -28,7 +28,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
     private ConcurrentMap<String, ExpiringCode> store = new ConcurrentHashMap<String, ExpiringCode>();
 
-    private TimeService timeService;
+    private TimeService timeService = new TimeService();
 
     @Override
     public ExpiringCode generateCode(String data, Timestamp expiresAt, String intent) {
@@ -92,7 +92,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
         store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode()));
     }
 
-    protected InMemoryExpiringCodeStore setTimeService(TimeService timeService) {
+    public InMemoryExpiringCodeStore setTimeService(TimeService timeService) {
         this.timeService = timeService;
         return this;
     }
