@@ -21,7 +21,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 
-public class UserInfo extends LinkedMultiValueMap<String,String> {
+public class UserInfo extends LinkedMultiValueMap<String,String> implements MultiValueMap<String, String> {
 
     public UserInfo(){}
 

@@ -76,6 +76,7 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
 
     @Override
     public UserInfo storeUserInfo(String id, UserInfo info) {
+        info = new UserInfo(info);
         info.setUserId(id);
         userInfo.put(id, info);
         return info;
