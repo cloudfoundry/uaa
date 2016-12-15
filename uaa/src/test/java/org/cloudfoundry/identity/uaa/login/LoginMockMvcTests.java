@@ -46,6 +46,7 @@ import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -79,6 +80,7 @@ import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -107,6 +109,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -347,6 +350,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(not(containsString("/create_account"))));
     }
 
+    @Ignore  //Predix branding uses css for logo, need a way to assert on css.
     @Test
     public void testDefaultLogo() throws Exception {
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/resources");
@@ -355,6 +359,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/product-logo.png)")));
     }
 
+    //Predix does not use a image tag for logo, uses header.background in css. (see main.html/predix-styles.css)
+    //Adding a assertion in LoginIT for custom logo.
+    @Ignore
     @Test
     public void testCustomLogo() throws Exception {
         setZoneFavIconAndProductLogo(null, "/bASe/64+");
@@ -377,7 +384,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))))
-            .andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
+            //background image set in predix-styles.css, doesn't show in html
+            //.andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
+            ;
     }
 
     private void setZoneFavIconAndProductLogo(String favIcon, String productLogo) throws Exception {
@@ -389,15 +398,18 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
 
-    private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
-    private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
+    private static final String defaultCopyrightTemplate =  "Copyright &#169; %d %s";
+    private static final int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+    private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, currentYear, "CloudFoundry.org Foundation, Inc.");
 
+    @Ignore //footer is setup as predix. see testPredixCopyright
     @Test
     public void testDefaultFooter() throws Exception {
         getMockMvc().perform(get("/login"))
                 .andExpect(content().string(containsString(cfCopyrightText)));
     }
 
+    @Ignore // not used by predix-uaa.
     @Test
     public void testCustomizedFooter() throws Exception {
         String customFooterText = "This text should be in the footer.";
@@ -410,6 +422,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))));
     }
 
+    @Ignore //Test Predix branding, instead. see #testPredixCopyright
     @Test
     public void testCustomCompanyName() throws Exception {
         String companyName = "Big Company";
@@ -418,9 +431,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         identityZoneConfiguration.setBranding(branding);
         setZoneConfiguration(identityZoneConfiguration);
 
-        String expectedFooterText = String.format(defaultCopyrightTemplate, companyName);
+        String expectedFooterText = String.format(defaultCopyrightTemplate, currentYear, companyName);
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString(expectedFooterText))));
+    }
+
+    private static final String predixCopyright =  "Copyright \u00a9 2016 General Electric Company. All rights reserved.";
+    @Test
+    public void testPredixCopyright() throws Exception {
+        getMockMvc().perform(get("/login")) .andExpect(content().string(allOf(containsString(predixCopyright))));
     }
 
     @Test
@@ -439,7 +458,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         IdentityZone identityZone = setupZone(config);
 
-        String expectedFooterText = String.format(defaultCopyrightTemplate, zoneCompanyName);
+        String expectedFooterText = String.format(defaultCopyrightTemplate, currentYear, zoneCompanyName);
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
           .andExpect(status().isOk())
@@ -457,9 +476,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         identityZoneConfiguration.setBranding(branding);
         setZoneConfiguration(identityZoneConfiguration);
 
-        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
-                "          <a href=\"/privacy\">Privacy</a>\n" +
-                "          &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a>")));
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("<a href=\"/terms.html\">Terms of Use</a>")));
     }
 
     @Test
@@ -652,7 +670,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         zone.setConfig(new IdentityZoneConfiguration());
         IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         zone = provisioning.create(zone);
-        assertTrue(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
+        //Default is false for Predix
+        assertFalse(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
     }
 
     @Test
@@ -799,19 +818,26 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
     }
 
+    @Ignore //conflicts with predix branding
     @Test
     public void testDefaultAndExternalizedBranding() throws Exception {
+        mockEnvironment.setProperty("assetBaseUrl", "/resources/oss");
+
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
-            .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
-            .andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
+            .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists());
+
+            // no style tag in login page with predix.
+            //.andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
 
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/pivotal");
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
-            .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists())
-            .andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
+            .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists());
+
+            // see comment above
+            //.andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
     }
 
     @Test

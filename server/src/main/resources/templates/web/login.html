@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
-<div class="island" layout:fragment="page-content">
+<div class="login island" layout:fragment="page-content">
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
-    <div class="island-content">
+    <div class="island-content predix-uaa__login">
         <th:block th:if="${fieldUsernameShow}">
         <form th:action="@{/login.do}" method="post" novalidate="novalidate" accept-charset="UTF-8">
             <div th:if="${param.error}" class="alert alert-error">
@@ -38,13 +38,16 @@
                 </div>
             </div>
         </div>
-        <th:block th:if="${linkCreateAccountShow}">
-        <span class="left">
-            <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight">Create account</a>
-        </span><span class="right" th:unless="${#strings.isEmpty(links['forgotPasswordLink'])}">
-            <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight">Reset password</a>
-        </span>
-        </th:block>
+        <div class="island-footer">
+          <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">
+          <span class="left">
+              <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight">Create account</a>
+          </span>
+          <span class="right" th:unless="${#strings.isEmpty(links['forgotPasswordLink'])}">
+              <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight">Reset password</a>
+          </span>
+          </th:block>
+        </div>
     </div>
 </div>
 </html>

@@ -13,27 +13,14 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns="http://www.springframework.org/schema/beans"
-       xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:cloud="http://www.springframework.org/schema/cloud"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:context="http://www.springframework.org/schema/context"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-                        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
-
-    <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
-        <property name="driverClassName" value="${database.driverClassName}" />
-        <property name="url" value="${database.url}" />
-        <property name="username" value="${database.username}" />
-        <property name="password" value="${database.password}" />
-        <property name="validationInterval" value="5000" />
-        <property name="validationQuery" value="#{@validationQuery}" />
-        <property name="testOnBorrow" value="true" />
-        <property name="minIdle" value="${database.minidle:0}"/>
-        <property name="maxActive" value="${database.maxactive:100}"/>
-        <property name="maxIdle" value="${database.maxidle:10}"/>
-        <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
-        <property name="logAbandoned" value="${database.logabandoned:true}"/>
-        <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
-        <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
-    </bean>
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+        http://www.springframework.org/schema/cloud http://www.springframework.org/schema/cloud/spring-cloud.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
     <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">
         <property name="dataSource" ref="dataSource"/>
@@ -93,4 +80,27 @@
     <bean id="useCaseInsensitiveQueries" class="java.lang.Boolean" factory-method="valueOf">
         <constructor-arg value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
     </bean>
+    <beans profile="!cloud">
+        <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
+            <property name="driverClassName" value="${database.driverClassName}" />
+            <property name="url" value="${database.url}" />
+            <property name="username" value="${database.username}" />
+            <property name="password" value="${database.password}" />
+            <property name="validationInterval" value="5000" />
+            <property name="validationQuery" value="#{@validationQuery}" />
+            <property name="testOnBorrow" value="true" />
+            <property name="minIdle" value="${database.minidle:0}"/>
+            <property name="maxActive" value="${database.maxactive:100}"/>
+            <property name="maxIdle" value="${database.maxidle:10}"/>
+            <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
+            <property name="logAbandoned" value="${database.logabandoned:true}"/>
+            <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
+            <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
+        </bean>
+    </beans>
+
+    <beans profile="cloud">
+        <context:annotation-config/>
+        <bean class="org.cloudfoundry.identity.uaa.db.CloudDataSourceConfig" />
+    </beans>
 </beans>

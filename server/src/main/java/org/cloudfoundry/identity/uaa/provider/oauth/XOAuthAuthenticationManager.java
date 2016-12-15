@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -69,12 +70,17 @@ import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
-public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
+public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData>  implements InitializingBean {
 
     private IdentityProviderProvisioning providerProvisioning;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+    	restTemplateHolder.get().getRestTemplate(false).setRequestFactory(createRequestFactory());
     }
 
     @Override
@@ -356,6 +362,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                               requestEntity,
                               new ParameterizedTypeReference<Map<String, String>>() {}
                     );
+            //TODO how to reincorporate
+//            if (config.isSkipSslValidation()) {
+//                restTemplate.setRequestFactory(createRequestFactory(true));
+//            }
             return responseEntity.getBody().get(ID_TOKEN);
         } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;
@@ -366,7 +376,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         return "Basic " + clientAuth;
     }
-
+    
     protected static class AuthenticationData {
 
         private Map<String, Object> claims;

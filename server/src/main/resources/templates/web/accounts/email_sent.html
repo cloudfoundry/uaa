@@ -2,19 +2,17 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorator="layouts/main">
-<head>
-    <link rel="stylesheet" href="/resources/font-awesome/css/font-awesome.min.css" th:href="@{/resources/font-awesome/css/font-awesome.min.css}" />
-</head>
-<div class="island-landscape" layout:fragment="page-content">
+
+<div class="island-landscape predix-layout predix-layout--email-sent" layout:fragment="page-content">
     <div class="island-title">
         <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
     </div>
     <div class="island-content">
-        <i class="fa fa-envelope-o"></i>
-        <p class="instructions-sent" th:text="#{'email_sent.activation'}">
+        <!--<i class="fa fa-envelope-o"></i>-->
+        <p class="alert alert-info instructions-sent u-p" th:text="#{'email_sent.activation'}">
             Check email for an activation link
         </p>
-        <input type="submit" value="Email successfully sent" class="island-button" disabled="disabled"/>
+        <input type="submit" value="Email successfully sent" class="island-button btn btn--bare" disabled="disabled"/>
     </div>
     <div class="island-footer">
         <a href="/create_account" th:href="@{/create_account}" class="link-lowlight">Resend activation email</a>

@@ -2,7 +2,6 @@
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
 
-#spring_profiles: mysql,default,ldap
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
 #spring_profiles: saml
@@ -32,17 +31,6 @@
 #postgresql commands that were run were
 #create database uaa;
 #create user root with superuser password 'changeme';
-
-#database:
-#  driverClassName: org.mariadb.jdbc.Driver
-#  url: jdbc:mysql://localhost:3306/uaa
-#  username: root
-#  password: blabla
-
-#mysql commands that were run
-#create database uaa;
-#SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');
-#SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');
 
 # A comprehensive list of hostnames routed to the UAA default zone. The UAA uses this to resolve subdomains for Identity Zones.
 # Defaults to 'localhost'
@@ -133,7 +121,7 @@
 #    searchBase: ''
 #    searchFilter: 'cn={0}'
 #    passwordAttributeName: userPassword
-#    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator
+#    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
 #    localPasswordCompare: true
 
 #password:

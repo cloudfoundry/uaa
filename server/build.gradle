@@ -50,8 +50,9 @@ dependencies {
 
   compile group: 'org.hibernate', name: 'hibernate-validator', version: parent.hibernateValidatorVersion
   compile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
-  compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: parent.mariaDBClientVersion
   compile group: 'org.hsqldb', name: 'hsqldb', version: parent.hsqldbVersion
+  compile group: 'org.springframework.cloud', name: 'spring-cloud-spring-service-connector', version:'1.2.1.RELEASE'
+  compile group: 'org.springframework.cloud', name: 'spring-cloud-cloudfoundry-connector', version:'1.2.1.RELEASE'
 
   compile group: 'org.yaml', name: 'snakeyaml', version: parent.snakeYamlVersion
 
@@ -88,6 +89,17 @@ processResources {
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-server') : line }
 }
 
+def proxyHost  = System.getenv('PROXY_HOST')
+def proxyPort  = System.getenv('PROXY_PORT')
+def nonProxyHosts = 'localhost|*.localhost'
+
+test {
+  systemProperty "http.proxyHost", proxyHost
+  systemProperty "http.proxyPort", proxyPort
+  systemProperty "https.proxyHost", proxyHost
+  systemProperty "https.proxyPort", proxyPort
+  systemProperty "http.nonProxyHosts", nonProxyHosts
+}
 integrationTest {}.onlyIf { //disable since we don't have any
   true == false
 }
