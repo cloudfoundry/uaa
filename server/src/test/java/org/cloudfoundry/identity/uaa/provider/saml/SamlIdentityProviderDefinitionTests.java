@@ -13,6 +13,7 @@ import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinit
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.URL;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 
 public class SamlIdentityProviderDefinitionTests {
@@ -21,7 +22,11 @@ public class SamlIdentityProviderDefinitionTests {
 
     @Before
     public void createDefinition() {
-        definition = new SamlIdentityProviderDefinition()
+        definition = buildSamlIdentityProviderDefinition();
+    }
+
+    private SamlIdentityProviderDefinition buildSamlIdentityProviderDefinition() {
+        return new SamlIdentityProviderDefinition()
             .setMetaDataLocation("location")
             .setIdpEntityAlias("alias")
             .setNameID("nameID")
@@ -30,6 +35,19 @@ public class SamlIdentityProviderDefinitionTests {
             .setLinkText("link test")
             .setIconUrl("url")
             .setZoneId("zoneId");
+    }
+
+    @Test
+    public void testEquals() {
+        definition.setAddShadowUserOnLogin(true);
+
+        SamlIdentityProviderDefinition definition2 = buildSamlIdentityProviderDefinition();
+        definition2.setAddShadowUserOnLogin(false);
+
+        assertNotEquals(definition, definition2);
+
+        definition2.setAddShadowUserOnLogin(true);
+        assertEquals(definition, definition2);
     }
 
     @Test
