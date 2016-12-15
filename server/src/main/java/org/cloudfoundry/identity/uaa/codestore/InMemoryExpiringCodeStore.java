@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
@@ -26,13 +28,15 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
     private ConcurrentMap<String, ExpiringCode> store = new ConcurrentHashMap<String, ExpiringCode>();
 
+    private TimeService timeService = new TimeService();
+
     @Override
     public ExpiringCode generateCode(String data, Timestamp expiresAt, String intent) {
         if (data == null || expiresAt == null) {
             throw new NullPointerException();
         }
 
-        if (expiresAt.getTime() < System.currentTimeMillis()) {
+        if (expiresAt.getTime() < timeService.getCurrentTimeMillis()) {
             throw new IllegalArgumentException();
         }
 
@@ -56,11 +60,24 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
         ExpiringCode expiringCode = store.remove(code);
 
-        if (expiringCode == null || expiringCode.getExpiresAt().getTime() < System.currentTimeMillis()) {
+        if (expiringCode == null || isExpired(expiringCode)) {
             expiringCode = null;
         }
 
         return expiringCode;
+    }
+
+    @Override
+    public ExpiringCode checkCode(String code) {
+        ExpiringCode expiringCode = store.get(code);
+        if (expiringCode == null || isExpired(expiringCode)) {
+            return null;
+        }
+        return expiringCode;
+    }
+
+    private boolean isExpired(ExpiringCode expiringCode) {
+        return expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis();
     }
 
     @Override
@@ -73,5 +90,10 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
         Assert.hasText(intent);
 
         store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode()));
+    }
+
+    public InMemoryExpiringCodeStore setTimeService(TimeService timeService) {
+        this.timeService = timeService;
+        return this;
     }
 }

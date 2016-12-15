@@ -52,10 +52,13 @@ public class ResetPasswordAuthenticationEntryPoint implements AuthenticationEntr
             if (cause instanceof InvalidPasswordException) {
                 InvalidPasswordException exception = (InvalidPasswordException)cause;
                 request.setAttribute("message", exception.getMessagesAsOneString());
+                request.setAttribute("email", request.getParameter("email"));
+                request.setAttribute("code", request.getParameter("code"));
+                request.getRequestDispatcher("/reset_password").forward(wrapper, response);
             } else {
                 request.setAttribute("message_code", "bad_code");
+                request.getRequestDispatcher("/forgot_password").forward(wrapper, response);
             }
-            request.getRequestDispatcher("/forgot_password").forward(wrapper, response);
         }
     }
 }

@@ -193,7 +193,7 @@ public class UaaResetPasswordServiceTests {
         user.setPrimaryEmail("foo@example.com");
         ExpiringCode expiringCode = new ExpiringCode("good_code",
             new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
-        when(codeStore.retrieveCode("good_code")).thenReturn(expiringCode);
+        when(codeStore.checkCode("good_code")).thenReturn(expiringCode);
         when(scimUserProvisioning.retrieve("user-id")).thenReturn(user);
         when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld"))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
@@ -292,8 +292,10 @@ public class UaaResetPasswordServiceTests {
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve(eq("usermans-id"))).thenReturn(user);
-        when(codeStore.retrieveCode(eq("secret_code"))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
-            "{\"user_id\":\"usermans-id\",\"username\":\"userman\",\"passwordModifiedTime\":null,\"client_id\":\"" + clientId + "\",\"redirect_uri\":\"" + redirectUri + "\"}", null));
+        ExpiringCode code = new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
+                                             "{\"user_id\":\"usermans-id\",\"username\":\"userman\",\"passwordModifiedTime\":null,\"client_id\":\"" + clientId + "\",\"redirect_uri\":\"" + redirectUri + "\"}", null);
+        when(codeStore.checkCode(eq("secret_code"))).thenReturn(code);
+        when(codeStore.retrieveCode(eq("secret_code"))).thenReturn(code);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
         SecurityContextHolder.setContext(securityContext);

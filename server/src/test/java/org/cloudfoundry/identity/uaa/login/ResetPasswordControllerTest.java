@@ -268,10 +268,19 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     public void testResetPasswordPage() throws Exception {
         ExpiringCode code = new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "{\"user_id\" : \"some-user-id\"}", null);
         when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null))).thenReturn(code);
-        when(codeStore.retrieveCode(anyString())).thenReturn(code);
+        when(codeStore.checkCode(anyString())).thenReturn(code);
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "code1"))
             .andExpect(status().isOk())
             .andExpect(view().name("reset_password"));
+    }
+
+    @Test
+    public void testResetPasswordPageWhenExpiringCodeNull() throws Exception {
+        when(codeStore.checkCode(anyString())).thenReturn(null);
+        mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "code1"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(view().name("forgot_password"))
+            .andExpect(model().attribute("message_code", "bad_code"));
     }
 
 }
