@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -33,10 +34,12 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
 
     private ExpiringCodeStore expiringCodeStore;
 
+    private TimeService timeService = new TimeService();
+
     @Before
     public void initCodeStoreTests() throws Exception {
         codeStoreEndpoints = new CodeStoreEndpoints();
-        expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource());
+        expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource(), timeService);
         codeStoreEndpoints.setExpiringCodeStore(expiringCodeStore);
     }
 

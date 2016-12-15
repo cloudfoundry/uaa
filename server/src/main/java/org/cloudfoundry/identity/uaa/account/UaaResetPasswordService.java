@@ -90,7 +90,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     }
 
     private ResetPasswordResponse changePasswordCodeAuthenticated(String code, String newPassword) {
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.checkCode(code);
         if (expiringCode == null) {
             throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
@@ -115,14 +115,15 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         try {
+            if (scimUserProvisioning.checkPasswordMatches(userId, newPassword)) {
+                throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+            }
+            expiringCodeStore.retrieveCode(code);
             if (isUserModified(user, expiringCode.getExpiresAt(), userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
             }
             if (!user.isVerified()) {
                 scimUserProvisioning.verifyUser(userId, -1);
-            }
-            if (scimUserProvisioning.checkPasswordMatches(userId, newPassword)) {
-                throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
 
             updatePasswordAndPublishEvent(scimUserProvisioning, uaaUser, authentication, newPassword);
