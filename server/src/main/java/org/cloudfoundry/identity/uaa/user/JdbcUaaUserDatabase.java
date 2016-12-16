@@ -13,6 +13,9 @@
 package org.cloudfoundry.identity.uaa.user;
 
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -33,12 +36,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.springframework.util.StringUtils.hasText;
+
 /**
  * @author Luke Taylor
  * @author Dave Syer
  * @author Vidya Valmikinathan
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
+
+    private static Log logger = LogFactory.getLog(JdbcUaaUserDatabase.class);
 
     public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required ";
 
@@ -59,6 +66,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private JdbcTemplate jdbcTemplate;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
+    private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
 
     private Set<String> defaultAuthorities = new HashSet<String>();
 
@@ -121,6 +129,45 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
         else {
             throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
+        }
+    }
+
+    @Override
+    public UserInfo getUserInfo(String id) {
+        try {
+            return jdbcTemplate.queryForObject("select user_id, info from user_info where user_id = ?", userInfoMapper, id);
+        } catch (EmptyResultDataAccessException e) {
+            logger.debug("No custom attributes stored for user:"+id);
+            return null;
+        }
+    }
+
+    @Override
+    public UserInfo storeUserInfo(String id, UserInfo info) {
+        if (StringUtils.isEmpty(id)) {
+            throw new NullPointerException("id is a required field");
+        }
+        final String insertUserInfoSQL = "insert into user_info(user_id, info) values (?,?)";
+        final String updateUserInfoSQL = "update user_info set info = ? where user_id = ?";
+        if (info == null) {
+            info = new UserInfo();
+        }
+        String json = JsonUtils.writeValueAsString(info);
+        int count = jdbcTemplate.update(updateUserInfoSQL, json, id);
+        if (count == 0) {
+            jdbcTemplate.update(insertUserInfoSQL, id, json);
+        }
+        return getUserInfo(id);
+    }
+
+    private final class UserInfoRowMapper implements RowMapper<UserInfo> {
+        @Override
+        public UserInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+            String id = rs.getString(1);
+            String info = rs.getString(2);
+            UserInfo userInfo = hasText(info) ? JsonUtils.readValue(info, UserInfo.class) : new UserInfo();
+            userInfo.setUserId(id);
+            return userInfo;
         }
     }
 

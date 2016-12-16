@@ -1,10 +1,20 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 
 public class ExternalIdentityProviderDefinitionTest {
+
+    ExternalIdentityProviderDefinition definition;
+
+    @Before
+    public void createDefinition() {
+        definition = new ExternalIdentityProviderDefinition();
+    }
 
     @Test
     public void testEquals() {
@@ -18,4 +28,15 @@ public class ExternalIdentityProviderDefinitionTest {
         assertEquals(definition1, definition2);
     }
 
+    @Test
+    public void testDefaultValueForStoreCustomAttributes() {
+        assertFalse(definition.isStoreCustomAttributes());
+    }
+
+    @Test
+    public void testEquals2() {
+        ExternalIdentityProviderDefinition def = new ExternalIdentityProviderDefinition();
+        def.setStoreCustomAttributes(true);
+        assertFalse(definition.equals(def));
+    }
 }

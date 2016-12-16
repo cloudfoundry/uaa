@@ -2,8 +2,10 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.apache.commons.httpclient.contrib.ssl.StrictSSLProtocolSocketFactory;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.util.ReflectionUtils;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -15,6 +17,7 @@ import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinit
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class SamlIdentityProviderDefinitionTests {
 
@@ -51,6 +54,13 @@ public class SamlIdentityProviderDefinitionTests {
     }
 
     @Test
+    public void test_serialize_custom_attributes_field() {
+        definition.setStoreCustomAttributes(true);
+        SamlIdentityProviderDefinition def = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), SamlIdentityProviderDefinition.class);
+        assertTrue(def.isStoreCustomAttributes());
+    }
+
+    @Test
     public void testGetType() throws Exception {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("<?xml>");
@@ -83,14 +93,20 @@ public class SamlIdentityProviderDefinitionTests {
     public void test_clone() throws Exception {
         definition.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
         definition.setSkipSslValidation(true);
-        Field[] fields = SamlIdentityProviderDefinition.class.getDeclaredFields();
+        definition.setStoreCustomAttributes(true);
         SamlIdentityProviderDefinition def = definition.clone();
-        for (Field f : fields) {
-            f.setAccessible(true);
-            Object expectedValue = f.get(definition);
-            Object actualValue = f.get(def);
-            assertEquals(f.getName(), expectedValue, actualValue);
-        }
+        ReflectionUtils.doWithFields(SamlIdentityProviderDefinition.class,
+                                     new ReflectionUtils.FieldCallback() {
+                                         @Override
+                                         public void doWith(Field f) throws IllegalArgumentException, IllegalAccessException {
+                                             f.setAccessible(true);
+                                             f.setAccessible(true);
+                                             Object expectedValue = f.get(definition);
+                                             Object actualValue = f.get(def);
+                                             assertEquals(f.getName(), expectedValue, actualValue);
+                                         }
+                                     });
+
 
     }
 

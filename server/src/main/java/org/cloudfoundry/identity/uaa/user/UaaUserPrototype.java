@@ -1,13 +1,6 @@
-package org.cloudfoundry.identity.uaa.user;
-
-import org.springframework.security.core.GrantedAuthority;
-
-import java.util.Date;
-import java.util.List;
-
 /*******************************************************************************
  * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
  * This product is licensed to you under the Apache License, Version 2.0 (the "License").
  * You may not use this product except in compliance with the License.
@@ -17,6 +10,13 @@ import java.util.List;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.user;
+
+import org.springframework.security.core.GrantedAuthority;
+
+import java.util.Date;
+import java.util.List;
+
 public final class UaaUserPrototype {
 
     private String id = "NaN";

@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -91,6 +92,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -541,6 +543,39 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertEquals("Bloggs", user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
         assertEquals("1234567890", user.getPhoneNumber());
+    }
+
+    @Test
+    public void custom_user_attributes_stored_if_configured() throws Exception {
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "firstName");
+        attributeMappings.put("family_name", "lastName");
+        attributeMappings.put("email", "emailAddress");
+        attributeMappings.put("phone_number", "phone");
+        attributeMappings.put(USER_ATTRIBUTE_PREFIX+"secondary_email","emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        provider = providerProvisioning.update(provider);
+
+        UaaAuthentication authentication = getAuthentication();
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        assertEquals("Marissa", user.getGivenName());
+        assertEquals("Bloggs", user.getFamilyName());
+        assertEquals("marissa.bloggs@test.com", user.getEmail());
+        assertEquals("1234567890", user.getPhoneNumber());
+        assertEquals("marissa.bloggs@test.com", authentication.getUserAttributes().getFirst("secondary_email"));
+
+        UserInfo userInfo = userDatabase.getUserInfo(user.getId());
+        assertNull(userInfo);
+
+        providerDefinition.setStoreCustomAttributes(true);
+        provider.setConfig(providerDefinition);
+        provider = providerProvisioning.update(provider);
+        authentication = getAuthentication();
+        assertEquals("marissa.bloggs@test.com", authentication.getUserAttributes().getFirst("secondary_email"));
+        userInfo = userDatabase.getUserInfo(user.getId());
+        assertNotNull(userInfo);
+        assertEquals("marissa.bloggs@test.com", userInfo.getFirst("secondary_email"));
     }
 
     @Test

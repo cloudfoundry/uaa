@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
@@ -75,6 +76,7 @@ import java.util.UUID;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
@@ -797,6 +799,7 @@ public class SamlLoginIT {
                                                            "secr3T");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        samlIdentityProviderDefinition.setStoreCustomAttributes(true);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, MANAGER);
 
@@ -865,8 +868,8 @@ public class SamlLoginIT {
         Jwt idTokenClaims = JwtHelper.decode(idToken);
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
-        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(ClaimConstants.USER_ATTRIBUTES);
+        assertNotNull(claims.get(USER_ATTRIBUTES));
+        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(USER_ATTRIBUTES);
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
@@ -874,6 +877,15 @@ public class SamlLoginIT {
         Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
         assertNotNull("acr claim should contain values attribute", acr.get("values"));
         assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+
+        UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
+
+        Map<String,List<String>> userAttributeMap = (Map<String,List<String>>) userInfo.getAttributeValue(USER_ATTRIBUTES);
+        List<String> costCenterData = userAttributeMap.get(COST_CENTERS);
+        List<String> managerData = userAttributeMap.get(MANAGERS);
+        assertThat(costCenterData, containsInAnyOrder(DENVER_CO));
+        assertThat(managerData, containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+
     }
 
     @Test
@@ -977,7 +989,7 @@ public class SamlLoginIT {
         Jwt idTokenClaims = JwtHelper.decode(idToken);
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        assertNotNull(claims.get(USER_ATTRIBUTES));
         assertEquals("marissa6", claims.get(ClaimConstants.USER_NAME));
         assertEquals("marissa6@test.org", claims.get(ClaimConstants.EMAIL));
     }

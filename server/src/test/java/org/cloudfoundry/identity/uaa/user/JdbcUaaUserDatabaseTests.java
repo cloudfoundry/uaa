@@ -66,7 +66,6 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     private IdentityZone otherIdentityZone;
 
-
     private JdbcTemplate template;
     public static final String ADD_GROUP_SQL = "insert into groups (id, displayName, identity_zone_id) values (?,?,?)";
     public static final String ADD_MEMBER_SQL = "insert into group_membership (group_id, member_id, member_type, authorities) values (?,?,?,?)";
@@ -110,6 +109,52 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     public void clearDb() throws Exception {
         IdentityZoneHolder.clear();
         TestUtils.deleteFrom(dataSource, "users");
+    }
+
+
+    @Test(expected = NullPointerException.class)
+    public void testStoreUserInfoWithoutId() {
+        db.storeUserInfo(null, new UserInfo());
+    }
+
+    @Test
+    public void testStoreNullUserInfo() {
+        String id = "id";
+        db.storeUserInfo(id, null);
+        UserInfo info2 = db.getUserInfo(id);
+        assertEquals(id, info2.getUserId());
+        assertEquals(1, info2.size());
+    }
+
+    @Test
+    public void testStoreUserInfoOverridesID() {
+        UserInfo info = new UserInfo();
+        String id = "id", id1 = id + "1";
+        info.setUserId(id);
+        info.put("family_name","Somelastname");
+        info.put("given_name","Somefirstname");
+        db.storeUserInfo(id1, info);
+        UserInfo info2 = db.getUserInfo(id1);
+        info.setUserId(id1);
+        assertEquals(info, info2);
+    }
+
+
+    @Test
+    public void testStoreUserInfo() {
+        UserInfo info = new UserInfo();
+        String id = "id";
+        info.setUserId(id);
+        info.put("family_name","Somelastname");
+        info.put("given_name","Somefirstname");
+        db.storeUserInfo(id, info);
+        UserInfo info2 = db.getUserInfo(id);
+        assertEquals(info, info2);
+
+        info.put("new","value");
+        db.storeUserInfo(id, info);
+        UserInfo info3  = db.getUserInfo(id);
+        assertEquals(info, info3);
     }
 
     @Test
