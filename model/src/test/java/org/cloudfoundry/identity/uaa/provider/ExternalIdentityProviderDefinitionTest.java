@@ -30,7 +30,7 @@ public class ExternalIdentityProviderDefinitionTest {
 
     @Test
     public void testDefaultValueForStoreCustomAttributes() {
-        assertFalse(definition.areCustomAttributesStored());
+        assertFalse(definition.isStoreCustomAttributes());
     }
 
     @Test
