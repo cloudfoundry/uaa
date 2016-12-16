@@ -150,6 +150,11 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         db.storeUserInfo(id, info);
         UserInfo info2 = db.getUserInfo(id);
         assertEquals(info, info2);
+
+        info.put("new","value");
+        db.storeUserInfo(id, info);
+        UserInfo info3  = db.getUserInfo(id);
+        assertEquals(info, info3);
     }
 
     @Test

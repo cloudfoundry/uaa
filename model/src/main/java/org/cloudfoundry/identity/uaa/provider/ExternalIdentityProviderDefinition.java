@@ -3,12 +3,13 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Collections;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -88,7 +89,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
         ExternalIdentityProviderDefinition that = (ExternalIdentityProviderDefinition) o;
 
         if (addShadowUserOnLogin != that.addShadowUserOnLogin) return false;
-        if(this.areCustomAttributesStored() != that.areCustomAttributesStored()) return false;
+        if(this.isStoreCustomAttributes() != that.isStoreCustomAttributes()) return false;
         if (getExternalGroupsWhitelist() != null ? !getExternalGroupsWhitelist().equals(that.getExternalGroupsWhitelist()) : that.getExternalGroupsWhitelist() != null)
             return false;
         return attributeMappings != null ? attributeMappings.equals(that.attributeMappings) : that.attributeMappings == null;
@@ -103,7 +104,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
         return result;
     }
 
-    public boolean areCustomAttributesStored() {
+    public boolean isStoreCustomAttributes() {
         return storeCustomAttributes;
     }
 

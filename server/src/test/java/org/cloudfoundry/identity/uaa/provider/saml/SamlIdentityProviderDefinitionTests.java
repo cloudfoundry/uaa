@@ -57,7 +57,7 @@ public class SamlIdentityProviderDefinitionTests {
     public void test_serialize_custom_attributes_field() {
         definition.setStoreCustomAttributes(true);
         SamlIdentityProviderDefinition def = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), SamlIdentityProviderDefinition.class);
-        assertTrue(def.areCustomAttributesStored());
+        assertTrue(def.isStoreCustomAttributes());
     }
 
     @Test

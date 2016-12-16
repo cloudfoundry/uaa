@@ -167,7 +167,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         authentication.getAuthenticationMethods().add("ext");
         if (authentication.getUserAttributes()!=null && authentication.getUserAttributes().size()>0 && getProviderProvisioning()!=null) {
             IdentityProvider<ExternalIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
-            if (provider.getConfig()!=null && provider.getConfig().areCustomAttributesStored()) {
+            if (provider.getConfig()!=null && provider.getConfig().isStoreCustomAttributes()) {
                 logger.debug("Storing custom attributes for user_id:"+authentication.getPrincipal().getId());
                 getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), new UserInfo(authentication.getUserAttributes()));
             }

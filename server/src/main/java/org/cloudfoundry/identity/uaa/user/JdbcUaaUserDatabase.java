@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.user;
 
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -42,6 +44,8 @@ import static org.springframework.util.StringUtils.hasText;
  * @author Vidya Valmikinathan
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
+
+    private static Log logger = LogFactory.getLog(JdbcUaaUserDatabase.class);
 
     public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required ";
 
@@ -130,7 +134,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     @Override
     public UserInfo getUserInfo(String id) {
-        return jdbcTemplate.queryForObject("select user_id, info from user_info where user_id = ?", userInfoMapper, id);
+        try {
+            return jdbcTemplate.queryForObject("select user_id, info from user_info where user_id = ?", userInfoMapper, id);
+        } catch (EmptyResultDataAccessException e) {
+            logger.debug("No custom attributes stored for user:"+id);
+            return null;
+        }
     }
 
     @Override
@@ -139,10 +148,15 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             throw new NullPointerException("id is a required field");
         }
         final String insertUserInfoSQL = "insert into user_info(user_id, info) values (?,?)";
+        final String updateUserInfoSQL = "update user_info set info = ? where user_id = ?";
         if (info == null) {
             info = new UserInfo();
         }
-        jdbcTemplate.update(insertUserInfoSQL, id, JsonUtils.writeValueAsString(info));
+        String json = JsonUtils.writeValueAsString(info);
+        int count = jdbcTemplate.update(updateUserInfoSQL, json, id);
+        if (count == 0) {
+            jdbcTemplate.update(insertUserInfoSQL, id, json);
+        }
         return getUserInfo(id);
     }
 

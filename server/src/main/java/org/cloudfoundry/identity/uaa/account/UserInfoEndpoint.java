@@ -78,7 +78,9 @@ public class UserInfoEndpoint implements InitializingBean {
         // TODO: other attributes
         if (addCustomAttributes) {
             UserInfo info = userDatabase.getUserInfo(user.getId());
-            response.setAttributeValue(USER_ATTRIBUTES, info);
+            if (info!=null && info.size()>0) {
+                response.setAttributeValue(USER_ATTRIBUTES, info);
+            }
         }
         return response;
     }
