@@ -17,8 +17,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,12 +53,7 @@ public class UserInfoEndpoint implements InitializingBean {
     public UserInfoResponse loginInfo(Principal principal) {
         OAuth2Authentication authentication = (OAuth2Authentication) principal;
         UaaPrincipal uaaPrincipal = extractUaaPrincipal(authentication);
-        boolean addCustomAttributes = false;
-        for (GrantedAuthority authority : authentication.getUserAuthentication().getAuthorities()) {
-            if ("custom_attributes".equals(authority.getAuthority())) {
-                addCustomAttributes = true;
-            }
-        }
+        boolean addCustomAttributes = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {USER_ATTRIBUTES});
         return getResponse(uaaPrincipal, addCustomAttributes);
     }
 
