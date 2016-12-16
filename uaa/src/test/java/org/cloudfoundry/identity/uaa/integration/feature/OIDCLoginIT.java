@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
@@ -41,21 +42,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
@@ -173,7 +179,7 @@ public class OIDCLoginIT {
           This test creates an OIDC provider. That provider in turn has a SAML provider.
           The end user is authenticated using
          */
-        createOIDCProviderWithRequestedScopes();
+        String clientId = createOIDCProviderWithRequestedScopes();
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
@@ -190,10 +196,11 @@ public class OIDCLoginIT {
 
         Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
         System.out.println("cookie = " + String.format("%s=%s",cookie.getName(), cookie.getValue()));
+
         Map<String,String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
                                                                                                      UaaTestAccounts.standard(serverRunning),
-                                                                                                     "login",
-                                                                                                     "loginsecret",
+                                                                                                     clientId,
+                                                                                                     "secret",
                                                                                                      null,
                                                                                                      null,
                                                                                                      "token id_token",
@@ -212,6 +219,14 @@ public class OIDCLoginIT {
         Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
         assertNotNull("acr claim should contain values attribute", acr.get("values"));
         assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+
+        UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(baseUrl, authCodeTokenResponse.get("access_token"));
+
+        Map<String,List<String>> userAttributeMap = (Map<String,List<String>>) userInfo.getAttributeValue(USER_ATTRIBUTES);
+        assertNotNull(userAttributeMap);
+        List<String> clientIds = userAttributeMap.get("the_client_id");
+        assertNotNull(clientIds);
+        assertEquals("identity", clientIds.get(0));
     }
 
     @Test
@@ -297,18 +312,20 @@ public class OIDCLoginIT {
         return result;
     }
 
-    private void createOIDCProviderWithRequestedScopes() throws Exception {
-        createOIDCProviderWithRequestedScopes(null, "https://oidc10.identity.cf-app.com");
+    private String createOIDCProviderWithRequestedScopes() throws Exception {
+        return createOIDCProviderWithRequestedScopes(null, "https://oidc10.identity.cf-app.com");
     }
-    private void createOIDCProviderWithRequestedScopes(String issuer, final String urlBase) throws Exception {
-        createOIDCProviderWithRequestedScopes(issuer, urlBase, null);
+    private String createOIDCProviderWithRequestedScopes(String issuer, final String urlBase) throws Exception {
+        return createOIDCProviderWithRequestedScopes(issuer, urlBase, null);
     }
-    private void createOIDCProviderWithRequestedScopes(String issuer, String urlBase, String keyUrl) throws Exception {
+    private String createOIDCProviderWithRequestedScopes(String issuer, String urlBase, String keyUrl) throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
+        config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
+        config.setStoreCustomAttributes(true);
         config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
         config.setTokenUrl(new URL(urlBase + "/oauth/token"));
         config.setTokenKeyUrl(keyUrl==null ? new URL(urlBase + "/token_key") : new URL(keyUrl));
@@ -327,5 +344,13 @@ public class OIDCLoginIT {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
         originKey = "puppy";
+
+        BaseClientDetails clientDetails = new BaseClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource");
+        clientDetails.setClientSecret("secret");
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
+        clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(clientCredentialsToken, baseUrl, null, clientDetails);
+        clientDetails.setClientSecret("secret");
+        return clientDetails.getClientId();
+
     }
 }
