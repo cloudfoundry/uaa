@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultBooleanValueAdapter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
@@ -36,7 +37,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
     @Before
     public void createDatasource() throws Exception {
         IdentityZoneHolder.clear();
-        db = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        db = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
     }
 
     @After
