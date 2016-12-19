@@ -16,12 +16,16 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImpl;
+import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -35,13 +39,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -218,7 +228,64 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void test_custom_user_attributes() throws Exception {
+    public void test_group_white_list_with_wildcard() {
+        UaaUser user = getUaaUser();
+        ExtendedLdapUserImpl authDetails =
+            getAuthDetails(
+                user.getEmail(),
+                user.getGivenName(),
+                user.getFamilyName(),
+                user.getPhoneNumber(),
+                new AttributeInfo(UAA_MANAGER, new String[] {KARI_THE_ANT_EATER, JOHN_THE_SLOTH}),
+                new AttributeInfo(COST_CENTER, new String[] {DENVER_CO})
+            );
+        Map<String, String[]> role1 = new HashMap<>();
+        role1.put("cn", new String[] {"ldap.role.1.a", "ldap.role.1.b", "ldap.role.1"});
+        Map<String, String[]> role2 = new HashMap<>();
+        role2.put("cn", new String[] {"ldap.role.2.a", "ldap.role.2.b", "ldap.role.2"});
+        authDetails.setAuthorities(
+            Arrays.asList(
+                new LdapAuthority("role1", "cn=role1,ou=test,ou=com", role1),
+                new LdapAuthority("role2", "cn=role2,ou=test,ou=com", role2)
+
+            )
+        );
+
+
+        definition.setExternalGroupsWhitelist(EMPTY_LIST);
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder()
+        );
+
+        definition.setExternalGroupsWhitelist(null);
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder()
+        );
+
+        definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.1.a"));
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder("ldap.role.1.a")
+        );
+
+        definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.1.a", "ldap.role.2.*"));
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder("ldap.role.1.a", "ldap.role.2.a", "ldap.role.2.b")
+        );
+
+
+        definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.*.*"));
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.2.a", "ldap.role.2.b")
+        );
+
+        definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.*.*", "ldap.role.*"));
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2")
+        );
+    }
+
+    @Test
+    public void test_custom_user_attributes(boolean storeUserInfo) throws Exception {
 
         UaaUser user = getUaaUser();
         ExtendedLdapUserImpl authDetails =
