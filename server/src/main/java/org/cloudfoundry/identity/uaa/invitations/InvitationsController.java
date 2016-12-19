@@ -125,8 +125,9 @@ public class InvitationsController {
     @RequestMapping(value = "/accept", method = GET, params = {"code"})
     public String acceptInvitePage(@RequestParam String code, Model model, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.checkCode(code);
         if ((null == expiringCode) || (null != expiringCode.getIntent() && !INVITATION.name().equals(expiringCode.getIntent()))) {
+            expiringCodeStore.retrieveCode(code);
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
 
@@ -134,7 +135,13 @@ public class InvitationsController {
         String origin = codeData.get(ORIGIN);
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
+            final String newCode;
+            if(!OriginKeys.UAA.equals(provider.getType())) {
+                expiringCodeStore.retrieveCode(code);
+                newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
+            } else {
+                newCode = code;
+            }
 
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
             if (user.isVerified()) {
@@ -174,6 +181,7 @@ public class InvitationsController {
             }
             return "invitations/accept_invite";
         } catch (EmptyResultDataAccessException noProviderFound) {
+            expiringCodeStore.retrieveCode(code);
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }

@@ -56,8 +56,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 import java.net.URL;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
@@ -139,13 +141,16 @@ public class InvitationsControllerTest {
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
-        when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        ExpiringCode code = new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name());
+        List<ExpiringCode> codeStore = new ArrayList<>();
+        codeStore.add(code);
+        when(expiringCodeStore.checkCode("code")).thenReturn(codeStore.get(0));
+        when(expiringCodeStore.retrieveCode("code")).thenReturn(codeStore.remove(0));
         IdentityProvider provider = new IdentityProvider();
         provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
         MockHttpServletRequestBuilder get = get("/invitations/accept")
-                                            .param("code", "the_secret_code");
+                                            .param("code", "code");
 
         mockMvc.perform(get)
             .andExpect(status().isOk())
@@ -157,6 +162,12 @@ public class InvitationsControllerTest {
         assertEquals("user-id-001", principal.getId());
         assertEquals("user@example.com", principal.getName());
         assertEquals("user@example.com", principal.getEmail());
+
+        mockMvc.perform(get)
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("email", "user@example.com"))
+            .andExpect(model().attribute("code", "code"))
+            .andExpect(view().name("invitations/accept_invite"));
     }
 
     @Test
@@ -166,7 +177,7 @@ public class InvitationsControllerTest {
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));;
+        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));;
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
             .param("code", "the_secret_code");
@@ -178,6 +189,7 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedSamlUser() throws Exception {
         Map<String,String> codeData = getInvitationsCode("test-saml");
+        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         IdentityProvider provider = new IdentityProvider();
@@ -205,6 +217,7 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedOIDCUser() throws Exception {
         Map<String,String> codeData = getInvitationsCode("test-oidc");
+        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
 
@@ -230,6 +243,7 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
         Map<String, String> codeData = getInvitationsCode(LDAP);
+        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
 
@@ -379,7 +393,7 @@ public class InvitationsControllerTest {
         codeData.put("user_id", "verified-user");
         codeData.put("email", "user@example.com");
 
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(invitationsService.acceptInvitation(anyString(), eq(""))).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
         IdentityProvider provider = new IdentityProvider();

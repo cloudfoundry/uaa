@@ -207,6 +207,23 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void accept_invitation_for_uaa_user_does_not_expire_invitelink() throws Exception {
+        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        URL inviteLink = inviteUser(email, userInviteToken, null, clientId, OriginKeys.UAA);
+        assertEquals(OriginKeys.UAA, queryUserForField(email, OriginKeys.ORIGIN, String.class));
+
+        String code = extractInvitationCode(inviteLink.toString());
+        MockHttpServletRequestBuilder get = get("/invitations/accept")
+            .param("code", code)
+            .accept(MediaType.TEXT_HTML);
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+    }
+
+    @Test
     public void accept_invitation_sets_your_password() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
         URL inviteLink = inviteUser(email, userInviteToken, null, clientId, OriginKeys.UAA);
