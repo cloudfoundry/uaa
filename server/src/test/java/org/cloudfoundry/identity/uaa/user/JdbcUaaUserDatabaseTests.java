@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.user;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -45,6 +46,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
@@ -69,6 +71,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     private JdbcTemplate template;
     public static final String ADD_GROUP_SQL = "insert into groups (id, displayName, identity_zone_id) values (?,?,?)";
     public static final String ADD_MEMBER_SQL = "insert into group_membership (group_id, member_id, member_type, authorities) values (?,?,?,?)";
+    private TimeService timeService;
 
     private void addUser(String id, String name, String password, boolean requiresPasswordChange) {
         TestUtils.assertNoSuchUser(template, "id", id);
@@ -84,13 +87,14 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Before
     public void initializeDb() throws Exception {
+        timeService = mock(TimeService.class);
         IdentityZoneHolder.clear();
         otherIdentityZone = new IdentityZone();
         otherIdentityZone.setId("some-other-zone-id");
 
         template = new JdbcTemplate(dataSource);
 
-        db = new JdbcUaaUserDatabase(template);
+        db = new JdbcUaaUserDatabase(template, timeService);
         db.setDefaultAuthorities(Collections.singleton("uaa.user"));
 
         TestUtils.assertNoSuchUser(template, "id", JOE_ID);
@@ -307,6 +311,18 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         );
     }
 
+    @Test
+    public void testUpdateLastLogonTime() {
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
+        db.updateLastLogonTime(JOE_ID);
+        UaaUser joe = db.retrieveUserById(JOE_ID);
+        assertEquals(joe.getLastLogonTime(), 1000L);
+
+        when(timeService.getCurrentTimeMillis()).thenReturn(2000L);
+        db.updateLastLogonTime(JOE_ID);
+        joe = db.retrieveUserById(JOE_ID);
+        assertEquals(joe.getLastLogonTime(), 2000L);
+    }
 
     @Test(expected = UsernameNotFoundException.class)
     public void getValidUserInDefaultZoneFromOtherZoneFails() {

@@ -75,7 +75,7 @@ public class UserInfoEndpoint implements InitializingBean {
         response.setEmail(user.getEmail());
         response.setPhoneNumber(user.getPhoneNumber());
         response.setSub(user.getId());
-        // TODO: other attributes
+
         if (addCustomAttributes) {
             UserInfo info = userDatabase.getUserInfo(user.getId());
             if (info!=null && info.size()>0) {

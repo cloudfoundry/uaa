@@ -63,6 +63,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -118,6 +119,7 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
         assertThat(((UaaAuthentication)result).getAuthenticationMethods(), containsInAnyOrder("pwd"));
+        verify(db, times(1)).updateLastLogonTime(user.getId());
     }
 
     @Test(expected = PasswordExpiredException.class)
@@ -150,12 +152,14 @@ public class AuthzAuthenticationManagerTests {
             oneYearAgo);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserAuthentication() throws Exception {
         when(db.retrieveUserByName(loginServerUserName, OriginKeys.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, ""));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test(expected = BadCredentialsException.class)
@@ -186,6 +190,7 @@ public class AuthzAuthenticationManagerTests {
         }
 
         verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test(expected = AuthenticationPolicyRejectionException.class)
@@ -195,6 +200,7 @@ public class AuthzAuthenticationManagerTests {
         when(lp.isAllowed(any(UaaUser.class), any(Authentication.class))).thenReturn(false);
         mgr.setAccountLoginPolicy(lp);
         mgr.authenticate(createAuthRequest("auser", "password"));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test

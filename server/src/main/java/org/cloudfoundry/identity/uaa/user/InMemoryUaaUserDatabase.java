@@ -82,6 +82,11 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
         return info;
     }
 
+    @Override
+    public void updateLastLogonTime(String id) {
+        retrieveUserById(id).setLastLogonTime(System.currentTimeMillis());
+    }
+
     public UaaUser updateUser(String userId, UaaUser user) throws UsernameNotFoundException {
 
         if (!ids.containsKey(userId)) {

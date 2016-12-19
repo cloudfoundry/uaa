@@ -27,4 +27,6 @@ public interface UaaUserDatabase {
     UserInfo getUserInfo(String id);
 
     UserInfo storeUserInfo(String id, UserInfo info);
+
+    void updateLastLogonTime(String id);
 }

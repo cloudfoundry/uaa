@@ -132,7 +132,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                         (UaaAuthenticationDetails) req.getDetails());
 
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
-
+                userDatabase.updateLastLogonTime(user.getId());
                 Date passwordNewerThan = getPasswordNewerThan();
                 if(passwordNewerThan != null) {
                     if(user.getPasswordLastModified() == null || (passwordNewerThan.getTime() > user.getPasswordLastModified().getTime())) {

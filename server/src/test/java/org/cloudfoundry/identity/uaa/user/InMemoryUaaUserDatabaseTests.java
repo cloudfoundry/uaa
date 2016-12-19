@@ -8,9 +8,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
@@ -80,5 +79,12 @@ public class InMemoryUaaUserDatabaseTests {
             user.getPasswordLastModified());
         db.updateUser(user.getId(), newUser);
         assertSame(newUser, db.retrieveUserById(user.getId()));
+    }
+
+    @Test
+    public void updateLastLogonTime() {
+        db.updateLastLogonTime("test-id");
+        UaaUser uaaUser = db.retrieveUserById("test-id");
+        assertNotEquals(uaaUser.getLastLogonTime(), 0L);
     }
 }
