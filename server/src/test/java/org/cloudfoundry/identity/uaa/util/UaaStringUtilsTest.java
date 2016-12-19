@@ -3,14 +3,17 @@ package org.cloudfoundry.identity.uaa.util;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class UaaStringUtilsTest {
@@ -213,6 +216,91 @@ public class UaaStringUtilsTest {
         }
     }
 
+
+    @Test
+    public void test_retainAllMatches() {
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                              "saml.group.2",
+                              "saml.group1.3"),
+                Arrays.asList("saml.group.1")
+            ),
+            containsInAnyOrder("saml.group.1")
+        );
+
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                              "saml.group.2",
+                              "saml.group1.3"),
+                Arrays.asList("saml.group.*")
+            ),
+            containsInAnyOrder("saml.group.1", "saml.group.2")
+        );
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml-group-1",
+                              "saml-group-2",
+                              "saml-group1-3"),
+                Arrays.asList("saml-group-*")
+            ),
+            containsInAnyOrder("saml-group-1", "saml-group-2")
+        );
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml-group-1",
+                              "saml-group-2",
+                              "saml-group1-3"),
+                Arrays.asList("saml-*-*")
+            ),
+            containsInAnyOrder("saml-group-1", "saml-group-2", "saml-group1-3")
+        );
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml-group-1",
+                              "saml-group-2",
+                              "saml-group1-3"),
+                Arrays.asList("saml-*")
+            ),
+            containsInAnyOrder("saml-group-1", "saml-group-2", "saml-group1-3")
+        );
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                              "saml.group.2",
+                              "saml.group1.3"),
+                Arrays.asList("saml.grou*.*")
+            ),
+            containsInAnyOrder("saml.group.1", "saml.group.2", "saml.group1.3")
+        );
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                              "saml.group.2",
+                              "saml.group1.3"),
+                Arrays.asList("saml.*.1")
+            ),
+            containsInAnyOrder("saml.group.1")
+        );
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                              "saml.group.2",
+                              "saml.group1.3"),
+                Arrays.asList("*.group.*")
+            ),
+            containsInAnyOrder("saml.group.1", "saml.group.2")
+        );
+    }
+
     @Test
     public void test_null_utf_string() {
         String s = new String(new char[] {'a','\u0000'});
@@ -226,6 +314,7 @@ public class UaaStringUtilsTest {
         Matcher m = p.matcher(value);
         return m.matches();
     }
+
 
 
     public void testGetMapFromProperties() throws Exception {
