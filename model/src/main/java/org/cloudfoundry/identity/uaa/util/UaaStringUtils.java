@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author Dave Syer
@@ -104,6 +105,11 @@ public class UaaStringUtils {
             }
         }
         return result;
+    }
+
+    public static Set<String> retainAllMatches(Collection<String> values, Collection<String> whitelist) {
+        Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(whitelist));
+        return values.stream().filter(s -> matches(regExPatterns, s)).collect(Collectors.toSet());
     }
 
     public static boolean containsWildcard(String s) {
