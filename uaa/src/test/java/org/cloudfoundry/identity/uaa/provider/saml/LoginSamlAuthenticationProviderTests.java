@@ -441,6 +441,16 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
+    public void add_external_groups_to_authentication_with_wildcard_whitelist() throws Exception {
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        providerDefinition.addWhiteListedGroup("saml.*");
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider);
+        UaaAuthentication authentication = getAuthentication();
+        assertThat(authentication.getExternalGroups(), containsInAnyOrder(SAML_USER, SAML_ADMIN, SAML_NOT_MAPPED));
+    }
+
+    @Test
     public void update_invitedUser_whose_username_is_notEmail() throws Exception {
         ScimUser scimUser = getInvitedUser();
 
