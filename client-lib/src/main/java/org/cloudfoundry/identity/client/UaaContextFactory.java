@@ -25,7 +25,6 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
@@ -189,14 +188,7 @@ public class UaaContextFactory {
     }
 
     protected UaaContext fetchTokenFromCode(final TokenRequest request) {
-        String clientBasicAuth = null;
-        try {
-            byte[] autbytes = Base64.encode(format("%s:%s", request.getClientId(),request.getClientSecret()).getBytes("UTF-8"));
-            String base64 = new String(autbytes);
-            clientBasicAuth = format("Basic %s", base64);
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(e);
-        }
+        String clientBasicAuth = getClientBasicAuthHeader(request);
 
         RestTemplate template = new RestTemplate();
         if (request.isSkipSslValidation()) {
@@ -282,21 +274,11 @@ public class UaaContextFactory {
     }
 
     protected UaaContext authenticateSaml2BearerAssertion(final TokenRequest request) {
-        String clientBasicAuth = null;
-        try {
-            byte[] autbytes = Base64.encode(format("%s:%s", request.getClientId(),request.getClientSecret()).getBytes("UTF-8"));
-            String base64 = new String(autbytes);
-            clientBasicAuth = format("Basic %s", base64);
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(e);
-        }
-
         RestTemplate template = new RestTemplate();
         if (request.isSkipSslValidation()) {
             template.setRequestFactory(getNoValidatingClientHttpRequestFactory());
         }
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, clientBasicAuth);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String,String> form = new LinkedMultiValueMap<>();
@@ -307,6 +289,16 @@ public class UaaContextFactory {
 
         ResponseEntity<CompositeAccessToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeAccessToken.class);
         return new UaaContextImpl(request, null, token.getBody());
+    }
+
+    protected String getClientBasicAuthHeader(TokenRequest request) {
+        try {
+            byte[] autbytes = Base64.encode(format("%s:%s", request.getClientId(), request.getClientSecret()).getBytes("UTF-8"));
+            String base64 = new String(autbytes);
+            return format("Basic %s", base64);
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     /**
