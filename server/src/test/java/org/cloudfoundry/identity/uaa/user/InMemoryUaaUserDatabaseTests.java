@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Date;
 
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
@@ -85,6 +86,6 @@ public class InMemoryUaaUserDatabaseTests {
     public void updateLastLogonTime() {
         db.updateLastLogonTime("test-id");
         UaaUser uaaUser = db.retrieveUserById("test-id");
-        assertNotEquals(uaaUser.getLastLogonTime(), 0L);
+        assertNotNull(uaaUser.getLastLogonTime());
     }
 }

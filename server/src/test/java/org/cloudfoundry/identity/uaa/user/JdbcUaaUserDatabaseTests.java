@@ -316,12 +316,12 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         db.updateLastLogonTime(JOE_ID);
         UaaUser joe = db.retrieveUserById(JOE_ID);
-        assertEquals(joe.getLastLogonTime(), 1000L);
+        assertEquals((long) joe.getLastLogonTime(), 1000L);
 
         when(timeService.getCurrentTimeMillis()).thenReturn(2000L);
         db.updateLastLogonTime(JOE_ID);
         joe = db.retrieveUserById(JOE_ID);
-        assertEquals(joe.getLastLogonTime(), 2000L);
+        assertEquals((long) joe.getLastLogonTime(), 2000L);
     }
 
     @Test(expected = UsernameNotFoundException.class)

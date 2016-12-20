@@ -54,7 +54,7 @@ public class UaaUser {
     private final Date passwordLastModified;
 
     private final String phoneNumber;
-    private long lastLogonTime;
+    private Long lastLogonTime;
 
     public String getZoneId() {
         return zoneId;
@@ -356,11 +356,11 @@ public class UaaUser {
         this.passwordChangeRequired = passwordChangeRequired;
     }
 
-    public long getLastLogonTime() {
+    public Long getLastLogonTime() {
         return lastLogonTime;
     }
 
-    public void setLastLogonTime(long lastLogonTime) {
+    public void setLastLogonTime(Long lastLogonTime) {
         this.lastLogonTime = lastLogonTime;
     }
 }

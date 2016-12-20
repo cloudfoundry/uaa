@@ -12,15 +12,12 @@ import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
-import static org.junit.Assert.assertEquals;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -70,7 +67,8 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
       fieldWithPath("given_name").description("The user's first name."),
       fieldWithPath("family_name").description("The user's last name."),
       fieldWithPath("name").description("A map with the user's first name and last name."),
-      fieldWithPath("phone_number").description("The user's phone number")
+      fieldWithPath("phone_number").description("The user's phone number."),
+      fieldWithPath("last_logon_time").description("The unix epoch timestamp of when the user last authenticated.")
       );
 
     getMockMvc().perform(

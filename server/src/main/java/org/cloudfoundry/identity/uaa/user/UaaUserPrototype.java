@@ -55,7 +55,7 @@ public final class UaaUserPrototype {
 
     private boolean passwordChangeRequired;
 
-    private long lastLogonTime;
+    private Long lastLogonTime;
 
     public String getId() {
         return id;
@@ -217,11 +217,11 @@ public final class UaaUserPrototype {
         return this;
     }
 
-    public long getLastLogonTime() {
+    public Long getLastLogonTime() {
         return lastLogonTime;
     }
 
-    public UaaUserPrototype withLastLogonSuccess(long lastLogonTime) {
+    public UaaUserPrototype withLastLogonSuccess(Long lastLogonTime) {
         this.lastLogonTime = lastLogonTime;
         return this;
     }

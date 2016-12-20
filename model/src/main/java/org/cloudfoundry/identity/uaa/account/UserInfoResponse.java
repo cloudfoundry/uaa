@@ -38,6 +38,7 @@ import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.LAST_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
@@ -134,9 +135,18 @@ public class UserInfoResponse {
     }
 
     public void addAttributes(MultiValueMap<String,Object> attr) {
-        ofNullable(attr).orElse(EMPTY_MAP).entrySet().stream().forEach(e -> setAttributeValues(e.getKey(), e.getValue()));
+        ofNullable(attr).orElse(EMPTY_MAP).entrySet().stream().forEach(
+            e -> setAttributeValues(e.getKey(), e.getValue())
+        );
     }
 
+    public Long getLastLogonSuccess() {
+        return (Long) getAttributeValue(LAST_LOGON_TIME);
+    }
+
+    public void setLastLogonSuccess(Long lastLogonSuccess) {
+        setAttributeValue(LAST_LOGON_TIME, lastLogonSuccess);
+    }
 
 
     public static class UserInfoResponseSerializer extends JsonSerializer<UserInfoResponse> {
@@ -168,6 +178,10 @@ public class UserInfoResponse {
                         }
                         break;
                     }
+                    case LAST_LOGON_TIME:
+                        gen.writeFieldName(key);
+                        gen.writeObject(value.get(0));
+                        break;
                     //multi value fields
                     default:
                         gen.writeFieldName(key);
@@ -205,6 +219,9 @@ public class UserInfoResponse {
                         response.setAttributeValue(key, value);
                         break;
                     }
+                    case LAST_LOGON_TIME:
+                        response.setAttributeValue(key, (Long) ((Integer) value).longValue());
+                        break;
                     //multi value fields
                     default:
                         if (value instanceof List) {
