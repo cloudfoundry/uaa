@@ -192,6 +192,14 @@ public class XOAuthAuthenticationManagerTest {
                     "Y8Ada9pZfxXz1PZSqv9TPTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQAB\n" +
                     "-----END PUBLIC KEY-----");
 
+        config.setExternalGroupsWhitelist(
+            Arrays.asList(
+                "*",
+                "*.*",
+                "*.*.*"
+            )
+        );
+
         mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate(config));
         reset(xoAuthAuthenticationManager);
 
@@ -223,6 +231,7 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("marissa",uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
+
     }
 
     @Test
