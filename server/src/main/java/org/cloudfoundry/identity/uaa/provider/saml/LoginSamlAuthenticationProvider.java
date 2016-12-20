@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,6 +32,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
@@ -75,10 +75,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -179,14 +179,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
     }
 
-    private Set<String> filterSamlAuthorities(SamlIdentityProviderDefinition definition, Collection<? extends GrantedAuthority> samlAuthorities) {
-        List<String> whiteList = Collections.EMPTY_LIST;
-        if (definition!=null && definition.getExternalGroupsWhitelist()!=null) {
-            whiteList = definition.getExternalGroupsWhitelist();
-        }
+    protected Set<String> filterSamlAuthorities(SamlIdentityProviderDefinition definition, Collection<? extends GrantedAuthority> samlAuthorities) {
+        List<String> whiteList = Optional.of(definition.getExternalGroupsWhitelist()).orElse(Collections.EMPTY_LIST);
         Set<String> authorities = samlAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
-
-        return new HashSet<>(CollectionUtils.retainAll(authorities, whiteList));
+        return UaaStringUtils.retainAllMatches(authorities, whiteList);
     }
 
     protected Collection<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {

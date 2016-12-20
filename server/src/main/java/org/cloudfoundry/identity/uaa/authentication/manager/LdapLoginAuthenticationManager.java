@@ -31,6 +31,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.MultiValueMap;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.EMPTY_LIST;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
@@ -89,8 +91,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(),LdapIdentityProviderDefinition.class);
             List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
-            result = new LinkedList<>(getAuthoritesAsNames(request.getAuthorities()));
-            result.retainAll(externalWhiteList);
+            result = new ArrayList(retainAllMatches(getAuthoritesAsNames(request.getAuthorities()), externalWhiteList));
         }
         return result;
     }

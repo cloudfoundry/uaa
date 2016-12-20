@@ -201,6 +201,13 @@ public class XOAuthAuthenticationManagerTest {
                     "MFswDQYJKoZIhvcNAQEBBQADSgAwRwJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdp\n" +
                     "Y8Ada9pZfxXz1PZSqv9TPTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQAB\n" +
                     "-----END PUBLIC KEY-----");
+        config.setExternalGroupsWhitelist(
+            Arrays.asList(
+                "*",
+                "*.*",
+                "*.*.*"
+            )
+        );
 
         mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate(config));
         reset(xoAuthAuthenticationManager);
