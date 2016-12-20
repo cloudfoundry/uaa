@@ -105,6 +105,14 @@ public class TokenRequestTest {
         assertTrue(request.setRedirectUri(new URI("http://localhost:8080/test")).isValid());
     }
 
+    @Test
+    public void test_is_saml2_bearer_grant_api_valid() throws Exception {
+        assertFalse(request.isValid());
+        assertFalse(request.setGrantType(GrantType.SAML2_BEARER).isValid());
+        assertFalse(request.setClientId("client_id").isValid());
+        assertFalse(request.setClientSecret("client_secret").isValid());
+        assertTrue(request.setAuthCodeAPIToken("some token").isValid());
+    }
 
     @Test
     public void test_is_null_function() {
