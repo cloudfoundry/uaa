@@ -24,6 +24,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
@@ -61,6 +62,13 @@ public class ClientAdminEndpointsValidatorTests {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_USER_TOKEN));
         validator.validate(client, true, true);
     }
+
+    @Test
+    public void test_validate_saml_bearer_grant_type() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_SAML2_BEARER));
+        validator.validate(client, true, true);
+    }
+
 
 
         @Test
