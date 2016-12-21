@@ -52,10 +52,15 @@ public class Saml2TokenGranter extends AbstractTokenGranter {
     @SuppressWarnings("unchecked")
     protected Authentication validateRequest(TokenRequest request) {
         // things to validate
-        if(request == null || request.getRequestParameters() == null)
-            throw new InvalidGrantException("Invalid token requst object");
-        if(request.getRequestParameters().get("grant_type") == null)
+        if(request == null || request.getRequestParameters() == null) {
+            throw new InvalidGrantException("Missing token request object");
+        }
+        if(request.getRequestParameters().get("grant_type") == null) {
+            throw new InvalidGrantException("Missing grant type");
+        }
+        if(!GRANT_TYPE_SAML2_BEARER.equals(request.getRequestParameters().get("grant_type"))) {
             throw new InvalidGrantException("Invalid grant type");
+        }
         // parse the XML to Assertion
         if (new DefaultSecurityContextAccessor().isUser()) {
             return SecurityContextHolder.getContext().getAuthentication();
@@ -68,7 +73,6 @@ public class Saml2TokenGranter extends AbstractTokenGranter {
     protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest tokenRequest) {
         Authentication userAuth = validateRequest(tokenRequest);
         OAuth2Request storedOAuth2Request = getRequestFactory().createOAuth2Request(client, tokenRequest);
-        logger.info("SAML2 bearer validation succeeded");
         return new OAuth2Authentication(storedOAuth2Request, userAuth);
     }
 
