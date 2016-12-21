@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultBooleanValueAdapter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -32,7 +33,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
     @Before
     public void createDatasource() throws Exception {
-        db = new JdbcSamlServiceProviderProvisioning(jdbcTemplate);
+        db = new JdbcSamlServiceProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
     }
 
     @After
