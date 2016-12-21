@@ -220,7 +220,8 @@ public class UserInfoResponse {
                         break;
                     }
                     case LAST_LOGON_TIME:
-                        response.setAttributeValue(key, (Long) ((Integer) value).longValue());
+                        Long longValue = value.getClass() == Long.class ? (Long) value : (Long) ((Integer) value).longValue();
+                        response.setAttributeValue(key, longValue);
                         break;
                     //multi value fields
                     default:
