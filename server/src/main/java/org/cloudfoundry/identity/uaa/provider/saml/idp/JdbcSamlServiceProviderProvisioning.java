@@ -14,7 +14,9 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.resources.jdbc.BooleanValueAdapter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,8 +55,8 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     public static final String SERVICE_PROVIDERS_QUERY = "select " + SERVICE_PROVIDER_FIELDS
             + " from service_provider where identity_zone_id=?";
-
-    public static final String ACTIVE_SERVICE_PROVIDERS_QUERY = SERVICE_PROVIDERS_QUERY + " and active=?";
+ 
+    public static final String ACTIVE_SERVICE_PROVIDERS_QUERY = SERVICE_PROVIDERS_QUERY + " and active=%s";
 
     public static final String SERVICE_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,config,active".replace(",",
             "=?,") + "=?";
@@ -70,11 +72,14 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     protected final JdbcTemplate jdbcTemplate;
 
+    private final BooleanValueAdapter booleanValueAdapter;
+
     private final RowMapper<SamlServiceProvider> mapper = new SamlServiceProviderRowMapper();
 
-    public JdbcSamlServiceProviderProvisioning(JdbcTemplate jdbcTemplate) {
+    public JdbcSamlServiceProviderProvisioning(JdbcTemplate jdbcTemplate, BooleanValueAdapter booleanValueAdapter) {
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
+        this.booleanValueAdapter = booleanValueAdapter;
     }
 
     @Override
@@ -101,7 +106,8 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     @Override
     public List<SamlServiceProvider> retrieveActive(String zoneId) {
-        return jdbcTemplate.query(ACTIVE_SERVICE_PROVIDERS_QUERY, mapper, zoneId, true);
+        String activeQuery = String.format(ACTIVE_SERVICE_PROVIDERS_QUERY, this.booleanValueAdapter.getTrueValue());
+        return jdbcTemplate.query(activeQuery, mapper, zoneId);
     }
 
     @Override

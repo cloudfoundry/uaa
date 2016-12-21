@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultBooleanValueAdapter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -94,7 +95,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
         template = new JdbcTemplate(dataSource);
 
-        db = new JdbcUaaUserDatabase(template, timeService);
+        db = new JdbcUaaUserDatabase(template, new DefaultBooleanValueAdapter(), timeService);
         db.setDefaultAuthorities(Collections.singleton("uaa.user"));
 
         TestUtils.assertNoSuchUser(template, "id", JOE_ID);
