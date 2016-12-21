@@ -1873,7 +1873,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //TODO OpenID
         Integer auth_time = (Integer)result.get(ClaimConstants.AUTH_TIME);
         assertNotNull(auth_time);
-
+        Long last_logon_time = (Long) result.get(ClaimConstants.LAST_LOGON_TIME);
+        assertNotNull(last_logon_time);
 
     }
 
