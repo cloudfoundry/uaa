@@ -27,7 +27,7 @@ public class ZoneAwareIdpMetadataManagerTest {
 
     @Before
     public void setup() throws Exception {
-        samlTestUtils.initalize();
+        samlTestUtils.initialize();
         configurator = new SamlServiceProviderConfigurator();
         configurator.setParserPool(new BasicParserPool());
         providerDao = mock(SamlServiceProviderProvisioning.class);

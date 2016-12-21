@@ -100,7 +100,7 @@ public class SamlLoginWithLocalIdpIT {
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
-        samlTestUtils.initalize();
+        samlTestUtils.initialize();
         webDriver.get(baseUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
@@ -133,14 +133,12 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId) {
-
         String url;
         if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals("uaa")) {
             url = "http://" + zoneId + ".localhost:8080/uaa/saml/idp/metadata";
         } else {
             url = "http://localhost:8080/uaa/saml/idp/metadata";
         }
-
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", "application/samlmetadata+xml");
@@ -149,21 +147,7 @@ public class SamlLoginWithLocalIdpIT {
         ResponseEntity<String> metadataResponse = client.exchange(url, HttpMethod.GET, getHeaders, String.class);
 
         String idpMetaData = metadataResponse.getBody();
-        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setZoneId(zoneId);
-        def.setMetaDataLocation(idpMetaData);
-        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
-        def.setAssertionConsumerIndex(0);
-        def.setMetadataTrustCheck(false);
-        def.setShowSamlLink(true);
-        if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals(OriginKeys.UAA)) {
-            def.setIdpEntityAlias(zoneId + "." + alias);
-            def.setLinkText("Login with Local SAML IdP(" + zoneId + "." + alias + ")");
-        } else {
-            def.setIdpEntityAlias(alias);
-            def.setLinkText("Login with Local SAML IdP(" + alias + ")");
-        }
-        return def;
+        return SamlTestUtils.createLocalSamlIdpDefinition(alias, zoneId, idpMetaData);
     }
 
     @Test
@@ -350,11 +334,11 @@ public class SamlLoginWithLocalIdpIT {
         postBody.add("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
         postBody.add("client_id", "oauth_showcase_saml2_bearer");
         postBody.add("client_secret", "secret");
-        postBody.add("assertion", samlTestUtils.mockAssertionEncoded(IDP_ENTITY_ID, 
-                     "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-                     "Saml2BearerIntegrationUser"));
+        postBody.add("assertion", samlTestUtils.mockAssertionEncoded(IDP_ENTITY_ID,
+                                                                     "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                                                                     "Saml2BearerIntegrationUser", "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login", "cloudfoundry-saml-login"));
 
-        ResponseEntity<CompositeAccessToken> token = restOperations.exchange(baseUrl + "/oauth/token",
+        ResponseEntity<CompositeAccessToken> token = restOperations.exchange(baseUrl + "/oauth/token/alias/cloudfoundry-saml-login",
                                                                              HttpMethod.POST, new HttpEntity<>(postBody, headers),
                                                                              CompositeAccessToken.class);
 

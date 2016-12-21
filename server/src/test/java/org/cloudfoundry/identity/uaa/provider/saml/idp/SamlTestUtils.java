@@ -1,20 +1,12 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Random;
-import java.util.UUID;
-
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AddBcProvider;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -56,56 +48,89 @@ import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
 import org.w3c.dom.Element;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Random;
+import java.util.UUID;
+
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
+
 public class SamlTestUtils {
 
-    public static final String PROVIDER_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\n"
-            + "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n"
-            + "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n"
-            + "fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB\n"
-            + "AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges\n"
-            + "7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu\n"
-            + "lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp\n"
-            + "ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX\n"
-            + "kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL\n"
-            + "gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK\n"
-            + "vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe\n"
-            + "A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS\n"
-            + "N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB\n"
-            + "qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/\n" + "-----END RSA PRIVATE KEY-----";
+    public static final String PROVIDER_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\n" +
+        "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n" +
+        "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n" +
+        "fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB\n" +
+        "AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges\n" +
+        "7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu\n" +
+        "lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp\n" +
+        "ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX\n" +
+        "kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL\n" +
+        "gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK\n" +
+        "vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe\n" +
+        "A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS\n" +
+        "N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB\n" +
+        "qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/\n" +
+        "-----END RSA PRIVATE KEY-----";
 
     public static final String PROVIDER_PRIVATE_KEY_PASSWORD = "password";
 
-    public static final String PROVIDER_CERTIFICATE = "-----BEGIN CERTIFICATE-----\n"
-            + "MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO\n"
-            + "MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO\n"
-            + "MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h\n"
-            + "cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx\n"
-            + "CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM\n"
-            + "BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb\n"
-            + "BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN\n"
-            + "ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W\n"
-            + "qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw\n"
-            + "znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha\n"
-            + "MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc\n"
-            + "gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD\n"
-            + "VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD\n"
-            + "VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh\n"
-            + "QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ\n"
-            + "0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC\n"
-            + "KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK\n"
-            + "RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" + "-----END CERTIFICATE-----\n";
+    public static final String PROVIDER_CERTIFICATE = "-----BEGIN CERTIFICATE-----\n" +
+        "MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO\n" +
+        "MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO\n" +
+        "MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h\n" +
+        "cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx\n" +
+        "CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM\n" +
+        "BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb\n" +
+        "BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN\n" +
+        "ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W\n" +
+        "qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw\n" +
+        "znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha\n" +
+        "MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc\n" +
+        "gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD\n" +
+        "VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD\n" +
+        "VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh\n" +
+        "QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ\n" +
+        "0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC\n" +
+        "KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK\n" +
+        "RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
+        "-----END CERTIFICATE-----";
 
     public static final String SP_ENTITY_ID = "unit-test-sp";
     public static final String IDP_ENTITY_ID = "unit-test-idp";
-    private XMLObjectBuilderFactory builderFactory;
+    protected XMLObjectBuilderFactory builderFactory;
 
-    public void initalize() throws ConfigurationException {
+    public void initializeSimple() throws ConfigurationException {
+        builderFactory = Configuration.getBuilderFactory();
+    }
+    public void initialize() throws ConfigurationException {
         IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKey(PROVIDER_PRIVATE_KEY);
         IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
         IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(PROVIDER_CERTIFICATE);
         AddBcProvider.noop();
         DefaultBootstrap.bootstrap();
-        builderFactory = Configuration.getBuilderFactory();
+        initializeSimple();
+    }
+
+    public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId, String idpMetaData) {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setZoneId(zoneId);
+        def.setMetaDataLocation(idpMetaData);
+        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+        def.setAssertionConsumerIndex(0);
+        def.setMetadataTrustCheck(false);
+        def.setShowSamlLink(true);
+        if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals(OriginKeys.UAA)) {
+            def.setIdpEntityAlias(zoneId + "." + alias);
+            def.setLinkText("Login with Local SAML IdP(" + zoneId + "." + alias + ")");
+        } else {
+            def.setIdpEntityAlias(alias);
+            def.setLinkText("Login with Local SAML IdP(" + alias + ")");
+        }
+        return def;
     }
 
     @SuppressWarnings("unchecked")
@@ -170,7 +195,7 @@ public class SamlTestUtils {
         return mockAuthnRequest(null);
     }
 
-    public Assertion mockAssertion(String issuer, String format, String nameId) throws MessageEncodingException, SAMLException,
+    public Assertion mockAssertion(String issuer, String format, String nameId, String endpoint, String audienceEntityID) throws MessageEncodingException, SAMLException,
     MetadataProviderException, SecurityException, MarshallingException, SignatureException  {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = mockUaaAuthentication(authenticationId);
@@ -182,8 +207,8 @@ public class SamlTestUtils {
         Response response = (Response) context.getOutboundSAMLMessage();
         Assertion assertion = response.getAssertions().get(0);
         DateTime until = new DateTime().plusHours(1);
-        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setRecipient("http://localhost:8080/uaa/oauth/token");
-        assertion.getConditions().getAudienceRestrictions().get(0).getAudiences().get(0).setAudienceURI("http://localhost:8080/uaa/oauth/token");
+        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setRecipient(endpoint);
+        assertion.getConditions().getAudienceRestrictions().get(0).getAudiences().get(0).setAudienceURI(audienceEntityID);
         assertion.getIssuer().setValue(issuer);
         assertion.getSubject().getNameID().setValue(nameId);
         assertion.getSubject().getNameID().setFormat(format);
@@ -191,8 +216,7 @@ public class SamlTestUtils {
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
         assertion.getConditions().setNotOnOrAfter(until);
         KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
-        SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory
-                .getBuilder(Signature.DEFAULT_ELEMENT_NAME);
+        SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
         Signature signature = signatureBuilder.buildObject();
         signature.setSigningCredential(keyManager.getDefaultCredential());
         SecurityHelper.prepareSignatureParams(signature, keyManager.getDefaultCredential(), null, null);
@@ -203,19 +227,15 @@ public class SamlTestUtils {
         return assertion;
     }
 
-    public String mockAssertionEncoded(Assertion assertion, String issuer, String format, String nameId) {
-        try {
-            Assertion _in = assertion == null ? mockAssertion(issuer, format, nameId) : assertion;
-            AssertionMarshaller marshaller = new AssertionMarshaller();
-            Element plaintextElement = marshaller.marshall(_in);
-            String serializedElement = XMLHelper.nodeToString(plaintextElement);
-            return Base64.encodeBase64URLSafeString(serializedElement.getBytes("utf-8"));
-        } catch(Exception e) {
-        }
-        return null;
+    public String mockAssertionEncoded(Assertion assertion, String issuer, String format, String nameId, String endpoint, String audienceEntityID) throws Exception {
+        Assertion _in = assertion == null ? mockAssertion(issuer, format, nameId, endpoint, audienceEntityID) : assertion;
+        AssertionMarshaller marshaller = new AssertionMarshaller();
+        Element plaintextElement = marshaller.marshall(_in);
+        String serializedElement = XMLHelper.nodeToString(plaintextElement);
+        return Base64.encodeBase64URLSafeString(serializedElement.getBytes("utf-8"));
     }
-    public String mockAssertionEncoded(String issuer, String format, String nameId) {
-        return mockAssertionEncoded(null, issuer, format, nameId);
+    public String mockAssertionEncoded(String issuer, String format, String nameId, String endpoint, String audienceEntityID) throws Exception {
+        return mockAssertionEncoded(null, issuer, format, nameId, endpoint, audienceEntityID);
     }
 
     public AuthnRequest mockAuthnRequest(String nameIDFormat) {

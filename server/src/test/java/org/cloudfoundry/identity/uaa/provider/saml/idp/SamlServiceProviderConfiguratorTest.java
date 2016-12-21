@@ -38,7 +38,7 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Before
     public void setup() throws Exception {
-        samlTestUtils.initalize();
+        samlTestUtils.initialize();
         conf = new SamlServiceProviderConfigurator();
         conf.setParserPool(new BasicParserPool());
     }
