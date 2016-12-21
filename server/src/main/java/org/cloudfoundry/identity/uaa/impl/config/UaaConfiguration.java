@@ -48,7 +48,7 @@ public class UaaConfiguration {
     public boolean disableInternalAuth;
 
     public String name;
-    @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
+    @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle|sqlserver)")
     public String platform;
     public String spring_profiles;
 
@@ -155,7 +155,6 @@ public class UaaConfiguration {
             public String verificationKey;
             public Claims claims;
             public Policy policy;
-
             public static class Claims {
                 public Set<String> exclusions;
             }

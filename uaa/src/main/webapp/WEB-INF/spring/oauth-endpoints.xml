@@ -546,8 +546,9 @@
     </util:set>
 
     <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
-        <constructor-arg ref="jdbcTemplate" />
-        <property name="defaultAuthorities" ref="defaultUserAuthorities" />
+        <constructor-arg ref="jdbcTemplate"/>
+        <constructor-arg ref="booleanValueAdapter"/>
+        <property name="defaultAuthorities" ref="defaultUserAuthorities"/>
         <property name="caseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 

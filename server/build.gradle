@@ -53,6 +53,9 @@ dependencies {
   compile group: 'org.hibernate', name: 'hibernate-validator', version: parent.hibernateValidatorVersion
   compile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
   compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: parent.mariaDBClientVersion
+  compile(group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion) {
+    exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
+  }
   compile group: 'org.hsqldb', name: 'hsqldb', version: parent.hsqldbVersion
 
   compile group: 'org.yaml', name: 'snakeyaml', version: parent.snakeYamlVersion
@@ -77,7 +80,9 @@ dependencies {
 
   testCompile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
   testCompile group: 'postgresql', name: 'postgresql', version: parent.postgresqlVersion
-
+  testCompile (group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion){
+    exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
+  }
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
