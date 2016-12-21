@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.endpoint.TokenEndpoint;
@@ -27,18 +26,23 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.security.Principal;
 import java.util.Map;
 
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 
 @Controller
-public class UaaTokenEndpoint {
+@RequestMapping(value = "/oauth/token") //used simply because TokenEndpoint wont match /oauth/token/alias/saml-entity-id
+public class UaaTokenEndpoint extends TokenEndpoint {
 
-    @Autowired
-    TokenEndpoint delegate;
+    @RequestMapping(value = "**", method = GET)
+    public ResponseEntity<OAuth2AccessToken> doDelegateGet(Principal principal,
+                                                           @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
+        return super.getAccessToken(principal, parameters);
+    }
 
-    @RequestMapping(value = "/oauth/token/**", method = POST)
-    public ResponseEntity<OAuth2AccessToken> doDelegate(Principal principal,
-                                                        @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
-        return delegate.postAccessToken(principal, parameters);
+    @RequestMapping(value = "**", method = POST)
+    public ResponseEntity<OAuth2AccessToken> doDelegatePost(Principal principal,
+                                                            @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
+        return super.postAccessToken(principal, parameters);
     }
 }
