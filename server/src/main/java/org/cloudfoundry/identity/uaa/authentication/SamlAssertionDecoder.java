@@ -32,6 +32,12 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Copy/paste from org.opensaml.saml2.binding.decoding.HTTPPostDecoder
+ * with two minor changes
+ * 1. base64 decoding is doing base64url decoding
+ * 2. The unmarshalling of the object gets wrapped in a SamlResponse object
+ */
 
 public class SamlAssertionDecoder extends BaseSAML2MessageDecoder {
 
