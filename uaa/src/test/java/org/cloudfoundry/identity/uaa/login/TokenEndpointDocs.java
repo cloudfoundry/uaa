@@ -3,19 +3,27 @@ package org.cloudfoundry.identity.uaa.login;
 import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.headers.HeaderDescriptor;
@@ -29,6 +37,8 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -43,9 +53,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -70,7 +82,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class TokenEndpointDocs extends InjectedMockContextTest {
+public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
     private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).required().type(STRING).description("The type of token that should be issued.");
@@ -318,17 +330,66 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
 
     @Test
     public void getTokenUsingSaml2BearerGrant() throws Exception {
-        /*MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        SamlTestUtils samlTestUtils = new SamlTestUtils();
+        samlTestUtils.initializeSimple();
+
+        String origin = "cloudfoundry-saml-login";
+
+        //create an actual IDP, so we can fetch metadata
+        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), null);
+
+        //create an IDP in the default zone
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, null, idpMetadata);
+        IdentityProvider provider = new IdentityProvider();
+        provider.setConfig(idpDef);
+        provider.setActive(true);
+        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setName(origin);
+        provider.setOriginKey(origin);
+
+        getWebApplicationContext().getBean(IdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+
+        String assertion = samlTestUtils.mockAssertionEncoded("cloudfoundry-saml-login",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "Saml2BearerIntegrationUser",
+            "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login",
+            "cloudfoundry-saml-login"
+        );
+
+        //create client in default zone
+        String clientId = "testclient"+ generator.generate();
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, null);
+
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        String host = "localhost";
+        String fullPath = "/uaa/oauth/token/alias/cloudfoundry-saml-login";
+        //String fullPath = "/uaa/oauth/token";
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(fullPath)
+            .with(new RequestPostProcessor() {
+                @Override
+                public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+                    request.setServerPort(8080);
+                    request.setRequestURI(fullPath);
+                    request.setServerName(host);
+                    return request;
+                }
+            })
+            .contextPath("/uaa")
             .accept(APPLICATION_JSON)
+            .header(HOST, host)
             .contentType(APPLICATION_FORM_URLENCODED)
-            .param(CLIENT_ID, "oauth_showcase_saml2_bearer")
+            .param("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer")
+            .param("client_id", clientId)
             .param("client_secret", "secret")
-            .param(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER)
-            .param("assertion", "PEFzc2VydGlvbiBJ...");*/
+            .param("scope", "openid")
+            .param("assertion",assertion);
 
         final ParameterDescriptor assertionFormatParameter = parameterWithName("assertion").required().type(STRING).description("An XML based SAML 2.0 bearer assertion, which is Base64URl encoded.");
         Snippet requestParameters = requestParameters(
             clientIdParameter.description("The client ID of the receiving client, this client must have `urn:ietf:params:oauth:grant-type:saml2-bearer` grant type"),
+            clientSecretParameter,
             grantTypeParameter.description("The type of token grant requested, in this case `"+GRANT_TYPE_SAML2_BEARER+"`"),
             assertionFormatParameter,
             scopeParameter
@@ -343,8 +404,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("jti").description("A globally unique identifier for this refresh token")
         );
 
-        /*getMockMvc().perform(postForToken)
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));*/
+        getMockMvc().perform(post)
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
     }
 
     @Test
