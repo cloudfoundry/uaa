@@ -243,7 +243,6 @@
 
         <bean id="assertionBinding" class="org.cloudfoundry.identity.uaa.authentication.SamlAssertionBinding">
             <constructor-arg ref="parserPool" />
-            <constructor-arg ref="velocityEngine" />
         </bean>
 
         <bean id="redirectBinding" class="org.springframework.security.saml.processor.HTTPRedirectDeflateBinding">

@@ -15,40 +15,22 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.apache.velocity.app.VelocityEngine;
-import org.opensaml.common.binding.security.SAMLProtocolMessageXMLSignatureSecurityPolicyRule;
-import org.opensaml.saml2.binding.security.SAML2HTTPPostSimpleSignRule;
 import org.opensaml.ws.message.decoder.MessageDecoder;
 import org.opensaml.ws.message.encoder.MessageEncoder;
-import org.opensaml.ws.security.SecurityPolicyRule;
 import org.opensaml.ws.transport.InTransport;
-import org.opensaml.ws.transport.OutTransport;
 import org.opensaml.ws.transport.http.HTTPInTransport;
-import org.opensaml.ws.transport.http.HTTPOutTransport;
 import org.opensaml.ws.transport.http.HTTPTransport;
 import org.opensaml.xml.parse.ParserPool;
-import org.opensaml.xml.signature.SignatureTrustEngine;
-import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.security.saml.processor.SAMLBindingImpl;
+import org.springframework.security.saml.processor.HTTPPostBinding;
 
-import java.util.List;
-
-/**
- * Created by fhanik on 12/21/16.
- */
-public class SamlAssertionBinding extends SAMLBindingImpl {
-
-    /**
-     * Pool for message deserializers.
-     */
-    protected ParserPool parserPool;
+public class SamlAssertionBinding extends HTTPPostBinding {
 
     /**
      * Creates default implementation of the binding.
      *
      * @param parserPool     parserPool for message deserialization
      */
-    public SamlAssertionBinding(ParserPool parserPool, VelocityEngine engine) {
+    public SamlAssertionBinding(ParserPool parserPool) {
         this(parserPool, new SamlAssertionDecoder(parserPool), null);
     }
 
@@ -60,10 +42,10 @@ public class SamlAssertionBinding extends SAMLBindingImpl {
      * @param encoder custom encoder implementation
      */
     public SamlAssertionBinding(ParserPool parserPool, MessageDecoder decoder, MessageEncoder encoder) {
-        super(decoder, encoder);
-        this.parserPool = parserPool;
+        super(parserPool, decoder, encoder);
     }
 
+    @Override
     public boolean supports(InTransport transport) {
         if (transport instanceof HTTPInTransport) {
             HTTPTransport t = (HTTPTransport) transport;
@@ -73,20 +55,8 @@ public class SamlAssertionBinding extends SAMLBindingImpl {
         }
     }
 
-    public boolean supports(OutTransport transport) {
-        return transport instanceof HTTPOutTransport;
-    }
-
+    @Override
     public String getBindingURI() {
         return "urn:oasis:names:tc:SAML:2.0:bindings:URI";
-    }
-
-    @Override
-    public void getSecurityPolicy(List<SecurityPolicyRule> securityPolicy, SAMLMessageContext samlContext) {
-
-        SignatureTrustEngine engine = samlContext.getLocalTrustEngine();
-        securityPolicy.add(new SAML2HTTPPostSimpleSignRule(engine, parserPool, engine.getKeyInfoResolver()));
-        securityPolicy.add(new SAMLProtocolMessageXMLSignatureSecurityPolicyRule(engine));
-
     }
 }
