@@ -80,6 +80,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.STATE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
@@ -334,37 +335,43 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         SamlTestUtils samlTestUtils = new SamlTestUtils();
         samlTestUtils.initializeSimple();
 
-        String origin = "cloudfoundry-saml-login";
+        String subdomain  = generator.generate().toLowerCase();
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        String host = subdomain + ".localhost";
+        String fullPath = "/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login";
+        String origin = subdomain + ".cloudfoundry-saml-login";
+
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
 
         //create an actual IDP, so we can fetch metadata
-        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), null);
+        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
 
         //create an IDP in the default zone
-        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, null, idpMetadata);
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, zone.getIdentityZone().getId(), idpMetadata);
         IdentityProvider provider = new IdentityProvider();
         provider.setConfig(idpDef);
         provider.setActive(true);
-        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setIdentityZoneId(zone.getIdentityZone().getId());
         provider.setName(origin);
         provider.setOriginKey(origin);
 
+        IdentityZoneHolder.set(zone.getIdentityZone());
         getWebApplicationContext().getBean(IdentityProviderProvisioning.class).create(provider);
         getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+        IdentityZoneHolder.clear();
 
-        String assertion = samlTestUtils.mockAssertionEncoded("cloudfoundry-saml-login",
+        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
             "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
             "Saml2BearerIntegrationUser",
-            "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login",
-            "cloudfoundry-saml-login"
+            "http://"+subdomain+".localhost:8080/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login",
+            subdomain + ".cloudfoundry-saml-login"
         );
 
         //create client in default zone
         String clientId = "testclient"+ generator.generate();
-        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, null);
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
 
-        //all our SAML defaults use :8080/uaa/ so we have to use that here too
-        String host = "localhost";
-        String fullPath = "/uaa/oauth/token/alias/cloudfoundry-saml-login";
+
         //String fullPath = "/uaa/oauth/token";
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(fullPath)
             .with(new RequestPostProcessor() {
@@ -383,8 +390,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer")
             .param("client_id", clientId)
             .param("client_secret", "secret")
-            .param("scope", "openid")
-            .param("assertion",assertion);
+            .param("assertion",assertion)
+            .param("scope", "openid");
 
         final ParameterDescriptor assertionFormatParameter = parameterWithName("assertion").required().type(STRING).description("An XML based SAML 2.0 bearer assertion, which is Base64URl encoded.");
         Snippet requestParameters = requestParameters(
@@ -405,7 +412,10 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         getMockMvc().perform(post)
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.access_token").exists())
+            .andExpect(jsonPath("$.scope").value("openid"));
     }
 
     @Test

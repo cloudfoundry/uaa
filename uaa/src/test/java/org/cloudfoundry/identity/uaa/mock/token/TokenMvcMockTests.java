@@ -323,37 +323,43 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void test_saml_bearer_grant() throws Exception {
-        String origin = "cloudfoundry-saml-login";
+        String subdomain  = generator.generate().toLowerCase();
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        String host = subdomain + ".localhost";
+        String fullPath = "/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login";
+        String origin = subdomain + ".cloudfoundry-saml-login";
+
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
 
         //create an actual IDP, so we can fetch metadata
-        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), null);
+        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
 
         //create an IDP in the default zone
-        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, null, idpMetadata);
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, zone.getIdentityZone().getId(), idpMetadata);
         IdentityProvider provider = new IdentityProvider();
         provider.setConfig(idpDef);
         provider.setActive(true);
-        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setIdentityZoneId(zone.getIdentityZone().getId());
         provider.setName(origin);
         provider.setOriginKey(origin);
 
+        IdentityZoneHolder.set(zone.getIdentityZone());
         getWebApplicationContext().getBean(IdentityProviderProvisioning.class).create(provider);
         getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+        IdentityZoneHolder.clear();
 
-        String assertion = samlTestUtils.mockAssertionEncoded("cloudfoundry-saml-login",
+        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
                                                               "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                                                               "Saml2BearerIntegrationUser",
-                                                              "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login",
-                                                              "cloudfoundry-saml-login"
+                                                              "http://"+subdomain+".localhost:8080/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login",
+                                                              subdomain + ".cloudfoundry-saml-login"
         );
 
         //create client in default zone
         String clientId = "testclient"+ generator.generate();
-        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, null);
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
 
-        //all our SAML defaults use :8080/uaa/ so we have to use that here too
-        String host = "localhost";
-        String fullPath = "/uaa/oauth/token/alias/cloudfoundry-saml-login";
+
         //String fullPath = "/uaa/oauth/token";
         MockHttpServletRequestBuilder post = post(fullPath)
             .with(new RequestPostProcessor() {
