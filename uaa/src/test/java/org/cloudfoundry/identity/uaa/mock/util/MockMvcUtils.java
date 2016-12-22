@@ -107,6 +107,7 @@ import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
+import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -156,6 +157,24 @@ public final class MockMvcUtils {
         // this is all static now
         // TODO: replace calls to this method with static references
         return null;
+    }
+
+    public static String getSPMetadata(MockMvc mockMvc, String subdomain) throws Exception {
+        return mockMvc.perform(
+            get("/saml/metadata")
+                .accept(MediaType.APPLICATION_XML)
+                .header(HOST, hasText(subdomain) ? subdomain + ".localhost" : "localhost")
+        ).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+    }
+
+    public static String getIDPMetaData(MockMvc mockMvc, String subdomain) throws Exception {
+        return mockMvc.perform(
+            get("/saml/idp/metadata")
+                .accept(MediaType.APPLICATION_XML)
+                .header(HOST, hasText(subdomain) ? subdomain + ".localhost" : "localhost")
+        ).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
     }
 
     public static MockHttpSession getSavedRequestSession() {

@@ -19,10 +19,12 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -43,6 +45,7 @@ import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -53,6 +56,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -72,6 +76,7 @@ public class SamlLoginWithLocalIdpIT {
 
     public static final String IDP_ENTITY_ID = "cloudfoundry-saml-login";
 
+    private final SamlTestUtils samlTestUtils = new SamlTestUtils();
     @Autowired
     @Rule
     public IntegrationTestRule integrationTestRule;
@@ -95,6 +100,7 @@ public class SamlLoginWithLocalIdpIT {
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
+        samlTestUtils.initialize();
         webDriver.get(baseUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
@@ -127,14 +133,12 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId) {
-
         String url;
         if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals("uaa")) {
             url = "http://" + zoneId + ".localhost:8080/uaa/saml/idp/metadata";
         } else {
             url = "http://localhost:8080/uaa/saml/idp/metadata";
         }
-
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", "application/samlmetadata+xml");
@@ -143,21 +147,7 @@ public class SamlLoginWithLocalIdpIT {
         ResponseEntity<String> metadataResponse = client.exchange(url, HttpMethod.GET, getHeaders, String.class);
 
         String idpMetaData = metadataResponse.getBody();
-        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setZoneId(zoneId);
-        def.setMetaDataLocation(idpMetaData);
-        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
-        def.setAssertionConsumerIndex(0);
-        def.setMetadataTrustCheck(false);
-        def.setShowSamlLink(true);
-        if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals(OriginKeys.UAA)) {
-            def.setIdpEntityAlias(zoneId + "." + alias);
-            def.setLinkText("Login with Local SAML IdP(" + zoneId + "." + alias + ")");
-        } else {
-            def.setIdpEntityAlias(alias);
-            def.setLinkText("Login with Local SAML IdP(" + alias + ")");
-        }
-        return def;
+        return SamlTestUtils.createLocalSamlIdpDefinition(alias, zoneId, idpMetaData);
     }
 
     @Test
@@ -274,6 +264,88 @@ public class SamlLoginWithLocalIdpIT {
             });
         }
         return null;
+    }
+
+    @Test
+    public void testInvalidSaml2Bearer() throws Exception {
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(IDP_ENTITY_ID, "uaa");
+        @SuppressWarnings("unchecked")
+        IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(
+                "Local SAML IdP", IDP_ENTITY_ID, true, this.baseUrl, this.serverRunning, idpDef);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+        postBody.add("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
+        postBody.add("client_id", "oauth_showcase_saml2_bearer");
+        postBody.add("client_secret", "secret");
+        postBody.add("assertion",
+             "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c2FtbDI6QXNzZXJ0aW9uIHhtbG5zOnNhbWwyPS" +
+             "J1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6YXNzZXJ0aW9uIiBJRD0iXzBkNzhhYTdhLTY4MzctNDUyNi1iNTk4" +
+             "LTliZGE0MTI5NTE0YiIgSXNzdWVJbnN0YW50PSIyMDE2LTExLTIyVDIxOjU3OjMwLjI2NVoiIFZlcnNpb249IjIuMC" +
+             "IgeG1sbnM6eHM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDEvWE1MU2NoZW1hIj48c2FtbDI6SXNzdWVyPmNsb3VkZm91" +
+             "bmRyeS1zYW1sLWxvZ2luPC9zYW1sMjpJc3N1ZXI-PHNhbWwyOlN1YmplY3Q-PHNhbWwyOk5hbWVJRCBGb3JtYXQ9In" +
+             "VybjpvYXNpczpuYW1lczp0YzpTQU1MOjEuMTpuYW1laWQtZm9ybWF0OnVuc3BlY2lmaWVkIj5Vbml0VGVzdFRlc3RV" +
+             "c2VyPC9zYW1sMjpOYW1lSUQ-PHNhbWwyOlN1YmplY3RDb25maXJtYXRpb24gTWV0aG9kPSJ1cm46b2FzaXM6bmFtZX" +
+             "M6dGM6U0FNTDoyLjA6Y206YmVhcmVyIj48c2FtbDI6U3ViamVjdENvbmZpcm1hdGlvbkRhdGEgTm90T25PckFmdGVy" +
+             "PSIyMDE3LTExLTIyVDIyOjAyOjMwLjI5NloiIFJlY2lwaWVudD0iaHR0cDovL2xvY2FsaG9zdDo4MDgwL3VhYS9vYX" +
+             "V0aC90b2tlbiIvPjwvc2FtbDI6U3ViamVjdENvbmZpcm1hdGlvbj48L3NhbWwyOlN1YmplY3Q-PHNhbWwyOkNvbmRp" +
+             "dGlvbnMgTm90QmVmb3JlPSIyMDE2LTExLTIyVDIxOjU3OjMwLjI2NVoiIE5vdE9uT3JBZnRlcj0iMjAxNy0xMS0yMl" +
+             "QyMjowMjozMC4yOTZaIj48c2FtbDI6QXVkaWVuY2VSZXN0cmljdGlvbj48c2FtbDI6QXVkaWVuY2U-aHR0cDovL2xv" +
+             "Y2FsaG9zdDo4MDgwL3VhYS9vYXV0aC90b2tlbjwvc2FtbDI6QXVkaWVuY2U-PC9zYW1sMjpBdWRpZW5jZVJlc3RyaW" +
+             "N0aW9uPjwvc2FtbDI6Q29uZGl0aW9ucz48c2FtbDI6QXR0cmlidXRlU3RhdGVtZW50PjxzYW1sMjpBdHRyaWJ1dGUg" +
+             "TmFtZT0iR3JvdXBzIj48c2FtbDI6QXR0cmlidXRlVmFsdWUgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMD" +
+             "AxL1hNTFNjaGVtYS1pbnN0YW5jZSIgeHNpOnR5cGU9InhzOnN0cmluZyI-Y2xpZW50LndyaXRlPC9zYW1sMjpBdHRy" +
+             "aWJ1dGVWYWx1ZT48c2FtbDI6QXR0cmlidXRlVmFsdWUgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1" +
+             "hNTFNjaGVtYS1pbnN0YW5jZSIgeHNpOnR5cGU9InhzOnN0cmluZyI-Y2xpZW50LnJlYWQ8L3NhbWwyOkF0dHJpYnV0" +
+             "ZVZhbHVlPjwvc2FtbDI6QXR0cmlidXRlPjwvc2FtbDI6QXR0cmlidXRlU3RhdGVtZW50PjxzYW1sMjpBdXRoblN0YX" +
+             "RlbWVudCBBdXRobkluc3RhbnQ9IjIwMTYtMTEtMjJUMjI6MDI6MzAuMjk5WiIgU2Vzc2lvbk5vdE9uT3JBZnRlcj0i" +
+             "MjAxNi0xMi0yMlQyMjowMjozMC4yOTlaIj48c2FtbDI6QXV0aG5Db250ZXh0PjxzYW1sMjpBdXRobkNvbnRleHRDbG" +
+             "Fzc1JlZj51cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6YWM6Y2xhc3NlczpQYXNzd29yZDwvc2FtbDI6QXV0aG5D" +
+             "b250ZXh0Q2xhc3NSZWY-PC9zYW1sMjpBdXRobkNvbnRleHQ-PC9zYW1sMjpBdXRoblN0YXRlbWVudD48L3NhbWwyOk" +
+             "Fzc2VydGlvbj4"
+        );
+
+        try {
+           restOperations.exchange(baseUrl + "/oauth/token",
+               HttpMethod.POST,
+               new HttpEntity<>(postBody, headers),
+               Void.class);
+        } catch ( HttpClientErrorException he ) {
+           Assert.assertEquals(HttpStatus.UNAUTHORIZED, he.getStatusCode());
+        }
+
+        provider.setActive(false);
+        IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
+    }
+
+    @Test
+    public void testValidSaml2Bearer() throws Exception {
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(IDP_ENTITY_ID, "uaa");
+        @SuppressWarnings("unchecked")
+        IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(
+                "Local SAML IdP", IDP_ENTITY_ID, true, this.baseUrl, this.serverRunning, idpDef);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+        postBody.add("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
+        postBody.add("client_id", "oauth_showcase_saml2_bearer");
+        postBody.add("client_secret", "secret");
+        postBody.add("assertion", samlTestUtils.mockAssertionEncoded(IDP_ENTITY_ID,
+                                                                     "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                                                                     "Saml2BearerIntegrationUser", "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login", "cloudfoundry-saml-login"));
+
+        ResponseEntity<CompositeAccessToken> token = restOperations.exchange(baseUrl + "/oauth/token/alias/cloudfoundry-saml-login",
+                                                                             HttpMethod.POST, new HttpEntity<>(postBody, headers),
+                                                                             CompositeAccessToken.class);
+
+        Assert.assertEquals(HttpStatus.OK, token.getStatusCode());
+        Assert.assertTrue(token.hasBody());
+        provider.setActive(false);
+        IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
     }
 
     @Test

@@ -56,7 +56,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
  * rules to an authorization request,
  * validating it and setting the default values for requested scopes and resource ids.
  *
- * @author Dave Syer
  *
  */
 public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {

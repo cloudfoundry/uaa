@@ -142,6 +142,13 @@
         </property>
     </bean>
 
+    <bean id="uaaTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint">
+        <property name="OAuth2RequestValidator" ref="oauth2RequestValidator"/>
+        <property name="tokenGranter" ref="oauth2TokenGranter"/> <!--this bean created by <oauth:authorization-server/> -->
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
+    </bean>
+
     <bean id="uaaAuthorizationEndpoint" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint">
         <property name="authorizationCodeServices" ref="authorizationCodeServices"/>
         <property name="OAuth2RequestValidator" ref="oauth2RequestValidator"/>
@@ -263,6 +270,7 @@
     <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
         <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
+        <constructor-arg ref="samlWebSSOProcessingFilter"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
     </bean>

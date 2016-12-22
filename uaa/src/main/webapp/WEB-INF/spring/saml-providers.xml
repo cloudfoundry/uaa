@@ -190,6 +190,7 @@
                 <list>
                     <ref bean="redirectBinding" />
                     <ref bean="postBinding" />
+                    <ref bean="assertionBinding" />
                     <ref bean="artifactBinding" />
                     <ref bean="soapBinding" />
                     <ref bean="paosBinding" />
@@ -240,8 +241,25 @@
             <constructor-arg ref="velocityEngine" />
         </bean>
 
+        <bean id="assertionBinding" class="org.cloudfoundry.identity.uaa.authentication.SamlAssertionBinding">
+            <constructor-arg ref="parserPool" />
+        </bean>
+
         <bean id="redirectBinding" class="org.springframework.security.saml.processor.HTTPRedirectDeflateBinding">
             <constructor-arg ref="parserPool" />
+        </bean>
+
+        <!-- SAML 2.0 Bearer Grant Type -->
+        <bean id="samlTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.Saml2TokenGranter">
+            <constructor-arg name="tokenServices" ref="tokenServices"/>
+            <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+            <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
+        </bean>
+
+        <bean id="addSamlTokenGranter"
+              class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
+            <constructor-arg name="userTokenGranter" ref="samlTokenGranter"/>
+            <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
         </bean>
 
         <bean id="artifactBinding" class="org.springframework.security.saml.processor.HTTPArtifactBinding">
