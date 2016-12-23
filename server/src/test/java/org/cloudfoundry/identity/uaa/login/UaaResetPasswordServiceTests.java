@@ -287,6 +287,13 @@ public class UaaResetPasswordServiceTests {
 
     }
 
+    @Test
+    public void updateLastLogonForUser() {
+        String userId = "id1";
+        uaaResetPasswordService.updateLastLogonTime(userId);
+        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId);
+    }
+
     private void setupResetPassword(String clientId, String redirectUri) {
         ScimUser user = new ScimUser("usermans-id","userman","firstName","lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));

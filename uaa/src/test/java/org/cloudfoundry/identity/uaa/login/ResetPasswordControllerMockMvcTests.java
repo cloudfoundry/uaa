@@ -115,6 +115,28 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     }
 
     @Test
+    public void testResettingPasswordUpdatesLastLogonTime() throws Exception {
+        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        assertNotNull(users);
+        assertEquals(1, users.size());
+        Long lastLogonBeforeReset = users.get(0).getLastLogonTime();
+        PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), users.get(0).getPasswordLastModified(), "", "");
+
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
+
+        MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"))
+            .andReturn();
+
+        ScimUser userMarissa = getWebApplicationContext().getBean(ScimUserProvisioning.class).retrieve(users.get(0).getId());
+        assertNotNull(userMarissa.getLastLogonTime());
+        if(lastLogonBeforeReset != null) {
+            assertTrue(userMarissa.getLastLogonTime() > lastLogonBeforeReset);
+        }
+    }
+
+    @Test
     public void testResettingAPasswordFailsWhenUsernameChanged() throws Exception {
 
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);

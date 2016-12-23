@@ -61,6 +61,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
             SecurityContextHolder.getContext().setAuthentication(token);
+            service.updateLastLogonTime(user.getId());
             if (!"home".equals(resetPasswordResponse.getRedirectUri())) {
                 request.setAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, resetPasswordResponse.getRedirectUri());
             }
