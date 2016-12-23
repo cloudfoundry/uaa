@@ -13,11 +13,11 @@
 package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
-import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
+import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -29,14 +29,10 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.mock.web.MockFilterChain;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
@@ -87,34 +83,33 @@ public class BootstrapTests {
             if (context.containsBean("scimEndpoints")) {
                 TestUtils.deleteFrom(context.getBean("dataSource", DataSource.class), "sec_audit");
             }
+            context.getBean(Flyway.class).clean();
             context.close();
         }
     }
 
-    @Test
-    public void testRootContextDefaults() throws Exception {
-        context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
-        FilterChainProxy filterChain = (FilterChainProxy)context.getBean("org.springframework.security.filterChainProxy");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/Users");
-        request.setServletPath("");
-        request.setPathInfo("/Users");
-        filterChain.doFilter(request, response, new MockFilterChain());
-        assertEquals(401, response.getStatus());
-    }
+
 
     @Test
     public void testOverrideYmlConfigPath() throws Exception {
-        System.setProperty("UAA_CONFIG_PATH", "./src/test/resources/test/config");
-        context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml",
-                        "classpath:/test/config/test-override.xml");
-        assertEquals("/tmp/uaa/logs", context.getBean("foo", String.class));
-        assertEquals("[cf, my, support]",
-                        ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
-                                        .toString());
-        ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
-        assertTrue(users.retrieveAll().size() > 0);
+        dotestOverrideYmlConfigPath("UAA_CONFIG_PATH", "./src/test/resources/test/config");
+        dotestOverrideYmlConfigPath("UAA_CONFIG_FILE", "./src/test/resources/test/config/uaa.yml");
+    }
+
+    public void dotestOverrideYmlConfigPath(String configVariable, String configValue) throws Exception {
+        System.setProperty(configVariable, configValue);
+        try {
+            context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml",
+                                        "classpath:/test/config/test-override.xml");
+            assertEquals("/tmp/uaa/logs", context.getBean("foo", String.class));
+            assertEquals("[cf, my, support]",
+                            ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
+                                            .toString());
+            ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
+            assertTrue(users.retrieveAll().size() > 0);
+        } finally {
+            System.clearProperty(configVariable);
+        }
     }
 
     @Test
@@ -129,7 +124,9 @@ public class BootstrapTests {
         assertEquals(DynamicZoneAwareAuthenticationManager.class, authenticationManager.getClass());
     }
 
+
     private ConfigurableApplicationContext getServletContext(String... resources) {
+        String environmentConfigLocations = "required_configuration.yml,${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml";
         String profiles = null;
         String[] resourcesToLoad = resources;
         if (!resources[0].endsWith(".xml")) {
@@ -173,7 +170,7 @@ public class BootstrapTests {
         };
         context.setServletContext(servletContext);
         MockServletConfig servletConfig = new MockServletConfig(servletContext);
-        servletConfig.addInitParameter("environmentConfigLocations", "required_configuration.yml,file:${UAA_CONFIG_PATH}/uaa.yml,login.yml");
+        servletConfig.addInitParameter("environmentConfigLocations", environmentConfigLocations);
         context.setServletConfig(servletConfig);
 
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
