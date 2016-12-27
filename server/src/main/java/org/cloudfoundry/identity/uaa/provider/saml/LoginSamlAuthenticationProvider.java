@@ -163,6 +163,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         UaaUser user = createIfMissing(samlPrincipal, addNew, authorities, userAttributes);
         UaaPrincipal principal = new UaaPrincipal(user);
         UaaAuthentication resultUaaAuthentication = new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups, userAttributes);
+        userDatabase.updateLastLogonTime(user.getId());
         if (samlConfig.isStoreCustomAttributes()) {
             userDatabase.storeUserInfo(user.getId(), new UserInfo(resultUaaAuthentication.getUserAttributes()));
         }

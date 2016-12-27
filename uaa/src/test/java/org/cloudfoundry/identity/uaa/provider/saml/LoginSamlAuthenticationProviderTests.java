@@ -132,6 +132,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     private ScimGroup uaaSamlUser;
     private ScimGroup uaaSamlAdmin;
     private ScimGroup uaaSamlTest;
+    private TimeService timeService;
 
     public List<Attribute> getAttributes(Map<String,Object> values) {
         List<Attribute> result = new LinkedList<>();
@@ -229,7 +230,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
 
-        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, new TimeService());
+        timeService = mock(TimeService.class);
+        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService);
         userDatabase.setDefaultAuthorities(new HashSet<>(Arrays.asList(UaaAuthority.UAA_USER.getAuthority())));
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
@@ -300,7 +302,11 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void testAuthenticateSimple() {
+        Long currentTime = System.currentTimeMillis();
+        when(timeService.getCurrentTimeMillis()).thenReturn(currentTime);
         authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        assertEquals(currentTime, user.getLastLogonTime());
     }
 
     @Test
