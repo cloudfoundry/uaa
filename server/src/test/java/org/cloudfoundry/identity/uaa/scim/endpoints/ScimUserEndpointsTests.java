@@ -47,6 +47,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -54,6 +55,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.verification.VerificationMode;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -71,16 +73,26 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
@@ -88,6 +100,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -119,6 +132,9 @@ public class ScimUserEndpointsTests {
     private static EmbeddedDatabase database;
     private PasswordValidator mockPasswordValidator;
 
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private JdbcTemplate jdbcTemplate;
+
     @BeforeClass
     public static void setUpDatabase() throws Exception {
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
@@ -135,7 +151,7 @@ public class ScimUserEndpointsTests {
         endpoints = new ScimUserEndpoints();
 
         IdentityZoneHolder.clear();
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+        jdbcTemplate = new JdbcTemplate(database);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
         dao = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
         dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
@@ -205,6 +221,40 @@ public class ScimUserEndpointsTests {
         for (ScimUser.Group g : user.getGroups()) {
             assertTrue(expectedAuthorities.contains(g.getDisplay()));
         }
+    }
+
+    @Test
+    public void validate_password_for_uaa_only() {
+        validate_password_for_uaa_origin_only(times(1), OriginKeys.UAA, equalTo("password"));
+    }
+
+    @Test
+    public void validate_password_not_called_for_non_uaa() {
+        validate_password_for_uaa_origin_only(never(), OriginKeys.LOGIN_SERVER, equalTo(""));
+    }
+
+    @Test
+    public void password_validation_defaults_to_uaa() {
+        validate_password_for_uaa_origin_only(times(1), "", equalTo("password"));
+    }
+
+    public void validate_password_for_uaa_origin_only(VerificationMode verificationMode, String origin, Matcher<String> expectedPassword) {
+        ScimUser user = new ScimUser(null, generator.generate(), "GivenName", "FamilyName");
+        user.setOrigin(origin);
+        user.setPassword("password");
+        user.setPrimaryEmail(user.getUserName()+"@test.org");
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        assertNotNull(created);
+        verify(mockPasswordValidator, verificationMode).validate("password");
+        checkCreatedPassword(created, expectedPassword);
+    }
+
+    public void checkCreatedPassword(ScimUser created, Matcher<String> expectedPassword) {
+        jdbcTemplate.query("select password from users where id=?",
+                           rs -> {
+                               assertThat("Passwords should match", rs.getString(1), expectedPassword);
+                           },
+                           created.getId());
     }
 
     @Test
@@ -323,6 +373,7 @@ public class ScimUserEndpointsTests {
         when(mockDao.createUser(any(ScimUser.class), anyString())).thenReturn(new ScimUser());
 
         ScimUser user = new ScimUser();
+        user.setOrigin(OriginKeys.UAA);
         user.setPassword("some bad password");
 
         try {
