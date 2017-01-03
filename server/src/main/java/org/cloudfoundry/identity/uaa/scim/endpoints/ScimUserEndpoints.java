@@ -210,13 +210,13 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (isEmpty(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
+
         checkIsEditAllowed(user.getOrigin(), request);
 
-        if (isEmpty(user.getPassword()) || !isUaaUser(user)) {
-            //set a default password, "" for non UAA. UAA users get a random password
-            //UAA users can reset later
-            user.setPassword(isUaaUser(user) ? generatePassword() : "");
-        } else if (isUaaUser(user)) {
+        if (!isUaaUser(user)) {
+            //set a default password, "" for non UAA users.
+            user.setPassword("");
+        } else {
             //only validate for UAA users
             passwordValidator.validate(user.getPassword());
         }

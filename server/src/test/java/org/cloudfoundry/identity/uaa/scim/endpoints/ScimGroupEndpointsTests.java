@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
@@ -116,6 +117,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         userEndpoints = new ScimUserEndpoints();
         userEndpoints.setScimUserProvisioning(udao);
         userEndpoints.setScimGroupMembershipManager(mm);
+        userEndpoints.setPasswordValidator(mock(PasswordValidator.class));
 
         groupIds = new ArrayList<String>();
         userIds = new ArrayList<String>();

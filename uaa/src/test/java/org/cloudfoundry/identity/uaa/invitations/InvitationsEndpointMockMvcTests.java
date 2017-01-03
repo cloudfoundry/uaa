@@ -247,10 +247,12 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         ScimUser user1 = new ScimUser(null, username1, "givenName", "familyName");
         user1.setPrimaryEmail(email);
         user1.setOrigin(UAA);
+        user1.setPassword("password");
         utils().createUser(getMockMvc(), clientAdminToken, user1);
         ScimUser user2 = new ScimUser(null, username2, "givenName", "familyName");
         user2.setPrimaryEmail(email);
         user2.setOrigin(UAA);
+        user2.setPassword("password");
         utils().createUser(getMockMvc(), clientAdminToken, user2);
 
         String userToken = utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret, null);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,15 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-
-import java.sql.Connection;
-import java.util.Arrays;
-
-import javax.sql.DataSource;
-
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
 import org.springframework.core.env.Environment;
@@ -31,12 +22,19 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.jdbc.datasource.init.ScriptStatementFailedException;
 import org.springframework.util.ClassUtils;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.util.Arrays;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+
 /**
  * Common methods for DB manipulation and so on.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  */
 public class TestUtils {
 
@@ -88,6 +86,7 @@ public class TestUtils {
 
     public static ScimUser scimUserInstance(String email) {
         ScimUser user = new ScimUser("", email, email, email);
+        user.setPassword("password");
         ScimUser.Email em = new ScimUser.Email();
         em.setValue(email);
         user.setEmails(Arrays.asList(em));

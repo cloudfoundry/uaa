@@ -78,10 +78,12 @@ public class CfScimUserEndpointIntegrationTests {
         RestOperations client = serverRunning.getRestTemplate();
 
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName(JOE);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail("joe@blah.com");
         user.setVerified(true);
+        user.setPassword("Passwo3d124!");
 
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(usersEndpoint), user,
                         ScimUser.class);

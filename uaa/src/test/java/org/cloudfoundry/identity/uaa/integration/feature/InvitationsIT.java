@@ -251,6 +251,7 @@ public class InvitationsIT {
         headers.add("Authorization", "Bearer " + scimToken);
         RestTemplate uaaTemplate = new RestTemplate();
         ScimUser scimUser = new ScimUser();
+        scimUser.setPassword("password");
         scimUser.setUserName(username);
         scimUser.setPrimaryEmail(userEmail);
         scimUser.setOrigin(origin);

@@ -12,19 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -49,10 +36,23 @@ import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
 import org.springframework.security.oauth2.client.token.DefaultAccessTokenRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestOperations;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Dave Syer
@@ -235,6 +235,11 @@ public class TestAccountSetup extends TestWatchman {
         }
         if (user.getUsername() != null) {
             result.put("userName", user.getUsername());
+        }
+        if (user.getPassword() != null) {
+            result.put("password", user.getPassword());
+        } else {
+            result.put("password", "password");
         }
         String email = user.getEmail();
         if (email != null) {
