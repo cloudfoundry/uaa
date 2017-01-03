@@ -45,6 +45,7 @@ public class UaaPasswordPolicyValidatorTests {
     private IdentityProvider internalIDP;
 
     private PasswordPolicy defaultPolicy = new PasswordPolicy(0,255,0,0,0,0,0);
+    private PasswordPolicy policy;
 
     @Before
     public void setUp() {
@@ -52,12 +53,28 @@ public class UaaPasswordPolicyValidatorTests {
         validator = new UaaPasswordPolicyValidator(defaultPolicy, provisioning);
 
         internalIDP = new IdentityProvider();
-        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(10, 23, 1, 1, 1, 1, 6), null);
+        policy = new PasswordPolicy(10, 23, 1, 1, 1, 1, 6);
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(policy, null);
         internalIDP.setConfig(idpDefinition);
 
         Mockito.when(provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId()))
                 .thenReturn(internalIDP);
     }
+
+    @Test
+    public void min_password_length_is_always_1_if_set_to_0() {
+        policy.setMinLength(0);
+        validatePassword("", "Password must be at least 1 characters in length.");
+        validatePassword(null, "Password must be at least 1 characters in length.");
+    }
+
+    @Test
+    public void min_password_length_is_always_1_if_not_set() {
+        policy.setMinLength(-1);
+        validatePassword("", "Password must be at least 1 characters in length.");
+        validatePassword(null, "Password must be at least 1 characters in length.");
+    }
+
 
     @Test
     public void testValidateSuccess() {
@@ -69,9 +86,9 @@ public class UaaPasswordPolicyValidatorTests {
         validatePassword("Passsss1\u007F", "Password must contain at least 1 special characters.");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testValidateWithNullPassword() {
-        validatePassword(null);
+        validatePassword(null, "Password must be at least 10 characters in length.");
     }
 
     @Test
