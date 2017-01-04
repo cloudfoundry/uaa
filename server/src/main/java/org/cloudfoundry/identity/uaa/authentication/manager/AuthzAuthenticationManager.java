@@ -117,7 +117,6 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 }
 
 
-                userDatabase.updateLastLogonTime(user.getId());
                 checkPasswordExpired(user.getPasswordLastModified());
 
                 UaaAuthentication success = new UaaAuthentication(

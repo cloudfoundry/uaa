@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
@@ -64,6 +65,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -129,7 +131,12 @@ public class OIDCLoginIT {
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
         createOIDCProviderWithRequestedScopes();
+        Long beforeTest = System.currentTimeMillis();
         validateSuccessfulOIDCLogin();
+        Long afterTest = System.currentTimeMillis();
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, "puppy", testAccounts.getUserName());
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
     }
 
     @Test
@@ -143,8 +150,8 @@ public class OIDCLoginIT {
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
 
-        webDriver.findElement(By.name("username")).sendKeys("marissa");
-        webDriver.findElement(By.name("password")).sendKeys("koala");
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));

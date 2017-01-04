@@ -119,43 +119,38 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
         assertThat(((UaaAuthentication)result).getAuthenticationMethods(), containsInAnyOrder("pwd"));
-        verify(db, times(1)).updateLastLogonTime(user.getId());
     }
 
     @Test(expected = PasswordExpiredException.class)
     public void unsuccessfulPasswordExpired() throws Exception {
-        try {
-            IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
 
-            UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6, 128, 1, 1, 1, 1, 6), null);
-            provider.setConfig(idpDefinition);
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6, 128, 1, 1, 1, 1, 6), null);
+        provider.setConfig(idpDefinition);
 
-            when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
 
-            Calendar oneYearAgoCal = Calendar.getInstance();
-            oneYearAgoCal.add(Calendar.YEAR, -1);
-            Date oneYearAgo = new Date(oneYearAgoCal.getTimeInMillis());
-            user = new UaaUser(
-                user.getId(),
-                user.getUsername(),
-                PASSWORD,
-                user.getPassword(),
-                user.getAuthorities(),
-                user.getGivenName(),
-                user.getFamilyName(),
-                oneYearAgo,
-                oneYearAgo,
-                OriginKeys.UAA,
-                null,
-                true,
-                IdentityZoneHolder.get().getId(),
-                user.getSalt(),
-                oneYearAgo);
-            when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
-            mgr.authenticate(createAuthRequest("auser", "password"));
-        } finally {
-            verify(db, times(1)).updateLastLogonTime(anyString());
-        }
+        Calendar oneYearAgoCal = Calendar.getInstance();
+        oneYearAgoCal.add(Calendar.YEAR, -1);
+        Date oneYearAgo = new Date(oneYearAgoCal.getTimeInMillis());
+        user = new UaaUser(
+            user.getId(),
+            user.getUsername(),
+            PASSWORD,
+            user.getPassword(),
+            user.getAuthorities(),
+            user.getGivenName(),
+            user.getFamilyName(),
+            oneYearAgo,
+            oneYearAgo,
+            OriginKeys.UAA,
+            null,
+            true,
+            IdentityZoneHolder.get().getId(),
+            user.getSalt(),
+            oneYearAgo);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
     @Test(expected = BadCredentialsException.class)

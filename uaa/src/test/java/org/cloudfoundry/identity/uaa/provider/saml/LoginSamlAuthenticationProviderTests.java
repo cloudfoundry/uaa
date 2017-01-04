@@ -302,11 +302,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void testAuthenticateSimple() {
-        Long currentTime = System.currentTimeMillis();
-        when(timeService.getCurrentTimeMillis()).thenReturn(currentTime);
         authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
-        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
-        assertEquals(currentTime, user.getLastLogonTime());
     }
 
     @Test
