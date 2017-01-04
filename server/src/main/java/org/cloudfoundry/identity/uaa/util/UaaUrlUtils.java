@@ -33,6 +33,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
+
 public abstract class UaaUrlUtils {
 
     public static String getUaaUrl() {
@@ -68,20 +71,28 @@ public abstract class UaaUrlUtils {
         return builder;
     }
 
+    /**
+     * Finds and returns a matching redirect URL according to the following logic:
+     * <ul>
+     *     <li>If the requstedRedirectUri matches the whitelist the requestedRedirectUri is returned</li>
+     *     <li>If the whitelist is null or empty AND the fallbackRedirectUri is null, the requestedRedirectUri is returned - OPEN REDIRECT</li>
+     *     <li>If the whitelist is null or empty AND the fallbackRedirectUri is not null, the fallbackRedirectUri is returned</li>
+     * </ul>
+     * @param redirectUris - a whitelist collection of ant path patterns
+     * @param requestedRedirectUri - the requested redirect URI, returned if whitelist matches or the fallbackRedirectUri is null
+     * @param fallbackRedirectUri - returned if non null and the requestedRedirectUri doesn't match the whitelist redirectUris
+     * @return a redirect URI, either the requested or fallback as described above
+     */
     public static String findMatchingRedirectUri(Collection<String> redirectUris, String requestedRedirectUri, String fallbackRedirectUri) {
         AntPathMatcher matcher = new AntPathMatcher();
 
-        if (redirectUris == null) {
-            return requestedRedirectUri;
-        }
-
-        for (String pattern : redirectUris) {
+        for (String pattern : ofNullable(redirectUris).orElse(emptyList())) {
             if (matcher.match(pattern, requestedRedirectUri)) {
                 return requestedRedirectUri;
             }
         }
 
-        return fallbackRedirectUri;
+        return ofNullable(fallbackRedirectUri).orElse(requestedRedirectUri);
     }
 
     public static String getHostForURI(String uri) {
