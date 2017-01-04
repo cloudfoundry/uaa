@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.collections.map.HashedMap;
+import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -719,6 +720,50 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     }
 
+    @Test
+    public void getToken_withPasswordGrantType_resultsInUserLastLogonTimestampUpdate() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String accessToken = getAccessTokenForPasswordGrant(username);
+        Long firstTimestamp = getLastLogonTime(accessToken);
+
+        String accessToken2 = getAccessTokenForPasswordGrant(username);
+        Long secondTimestamp = getLastLogonTime(accessToken2);
+
+        assertNotEquals(firstTimestamp, secondTimestamp);
+        assertTrue(firstTimestamp < secondTimestamp);
+    }
+
+    private String getAccessTokenForPasswordGrant(String username) throws Exception {
+        String response = getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", username)
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        return (String) JsonUtils.readValue(response, Map.class).get("access_token");
+    }
+
+    private Long getLastLogonTime(String accessToken) throws Exception {
+        UserInfoResponse userInfo;
+        String userInfoResponse = getMockMvc().perform(
+            get("/userinfo")
+                .header("Authorization", "bearer " + accessToken)
+                .accept(APPLICATION_JSON)
+        ).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        assertNotNull(userInfoResponse);
+        userInfo = JsonUtils.readValue(userInfoResponse, UserInfoResponse.class);
+        return userInfo.getLastLogonSuccess();
+    }
 
     @Test
     public void testClientIdentityProviderClientWithoutAllowedProvidersForAuthCodeAlreadyLoggedInWorksInAnotherZone() throws Exception {
@@ -1828,7 +1873,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //TODO OpenID
         Integer auth_time = (Integer)result.get(ClaimConstants.AUTH_TIME);
         assertNotNull(auth_time);
-
+        Long last_logon_time = (Long) result.get(ClaimConstants.LAST_LOGON_TIME);
+        assertNotNull(last_logon_time);
 
     }
 

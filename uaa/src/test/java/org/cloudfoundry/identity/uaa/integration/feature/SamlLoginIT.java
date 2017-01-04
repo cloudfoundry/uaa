@@ -95,6 +95,7 @@ import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class SamlLoginIT {
 
+    private static final String SAML_ORIGIN = "simplesamlphp";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -174,7 +175,7 @@ public class SamlLoginIT {
 
         // Deleting marissa@test.org from simplesamlphp because previous SAML authentications automatically
         // create a UAA user with the email address as the username.
-        deleteUser("simplesamlphp", testAccounts.getEmail());
+        deleteUser(SAML_ORIGIN, testAccounts.getEmail());
 
         IdentityProvider provider = IntegrationTestUtils.createIdentityProvider("simplesamlphp", false, baseUrl, serverRunning);
         String clientId = "app-addnew-false"+ new RandomValueStringGenerator().generate();
@@ -273,7 +274,12 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlPhpLogin() throws Exception {
+        Long beforeTest = System.currentTimeMillis();
         testSimpleSamlLogin("/login", "Where to?");
+        Long afterTest = System.currentTimeMillis();
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
     }
 
     @Test

@@ -134,6 +134,11 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
+    public void updateLastLogonTime(String id) {
+
+    }
+
+    @Override
     public ScimUser delete(String id, int version) throws ScimResourceNotFoundException {
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Match", String.format("%d", version));

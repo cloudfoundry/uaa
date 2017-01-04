@@ -30,6 +30,7 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -92,6 +93,7 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
         assertEquals(user.getUserName(), map.get("user_name"));
         assertEquals(user.getFamilyName(), map.get("family_name"));
         assertEquals(user.getGivenName(), map.get("given_name"));
+        assertTrue(System.currentTimeMillis()/1000 - ((long) map.get("last_logon_time"))/1000 <= 5);
     }
 
 

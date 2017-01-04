@@ -116,15 +116,8 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                     throw new AccountNotVerifiedException("Account not verified");
                 }
 
-                int expiringPassword = getPasswordExpiresInMonths();
-                if (expiringPassword>0) {
-                    Calendar cal = Calendar.getInstance();
-                    cal.setTimeInMillis(user.getPasswordLastModified().getTime());
-                    cal.add(Calendar.MONTH, expiringPassword);
-                    if (cal.getTimeInMillis() < System.currentTimeMillis()) {
-                        throw new PasswordExpiredException("Your current password has expired. Please reset your password.");
-                    }
-                }
+
+                checkPasswordExpired(user.getPasswordLastModified());
 
                 UaaAuthentication success = new UaaAuthentication(
                         new UaaPrincipal(user),
@@ -132,7 +125,6 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                         (UaaAuthenticationDetails) req.getDetails());
 
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
-
                 Date passwordNewerThan = getPasswordNewerThan();
                 if(passwordNewerThan != null) {
                     if(user.getPasswordLastModified() == null || (passwordNewerThan.getTime() > user.getPasswordLastModified().getTime())) {
@@ -222,5 +214,17 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     public void setAllowUnverifiedUsers(boolean allowUnverifiedUsers) {
         this.allowUnverifiedUsers = allowUnverifiedUsers;
+    }
+
+    private void checkPasswordExpired(Date passwordLastModified) {
+        int expiringPassword = getPasswordExpiresInMonths();
+        if (expiringPassword>0) {
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(passwordLastModified.getTime());
+            cal.add(Calendar.MONTH, expiringPassword);
+            if (cal.getTimeInMillis() < System.currentTimeMillis()) {
+                throw new PasswordExpiredException("Your current password has expired. Please reset your password.");
+            }
+        }
     }
 }

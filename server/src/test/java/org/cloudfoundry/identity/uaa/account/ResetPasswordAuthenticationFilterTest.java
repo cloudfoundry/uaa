@@ -133,6 +133,7 @@ public class ResetPasswordAuthenticationFilterTest {
         verify(authenticationSuccessHandler, times(1)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
         verify(chain, times(0)).doFilter(anyObject(), anyObject());
+        verify(service, times(1)).updateLastLogonTime(anyString());
         assertEquals(redirectUri, request.getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE));
     }
 

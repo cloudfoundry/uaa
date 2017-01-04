@@ -23,6 +23,8 @@ public interface ResetPasswordService {
 
     ResetPasswordResponse resetPassword(String code, String password) throws InvalidPasswordException;
 
+    void updateLastLogonTime(String userId);
+
     class ResetPasswordResponse {
         @JsonProperty("user")
         private ScimUser user;

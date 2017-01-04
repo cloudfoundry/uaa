@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.user;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -47,7 +48,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     private static Log logger = LogFactory.getLog(JdbcUaaUserDatabase.class);
 
-    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required ";
+    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required,last_logon_success_time ";
 
     public static final String PRE_DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users where %s = ? and active=? and origin=? and identity_zone_id=?";
     public static final String DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY = String.format(PRE_DEFAULT_USER_BY_USERNAME_QUERY, "lower(username)");
@@ -56,9 +57,10 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public static final String PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY = "select " + USER_FIELDS + "from users where %s=? and active=? and origin=? and identity_zone_id=?";
     public static final String DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "lower(email)");
     public static final String DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "email");
-
+    public static final String DEFAULT_UPDATE_USER_LAST_LOGON = "update users set last_logon_success_time = ? where id = ? and identity_zone_id=?";
 
     public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users where id = ? and active=? and identity_zone_id=?";
+    private final TimeService timeService;
 
 
     private String AUTHORITIES_QUERY = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id and m.member_id = ? and g.identity_zone_id=?";
@@ -93,7 +95,8 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         this.defaultAuthorities = defaultAuthorities;
     }
 
-    public JdbcUaaUserDatabase(JdbcTemplate jdbcTemplate) {
+    public JdbcUaaUserDatabase(JdbcTemplate jdbcTemplate, TimeService timeService) {
+        this.timeService = timeService;
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -160,6 +163,11 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         return getUserInfo(id);
     }
 
+    @Override
+    public void updateLastLogonTime(String userId) {
+        int update = jdbcTemplate.update(DEFAULT_UPDATE_USER_LAST_LOGON, timeService.getCurrentTimeMillis(), userId, IdentityZoneHolder.get().getId());
+    }
+
     private final class UserInfoRowMapper implements RowMapper<UserInfo> {
         @Override
         public UserInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -173,26 +181,28 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     private final class UaaUserRowMapper implements RowMapper<UaaUser> {
         @Override
+
         public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String id = rs.getString(1);
+            String id = rs.getString("id");
             UaaUserPrototype prototype = new UaaUserPrototype().withId(id)
-                    .withUsername(rs.getString(2))
-                    .withPassword(rs.getString(3))
-                    .withEmail(rs.getString(4))
-                    .withGivenName(rs.getString(5))
-                    .withFamilyName(rs.getString(6))
-                    .withCreated(rs.getTimestamp(7))
-                    .withModified(rs.getTimestamp(8))
-                    .withAuthorities(getDefaultAuthorities(rs.getString(9)))
-                    .withOrigin(rs.getString(10))
-                    .withExternalId(rs.getString(11))
-                    .withVerified(rs.getBoolean(12))
-                    .withZoneId(rs.getString(13))
-                    .withSalt(rs.getString(14))
-                    .withPasswordLastModified(rs.getTimestamp(15))
-                    .withPhoneNumber(rs.getString(16))
-                    .withLegacyVerificationBehavior(rs.getBoolean(17))
-                    .withPasswordChangeRequired(rs.getBoolean(18))
+                    .withUsername(rs.getString("username"))
+                    .withPassword(rs.getString("password"))
+                    .withEmail(rs.getString("email"))
+                    .withGivenName(rs.getString("givenName"))
+                    .withFamilyName(rs.getString("familyName"))
+                    .withCreated(rs.getTimestamp("created"))
+                    .withModified(rs.getTimestamp("lastModified"))
+                    .withAuthorities(getDefaultAuthorities(rs.getString("authorities")))
+                    .withOrigin(rs.getString("origin"))
+                    .withExternalId(rs.getString("external_id"))
+                    .withVerified(rs.getBoolean("verified"))
+                    .withZoneId(rs.getString("identity_zone_id"))
+                    .withSalt(rs.getString("salt"))
+                    .withPasswordLastModified(rs.getTimestamp("passwd_lastmodified"))
+                    .withPhoneNumber(rs.getString("phoneNumber"))
+                    .withLegacyVerificationBehavior(rs.getBoolean("legacy_verification_behavior"))
+                    .withPasswordChangeRequired(rs.getBoolean("passwd_change_required"))
+                    .withLastLogonSuccess(rs.getLong("last_logon_success_time"))
                     ;
 
             List<GrantedAuthority> authorities =

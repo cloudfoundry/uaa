@@ -75,10 +75,10 @@ public class UserInfoEndpointTests {
                     .withVerified(false)
                     .withZoneId(IdentityZoneHolder.get().getId())
                     .withSalt("12345")
-                    .withPasswordLastModified(new Date()));
+                    .withPasswordLastModified(new Date())
+                    .withLastLogonSuccess(1000L));
     private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singleton(user));
     private UserInfo info;
-    private UserInfo stored;
     private OAuth2Request request;
 
     public UserInfoEndpointTests() {
@@ -87,11 +87,11 @@ public class UserInfoEndpointTests {
 
     @Before
     public void setup() {
-        MultiValueMap<String, String> customattributes = new LinkedMultiValueMap<>();
-        customattributes.put(MULTI_VALUE, Arrays.asList("value1", "value2"));
-        customattributes.add(SINGLE_VALUE, "value3");
-        info = new UserInfo(customattributes);
-        stored = userDatabase.storeUserInfo(ID, info);
+        MultiValueMap<String, String> customAttributes = new LinkedMultiValueMap<>();
+        customAttributes.put(MULTI_VALUE, Arrays.asList("value1", "value2"));
+        customAttributes.add(SINGLE_VALUE, "value3");
+        info = new UserInfo(customAttributes);
+        userDatabase.storeUserInfo(ID, info);
     }
 
     @Test
@@ -99,13 +99,28 @@ public class UserInfoEndpointTests {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
                         "olds@vmware.com", new HashSet<>(Arrays.asList("openid")));
+
         UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+
         assertEquals("olds", map.getUsername());
         assertEquals("Dale Olds", map.getFullName());
         assertEquals("olds@vmware.com", map.getEmail());
         assertEquals("8505551234", map.getPhoneNumber());
+        assertEquals(1000, (long) map.getLastLogonSuccess());
         assertEquals(user.getId(), map.getSub());
         assertNull(map.getAttributeValue(USER_ATTRIBUTES));
+    }
+
+    @Test
+    public void testSunnyDay_whenLastLogonNull_displaysNull() {
+        user.setLastLogonTime(null);
+        UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
+        UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
+            "olds@vmware.com", new HashSet<>(Arrays.asList("openid")));
+
+        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+
+        assertNull(map.getLastLogonSuccess());
     }
 
     @Test

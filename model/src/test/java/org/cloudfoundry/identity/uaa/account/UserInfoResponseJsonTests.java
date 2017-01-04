@@ -23,6 +23,7 @@ import java.util.Arrays;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.LAST_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
@@ -46,7 +47,8 @@ public class UserInfoResponseJsonTests {
         "  \"number\": 123,\n" +
         "  \"origin\": \"uaa\",\n" +
         "  \"zid\": \"uaa\",\n" +
-        "  \"single_value\": \"value3\"\n" +
+        "  \"single_value\": \"value3\",\n" +
+        "  \"last_logon_time\": 1000\n" +
         "}";
 
     @Test
@@ -76,6 +78,9 @@ public class UserInfoResponseJsonTests {
 
         assertEquals("olds", response.getAttributeValue(USER_NAME));
         assertEquals("olds", response.getUsername());
+
+        assertEquals(1000L, response.getAttributeValue(LAST_LOGON_TIME));
+
     }
 
     @Test

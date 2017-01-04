@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -45,6 +46,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -71,10 +73,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return logger;
     }
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified ";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified,last_logon_success_time";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=? and identity_zone_id=?";
 
@@ -91,6 +93,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
 
     public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where id=? and identity_zone_id=?";
+
+    public static final String UPDATE_LAST_LOGON_TIME_SQL = "update users set last_logon_success_time=? where id=? and identity_zone_id=?";
 
     public static final String READ_PASSWORD_CHANGE_REQUIRED_SQL = "select passwd_change_required from users where id=? and identity_zone_id=?";
 
@@ -205,7 +209,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     ps.setString(15, user.getSalt());
 
                     ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
-                    ps.setString(17, user.getPassword());
+                    ps.setNull(17, Types.BIGINT);
+                    ps.setString(18, user.getPassword());
                 }
 
             });
@@ -470,22 +475,23 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
         @Override
         public ScimUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String id = rs.getString(1);
-            int version = rs.getInt(2);
-            Date created = rs.getTimestamp(3);
-            Date lastModified = rs.getTimestamp(4);
-            String userName = rs.getString(5);
-            String email = rs.getString(6);
-            String givenName = rs.getString(7);
-            String familyName = rs.getString(8);
-            boolean active = rs.getBoolean(9);
-            String phoneNumber = rs.getString(10);
-            boolean verified = rs.getBoolean(11);
-            String origin = rs.getString(12);
-            String externalId = rs.getString(13);
-            String zoneId = rs.getString(14);
-            String salt = rs.getString(15);
-            Date passwordLastModified = rs.getTimestamp(16);
+            String id = rs.getString("id");
+            int version = rs.getInt("version");
+            Date created = rs.getTimestamp("created");
+            Date lastModified = rs.getTimestamp("lastModified");
+            String userName = rs.getString("username");
+            String email = rs.getString("email");
+            String givenName = rs.getString("givenName");
+            String familyName = rs.getString("familyName");
+            boolean active = rs.getBoolean("active");
+            String phoneNumber = rs.getString("phoneNumber");
+            boolean verified = rs.getBoolean("verified");
+            String origin = rs.getString("origin");
+            String externalId = rs.getString("external_id");
+            String zoneId = rs.getString("identity_zone_id");
+            String salt = rs.getString("salt");
+            Date passwordLastModified = rs.getTimestamp("passwd_lastmodified");
+            Long lastLogonTime = (Long) rs.getObject("last_logon_success_time");
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -509,6 +515,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             user.setZoneId(zoneId);
             user.setSalt(salt);
             user.setPasswordLastModified(passwordLastModified);
+            user.setLastLogonTime(lastLogonTime);
             return user;
         }
     }
@@ -525,5 +532,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
         super.validateOrderBy(orderBy, USER_FIELDS);
+    }
+
+    @Override
+    public void updateLastLogonTime(String id) {
+        jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, new TimeService().getCurrentTimeMillis(), id, IdentityZoneHolder.get().getId());
     }
 }

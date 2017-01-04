@@ -54,6 +54,7 @@ public class UaaUser {
     private final Date passwordLastModified;
 
     private final String phoneNumber;
+    private Long lastLogonTime;
 
     public String getZoneId() {
         return zoneId;
@@ -125,6 +126,7 @@ public class UaaUser {
         this.phoneNumber = prototype.getPhoneNumber();
         this.legacyVerificationBehavior = prototype.isLegacyVerificationBehavior();
         this.passwordChangeRequired = prototype.isPasswordChangeRequired();
+        this.lastLogonTime = prototype.getLastLogonTime();
     }
 
     public String getId() {
@@ -352,5 +354,13 @@ public class UaaUser {
 
     public void setPasswordChangeRequired(boolean passwordChangeRequired) {
         this.passwordChangeRequired = passwordChangeRequired;
+    }
+
+    public Long getLastLogonTime() {
+        return lastLogonTime;
+    }
+
+    public void setLastLogonTime(Long lastLogonTime) {
+        this.lastLogonTime = lastLogonTime;
     }
 }

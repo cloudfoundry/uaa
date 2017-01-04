@@ -34,5 +34,7 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
     boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException;
 
     boolean checkPasswordChangeIndividuallyRequired(String id) throws ScimResourceNotFoundException;
+
+    void updateLastLogonTime(String id);
 }
 

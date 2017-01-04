@@ -1075,6 +1075,16 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertFalse(db.checkPasswordMatches(JOE_ID, "notjoepassword"));
     }
 
+    @Test
+    public void updateLastLogonTime() {
+        ScimUser user = db.retrieve(JOE_ID);
+        Long timeStampBeforeUpdate = user.getLastLogonTime();
+        assertNull(timeStampBeforeUpdate);
+        db.updateLastLogonTime(JOE_ID);
+        user = db.retrieve(JOE_ID);
+        assertNotNull(user.getLastLogonTime());
+    }
+
     private void assertJoe(ScimUser joe) {
         assertNotNull(joe);
         assertEquals(JOE_ID, joe.getId());

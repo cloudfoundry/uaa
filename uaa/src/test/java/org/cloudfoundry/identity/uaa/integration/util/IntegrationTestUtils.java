@@ -255,6 +255,34 @@ public class IntegrationTestUtils {
         return getUser(token, url, userId);
     }
 
+    public static ScimUser getUserByZone(String token, String url, String subdomain, String username) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+        headers.add("X-Identity-Zone-Subdomain", subdomain);
+        HttpEntity getHeaders = new HttpEntity(headers);
+        ResponseEntity<String> userInfoGet = template.exchange(
+            url+"/Users"
+                + "?filter=userName eq \"" + username + "\"",
+            HttpMethod.GET,
+            getHeaders,
+            String.class
+        );
+        ScimUser user = null;
+        if (userInfoGet.getStatusCode() == HttpStatus.OK) {
+
+            SearchResults<ScimUser> results = JsonUtils.readValue(userInfoGet.getBody(), SearchResults.class);
+            List<ScimUser> resources = (List) results.getResources();
+            if (resources.size() < 1) {
+                return null;
+            }
+            user = JsonUtils.readValue(JsonUtils.writeValueAsString(resources.get(0)), ScimUser.class);
+        }
+        return user;
+    }
+
     public static ScimUser getUser(String token, String url, String userId) {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
@@ -1227,6 +1255,12 @@ public class IntegrationTestUtils {
     public static void validateAccountChooserCookie(String baseUrl, WebDriver webDriver) {
         List<String> cookies = getAccountChooserCookies(baseUrl, webDriver);
         assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+    }
+
+    public static void validateUserLastLogon(ScimUser user, Long beforeTestTime, Long afterTestTime) {
+        Long userLastLogon = user.getLastLogonTime();
+        assertNotNull(userLastLogon);
+        assertTrue((userLastLogon > beforeTestTime) && (userLastLogon < afterTestTime));
     }
 
     public static List<String> getAccountChooserCookies(String baseUrl, WebDriver webDriver) {

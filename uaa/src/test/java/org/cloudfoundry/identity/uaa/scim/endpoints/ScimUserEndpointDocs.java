@@ -107,6 +107,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String metaLastModifiedDesc = "Object last modified date.";
     private final String metaCreatedDesc = "Object created date.";
     private final String metaAttributesDesc = "Names of attributes that shall be deleted";
+    private final String userLastLogonTimeDescription = "The unix epoch timestamp of when the user last authenticated. Default value of this field is null and is omitted from the response if null";
 
     FieldDescriptor[] searchResponseFields = {
         fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
@@ -136,6 +137,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].approvals[].lastUpdatedAt").type(STRING).description(approvalsLastUpdatedAtDescription),
         fieldWithPath("resources[].approvals[].expiresAt").type(STRING).description(approvalsExpiresAtDescription),
         fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
+        fieldWithPath("resources[].lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
         fieldWithPath("resources[].verified").type(BOOLEAN).description(userVerifiedDescription),
         fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
         fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
@@ -246,6 +248,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("origin").type(STRING).description(userOriginDescription),
         fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
+        fieldWithPath("lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
         fieldWithPath("meta").type(STRING).description(metaDesc),
         fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),

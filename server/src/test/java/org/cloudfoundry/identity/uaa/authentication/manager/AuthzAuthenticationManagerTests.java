@@ -63,6 +63,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -124,7 +125,7 @@ public class AuthzAuthenticationManagerTests {
     public void unsuccessfulPasswordExpired() throws Exception {
         IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
 
-        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6,128,1,1,1,1,6), null);
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6, 128, 1, 1, 1, 1, 6), null);
         provider.setConfig(idpDefinition);
 
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
@@ -156,6 +157,7 @@ public class AuthzAuthenticationManagerTests {
     public void unsuccessfulLoginServerUserAuthentication() throws Exception {
         when(db.retrieveUserByName(loginServerUserName, OriginKeys.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, ""));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test(expected = BadCredentialsException.class)
@@ -186,6 +188,7 @@ public class AuthzAuthenticationManagerTests {
         }
 
         verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test(expected = AuthenticationPolicyRejectionException.class)
@@ -195,6 +198,7 @@ public class AuthzAuthenticationManagerTests {
         when(lp.isAllowed(any(UaaUser.class), any(Authentication.class))).thenReturn(false);
         mgr.setAccountLoginPolicy(lp);
         mgr.authenticate(createAuthRequest("auser", "password"));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test
