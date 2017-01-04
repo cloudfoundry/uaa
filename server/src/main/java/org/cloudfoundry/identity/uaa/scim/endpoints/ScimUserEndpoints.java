@@ -206,10 +206,18 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimUser createUser(@RequestBody ScimUser user, HttpServletRequest request, HttpServletResponse response) {
+        //default to UAA origin
+        if (isEmpty(user.getOrigin())) {
+            user.setOrigin(OriginKeys.UAA);
+        }
+
         checkIsEditAllowed(user.getOrigin(), request);
-        if (user.getPassword() == null) {
-            user.setPassword(generatePassword());
+
+        if (!isUaaUser(user)) {
+            //set a default password, "" for non UAA users.
+            user.setPassword("");
         } else {
+            //only validate for UAA users
             passwordValidator.validate(user.getPassword());
         }
 
@@ -223,6 +231,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         scimUser = syncApprovals(syncGroups(scimUser));
         addETagHeader(response, scimUser);
         return scimUser;
+    }
+
+    public boolean isUaaUser(@RequestBody ScimUser user) {
+        return OriginKeys.UAA.equals(user.getOrigin());
     }
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PUT)

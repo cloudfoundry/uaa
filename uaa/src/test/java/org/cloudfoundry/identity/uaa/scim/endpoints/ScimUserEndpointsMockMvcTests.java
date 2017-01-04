@@ -18,9 +18,13 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationConstants;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -216,6 +220,24 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void default_password_policy_does_not_allow_empty_passwords() throws Exception {
+        IdentityZone otherIdentityZone = getIdentityZone();
+        ScimUser scimUser = getScimUser();
+        scimUser.setPassword("");
+
+        IdentityProvider<UaaIdentityProviderDefinition> uaa =
+            getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieveByOrigin(
+                OriginKeys.UAA,
+                otherIdentityZone.getId()
+            );
+
+        ResultActions result = createUserAndReturnResult(scimUser, uaaAdminToken, IdentityZone.getUaa().getSubdomain(), otherIdentityZone.getId());
+        result.andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Password must be at least 1 characters in length."));
+    }
+
+
+    @Test
     public void createUserInOtherZoneWithUaaAdminTokenFromNonDefaultZone() throws Exception {
         IdentityZone identityZone = getIdentityZone();
 
@@ -337,13 +359,14 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
     @Test
     public void create_user_without_username() throws Exception {
-        ScimUser joel = new ScimUser(null, null, "Joel", "D'sa");
-        joel.setPrimaryEmail("test@test.org");
+        ScimUser user = new ScimUser(null, null, "Joel", "D'sa");
+        user.setPassword("password");
+        user.setPrimaryEmail("test@test.org");
 
         getMockMvc().perform(post("/Users")
             .header("Authorization", "Bearer " + scimReadWriteToken)
             .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(joel)))
+            .content(JsonUtils.writeValueAsString(user)))
             .andExpect(status().isBadRequest())
             .andExpect(content()
                 .string(JsonObjectMatcherUtils.matchesJsonObject(
@@ -355,12 +378,13 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void create_user_without_email() throws Exception {
-        ScimUser joel = new ScimUser(null, "a_user", "Joel", "D'sa");
+        ScimUser user = new ScimUser(null, "a_user", "Joel", "D'sa");
+        user.setPassword("password");
 
         getMockMvc().perform(post("/Users")
                 .header("Authorization", "Bearer " + scimReadWriteToken)
                 .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(joel)))
+                .content(JsonUtils.writeValueAsString(user)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content()
                         .string(JsonObjectMatcherUtils.matchesJsonObject(

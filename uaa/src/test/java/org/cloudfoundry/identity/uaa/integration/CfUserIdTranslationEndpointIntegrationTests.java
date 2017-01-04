@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -47,7 +47,7 @@ import static org.junit.Assert.assertNotNull;
 /**
  * Integration test to verify that the userid translation use cases are
  * supported adequately for cf.
- * 
+ *
  * @author Luke Taylor
  */
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.Implicit.class)
@@ -83,6 +83,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
         RestOperations client = serverRunning.getRestTemplate();
 
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName(JOE);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail("joe@blah.com");

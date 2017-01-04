@@ -214,6 +214,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     private ScimUser getScimUser() {
         String email = "joe@" + generator.generate().toLowerCase() + ".com";
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName(email);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail(email);

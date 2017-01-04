@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -61,7 +61,7 @@ import static org.junit.Assert.assertFalse;
 /**
  * Integration test to verify that the Login Server authentication channel is
  * open and working.
- * 
+ *
  * @author Dave Syer
  */
 public class LoginServerSecurityIntegrationTests {
@@ -124,12 +124,14 @@ public class LoginServerSecurityIntegrationTests {
         RestOperations client = serverRunning.getRestTemplate();
 
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName(JOE);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail("joe@blah.com");
         user.setVerified(true);
 
         userForLoginServer = new ScimUser();
+        userForLoginServer.setPassword("password");
         userForLoginServer.setUserName(LOGIN_SERVER_JOE);
         userForLoginServer.setName(new ScimUser.Name("Joe_login_server", "User"));
         userForLoginServer.addEmail("joe_ls@blah.com");
@@ -416,7 +418,7 @@ public class LoginServerSecurityIntegrationTests {
         params.set("source","login");
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
-        
+
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
             params.set("redirect_uri", redirect);
@@ -446,7 +448,7 @@ public class LoginServerSecurityIntegrationTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
         HttpStatus statusCode = response.getStatusCode();
-        
+
         assertTrue("Status code should be 401 or 403.", statusCode==HttpStatus.FORBIDDEN || statusCode==HttpStatus.UNAUTHORIZED);
     }
 
@@ -456,7 +458,7 @@ public class LoginServerSecurityIntegrationTests {
         String authHeader = "Basic " + new String( encodedAuth );
         return authHeader;
     }
-        
+
 
     private static class LoginClient extends ClientCredentialsResourceDetails {
         @SuppressWarnings("unused")
