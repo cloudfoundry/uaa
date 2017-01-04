@@ -139,7 +139,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                     ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
                     Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                         clientDetails.getRegisteredRedirectUri();
-                    String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, null);
+                    String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
                     if (matchingRedirectUri != null) {
                         redirectLocation = matchingRedirectUri;
                     }

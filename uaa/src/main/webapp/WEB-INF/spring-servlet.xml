@@ -437,7 +437,7 @@
                            @config['logout']['redirect']['parameter']['whitelist']}"/>
         <property name="logoutRedirectParameterName" value="redirect" />
         <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
-        <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
+        <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
         <property name="prompts" ref="prompts"/>
         <property name="branding" value="#{@config['login']['branding']}" />
         <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />

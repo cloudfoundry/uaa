@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -26,9 +25,9 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -53,7 +52,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -68,7 +66,6 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -82,6 +79,7 @@ import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -110,8 +108,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -121,7 +119,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -555,6 +552,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         Links.Logout original = getLogout();
         Links.Logout logout = getLogout();
         logout.setDisableRedirectParameter(false);
+        logout.setWhitelist(Arrays.asList("https://www.google.com"));
         setLogout(logout);
         try {
             getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
@@ -620,7 +618,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         Links.Logout original = getLogout();
         Links.Logout logout = getLogout();
         logout.setDisableRedirectParameter(false);
-        logout.setWhitelist(null);
+        logout.setWhitelist(Arrays.asList("http*://www.google.com"));
         setLogout(logout);
         try {
             getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
@@ -650,19 +648,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testLogoutRedirectIsDisabledInZone() throws Exception {
+    public void testLogoutRedirectIsEnabledInZone() throws Exception {
         String zoneId = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
         zone.setConfig(new IdentityZoneConfiguration());
         IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         zone = provisioning.create(zone);
-        assertTrue(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
+        assertFalse(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
     }
 
     @Test
     public void testLogOutChangeUrlValue() throws Exception {
         Links.Logout original = getLogout();
-        assertTrue(original.isDisableRedirectParameter());
+        assertFalse(original.isDisableRedirectParameter());
         Links.Logout logout = getLogout();
         logout.setRedirectUrl("https://www.google.com");
         setLogout(logout);
@@ -765,6 +763,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                                 .contextPath("/uaa")
                                 .header("Host", zoneId+".localhost")
                                 .param("redirect", "http://google.com")
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://test.redirect.com"))
+            .andExpect(emptyCurrentUserCookie());
+
+        zone.getConfig().getLinks().getLogout().setDisableRedirectParameter(false);
+        zone.getConfig().getLinks().getLogout().setWhitelist(asList("http://google.com"));
+        zone = zoneProvisioning.update(zone);
+
+        getMockMvc().perform(get("/uaa/logout.do")
+                                 .contextPath("/uaa")
+                                 .header("Host", zoneId+".localhost")
+                                 .param("redirect", "http://google.com")
         )
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://google.com"))
