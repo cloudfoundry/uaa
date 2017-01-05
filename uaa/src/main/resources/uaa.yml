@@ -29,6 +29,22 @@
 #database.username: root
 #database.password: changeme
 
+#MS SQL Server Install https://docs.microsoft.com/en-us/sql/linux/sql-server-linux-setup-ubuntu
+#sqlserver commands are (first command is to allow contained user authentication for a DB
+sp_configure 'contained database authentication', 1
+go
+RECONFIGURE
+go
+CREATE DATABASE uaa CONTAINMENT = PARTIAL;
+go
+USE uaa;
+go
+CREATE USER root WITH PASSWORD = 'changemeCHANGEME1234!';
+go
+EXEC sp_addrolemember N'db_owner', N'root';
+go
+
+
 #postgresql commands that were run were
 #create database uaa;
 #create user root with superuser password 'changeme';
