@@ -22,6 +22,6 @@ SELECT @dropconstraintsql = 'ALTER TABLE ' + @table
 
 EXEC sp_executeSQL  @dropconstraintsql
 
-ALTER TABLE authz_approvals ALTER COLUMN username VARCHAR(255) NOT NULL;
+ALTER TABLE authz_approvals ALTER COLUMN username NVARCHAR(255) NOT NULL;
 
 ALTER TABLE authz_approvals ADD CONSTRAINT PK_authz_approvals PRIMARY KEY CLUSTERED (username ASC, clientid ASC, scope ASC);

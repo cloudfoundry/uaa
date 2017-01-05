@@ -10,9 +10,9 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 -- column that holds the origin of the user, something like 'uaa' or 'ldap' or 'keystone'
-ALTER TABLE users ADD origin varchar(36) default 'uaa' NOT NULL;
+ALTER TABLE users ADD origin NVARCHAR(36) default 'uaa' NOT NULL;
 -- track a users external user ID. For LDAP it is the DN or UID
-ALTER TABLE users ADD external_id varchar(255) default NULL;
+ALTER TABLE users ADD external_id NVARCHAR(255) default NULL;
 
 -- redo the unique key
 DROP INDEX unique_uk_1 ON users;
@@ -20,11 +20,11 @@ DROP INDEX unique_uk_1 ON users;
 CREATE UNIQUE INDEX users_unique_key ON users (username, origin);
 
 CREATE TABLE new_authz_approvals (
-  user_id VARCHAR(36) not null,
-  client_id VARCHAR(36) not null,
-  scope VARCHAR(255) not null,
+  user_id NVARCHAR(36) not null,
+  client_id NVARCHAR(36) not null,
+  scope NVARCHAR(255) not null,
   expiresat DATETIME not null DEFAULT '2001-01-01 01:01:01.000001',
-  status VARCHAR(50) default 'APPROVED' not null,
+  status NVARCHAR(50) default 'APPROVED' not null,
   lastmodifiedat DATETIME not null DEFAULT CURRENT_TIMESTAMP ,
   primary key (user_id, client_id, scope)
 );

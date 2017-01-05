@@ -9,4 +9,4 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE oauth_code ALTER COLUMN client_id VARCHAR(255);
+ALTER TABLE oauth_code ALTER COLUMN client_id NVARCHAR(255);

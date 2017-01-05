@@ -9,4 +9,4 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE sec_audit ADD identity_zone_id varchar(36) DEFAULT 'uaa';
+ALTER TABLE sec_audit ADD identity_zone_id NVARCHAR(36) DEFAULT 'uaa';

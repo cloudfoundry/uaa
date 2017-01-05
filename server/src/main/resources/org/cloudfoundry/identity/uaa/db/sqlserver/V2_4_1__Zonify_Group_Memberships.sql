@@ -10,7 +10,7 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 
-ALTER TABLE group_membership ADD identity_zone_id varchar(36) DEFAULT 'uaa';
+ALTER TABLE group_membership ADD identity_zone_id NVARCHAR(36) DEFAULT 'uaa';
 
 DECLARE @table NVARCHAR(512), @dropconstraintsql NVARCHAR(MAX);
 SELECT @table = N'group_membership';
@@ -22,8 +22,8 @@ SELECT @dropconstraintsql = 'ALTER TABLE ' + @table
 
 EXEC sp_executeSQL  @dropconstraintsql
 
-ALTER TABLE external_group_mapping ADD identity_zone_id varchar(36);
-ALTER TABLE external_group_mapping ADD origin varchar(36);
+ALTER TABLE external_group_mapping ADD identity_zone_id NVARCHAR(36);
+ALTER TABLE external_group_mapping ADD origin NVARCHAR(36);
 
 SELECT @table = N'external_group_mapping';
 SELECT @dropconstraintsql = 'ALTER TABLE ' + @table

@@ -9,5 +9,5 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE oauth_client_details ALTER COLUMN scope VARCHAR(1024) NULL;
-ALTER TABLE oauth_client_details ALTER COLUMN authorities VARCHAR(1024) NULL;
+ALTER TABLE oauth_client_details ALTER COLUMN scope NVARCHAR(1024) NULL;
+ALTER TABLE oauth_client_details ALTER COLUMN authorities NVARCHAR(1024) NULL;

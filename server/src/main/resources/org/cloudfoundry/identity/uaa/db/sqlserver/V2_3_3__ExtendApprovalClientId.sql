@@ -22,8 +22,8 @@ SELECT @dropconstraintsql = 'ALTER TABLE ' + @table
 
 EXEC sp_executeSQL  @dropconstraintsql
 
-ALTER TABLE authz_approvals ALTER COLUMN client_id VARCHAR(255) NOT NULL;
+ALTER TABLE authz_approvals ALTER COLUMN client_id NVARCHAR(255) NOT NULL;
 
 ALTER TABLE authz_approvals ADD PRIMARY KEY (user_id, client_id, scope);
 
-ALTER TABLE sec_audit ALTER COLUMN principal_id VARCHAR(255) NOT NULL;
+ALTER TABLE sec_audit ALTER COLUMN principal_id NVARCHAR(255) NOT NULL;

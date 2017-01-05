@@ -15,15 +15,15 @@ CREATE TABLE users (
    created DATETIME DEFAULT current_timestamp not null,
    lastmodified DATETIME DEFAULT current_timestamp null,
    version BIGINT DEFAULT 0 not null,
-   username VARCHAR(255) not null,
-   password VARCHAR(255) not null,
-   email VARCHAR(255) not null,
+   username NVARCHAR(255) not null,
+   password NVARCHAR(255) not null,
+   email NVARCHAR(255) not null,
    authority BIGINT DEFAULT 0 not null,
-   givenname VARCHAR(255),
-   familyname VARCHAR(255),
+   givenname NVARCHAR(255),
+   familyname NVARCHAR(255),
    active BIT DEFAULT 1 not null,
-   phonenumber VARCHAR(255),
-   authorities VARCHAR(1024) DEFAULT 'uaa.user',
+   phonenumber NVARCHAR(255),
+   authorities NVARCHAR(1024) DEFAULT 'uaa.user',
    verified BIT DEFAULT 0 NOT NULL
 );
 
@@ -32,42 +32,42 @@ CREATE UNIQUE INDEX unique_uk_1 on users (username);
 CREATE TABLE sec_audit (
    principal_id char(36) not null,
    event_type INTEGER not null,
-   origin VARCHAR(255) not null,
-   event_data VARCHAR(255),
+   origin NVARCHAR(255) not null,
+   event_data NVARCHAR(255),
    created DATETIME default current_timestamp
 ) ;
 
 CREATE TABLE oauth_client_details (
-  client_id VARCHAR(255) PRIMARY KEY,
-  resource_ids VARCHAR(1024),
-  client_secret VARCHAR(256),
-  scope VARCHAR(255),
-  authorized_grant_types VARCHAR(255),
-  web_server_redirect_uri VARCHAR(1024),
-  authorities VARCHAR(255),
+  client_id NVARCHAR(255) PRIMARY KEY,
+  resource_ids NVARCHAR(1024),
+  client_secret NVARCHAR(256),
+  scope NVARCHAR(255),
+  authorized_grant_types NVARCHAR(255),
+  web_server_redirect_uri NVARCHAR(1024),
+  authorities NVARCHAR(255),
   access_token_validity INTEGER,
   refresh_token_validity INTEGER default 0,
-  additional_information VARCHAR(4096)
+  additional_information NVARCHAR(4000)
 ) ;
 
 create table oauth_code (
-  code VARCHAR(256),
+  code NVARCHAR(256),
   authentication VARBINARY(MAX)
 ) ;
 
 CREATE TABLE authz_approvals (
-  username VARCHAR(36) not null,
-  clientid VARCHAR(36) not null,
-  scope VARCHAR(255) not null,
+  username NVARCHAR(36) not null,
+  clientid NVARCHAR(36) not null,
+  scope NVARCHAR(255) not null,
   expiresat DATETIME not null DEFAULT '2001-01-01 01:01:01.000001',
-  status VARCHAR(50) default 'APPROVED' not null,
+  status NVARCHAR(50) default 'APPROVED' not null,
   lastmodifiedat DATETIME not null DEFAULT CURRENT_TIMESTAMP,
   primary key (username, clientid, scope)
 ) ;
 
 CREATE TABLE groups (
-  id VARCHAR(36) not null primary key,
-  displayname VARCHAR(255) not null,
+  id NVARCHAR(36) not null primary key,
+  displayname NVARCHAR(255) not null,
   created DATETIME default current_timestamp not null,
   lastmodified DATETIME null,
   version INTEGER default 0 not null,
@@ -75,17 +75,17 @@ CREATE TABLE groups (
 ) ;
 
 CREATE TABLE group_membership (
-  group_id VARCHAR(36) not null,
-  member_id VARCHAR(36) not null,
-  member_type VARCHAR(8) default 'USER' not null,
-  authorities VARCHAR(255) default 'READ' not null,
+  group_id NVARCHAR(36) not null,
+  member_id NVARCHAR(36) not null,
+  member_type NVARCHAR(8) default 'USER' not null,
+  authorities NVARCHAR(255) default 'READ' not null,
   added DATETIME default current_timestamp not null,
   primary key (group_id, member_id)
 ) ;
 
 CREATE TABLE external_group_mapping (
-  group_id VARCHAR(36) not null,
-  external_group VARCHAR(255) not null,
+  group_id NVARCHAR(36) not null,
+  external_group NVARCHAR(255) not null,
   added DATETIME default current_timestamp not null,
   primary key (group_id, external_group)
 );

@@ -9,4 +9,4 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE oauth_client_details ADD autoapprove VARCHAR(1024) default NULL;
+ALTER TABLE oauth_client_details ADD autoapprove NVARCHAR(1024) default NULL;
