@@ -23,7 +23,7 @@ DROP INDEX username_in_idp ON users;
 
 -- drop the column
 DECLARE  @dropconstraintsql NVARCHAR(MAX);
-SELECT @dropconstraintsql = 'ALTER TABLE users' + 
+SELECT @dropconstraintsql = 'ALTER TABLE users' +
     + ' DROP CONSTRAINT ' + name + ';'
     FROM sys.default_constraints
     where [parent_object_id] = OBJECT_ID(N'users') and [parent_column_id] = COLUMNPROPERTY(OBJECT_ID(N'users'),(N'identity_provider_id'),'ColumnId')
@@ -38,7 +38,7 @@ CREATE UNIQUE NONCLUSTERED INDEX users_unique_key on users (origin,username,iden
 DROP INDEX identity_provider_id ON group_membership;
 
 -- drop redundant IDP column
-SELECT @dropconstraintsql = 'ALTER TABLE group_membership' + 
+SELECT @dropconstraintsql = 'ALTER TABLE group_membership' +
     + ' DROP CONSTRAINT ' + name + ';'
     FROM sys.default_constraints
     where [parent_object_id] = OBJECT_ID(N'group_membership') and [parent_column_id] = COLUMNPROPERTY(OBJECT_ID(N'group_membership'),(N'identity_provider_id'),'ColumnId')

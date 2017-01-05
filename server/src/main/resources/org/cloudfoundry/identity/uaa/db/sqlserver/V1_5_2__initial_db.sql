@@ -92,7 +92,7 @@ CREATE TABLE external_group_mapping (
 
 GO
 CREATE TRIGGER set_authz_approvals_last_updated_at ON authz_approvals
-AFTER UPDATE 
+AFTER UPDATE
 AS
 BEGIN
   UPDATE authz_approvals

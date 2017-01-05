@@ -14,7 +14,7 @@ DECLARE @table NVARCHAR(512), @dropconstraintsql NVARCHAR(MAX);
 
 SELECT @table = N'authz_approvals';
 
-SELECT @dropconstraintsql = 'ALTER TABLE ' + @table 
+SELECT @dropconstraintsql = 'ALTER TABLE ' + @table
     + ' DROP CONSTRAINT ' + name + ';'
     FROM sys.key_constraints
     WHERE [type] = 'PK'
