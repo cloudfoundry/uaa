@@ -9,18 +9,17 @@ import org.junit.Test;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.net.URL;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -36,6 +35,7 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
   private String adminClientTokenWithClientsWrite;
   private UaaTestAccounts testAccounts;
   private static final String CLIENT_ID_DESC = "Client identifier, unique within identity zone";
+  private static final String CLIENT_NAME_DESC = "Human readable display name for the client";
   private static final String SHOW_ON_HOME_PAGE_DESC = "Flag to control visibility on home page";
   private static final String APP_LAUNCH_URL_DESC = "URL to which the app is linked to";
   private static final String APP_ICON_DESC = "Base64 encoded image file";
@@ -116,6 +116,7 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
 
     Snippet responseFields = responseFields(
       fieldWithPath("[].clientId").description(CLIENT_ID_DESC),
+      fieldWithPath("[].clientName").description(CLIENT_NAME_DESC),
       fieldWithPath("[].showOnHomePage").description(SHOW_ON_HOME_PAGE_DESC),
       fieldWithPath("[].appLaunchUrl").description(APP_LAUNCH_URL_DESC),
       fieldWithPath("[].appIcon").description(APP_ICON_DESC)
