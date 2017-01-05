@@ -192,7 +192,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                     .withFamilyName(rs.getString("familyName"))
                     .withCreated(rs.getTimestamp("created"))
                     .withModified(rs.getTimestamp("lastModified"))
-                    .withAuthorities(getDefaultAuthorities(rs.getString("authorities")))
                     .withOrigin(rs.getString("origin"))
                     .withExternalId(rs.getString("external_id"))
                     .withVerified(rs.getBoolean("verified"))
