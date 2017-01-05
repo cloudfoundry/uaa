@@ -91,9 +91,9 @@ flyway {
       break
     case 'sqlserver':
       driver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
-      url = 'jdbc:sqlserver://localhost:1433/uaa'
-      user = 'sqlserver'
-      password = 'changeme'
+      url = 'jdbc:sqlserver://localhost:1433;database=uaa;'
+      user = 'root'
+      password = 'changemeCHANGEME1234!'
       break
   }
 }
