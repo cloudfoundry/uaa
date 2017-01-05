@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultBooleanValueAdapter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -44,7 +43,7 @@ public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
 
     @Before
     public void setupAuthManager() throws Exception {
-        identityProviderProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        identityProviderProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         MockUaaUserDatabase userDatabase = new MockUaaUserDatabase(u -> u.withId("id").withUsername("marissa").withEmail("test@test.org").withVerified(true));
         PasswordEncoder encoder = mock(PasswordEncoder.class);
         when(encoder.matches(anyString(),anyString())).thenReturn(true);

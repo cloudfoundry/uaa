@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultBooleanValueAdapter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -76,7 +75,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void testUpgradeLDAPProvider() throws Exception {
         String insertSQL = "INSERT INTO identity_provider (id,identity_zone_id,name,origin_key,type,config)VALUES ('ldap','uaa','ldap','ldap2','ldap','{\"ldapdebug\":\"Test debug\",\"profile\":{\"file\":\"ldap/ldap-search-and-bind.xml\"},\"base\":{\"url\":\"ldap://localhost:389/\",\"userDn\":\"cn=admin,dc=test,dc=com\",\"password\":\"password\",\"searchBase\":\"dc=test,dc=com\",\"searchFilter\":\"cn={0}\",\"referral\":\"follow\"},\"groups\":{\"file\":\"ldap/ldap-groups-map-to-scopes.xml\",\"searchBase\":\"dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"searchSubtree\":true,\"maxSearchDepth\":10,\"autoAdd\":true,\"ignorePartialResultException\":true}}')";
         jdbcTemplate.update(insertSQL);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
     }
@@ -85,7 +84,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void testLdapProfileBootstrap() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setActiveProfiles(OriginKeys.LDAP);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
@@ -101,7 +100,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testLdapBootstrap() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
@@ -131,7 +130,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testRemovedLdapBootstrapIsInactive() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         MockEnvironment env = new MockEnvironment();
         env.setActiveProfiles(OriginKeys.LDAP);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
@@ -170,7 +169,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void testKeystoneProfileBootstrap() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setActiveProfiles(KEYSTONE);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
@@ -186,7 +185,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testKeystoneBootstrap() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
@@ -205,7 +204,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void testRemovedKeystoneBootstrapIsInactive() throws Exception {
         MockEnvironment env = new MockEnvironment();
         env.setActiveProfiles(KEYSTONE);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
@@ -248,7 +247,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         AbstractXOAuthIdentityProviderDefinition oidcProvider = new OIDCIdentityProviderDefinition();
         setCommonProperties(oidcProvider);
         oidcProvider.setResponseType("code id_token");
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
 
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
@@ -288,7 +287,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     @Test(expected = IllegalArgumentException.class)
     public void bootstrap_failsIf_samlAndOauth_haveTheSameAlias() throws Exception {
         AbstractXOAuthIdentityProviderDefinition oauthProvider = setCommonProperties(new RawXOAuthIdentityProviderDefinition());
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
         oauthProviderConfig.put("same-alias", oauthProvider);
@@ -345,7 +344,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         BootstrapSamlIdentityProviderConfigurator configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
 
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
@@ -378,7 +377,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         BootstrapSamlIdentityProviderConfigurator configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition, definition2));
 
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
@@ -503,7 +502,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     private void setDisableInternalUserManagement(String expectedValue) throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
 
         MockEnvironment mock = new MockEnvironment();
 
@@ -521,7 +520,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void setPasswordPolicyToInternalIDP() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         bootstrap.setDefaultPasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
         bootstrap.afterPropertiesSet();
@@ -539,7 +538,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void setLockoutPolicyToInternalIDP() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         LockoutPolicy lockoutPolicy = new LockoutPolicy();
         lockoutPolicy.setLockoutPeriodSeconds(123);
@@ -560,7 +559,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void deactivate_and_activate_InternalIDP() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("disableInternalAuth", "true");
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
@@ -577,7 +576,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     @Test
     public void defaultActiveFlagOnInternalIDP() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate, new DefaultBooleanValueAdapter());
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 

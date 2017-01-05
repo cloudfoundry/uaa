@@ -16,7 +16,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.resources.jdbc.BooleanValueAdapter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -46,7 +45,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_PROVIDERS_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider where identity_zone_id=?";
 
-    public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=%s";
+    public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active".replace(",","=?,")+"=?";
 
@@ -62,14 +61,12 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     protected final JdbcTemplate jdbcTemplate;
 
-    private final BooleanValueAdapter booleanValueAdapter;
 
     private final RowMapper<IdentityProvider> mapper = new IdentityProviderRowMapper();
 
-    public JdbcIdentityProviderProvisioning(JdbcTemplate jdbcTemplate, BooleanValueAdapter booleanValueAdapter) {
+    public JdbcIdentityProviderProvisioning(JdbcTemplate jdbcTemplate) {
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
-        this.booleanValueAdapter = booleanValueAdapter;
     }
 
     @Override
@@ -80,8 +77,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public List<IdentityProvider> retrieveActive(String zoneId) {
-        String activeQuery = String.format(IDENTITY_ACTIVE_PROVIDERS_QUERY, this.booleanValueAdapter.getTrueValue());
-        return jdbcTemplate.query(activeQuery, mapper, zoneId);
+        return jdbcTemplate.query(IDENTITY_ACTIVE_PROVIDERS_QUERY, mapper, zoneId, true);
     }
 
     @Override

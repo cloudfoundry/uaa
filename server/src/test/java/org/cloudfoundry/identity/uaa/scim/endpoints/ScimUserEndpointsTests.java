@@ -21,8 +21,8 @@ import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
 import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -153,7 +153,7 @@ public class ScimUserEndpointsTests {
 
         IdentityZoneHolder.clear();
         jdbcTemplate = new JdbcTemplate(database);
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
         dao = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
         dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 

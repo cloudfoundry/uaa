@@ -16,8 +16,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -100,7 +100,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     public  void initScimGroupEndpointsTests() throws Exception {
         TestUtils.deleteFrom(dataSource, "users", "groups", "group_membership");
         JdbcTemplate template = jdbcTemplate;
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, new DefaultLimitSqlAdapter());
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, LimitSqlAdapterFactory.getLimitSqlAdapter());
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
         mm = new JdbcScimGroupMembershipManager(template, pagingListFactory);
