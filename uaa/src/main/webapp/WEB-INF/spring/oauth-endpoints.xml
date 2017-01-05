@@ -554,8 +554,7 @@
     </util:set>
 
     <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
-        <constructor-arg ref="jdbcTemplate" />
-        <constructor-arg ref="booleanValueAdapter"/>
+        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <constructor-arg name="timeSerivce" ref="timeService" />
         <property name="defaultAuthorities" ref="defaultUserAuthorities" />
         <property name="caseInsensitive" ref="useCaseInsensitiveQueries"/>

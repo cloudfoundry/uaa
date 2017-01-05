@@ -33,6 +33,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     @Before
     public void createDatasource() throws Exception {
         db = new JdbcSamlServiceProviderProvisioning(jdbcTemplate);
+        cleanUp();
     }
 
     @After

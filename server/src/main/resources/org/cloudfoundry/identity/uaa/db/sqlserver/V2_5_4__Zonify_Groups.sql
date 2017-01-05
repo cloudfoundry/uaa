@@ -15,7 +15,7 @@ DROP INDEX group_membership_unique_key ON group_membership;
 
 -- drop the column
 DECLARE  @dropconstraintsql NVARCHAR(MAX);
-SELECT @dropconstraintsql = 'ALTER TABLE group_membership' + 
+SELECT @dropconstraintsql = 'ALTER TABLE group_membership' +
     + ' DROP CONSTRAINT ' + name + ';'
     FROM sys.default_constraints
     where [parent_object_id] = OBJECT_ID(N'group_membership') and [parent_column_id] = COLUMNPROPERTY(OBJECT_ID(N'group_membership'),(N'identity_zone_id'),'ColumnId')

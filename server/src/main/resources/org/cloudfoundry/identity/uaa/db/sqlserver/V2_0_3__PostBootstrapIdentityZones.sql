@@ -23,7 +23,7 @@ DECLARE @table NVARCHAR(512), @dropconstraintsql NVARCHAR(MAX);
 
 SELECT @table = N'oauth_client_details';
 
-SELECT @dropconstraintsql = 'ALTER TABLE ' + @table 
+SELECT @dropconstraintsql = 'ALTER TABLE ' + @table
     + ' DROP CONSTRAINT ' + name + ';'
     FROM sys.key_constraints
     WHERE [type] = 'PK'
