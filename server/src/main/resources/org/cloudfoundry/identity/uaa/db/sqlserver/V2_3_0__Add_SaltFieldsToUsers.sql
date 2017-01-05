@@ -9,4 +9,4 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE users ADD salt VARCHAR(36) default NULL;
+ALTER TABLE users ADD salt NVARCHAR(36) default NULL;

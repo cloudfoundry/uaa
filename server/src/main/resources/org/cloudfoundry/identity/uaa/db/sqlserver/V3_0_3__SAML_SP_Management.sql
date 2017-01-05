@@ -10,14 +10,14 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 CREATE TABLE service_provider (
-  id VARCHAR(36) NOT NULL,
+  id NVARCHAR(36) NOT NULL,
   created DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
   lastmodified DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
   version BIGINT DEFAULT 0 NOT NULL,
-  identity_zone_id VARCHAR(36) NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  entity_id VARCHAR(255) NOT NULL,
-  config varchar(max),
+  identity_zone_id NVARCHAR(36) NOT NULL,
+  name NVARCHAR(255) NOT NULL,
+  entity_id NVARCHAR(255) NOT NULL,
+  config NVARCHAR(max),
   active BIT DEFAULT 1 NOT NULL,
   PRIMARY KEY (id)
 );

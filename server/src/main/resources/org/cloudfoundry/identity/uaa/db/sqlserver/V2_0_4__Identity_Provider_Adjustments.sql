@@ -13,7 +13,7 @@
 -- modify the column to be 36 characters to match users.origin
 --CONSTRAINT key_in_zone UNIQUE(identity_zone_id, origin_key)
 ALTER TABLE identity_provider DROP CONSTRAINT key_in_zone
-ALTER TABLE identity_provider ALTER COLUMN origin_key varchar(36) NOT NULL;
+ALTER TABLE identity_provider ALTER COLUMN origin_key NVARCHAR(36) NOT NULL;
 ALTER TABLE identity_provider ADD CONSTRAINT key_in_zone UNIQUE NONCLUSTERED(identity_zone_id, origin_key)
 -- add an active column to the identity_provider table
 ALTER TABLE identity_provider ADD active BIT DEFAULT 1 NOT NULL;

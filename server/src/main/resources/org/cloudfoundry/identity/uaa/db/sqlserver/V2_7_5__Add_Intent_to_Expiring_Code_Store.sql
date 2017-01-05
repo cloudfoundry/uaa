@@ -9,4 +9,4 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE expiring_code_store ADD intent varchar(max) DEFAULT NULL;
+ALTER TABLE expiring_code_store ADD intent NVARCHAR(max) DEFAULT NULL;

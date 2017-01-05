@@ -9,4 +9,4 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE identity_zone ADD config varchar(max) DEFAULT NULL;
+ALTER TABLE identity_zone ADD config NVARCHAR(max) DEFAULT NULL;

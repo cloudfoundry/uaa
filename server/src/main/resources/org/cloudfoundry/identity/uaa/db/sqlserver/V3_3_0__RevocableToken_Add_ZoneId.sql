@@ -11,4 +11,4 @@
 --
 
 -- add zone id to the tkoen table
-ALTER TABLE revocable_tokens ADD identity_zone_id varchar(36) DEFAULT 'uaa' NOT NULL;
+ALTER TABLE revocable_tokens ADD identity_zone_id NVARCHAR(36) DEFAULT 'uaa' NOT NULL;

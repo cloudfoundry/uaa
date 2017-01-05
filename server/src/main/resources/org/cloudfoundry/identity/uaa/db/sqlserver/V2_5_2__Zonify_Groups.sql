@@ -11,6 +11,6 @@
 --
 
 -- add zone id to the groups table
-ALTER TABLE groups ADD identity_zone_id varchar(36) DEFAULT 'uaa' NOT NULL;
+ALTER TABLE groups ADD identity_zone_id NVARCHAR(36) DEFAULT 'uaa' NOT NULL;
 ALTER TABLE groups DROP CONSTRAINT unique_uk_2;
 CREATE UNIQUE NONCLUSTERED INDEX groups_unique_key ON groups(displayname, identity_zone_id);

@@ -10,4 +10,4 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 -- column that holds the origin of the user, something like 'uaa' or 'ldap' or 'keystone'
-ALTER TABLE group_membership ADD origin varchar(36) default 'uaa' NOT NULL;
+ALTER TABLE group_membership ADD origin NVARCHAR(36) default 'uaa' NOT NULL;

@@ -11,7 +11,7 @@
 --
 
 CREATE TABLE expiring_code_store (
-  code VARCHAR(255) NOT NULL PRIMARY KEY,
+  code NVARCHAR(255) NOT NULL PRIMARY KEY,
   expiresat BIGINT NOT NULL,
-  data VARCHAR(MAX) NOT NULL
+  data NVARCHAR(MAX) NOT NULL
 );

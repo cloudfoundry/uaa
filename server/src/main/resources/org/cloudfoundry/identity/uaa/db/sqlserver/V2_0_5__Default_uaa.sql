@@ -9,5 +9,5 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
--- ALTER TABLE oauth_client_details ALTER COLUMN `identity_zone_id` varchar(36) DEFAULT 'uaa';
--- ALTER TABLE users ALTER COLUMN `identity_zone_id` varchar(36) DEFAULT 'uaa';
+-- ALTER TABLE oauth_client_details ALTER COLUMN `identity_zone_id` NVARCHAR(36) DEFAULT 'uaa';
+-- ALTER TABLE users ALTER COLUMN `identity_zone_id` NVARCHAR(36) DEFAULT 'uaa';
