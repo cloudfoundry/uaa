@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -289,6 +290,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
                     template.update("SET TIME ZONE INTERVAL '-11:00' HOUR TO MINUTE");
                     break;
                 case "sqlserver" :
+                    //TODO find a way to set offset for a connection
                     break;
                 default:
                     fail("Unknown DB profile:"+db);
