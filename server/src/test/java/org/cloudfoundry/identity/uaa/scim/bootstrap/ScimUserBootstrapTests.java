@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -436,6 +437,85 @@ public class ScimUserBootstrapTests {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user, user.modifySource("newOrigin", "")));
         bootstrap.afterPropertiesSet();
         assertEquals(2, db.retrieveAll().size());
+    }
+
+    @Test
+    public void testConcurrentAuthEventsRaceCondition() throws Exception {
+        int numthreads = 5;
+        int numgroups = 100;
+
+        String[] externalAuthorities = new String[] {"extTest1","extTest2","extTest3"};
+        String[] userAuthorities = new String[] {"usrTest1","usrTest2","usrTest3"};
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate,origin);
+        String email = "test@test.org";
+        String firstName = "FirstName";
+        String lastName = "LastName";
+        String password = "testPassword";
+        String externalId = null;
+        String userId = new RandomValueStringGenerator().generate();
+        String username = new RandomValueStringGenerator().generate();
+        UaaUser user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> scimUsers = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        assertEquals(1, scimUsers.size());
+        ScimUser scimUser = scimUsers.get(0);
+        ScimGroupMember member = new ScimGroupMember<>(scimUser);
+        user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, member.getMemberId(), username);
+        for (int i = 0; i < numgroups; i++) {
+            gdb.create(new ScimGroup("group" + i, "group" + i, "uaa"));
+            String gid = gdb.query("displayName eq \"group"+i+"\"").get(0).getId();
+            mdb.addMember(gid, member);
+        }
+
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities), true));
+
+        ExternalGroupAuthorizationEvent externalGroupAuthorizationEvent = new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities), true);
+
+        Thread[] threads = new Thread[numthreads];
+        for (int i = 0; i < numthreads; i++) {
+            threads[i] = new Thread(new AuthEventRunnable(externalGroupAuthorizationEvent, bootstrap));
+            threads[i].start();
+        }
+        for (int i = 0; i < numthreads; i++) {
+            threads[i].join();
+        }
+        if (AuthEventRunnable.failure != null) {
+            throw AuthEventRunnable.failure;
+        }
+    }
+
+    private static class AuthEventRunnable implements Runnable {
+
+        public static volatile AssertionError failure = null;
+        private final int iterations = 50;
+
+        private final ExternalGroupAuthorizationEvent externalGroupAuthorizationEvent;
+        private final ScimUserBootstrap bootstrap;
+
+        public AuthEventRunnable(ExternalGroupAuthorizationEvent externalGroupAuthorizationEvent, ScimUserBootstrap bootstrap) {
+			this.externalGroupAuthorizationEvent = externalGroupAuthorizationEvent;
+			this.bootstrap = bootstrap;
+		}
+
+		@Override
+		public void run() {
+			for (int i = 0; i < iterations; i++) {
+				if (failure != null) break;
+				try {
+					bootstrap.onApplicationEvent(externalGroupAuthorizationEvent);
+				} catch (MemberNotFoundException e) {
+					if (failure == null) {
+						failure = new AssertionError("MemberNotFoundException in Test thread", e);
+						break;
+					}
+				} catch (Exception e) {
+					failure = new AssertionError("Exception in Test thread", e);
+				}
+			}
+		}
     }
 
     private List<GrantedAuthority> getAuthorities(String[] auth) {

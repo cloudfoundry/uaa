@@ -131,4 +131,12 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      */
     Set<ScimGroup> removeMembersByMemberId(String memberId) throws ScimResourceNotFoundException;
 
+    /**
+     * @param memberId
+     * @param origin
+     * @return
+     * @throws ScimResourceNotFoundException
+     */
+    Set<ScimGroup> getGroupsWithExternalMember(String memberId, String origin) throws ScimResourceNotFoundException;
+
 }
