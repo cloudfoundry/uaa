@@ -939,57 +939,10 @@ public class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         ClientDetails result = endpoints.updateClientDetails(detail, input.getClientId());
         assertNull(result.getClientSecret());
-
         verify(clientRegistrationService).updateClientDetails(clientCaptor.capture());
         BaseClientDetails updated = clientCaptor.getValue();
         assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
         assertTrue(updated.isAutoApprove("foo.read"));
         assertTrue(updated.isAutoApprove("foo.write"));
-    }
-
-    @Test
-    public void testCreatedById() throws Exception {
-        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-            Arrays.asList("read")).createOAuth2Request(), UaaAuthenticationTestFactory.getAuthentication("ID", "joe",
-            "joe@test.org"));
-        Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        assertEquals("ID", endpoints.getCreatedById());
-
-        authentication = mock(Authentication.class);
-        when(authentication.getPrincipal()).thenReturn("client1");
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        ClientMetadata clientMetadata = new ClientMetadata();
-        clientMetadata.setCreatedBy("user2");
-        clientMetadata.setLastUpdatedBy("user2");
-        when(clientMetadataProvisioning.retrieve("client1")).thenReturn(clientMetadata);
-
-        assertEquals("user2", endpoints.getCreatedById());
-        SecurityContextHolder.getContext().setAuthentication(currentAuth);
-    }
-
-    @Test
-    public void testLastUpdatedById() throws Exception {
-        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-            Arrays.asList("read")).createOAuth2Request(), UaaAuthenticationTestFactory.getAuthentication("ID", "joe",
-            "joe@test.org"));
-        Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        assertEquals("ID", endpoints.getCreatedById());
-
-        authentication = mock(Authentication.class);
-        when(authentication.getPrincipal()).thenReturn("client1");
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        ClientMetadata clientMetadata = new ClientMetadata();
-        clientMetadata.setCreatedBy("user2");
-        clientMetadata.setLastUpdatedBy("user3");
-        when(clientMetadataProvisioning.retrieve("client1")).thenReturn(clientMetadata);
-
-        assertEquals("user2", endpoints.getCreatedById());
-        SecurityContextHolder.getContext().setAuthentication(currentAuth);
     }
 }
