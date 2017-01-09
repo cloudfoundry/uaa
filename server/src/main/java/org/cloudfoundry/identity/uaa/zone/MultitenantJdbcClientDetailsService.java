@@ -55,6 +55,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     private static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
 
+    private static final String GET_CREATED_BY_SQL = "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
     private static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
             + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
             + "refresh_token_validity, additional_information, autoapprove, lastmodified";
@@ -69,7 +70,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
-            + ", client_id, identity_zone_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
@@ -97,8 +98,6 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     private String selectClientDetailsSql = DEFAULT_SELECT_STATEMENT;
 
     private PasswordEncoder passwordEncoder = NoOpPasswordEncoder.getInstance();
-
-    private ClientMetadataProvisioning clientMetadataProvisioning;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -132,7 +131,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     public void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException {
         try {
-            jdbcTemplate.update(insertClientDetailsSql, getFields(clientDetails));
+            jdbcTemplate.update(insertClientDetailsSql, getInsertClientDetailsFields(clientDetails));
         } catch (DuplicateKeyException e) {
             throw new ClientAlreadyExistsException("Client already exists: " + clientDetails.getClientId(), e);
         }
@@ -163,13 +162,14 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         return listFactory.getList(findClientDetailsSql, Collections.<String, Object> singletonMap("identityZoneId",IdentityZoneHolder.get().getId()), rowMapper);
     }
 
-    private Object[] getFields(ClientDetails clientDetails) {
+    private Object[] getInsertClientDetailsFields(ClientDetails clientDetails) {
         Object[] fieldsForUpdate = getFieldsForUpdate(clientDetails);
-        Object[] fields = new Object[fieldsForUpdate.length + 1];
-        System.arraycopy(fieldsForUpdate, 0, fields, 1, fieldsForUpdate.length);
-        fields[0] = clientDetails.getClientSecret() != null ? passwordEncoder.encode(clientDetails.getClientSecret())
+        Object[] clientDetailFieldsForUpdate = new Object[fieldsForUpdate.length + 2];
+        System.arraycopy(fieldsForUpdate, 0, clientDetailFieldsForUpdate, 1, fieldsForUpdate.length);
+        clientDetailFieldsForUpdate[0] = clientDetails.getClientSecret() != null ? passwordEncoder.encode(clientDetails.getClientSecret())
                 : null;
-        return fields;
+        clientDetailFieldsForUpdate[clientDetailFieldsForUpdate.length - 1] = getUserId();
+        return clientDetailFieldsForUpdate;
     }
 
     private Object[] getFieldsForUpdate(ClientDetails clientDetails) {
@@ -361,9 +361,12 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         if(authentication.getPrincipal() instanceof UaaPrincipal) {
             userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
         } else if(authentication.getPrincipal() instanceof String) {
-            ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve((String)authentication.getPrincipal());
-            userId = clientMetadata.getCreatedBy();
+            userId = getCreatedByForClientId((String)authentication.getPrincipal());
         }
         return userId;
+    }
+
+    String getCreatedByForClientId(String clientId) {
+        return jdbcTemplate.queryForObject(GET_CREATED_BY_SQL, new Object[]{clientId, IdentityZoneHolder.get().getId()}, String.class);
     }
 }
