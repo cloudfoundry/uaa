@@ -18,6 +18,7 @@
     <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
         <constructor-arg ref="dataSource" />
         <property name="passwordEncoder" ref="cachingPasswordEncoder" />
+        <property name="clientMetadataProvisioning" ref = "jdbcClientDetailsService" />
     </bean>
 
     <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService">

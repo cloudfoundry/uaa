@@ -59,6 +59,7 @@
     <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints">
         <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="clientDetailsService" ref="clientDetailsService" />
+        <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
         <property name="clientDetailsResourceMonitor" ref="jdbcClientDetailsService"/>
         <property name="approvalStore" ref="approvalStore"/>
         <property name="authenticationManager" ref="clientAuthenticationManager"/>

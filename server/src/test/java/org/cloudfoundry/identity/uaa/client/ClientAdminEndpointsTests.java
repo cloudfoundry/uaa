@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -37,10 +38,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
@@ -79,6 +83,8 @@ public class ClientAdminEndpointsTests {
 
 
     private QueryableResourceManager<ClientDetails> clientDetailsService = null;
+
+    private ClientMetadataProvisioning clientMetadataProvisioning = null;
 
     private SecurityContextAccessor securityContextAccessor = null;
 
@@ -120,10 +126,12 @@ public class ClientAdminEndpointsTests {
         authenticationManager = Mockito.mock(AuthenticationManager.class);
         approvalStore = mock(ApprovalStore.class);
         clientDetailsValidator = new ClientAdminEndpointsValidator();
+        clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         clientDetailsValidator.setClientDetailsService(clientDetailsService);
         clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
 
         endpoints.setClientDetailsService(clientDetailsService);
+        endpoints.setClientMetadataProvisioning(clientMetadataProvisioning);
         endpoints.setClientRegistrationService(clientRegistrationService);
         endpoints.setSecurityContextAccessor(securityContextAccessor);
         endpoints.setAuthenticationManager(authenticationManager);
@@ -939,4 +947,49 @@ public class ClientAdminEndpointsTests {
         assertTrue(updated.isAutoApprove("foo.write"));
     }
 
+    @Test
+    public void testCreatedById() throws Exception {
+        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+            Arrays.asList("read")).createOAuth2Request(), UaaAuthenticationTestFactory.getAuthentication("ID", "joe",
+            "joe@test.org"));
+        Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        assertEquals("ID", endpoints.getCreatedById());
+
+        authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("client1");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        ClientMetadata clientMetadata = new ClientMetadata();
+        clientMetadata.setCreatedBy("user2");
+        clientMetadata.setLastUpdatedBy("user2");
+        when(clientMetadataProvisioning.retrieve("client1")).thenReturn(clientMetadata);
+
+        assertEquals("user2", endpoints.getCreatedById());
+        SecurityContextHolder.getContext().setAuthentication(currentAuth);
+    }
+
+    @Test
+    public void testLastUpdatedById() throws Exception {
+        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+            Arrays.asList("read")).createOAuth2Request(), UaaAuthenticationTestFactory.getAuthentication("ID", "joe",
+            "joe@test.org"));
+        Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        assertEquals("ID", endpoints.getCreatedById());
+
+        authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("client1");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        ClientMetadata clientMetadata = new ClientMetadata();
+        clientMetadata.setCreatedBy("user2");
+        clientMetadata.setLastUpdatedBy("user3");
+        when(clientMetadataProvisioning.retrieve("client1")).thenReturn(clientMetadata);
+
+        assertEquals("user2", endpoints.getCreatedById());
+        SecurityContextHolder.getContext().setAuthentication(currentAuth);
+    }
 }
