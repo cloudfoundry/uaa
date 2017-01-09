@@ -15,6 +15,9 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientMetadata;
+import org.cloudfoundry.identity.uaa.client.ClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -24,6 +27,8 @@ import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
@@ -92,6 +97,8 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     private String selectClientDetailsSql = DEFAULT_SELECT_STATEMENT;
 
     private PasswordEncoder passwordEncoder = NoOpPasswordEncoder.getInstance();
+
+    private ClientMetadataProvisioning clientMetadataProvisioning;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -348,4 +355,15 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         return 0;
     }
 
+    protected String getUserId() {
+        String userId = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if(authentication.getPrincipal() instanceof UaaPrincipal) {
+            userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
+        } else if(authentication.getPrincipal() instanceof String) {
+            ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve((String)authentication.getPrincipal());
+            userId = clientMetadata.getCreatedBy();
+        }
+        return userId;
+    }
 }
