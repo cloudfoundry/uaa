@@ -203,9 +203,7 @@ public class XOAuthAuthenticationManagerTest {
                     "-----END PUBLIC KEY-----");
         config.setExternalGroupsWhitelist(
             Arrays.asList(
-                "*",
-                "*.*",
-                "*.*.*"
+                "*"
             )
         );
 

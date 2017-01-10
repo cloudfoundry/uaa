@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -108,7 +109,7 @@ public class UaaStringUtils {
     }
 
     public static Set<String> retainAllMatches(Collection<String> values, Collection<String> whitelist) {
-        Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(whitelist));
+        Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(whitelist), UaaStringUtils::constructSimpleWildcardPatternWithAnyCharDelimiter);
         return values.stream().filter(s -> matches(regExPatterns, s)).collect(Collectors.toSet());
     }
 
@@ -158,10 +159,20 @@ public class UaaStringUtils {
         return result.replace("\\*", "[^\\\\.]+");
     }
 
+    public static String constructSimpleWildcardPatternWithAnyCharDelimiter(String s) {
+        String result = escapeRegExCharacters(s);
+        return result.replace("\\*", ".*");
+    }
+
+
     public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings) {
+        return constructWildcards(wildcardStrings, UaaStringUtils::constructSimpleWildcardPattern);
+    }
+
+    public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings, Function<String, String> replace) {
         Set<Pattern> wildcards = new HashSet<>();
         for (String wildcard : wildcardStrings) {
-            String pattern = UaaStringUtils.constructSimpleWildcardPattern(wildcard);
+            String pattern = replace.apply(wildcard);
             wildcards.add(Pattern.compile(pattern));
         }
         return wildcards;
