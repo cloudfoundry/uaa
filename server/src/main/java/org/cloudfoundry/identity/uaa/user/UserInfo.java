@@ -31,16 +31,6 @@ public class UserInfo extends LinkedMultiValueMap<String,String> implements Mult
     }
 
     @JsonIgnore
-    public String getUserId() {
-        return getFirst("user_id");
-    }
-
-    @JsonIgnore
-    public void setUserId(String id) {
-        put("user_id", Arrays.asList(id));
-    }
-
-    @JsonIgnore
     public void put(String name, String value) {
         put(name, Arrays.asList(value));
     }
