@@ -47,6 +47,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NA
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -144,6 +145,7 @@ public class UserInfoEndpointTests {
         Map<String, Object> userAttributes = (Map<String, Object>) map.getAttributeValue(USER_ATTRIBUTES);
         assertEquals(info.get(MULTI_VALUE), userAttributes.get(MULTI_VALUE));
         assertEquals(info.get(SINGLE_VALUE), userAttributes.get(SINGLE_VALUE));
+        assertNull(userAttributes.get(USER_ID));
     }
 
     public OAuth2Request createOauthRequest(List<String> scopes) {

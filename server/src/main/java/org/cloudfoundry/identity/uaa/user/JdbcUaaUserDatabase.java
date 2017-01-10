@@ -172,7 +172,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             String id = rs.getString(1);
             String info = rs.getString(2);
             UserInfo userInfo = hasText(info) ? JsonUtils.readValue(info, UserInfo.class) : new UserInfo();
-            userInfo.setUserId(id);
             return userInfo;
         }
     }

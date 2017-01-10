@@ -126,20 +126,17 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         String id = "id";
         db.storeUserInfo(id, null);
         UserInfo info2 = db.getUserInfo(id);
-        assertEquals(id, info2.getUserId());
-        assertEquals(1, info2.size());
+        assertEquals(0, info2.size());
     }
 
     @Test
     public void testStoreUserInfoOverridesID() {
         UserInfo info = new UserInfo();
         String id = "id", id1 = id + "1";
-        info.setUserId(id);
         info.put("family_name","Somelastname");
         info.put("given_name","Somefirstname");
         db.storeUserInfo(id1, info);
         UserInfo info2 = db.getUserInfo(id1);
-        info.setUserId(id1);
         assertEquals(info, info2);
     }
 
@@ -148,7 +145,6 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     public void testStoreUserInfo() {
         UserInfo info = new UserInfo();
         String id = "id";
-        info.setUserId(id);
         info.put("family_name","Somelastname");
         info.put("given_name","Somefirstname");
         db.storeUserInfo(id, info);

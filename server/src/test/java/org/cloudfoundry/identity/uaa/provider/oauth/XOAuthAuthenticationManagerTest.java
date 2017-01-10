@@ -694,9 +694,8 @@ public class XOAuthAuthenticationManagerTest {
         UserInfo info = new UserInfo(map);
         UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
         assertEquals(map, authentication.getUserAttributes());
-        info.setUserId(authentication.getPrincipal().getId());
         assertEquals(map, authentication.getUserAttributes());
-        assertEquals(info, xoAuthAuthenticationManager.getUserDatabase().getUserInfo(info.getUserId()));
+        assertEquals(info, xoAuthAuthenticationManager.getUserDatabase().getUserInfo(authentication.getPrincipal().getId()));
 
     }
 
