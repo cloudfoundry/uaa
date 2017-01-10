@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.client.ClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
@@ -514,7 +513,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId(clientId);
         service.addClientDetails(clientDetails);
 
-        assertEquals(userId, service.getCreatedByForClientId(clientId));
+        assertEquals(userId, service.getCreatedByForClientAndDefaultZone(clientId));
 
         //Restore context
         SecurityContextHolder.getContext().setAuthentication(oldAuth);
@@ -536,7 +535,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId(clientId);
         service.addClientDetails(clientDetails);
 
-        assertEquals(userId, service.getCreatedByForClientId(clientId));
+        assertEquals(userId, service.getCreatedByForClientAndDefaultZone(clientId));
 
         //Restore context
         SecurityContextHolder.getContext().setAuthentication(oldAuth);
@@ -553,7 +552,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId(client1);
         service.addClientDetails(clientDetails);
-        assertNull(service.getCreatedByForClientId(client1));
+        assertNull(service.getCreatedByForClientAndDefaultZone(client1));
 
         authenticateAsClient();
 
@@ -561,7 +560,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId(client2);
         service.addClientDetails(clientDetails);
 
-        assertNull(service.getCreatedByForClientId(client2));
+        assertNull(service.getCreatedByForClientAndDefaultZone(client2));
     }
 
     private Authentication authenticateAsUserAndReturnOldAuth(String userId) {
