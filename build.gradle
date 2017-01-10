@@ -306,8 +306,8 @@ test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 
 
-task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-  dependsOn = [integrationTest, test]
+task jacocoRootReportIntegrationTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  dependsOn = [integrationTest]
   additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
   sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
   classDirectories = files(subprojects.sourceSets.main.output)
@@ -326,6 +326,28 @@ task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
     })
   }
 }
+
+task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  dependsOn = [test]
+  additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
+  sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
+  classDirectories = files(subprojects.sourceSets.main.output)
+  executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
+  reports {
+    html.enabled = true
+    xml.enabled = true
+    csv.enabled = false
+  }
+  onlyIf = {
+    true
+  }
+  doFirst {
+    executionData = files(executionData.findAll {
+      it.exists()
+    })
+  }
+}
+
 
 coveralls {
   sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
