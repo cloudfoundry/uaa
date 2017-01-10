@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
 import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
@@ -234,10 +235,62 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
                     .content(toString(client));
-            getMockMvc().perform(createClientPost).andExpect(status().isCreated());
+            ResultActions createResult = getMockMvc().perform(createClientPost).andExpect(status().isCreated());
+            BaseClientDetails clientDetails = JsonUtils.readValue(createResult.andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+            MockHttpServletRequestBuilder getClientMetadata = get("/oauth/clients/" + clientDetails.getClientId() + "/meta")
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON);
+            ResultActions getResult = getMockMvc().perform(getClientMetadata).andExpect(status().isCreated());
+            ClientMetadata clientMetadata = JsonUtils.readValue(getResult.andReturn().getResponse().getContentAsString(), ClientMetadata.class);
+
         } finally {
             excludedClaims.remove("authorities");
         }
+    }
+
+    @Test
+    public void create_client_and_check_created_by() throws Exception {
+        setupAdminUserToken();
+
+        BaseClientDetails clientDetails = createClient(Arrays.asList("password.write", "scim.write", "scim.read", "clients.write"), adminUserToken);
+
+        ClientMetadata clientMetadata = obtainClientMetadata(clientDetails.getClientId());
+        SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq \"" + testUser.getUserName() + "\"", "userName", "asc", 0, 1);
+        String marissaId = (String)marissa.getResources().iterator().next().get("id");
+        assertEquals(marissaId, clientMetadata.getCreatedBy());
+
+        String clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
+            clientDetails.getClientId(),
+            "secret",
+            "clients.write");
+
+        clientDetails = createClient(Arrays.asList("uaa.resource"), clientAdminToken);
+
+        clientMetadata =obtainClientMetadata(clientDetails.getClientId());
+        assertEquals(marissaId, clientMetadata.getCreatedBy());
+    }
+
+    private BaseClientDetails createClient(List<String> authorities, String token) throws Exception {
+        String clientId = generator.generate().toLowerCase();
+        List<String> scopes = Arrays.asList("foo","bar","oauth.approvals");
+        ClientDetailsModification client = createBaseClient(clientId, Collections.singleton("client_credentials"), authorities, scopes);
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            .header("Authorization", "Bearer " + adminUserToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(client));
+        ResultActions createResult = getMockMvc().perform(createClientPost).andExpect(status().isCreated());
+        return JsonUtils.readValue(createResult.andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+    }
+
+    private ClientMetadata obtainClientMetadata(String clientId) throws Exception {
+        MockHttpServletRequestBuilder getClientMetadata = get("/oauth/clients/" + clientId + "/meta")
+            .header("Authorization", "Bearer " + adminUserToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON);
+        ResultActions getResult = getMockMvc().perform(getClientMetadata).andExpect(status().isOk());
+        return JsonUtils.readValue(getResult.andReturn().getResponse().getContentAsString(), ClientMetadata.class);
     }
 
     @Test

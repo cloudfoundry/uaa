@@ -131,7 +131,6 @@ public class ClientAdminEndpointsTests {
         clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
 
         endpoints.setClientDetailsService(clientDetailsService);
-        endpoints.setClientMetadataProvisioning(clientMetadataProvisioning);
         endpoints.setClientRegistrationService(clientRegistrationService);
         endpoints.setSecurityContextAccessor(securityContextAccessor);
         endpoints.setAuthenticationManager(authenticationManager);

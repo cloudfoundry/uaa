@@ -16,8 +16,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.ClientMetadata;
-import org.cloudfoundry.identity.uaa.client.ClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -358,6 +356,9 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     protected String getUserId() {
         String userId = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        //Bootstrap will not have authenticated session
+        if(authentication == null) return null;
         if(authentication.getPrincipal() instanceof UaaPrincipal) {
             userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
         } else if(authentication.getPrincipal() instanceof String) {

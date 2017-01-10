@@ -91,8 +91,6 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
 
-    private ClientMetadataProvisioning clientMetadataProvisioning;
-
     private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
     private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(
@@ -707,10 +705,5 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     public void setClientDetailsResourceMonitor(ResourceMonitor<ClientDetails> clientDetailsResourceMonitor) {
         this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
-    }
-
-    public ClientAdminEndpoints setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
-        this.clientMetadataProvisioning = clientMetadataProvisioning;
-        return this;
     }
 }
