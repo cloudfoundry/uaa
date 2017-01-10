@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
+import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -362,12 +363,17 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         if(authentication.getPrincipal() instanceof UaaPrincipal) {
             userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
         } else if(authentication.getPrincipal() instanceof String) {
-            userId = getCreatedByForClientId((String)authentication.getPrincipal());
+            ContextSensitiveOAuth2SecurityExpressionMethods contextSensitiveOAuth2SecurityExpressionMethods = new ContextSensitiveOAuth2SecurityExpressionMethods(authentication);
+            userId = getCreatedByForClientAndZone((String)authentication.getPrincipal(), contextSensitiveOAuth2SecurityExpressionMethods.getAuthenticationZoneId());
         }
         return userId;
     }
 
-    String getCreatedByForClientId(String clientId) {
-        return jdbcTemplate.queryForObject(GET_CREATED_BY_SQL, new Object[]{clientId, IdentityZoneHolder.get().getId()}, String.class);
+    String getCreatedByForClientAndDefaultZone(String clientId) {
+        return jdbcTemplate.queryForObject(GET_CREATED_BY_SQL, new Object[]{clientId, IdentityZoneHolder.getUaaZone().getId()}, String.class);
+    }
+
+    String getCreatedByForClientAndZone(String clientId, String zoneId) {
+        return jdbcTemplate.queryForObject(GET_CREATED_BY_SQL, new Object[]{clientId, zoneId}, String.class);
     }
 }

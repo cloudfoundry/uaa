@@ -428,7 +428,6 @@ public class ClientAdminEndpoints implements InitializingBean {
         return clientDetails;
     }
 
-
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
