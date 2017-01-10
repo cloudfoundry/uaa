@@ -25,9 +25,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.user.UserInfo;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -282,10 +279,15 @@ public class LdapLoginAuthenticationManagerTests {
         assertThat(am.getExternalUserAuthorities(authDetails),
                    containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2")
         );
+
+        definition.setExternalGroupsWhitelist(Arrays.asList("ldap*"));
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2")
+        );
     }
 
     @Test
-    public void test_custom_user_attributes(boolean storeUserInfo) throws Exception {
+    public void test_custom_user_attributes() throws Exception {
 
         UaaUser user = getUaaUser();
         ExtendedLdapUserImpl authDetails =
