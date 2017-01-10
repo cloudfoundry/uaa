@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -74,7 +73,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     private boolean caseInsensitive = false;
 
-
     public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -96,9 +94,9 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     }
 
     public JdbcUaaUserDatabase(JdbcTemplate jdbcTemplate, TimeService timeService) {
-        this.timeService = timeService;
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
+        this.timeService = timeService;
     }
 
     @Override

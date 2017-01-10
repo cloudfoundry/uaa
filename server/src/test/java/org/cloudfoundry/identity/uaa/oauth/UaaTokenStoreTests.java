@@ -289,6 +289,9 @@ public class UaaTokenStoreTests extends JdbcTestBase {
                 case "hsqldb" :
                     template.update("SET TIME ZONE INTERVAL '-11:00' HOUR TO MINUTE");
                     break;
+                case "sqlserver" :
+                    //TODO find a way to set offset for a connection
+                    break;
                 default:
                     fail("Unknown DB profile:"+db);
             }

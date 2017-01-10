@@ -61,6 +61,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     protected final JdbcTemplate jdbcTemplate;
 
+
     private final RowMapper<IdentityProvider> mapper = new IdentityProviderRowMapper();
 
     public JdbcIdentityProviderProvisioning(JdbcTemplate jdbcTemplate) {
