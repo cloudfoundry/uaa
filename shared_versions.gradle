@@ -19,6 +19,7 @@ ext {
   mockitoVersion = '1.8.5'
   passayVersion = '1.0'
   postgresqlVersion = '9.1-901.jdbc3'
+  mssqlVersion = '6.1.0.jre8'
   scimSDKVersion = '1.6.0'
   servletVersion = '3.1.0'
   slf4jVersion = '1.7.7'

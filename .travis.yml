@@ -21,7 +21,7 @@ matrix:
         - mysql
       env:
         - TESTENV=mysql,default
-        - TEST_COMMAND=test
+        - TEST_COMMAND=jacocoRootReport
     - os: linux
       dist: precise
       jdk: oraclejdk8
@@ -31,7 +31,7 @@ matrix:
         - postgresql
       env:
         - TESTENV=postgresql,default
-        - TEST_COMMAND=test
+        - TEST_COMMAND=jacocoRootReport
     - os: linux
       dist: trusty
       jdk: oraclejdk8
@@ -39,7 +39,7 @@ matrix:
       language: java
       env:
         - TESTENV=ldap,default
-        - TEST_COMMAND=test
+        - TEST_COMMAND=jacocoRootReport
     - os: linux
       dist: trusty
       jdk: oraclejdk8
@@ -47,7 +47,7 @@ matrix:
       language: java
       env:
         - TESTENV=default
-        - TEST_COMMAND=test
+        - TEST_COMMAND=jacocoRootReport
 
 cache:
   apt: true
