@@ -27,7 +27,6 @@ public class ClientMetadata {
     private URL appLaunchUrl;
     private String appIcon;
     private String createdBy;
-    private String lastUpdatedBy;
 
     public String getClientId() {
         return clientId;
@@ -85,15 +84,6 @@ public class ClientMetadata {
 
     public ClientMetadata setCreatedBy(String createdBy) {
         this.createdBy = createdBy;
-        return this;
-    }
-
-    public String getLastUpdatedBy() {
-        return lastUpdatedBy;
-    }
-
-    public ClientMetadata setLastUpdatedBy(String lastUpdatedBy) {
-        this.lastUpdatedBy = lastUpdatedBy;
         return this;
     }
 }

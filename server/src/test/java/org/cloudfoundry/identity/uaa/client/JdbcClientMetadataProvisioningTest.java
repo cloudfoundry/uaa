@@ -35,6 +35,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     public static final String CLIENT_NAME = "Test name";
     JdbcClientMetadataProvisioning db;
 
+    private String randomGUID = "4097895b-ebc1-4732-b6e5-2c33dd2c7cd1";
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
 
     @Before
@@ -52,7 +53,10 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     @Test
     public void retrieveClientMetadata() throws Exception {
         String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
+        jdbcTemplate.execute(
+            String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
+                clientId, IdentityZone.getUaa().getId(), randomGUID)
+            );
         ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
         ClientMetadata createdClientMetadata = db.update(clientMetadata);
 
@@ -63,6 +67,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         assertThat(retrievedClientMetadata.isShowOnHomePage(), is(clientMetadata.isShowOnHomePage()));
         assertThat(retrievedClientMetadata.getAppLaunchUrl(), is(clientMetadata.getAppLaunchUrl()));
         assertThat(retrievedClientMetadata.getAppIcon(), is(clientMetadata.getAppIcon()));
+        assertThat(retrievedClientMetadata.getCreatedBy(), is(clientMetadata.getCreatedBy()));
     }
 
     @Test(expected = EmptyResultDataAccessException.class)
@@ -118,16 +123,13 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         assertEquals(CLIENT_NAME, data.getClientName());
     }
 
-
-
-
-
     private ClientMetadata createTestClientMetadata(String clientId, boolean showOnHomePage, URL appLaunchUrl, String appIcon) throws MalformedURLException {
         ClientMetadata clientMetadata = new ClientMetadata();
         clientMetadata.setClientId(clientId);
         clientMetadata.setShowOnHomePage(showOnHomePage);
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
         clientMetadata.setAppIcon(appIcon);
+        clientMetadata.setCreatedBy(randomGUID);
         return clientMetadata;
     }
 
