@@ -242,6 +242,18 @@ public class UaaStringUtilsTest {
 
         assertThat(
             UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                              "saml.group.2",
+                              "saml.group1.3",
+                              "saml.group1.3.1"),
+                Arrays.asList("saml.group*.*")
+            ),
+            containsInAnyOrder("saml.group.1", "saml.group.2", "saml.group1.3", "saml.group1.3.1")
+        );
+
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
                 Arrays.asList("saml-group-1",
                               "saml-group-2",
                               "saml-group1-3"),
@@ -298,6 +310,16 @@ public class UaaStringUtilsTest {
                 Arrays.asList("*.group.*")
             ),
             containsInAnyOrder("saml.group.1", "saml.group.2")
+        );
+
+        assertThat(
+            UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                              "saml.group.2",
+                              "saml.group1.3"),
+                Arrays.asList("saml.group*1*")
+            ),
+            containsInAnyOrder("saml.group.1", "saml.group1.3")
         );
     }
 
