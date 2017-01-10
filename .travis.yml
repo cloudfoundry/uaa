@@ -84,6 +84,15 @@ matrix:
       env:
         - TESTENV=default
         - TEST_COMMAND=jacocoRootReportIntegrationTest
+    - os: linux
+      dist: trusty
+      jdk: oraclejdk8
+      sudo: required
+      language: java
+      env:
+        - TESTENV=sqlserver,default
+        - TEST_COMMAND=jacocoRootReportIntegrationTest
+
 
 cache:
   apt: true
