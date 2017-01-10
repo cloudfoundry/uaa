@@ -290,6 +290,11 @@ public class LdapLoginAuthenticationManagerTests {
         assertThat(am.getExternalUserAuthorities(authDetails),
                    containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2")
         );
+
+        definition.setExternalGroupsWhitelist(Arrays.asList("ldap*"));
+        assertThat(am.getExternalUserAuthorities(authDetails),
+                   containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2")
+        );
     }
 
     public void test_authentication_attributes(boolean storeUserInfo) throws Exception {
