@@ -13,6 +13,14 @@ matrix:
         - TESTENV=sqlserver,default
         - TEST_COMMAND=cloudfoundry-identity-server:test
     - os: linux
+      dist: trusty
+      jdk: oraclejdk8
+      sudo: required
+      language: java
+      env:
+        - TESTENV=sqlserver,default
+        - TEST_COMMAND=cloudfoundry-identity-uaa:test
+    - os: linux
       dist: precise
       jdk: oraclejdk8
       sudo: required
