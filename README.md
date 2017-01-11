@@ -80,8 +80,8 @@ First run the UAA server as described above:
 
     $ ./gradlew run
 
-Then start another terminal and from the project base directory,  ask
-the login endpoint to tell you about the system:
+From another terminal you can use curl to verify that UAA has started by
+requesting system information:
 
     $ curl -H "Accept: application/json" localhost:8080/uaa/login
     {
@@ -91,15 +91,18 @@ the login endpoint to tell you about the system:
         "password":["password","Password"]
       }
     }
-    
-Then you can try logging in with the UAA ruby gem.  Make sure you have
-ruby 1.9, then
+
+For complex requests it is more convenient to interact with UAA using 
+`uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac). 
+If you have a recent ruby installed, install the CLI and use it to 
+obtain an access token:
 
     $ gem install cf-uaac
     $ uaac target http://localhost:8080/uaa
     $ uaac token get marissa koala
 
-(or leave out the username / password to be prompted).
+If you omit the username or password the CLI will prompt you for those
+fields.
 
 This authenticates and obtains an access token from the server using
 the OAuth2 implicit grant, similar to the approach intended for a
