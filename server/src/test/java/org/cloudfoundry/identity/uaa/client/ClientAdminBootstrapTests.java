@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.client;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
@@ -64,11 +63,6 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.setClientRegistrationService(clientRegistrationService);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
         clientRegistrationService.setPasswordEncoder(encoder);
-    }
-
-    @After
-    public void tearDownClientAdminTests() throws Exception {
-        flyway.clean();
     }
 
     @Test

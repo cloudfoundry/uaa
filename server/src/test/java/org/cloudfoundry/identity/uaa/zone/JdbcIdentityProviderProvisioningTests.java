@@ -40,7 +40,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
     }
 
     @After
-    public void cleanUp() {
+    public void clearZone() {
         IdentityZoneHolder.clear();
     }
 
@@ -67,19 +67,19 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
         IdentityProvider createdIdp = db.create(idp);
         assertNotNull(createdIdp);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(5));
+        int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class);
         db.onApplicationEvent(new EntityDeletedEvent<>(createdIdp, null));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(count-1));
     }
 
     @Test
     public void test_cannot_delete_uaa_providers() {
         //action try to delete uaa provider
         //should not do anything
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
+        int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class);
         IdentityProvider uaa = db.retrieveByOrigin(UAA, IdentityZoneHolder.get().getId());
         db.onApplicationEvent(new EntityDeletedEvent<>(uaa, null));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(count));
     }
 
     @Test
