@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -95,7 +96,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
                 new UaaAuthenticationDetails(servletRequest),
                 true, userAuthentication.getAuthenticatedTime());
         }
-        oa = new OAuth2Authentication(request, userAuthentication);
+        oa = new UaaOauth2Authentication(((UaaOauth2Authentication)oa).getTokenValue(), IdentityZoneHolder.get().getId(), request, userAuthentication);
         oa.setDetails(oaDetails);
         return oa;
     }
