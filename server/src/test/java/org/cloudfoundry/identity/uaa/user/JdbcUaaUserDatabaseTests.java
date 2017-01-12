@@ -25,10 +25,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.LinkedMultiValueMap;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
@@ -126,18 +129,8 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         String id = "id";
         db.storeUserInfo(id, null);
         UserInfo info2 = db.getUserInfo(id);
-        assertEquals(0, info2.size());
-    }
-
-    @Test
-    public void testStoreUserInfoOverridesID() {
-        UserInfo info = new UserInfo();
-        String id = "id", id1 = id + "1";
-        info.put("family_name","Somelastname");
-        info.put("given_name","Somefirstname");
-        db.storeUserInfo(id1, info);
-        UserInfo info2 = db.getUserInfo(id1);
-        assertEquals(info, info2);
+        assertNull(info2.getRoles());
+        assertNull(info2.getUserAttributes());
     }
 
 
@@ -145,16 +138,28 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     public void testStoreUserInfo() {
         UserInfo info = new UserInfo();
         String id = "id";
-        info.put("family_name","Somelastname");
-        info.put("given_name","Somefirstname");
+        LinkedMultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
+        userAttributes.add("single", "1");
+        userAttributes.add("multi", "2");
+        userAttributes.add("multi", "3");
+        info.setUserAttributes(userAttributes);
+        List<String> roles = new LinkedList(Arrays.asList("role1", "role2", "role3"));
+        info.setRoles(roles);
+
+
         db.storeUserInfo(id, info);
         UserInfo info2 = db.getUserInfo(id);
         assertEquals(info, info2);
+        assertEquals(userAttributes, info2.getUserAttributes());
+        assertEquals(roles, info2.getRoles());
 
-        info.put("new","value");
+        roles.add("role4");
+        userAttributes.add("multi", "4");
         db.storeUserInfo(id, info);
         UserInfo info3  = db.getUserInfo(id);
         assertEquals(info, info3);
+        assertEquals(userAttributes, info3.getUserAttributes());
+        assertEquals(roles, info3.getRoles());
     }
 
     @Test

@@ -49,6 +49,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -73,10 +74,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
@@ -128,7 +130,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             authenticationData.setUsername(username);
             Collection<String> groupWhiteList = config.getExternalGroupsWhitelist();
             authenticationData.setAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims, groupWhiteList));
-            Optional.ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
+            ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
         }
         logger.debug("No identity provider found for origin:"+getOrigin()+" and zone:"+IdentityZoneHolder.get().getId());
@@ -188,9 +190,23 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 }
             }
             authentication.setUserAttributes(userAttributes);
-
+            authentication.setExternalGroups(
+                ofNullable(
+                    authenticationData.getAuthorities()
+                )
+                .orElse(emptyList())
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet())
+            );
         }
+
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
+    }
+
+    @Override
+    protected List<String> getExternalUserAuthorities(UserDetails request) {
+        return super.getExternalUserAuthorities(request);
     }
 
     @Override

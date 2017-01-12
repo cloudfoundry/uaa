@@ -91,7 +91,8 @@ public class UserInfoEndpointTests {
         MultiValueMap<String, String> customAttributes = new LinkedMultiValueMap<>();
         customAttributes.put(MULTI_VALUE, Arrays.asList("value1", "value2"));
         customAttributes.add(SINGLE_VALUE, "value3");
-        info = new UserInfo(customAttributes);
+        info = new UserInfo()
+            .setUserAttributes(customAttributes);
         userDatabase.storeUserInfo(ID, info);
     }
 
@@ -143,8 +144,8 @@ public class UserInfoEndpointTests {
         assertEquals(user.getFamilyName(), map.getAttributeValue(FAMILY_NAME));
         assertNotNull(map.getAttributeValue(USER_ATTRIBUTES));
         Map<String, Object> userAttributes = (Map<String, Object>) map.getAttributeValue(USER_ATTRIBUTES);
-        assertEquals(info.get(MULTI_VALUE), userAttributes.get(MULTI_VALUE));
-        assertEquals(info.get(SINGLE_VALUE), userAttributes.get(SINGLE_VALUE));
+        assertEquals(info.getUserAttributes().get(MULTI_VALUE), userAttributes.get(MULTI_VALUE));
+        assertEquals(info.getUserAttributes().get(SINGLE_VALUE), userAttributes.get(SINGLE_VALUE));
         assertNull(userAttributes.get(USER_ID));
     }
 
