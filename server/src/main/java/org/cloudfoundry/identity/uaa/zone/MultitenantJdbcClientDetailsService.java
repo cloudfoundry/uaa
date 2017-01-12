@@ -369,10 +369,6 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         return userId;
     }
 
-    String getCreatedByForClientAndDefaultZone(String clientId) {
-        return jdbcTemplate.queryForObject(GET_CREATED_BY_SQL, new Object[]{clientId, IdentityZoneHolder.getUaaZone().getId()}, String.class);
-    }
-
     String getCreatedByForClientAndZone(String clientId, String zoneId) {
         return jdbcTemplate.queryForObject(GET_CREATED_BY_SQL, new Object[]{clientId, zoneId}, String.class);
     }
