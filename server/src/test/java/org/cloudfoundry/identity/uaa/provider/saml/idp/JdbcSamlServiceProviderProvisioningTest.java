@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
@@ -85,7 +86,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         assertEquals(sp.getName(), createdSp.getName());
         assertEquals(sp.getConfig(), createdSp.getConfig());
-        assertEquals(sp.getLastModified().getTime() / 1000, createdSp.getLastModified().getTime() / 1000);
+        assertTrue(Math.abs(sp.getLastModified().getTime()  - createdSp.getLastModified().getTime()) < 1001);
         assertEquals(Integer.valueOf(rawCreatedSp.get("version").toString()) + 1, createdSp.getVersion());
         assertEquals(zoneId, createdSp.getIdentityZoneId());
     }
