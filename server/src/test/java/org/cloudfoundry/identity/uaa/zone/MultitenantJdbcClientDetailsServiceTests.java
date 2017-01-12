@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
@@ -513,7 +515,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId(clientId);
         service.addClientDetails(clientDetails);
 
-        assertEquals(userId, service.getCreatedByForClientAndDefaultZone(clientId));
+        assertEquals(userId, service.getCreatedByForClientAndZone(clientId, OriginKeys.UAA));
 
         //Restore context
         SecurityContextHolder.getContext().setAuthentication(oldAuth);
@@ -535,7 +537,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId(clientId);
         service.addClientDetails(clientDetails);
 
-        assertEquals(userId, service.getCreatedByForClientAndDefaultZone(clientId));
+        assertEquals(userId, service.getCreatedByForClientAndZone(clientId, OriginKeys.UAA));
 
         //Restore context
         SecurityContextHolder.getContext().setAuthentication(oldAuth);
@@ -552,7 +554,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId(client1);
         service.addClientDetails(clientDetails);
-        assertNull(service.getCreatedByForClientAndDefaultZone(client1));
+        assertNull(service.getCreatedByForClientAndZone(client1, OriginKeys.UAA));
 
         authenticateAsClient();
 
@@ -560,7 +562,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId(client2);
         service.addClientDetails(clientDetails);
 
-        assertNull(service.getCreatedByForClientAndDefaultZone(client2));
+        assertNull(service.getCreatedByForClientAndZone(client2, OriginKeys.UAA));
     }
 
     private Authentication authenticateAsUserAndReturnOldAuth(String userId) {
@@ -573,7 +575,8 @@ public class MultitenantJdbcClientDetailsServiceTests {
     }
 
     private void authenticateAsClient() {
-        Authentication authentication = mock(Authentication.class);
+        UaaOauth2Authentication authentication = mock(UaaOauth2Authentication.class);
+        when(authentication.getZoneId()).thenReturn(OriginKeys.UAA);
         when(authentication.getPrincipal()).thenReturn("client1");
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
