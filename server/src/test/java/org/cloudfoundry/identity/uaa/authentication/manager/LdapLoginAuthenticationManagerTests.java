@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -322,7 +323,9 @@ public class LdapLoginAuthenticationManagerTests {
         definition.setStoreCustomAttributes(storeUserInfo);
 
         UaaAuthentication authentication = (UaaAuthentication)am.authenticate(auth);
-        UserInfo info = new UserInfo(authentication.getUserAttributes());
+        UserInfo info = new UserInfo()
+            .setUserAttributes(authentication.getUserAttributes())
+            .setRoles(emptyList());
         if (storeUserInfo) {
             verify(db, times(1)).storeUserInfo(anyString(), eq(info));
         } else {

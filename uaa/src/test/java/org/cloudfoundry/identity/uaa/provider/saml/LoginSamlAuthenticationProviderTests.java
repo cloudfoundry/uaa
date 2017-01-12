@@ -588,7 +588,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertEquals("marissa.bloggs@test.com", authentication.getUserAttributes().getFirst("secondary_email"));
         userInfo = userDatabase.getUserInfo(user.getId());
         assertNotNull(userInfo);
-        assertEquals("marissa.bloggs@test.com", userInfo.getFirst("secondary_email"));
+        assertEquals("marissa.bloggs@test.com", userInfo.getUserAttributes().getFirst("secondary_email"));
     }
 
     @Test
