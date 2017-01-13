@@ -304,9 +304,7 @@ integrationTest.dependsOn subprojects.integrationTest
 test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 
-
-task jacocoRootReportIntegrationTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-  dependsOn = [integrationTest]
+def jacocoRootReportConfiguration = {
   additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
   sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
   classDirectories = files(subprojects.sourceSets.main.output)
@@ -326,25 +324,14 @@ task jacocoRootReportIntegrationTest(type: org.gradle.testing.jacoco.tasks.Jacoc
   }
 }
 
+task jacocoRootReportIntegrationTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  configure jacocoRootReportConfiguration
+  dependsOn = [integrationTest]
+}
+
 task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  configure jacocoRootReportConfiguration
   dependsOn = [test]
-  additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
-  sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
-  classDirectories = files(subprojects.sourceSets.main.output)
-  executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
-  reports {
-    html.enabled = true
-    xml.enabled = true
-    csv.enabled = false
-  }
-  onlyIf = {
-    true
-  }
-  doFirst {
-    executionData = files(executionData.findAll {
-      it.exists()
-    })
-  }
 }
 
 
