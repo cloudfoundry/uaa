@@ -26,6 +26,7 @@ public class ClientMetadata {
     private boolean showOnHomePage;
     private URL appLaunchUrl;
     private String appIcon;
+    private String createdBy;
 
     public String getClientId() {
         return clientId;
@@ -75,5 +76,14 @@ public class ClientMetadata {
 
     public void setClientName(String clientName) {
         this.clientName = clientName;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public ClientMetadata setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+        return this;
     }
 }
