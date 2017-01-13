@@ -41,7 +41,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAM
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.LAST_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 
@@ -167,14 +169,15 @@ public class UserInfoResponse {
                     case GIVEN_NAME:
                     case FAMILY_NAME:
                     case PHONE_NUMBER:
+                    case USER_ATTRIBUTES:
+                    case ROLES:
                     case EMAIL: {
                         gen.writeFieldName(key);
                         if (value == null || value.size() == 0) {
                             gen.writeNull();
                         } else {
                             //ensure that type error happens early
-                            String svalue = (String)value.get(0);
-                            gen.writeObject(svalue);
+                            gen.writeObject(value.get(0));
                         }
                         break;
                     }
