@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 
 
@@ -54,7 +55,8 @@ public class UserInfoEndpoint implements InitializingBean {
         OAuth2Authentication authentication = (OAuth2Authentication) principal;
         UaaPrincipal uaaPrincipal = extractUaaPrincipal(authentication);
         boolean addCustomAttributes = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {USER_ATTRIBUTES});
-        return getResponse(uaaPrincipal, addCustomAttributes);
+        boolean addRoles = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {ROLES});
+        return getResponse(uaaPrincipal, addCustomAttributes, addRoles);
     }
 
     protected UaaPrincipal extractUaaPrincipal(OAuth2Authentication authentication) {
@@ -65,7 +67,7 @@ public class UserInfoEndpoint implements InitializingBean {
         throw new IllegalStateException("User authentication could not be converted to UaaPrincipal");
     }
 
-    protected UserInfoResponse getResponse(UaaPrincipal principal, boolean addCustomAttributes) {
+    protected UserInfoResponse getResponse(UaaPrincipal principal, boolean addCustomAttributes, boolean addRoles) {
         UaaUser user = userDatabase.retrieveUserById(principal.getId());
         UserInfoResponse response = new UserInfoResponse();
         response.setUserId(user.getId());
@@ -77,11 +79,12 @@ public class UserInfoEndpoint implements InitializingBean {
         response.setSub(user.getId());
         response.setLastLogonSuccess(user.getLastLogonTime());
 
-        if (addCustomAttributes) {
-            UserInfo info = userDatabase.getUserInfo(user.getId());
-            if (info!=null) {
-                response.setAttributeValue(USER_ATTRIBUTES, info.getUserAttributes());
-            }
+        UserInfo info = userDatabase.getUserInfo(user.getId());
+        if (addCustomAttributes && info!=null) {
+            response.setAttributeValue(USER_ATTRIBUTES, info.getUserAttributes());
+        }
+        if (addRoles && info!=null) {
+            response.setAttributeValue(ROLES, info.getRoles());
         }
         return response;
     }
