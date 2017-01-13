@@ -56,6 +56,9 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import static java.util.Collections.EMPTY_SET;
+import static java.util.Optional.ofNullable;
+
 public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
     public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
@@ -169,7 +172,10 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             IdentityProvider<ExternalIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (provider.getConfig()!=null && provider.getConfig().isStoreCustomAttributes()) {
                 logger.debug("Storing custom attributes for user_id:"+authentication.getPrincipal().getId());
-                getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), new UserInfo(authentication.getUserAttributes()));
+                UserInfo userInfo = new UserInfo()
+                    .setUserAttributes(authentication.getUserAttributes())
+                    .setRoles(new LinkedList(ofNullable(authentication.getExternalGroups()).orElse(EMPTY_SET)));
+                getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), userInfo);
             }
         }
     }

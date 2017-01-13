@@ -32,8 +32,11 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -70,6 +73,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     private ArgumentCaptor<ApplicationEvent> userArgumentCaptor;
     private IdentityProviderProvisioning providerProvisioning;
     private MultiValueMap<String, String> userAttributes;
+    private List<String> externalGroups;
 
     private void mockUserDetails(UserDetails userDetails) {
         when(userDetails.getUsername()).thenReturn(userName);
@@ -89,6 +93,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         userAttributes = new LinkedMultiValueMap<>();
         userAttributes.put("1", Arrays.asList("1"));
         userAttributes.put("2", Arrays.asList("2", "3"));
+        externalGroups = Arrays.asList("role1", "role2", "role3");
     }
 
     private void mockUaaWithUser() {
@@ -446,7 +451,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testPopulateAttributesStoresCustomAttributes() {
+    public void testPopulateAttributesStoresCustomAttributesAndRoles() {
         manager = new LdapLoginAuthenticationManager(null);
         setupManager();
         manager.setOrigin(origin);
@@ -459,13 +464,17 @@ public class ExternalLoginAuthenticationManagerTest  {
         when(uaaPrincipal.getId()).thenReturn("id");
         when(uaaAuthentication.getPrincipal()).thenReturn(uaaPrincipal);
         when(uaaAuthentication.getUserAttributes()).thenReturn(userAttributes);
+        when(uaaAuthentication.getExternalGroups()).thenReturn(new HashSet<>(externalGroups));
 
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
         verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
 
         providerDefinition.setStoreCustomAttributes(true);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), times(1)).storeUserInfo(eq("id"), eq(new UserInfo(userAttributes)));
+        UserInfo userInfo = new UserInfo()
+            .setUserAttributes(userAttributes)
+            .setRoles(externalGroups);
+        verify(manager.getUserDatabase(), times(1)).storeUserInfo(eq("id"), eq(userInfo));
 
         //null provider does not store it
         reset(manager.getUserDatabase());

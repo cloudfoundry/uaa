@@ -309,6 +309,19 @@ public class LdapLoginAuthenticationManagerTests {
                 new AttributeInfo(UAA_MANAGER, new String[] {KARI_THE_ANT_EATER, JOHN_THE_SLOTH}),
                 new AttributeInfo(COST_CENTER, new String[] {DENVER_CO})
             );
+
+        Map<String, String[]> role1 = new HashMap<>();
+        role1.put("cn", new String[] {"ldap.role.1.a", "ldap.role.1.b", "ldap.role.1"});
+        Map<String, String[]> role2 = new HashMap<>();
+        role2.put("cn", new String[] {"ldap.role.2.a", "ldap.role.2.b", "ldap.role.2"});
+        authDetails.setAuthorities(
+            Arrays.asList(
+                new LdapAuthority("role1", "cn=role1,ou=test,ou=com", role1),
+                new LdapAuthority("role2", "cn=role2,ou=test,ou=com", role2)
+
+            )
+        );
+        definition.setExternalGroupsWhitelist(Arrays.asList("*"));
         when(auth.getPrincipal()).thenReturn(authDetails);
 
         UaaUserDatabase db = mock(UaaUserDatabase.class);
@@ -322,7 +335,9 @@ public class LdapLoginAuthenticationManagerTests {
         definition.setStoreCustomAttributes(storeUserInfo);
 
         UaaAuthentication authentication = (UaaAuthentication)am.authenticate(auth);
-        UserInfo info = new UserInfo(authentication.getUserAttributes());
+        UserInfo info = new UserInfo()
+            .setUserAttributes(authentication.getUserAttributes())
+            .setRoles(Arrays.asList("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2"));
         if (storeUserInfo) {
             verify(db, times(1)).storeUserInfo(anyString(), eq(info));
         } else {

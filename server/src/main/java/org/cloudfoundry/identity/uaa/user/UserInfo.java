@@ -16,24 +16,68 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
+import java.util.List;
 
-public class UserInfo extends LinkedMultiValueMap<String,String> implements MultiValueMap<String, String> {
+public class UserInfo {
+
+    @JsonProperty("roles")
+    private List<String> roles;
+    @JsonProperty("user_attributes")
+    private LinkedMultiValueMap<String, String> userAttributes;
 
     public UserInfo(){}
 
+
     @JsonIgnore
-    public UserInfo(MultiValueMap<String, String> map) {
-        super(map);
+    public UserInfo setRoles(List<String> roles) {
+        this.roles = roles;
+        return this;
     }
 
     @JsonIgnore
-    public void put(String name, String value) {
-        put(name, Arrays.asList(value));
+    public List<String> getRoles() {
+        return roles;
     }
 
+    @JsonIgnore
+    public UserInfo setUserAttributes(MultiValueMap<String, String> userAttributes) {
+        this.userAttributes = new LinkedMultiValueMap<>(userAttributes);
+        return this;
+    }
 
+    @JsonIgnore
+    public MultiValueMap<String, String> getUserAttributes() {
+        return userAttributes;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UserInfo)) return false;
+
+        UserInfo userInfo = (UserInfo) o;
+
+        if (!compareRoles(getRoles(), ((UserInfo) o).getRoles())) return false;
+        return getUserAttributes() != null ? getUserAttributes().equals(userInfo.getUserAttributes()) : userInfo.getUserAttributes() == null;
+    }
+
+    protected boolean compareRoles(List<String> l1, List<String> l2) {
+        if (l1==null && l2==null) {
+            return true;
+        } else if (l1==null || l2==null) {
+            return false;
+        }
+        return l1.containsAll(l2) && l2.containsAll(l1);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getRoles() != null ? getRoles().hashCode() : 0;
+        result = 31 * result + (getUserAttributes() != null ? getUserAttributes().hashCode() : 0);
+        return result;
+    }
 }

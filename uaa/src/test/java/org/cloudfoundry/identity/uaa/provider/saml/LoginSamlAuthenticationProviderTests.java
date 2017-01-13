@@ -581,6 +581,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         UserInfo userInfo = userDatabase.getUserInfo(user.getId());
         assertNull(userInfo);
 
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        providerDefinition.addWhiteListedGroup(SAML_ADMIN);
         providerDefinition.setStoreCustomAttributes(true);
         provider.setConfig(providerDefinition);
         provider = providerProvisioning.update(provider);
@@ -588,7 +590,10 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertEquals("marissa.bloggs@test.com", authentication.getUserAttributes().getFirst("secondary_email"));
         userInfo = userDatabase.getUserInfo(user.getId());
         assertNotNull(userInfo);
-        assertEquals("marissa.bloggs@test.com", userInfo.getFirst("secondary_email"));
+        assertEquals("marissa.bloggs@test.com", userInfo.getUserAttributes().getFirst("secondary_email"));
+        assertNotNull(userInfo.getRoles());
+        assertEquals(1, userInfo.getRoles().size());
+        assertEquals(SAML_ADMIN, userInfo.getRoles().get(0));
     }
 
     @Test
