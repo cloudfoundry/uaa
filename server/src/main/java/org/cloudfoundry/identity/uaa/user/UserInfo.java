@@ -61,8 +61,17 @@ public class UserInfo {
 
         UserInfo userInfo = (UserInfo) o;
 
-        if (getRoles() != null ? !getRoles().equals(userInfo.getRoles()) : userInfo.getRoles() != null) return false;
+        if (!compareRoles(getRoles(), ((UserInfo) o).getRoles())) return false;
         return getUserAttributes() != null ? getUserAttributes().equals(userInfo.getUserAttributes()) : userInfo.getUserAttributes() == null;
+    }
+
+    protected boolean compareRoles(List<String> l1, List<String> l2) {
+        if (l1==null && l2==null) {
+            return true;
+        } else if (l1==null || l2==null) {
+            return false;
+        }
+        return l1.containsAll(l2) && l2.containsAll(l1);
     }
 
     @Override
