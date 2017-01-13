@@ -185,7 +185,7 @@ public class InvitationsIT {
     }
 
     @Test
-    public void testInsecurePasswordDisplaysErrorMessageAndNotInvalidateLink() throws Exception {
+    public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
         String code = createInvitation();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
@@ -196,7 +196,6 @@ public class InvitationsIT {
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
         assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), containsString("Password must be no more than 255 characters in length."));
-        webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         webDriver.findElement(By.name("password"));
         webDriver.findElement(By.name("password_confirmation"));
     }
