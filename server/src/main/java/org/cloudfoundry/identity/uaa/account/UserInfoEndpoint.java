@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 
 
@@ -82,7 +81,6 @@ public class UserInfoEndpoint implements InitializingBean {
             UserInfo info = userDatabase.getUserInfo(user.getId());
             if (info!=null) {
                 response.setAttributeValue(USER_ATTRIBUTES, info.getUserAttributes());
-                response.setAttributeValue(ROLES, info.getRoles());
             }
         }
         return response;
