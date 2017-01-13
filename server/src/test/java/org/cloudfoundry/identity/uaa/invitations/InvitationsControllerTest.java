@@ -441,12 +441,22 @@ public class InvitationsControllerTest {
     @Test
     public void testAcceptInviteWithContraveningPassword() throws Exception {
         doThrow(new InvalidPasswordException(Arrays.asList("Msg 2c", "Msg 1c"))).when(passwordValidator).validate("a");
-        MockHttpServletRequestBuilder post = startAcceptInviteFlow("a");
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("a", "a");
 
+        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        when(expiringCodeStore.retrieveCode("thecode")).thenReturn(new ExpiringCode("thecode", new Timestamp(1), "{\"origin\":\"uaa\"}", "intent"), null);
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(OriginKeys.UAA);
+        when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), anyString())).thenReturn(createCode(codeData));
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
             .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
+            .andExpect(model().attribute("code", "code"))
+            .andExpect(model().attribute("provider", OriginKeys.UAA))
             .andExpect(view().name("invitations/accept_invite"));
+        verify(expiringCodeStore).retrieveCode("thecode");
+        verify(expiringCodeStore).generateCode(anyString(),anyObject(),anyString());
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
     }
 
@@ -454,7 +464,7 @@ public class InvitationsControllerTest {
     public void testAcceptInvite() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com","fname", "lname");
         user.setPrimaryEmail(user.getUserName());
-        MockHttpServletRequestBuilder post = startAcceptInviteFlow("passw0rd");
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("passw0rd","passw0rd");
 
         when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
 
@@ -465,7 +475,7 @@ public class InvitationsControllerTest {
         verify(invitationsService).acceptInvitation(anyString(), eq("passw0rd"));
     }
 
-    private MockHttpServletRequestBuilder startAcceptInviteFlow(String password) {
+    private MockHttpServletRequestBuilder startAcceptInviteFlow(String password, String passwordConfirmation) {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
@@ -473,7 +483,7 @@ public class InvitationsControllerTest {
         return post("/invitations/accept.do")
             .param("code","thecode")
             .param("password", password)
-            .param("password_confirmation", password);
+            .param("password_confirmation", passwordConfirmation);
     }
 
     @Test
@@ -539,22 +549,19 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInviteWithoutMatchingPasswords() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
-        SecurityContextHolder.getContext().setAuthentication(token);
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("a","b");
 
-        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
-            .param("code", "thecode")
-            .param("password", "password")
-            .param("password_confirmation", "does not match");
-
+        Map<String,String> codeData = getInvitationsCode("test-oidc");
+        when(expiringCodeStore.retrieveCode("thecode")).thenReturn(new ExpiringCode("thecode", new Timestamp(1), "data", "intent"), null);
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), anyString())).thenReturn(createCode(codeData));
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
             .andExpect(model().attribute("error_message_code", "form_error"))
-            .andExpect(model().attribute("email", "user@example.com"))
+            .andExpect(model().attribute("code", "code"))
             .andExpect(view().name("invitations/accept_invite"));
-
-        verifyZeroInteractions(invitationsService);
+        verify(expiringCodeStore).retrieveCode("thecode");
+        verify(expiringCodeStore).generateCode(anyString(),anyObject(),anyString());
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
     }
 
 
