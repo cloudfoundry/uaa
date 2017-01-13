@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.mock.clients;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -12,7 +11,6 @@ import org.junit.Test;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -20,7 +18,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +54,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
+public class ClientAdminEndpointsDocs extends AdminClientCreator {
     private String clientAdminToken;
 
     private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client. To support secret rotation this can be space delimited string of two secrets.");
@@ -299,8 +296,8 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         // CREATE
 
         List<String> scopes = Arrays.asList("clients.read", "clients.write");
-        BaseClientDetails createdClientDetails1 = createBaseClient(null, null, scopes, scopes);
-        BaseClientDetails createdClientDetails2 = createBaseClient(null, null, scopes, scopes);
+        BaseClientDetails createdClientDetails1 = createBasicClientWithAdditionalInformation(scopes);
+        BaseClientDetails createdClientDetails2 = createBasicClientWithAdditionalInformation(scopes);
 
         ResultActions createResultActions = getMockMvc().perform(post("/oauth/clients/tx")
             .contentType(APPLICATION_JSON)
@@ -405,7 +402,7 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
             entry("client_id", createdClientDetails2.getClientId())
         );
 
-        BaseClientDetails createdClientDetails3 = createBaseClient(null, null, scopes, scopes);
+        BaseClientDetails createdClientDetails3 = createBasicClientWithAdditionalInformation(scopes);
         ClientDetailsModification modify3 = new ClientDetailsModification(createdClientDetails3);
         modify3.setAction(ClientDetailsModification.ADD);
 
@@ -456,43 +453,30 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
             );
     }
 
-    private ResultActions createClientHelper() throws Exception {
-        List<String> scopes = Arrays.asList("clients.read", "clients.write");
+    private BaseClientDetails createBasicClientWithAdditionalInformation(List<String> scopes) {
         BaseClientDetails clientDetails = createBaseClient(null, null, scopes, scopes);
+        clientDetails.setAdditionalInformation(additionalInfo());
+        return clientDetails;
+    }
 
+    private ResultActions createClientHelper() throws Exception {
         return getMockMvc().perform(post("/oauth/clients")
             .header("Authorization", "Bearer " + clientAdminToken)
             .contentType(APPLICATION_JSON)
             .accept(APPLICATION_JSON)
-            .content(writeValueAsString(clientDetails)))
+            .content(writeValueAsString(
+                createBasicClientWithAdditionalInformation(Arrays.asList("clients.read", "clients.write"))
+            )))
             .andExpect(status().isCreated());
     }
 
-    private BaseClientDetails createBaseClient(String id, Collection<String> grantTypes, List<String> authorities, List<String> scopes) {
-        if (id == null) {
-            id = new RandomValueStringGenerator().generate();
-        }
-        if (grantTypes == null) {
-            grantTypes = Collections.singleton("client_credentials");
-        }
-        BaseClientDetails client = new BaseClientDetails();
-        client.setClientId(id);
-        client.setScope(scopes);
-        client.setAuthorizedGrantTypes(grantTypes);
-        if (authorities != null) {
-            client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
-        }
-        client.setClientSecret("secret");
-        client.setAccessTokenValiditySeconds(2700);
-        client.setRefreshTokenValiditySeconds(7000);
-
+    private Map<String, Object> additionalInfo() {
         Map<String, Object> additionalInformation = new HashMap<>();
         additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http*://ant.path.wildcard/**/passback/*"));
         additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, "my-saml-provider"));
         additionalInformation.put(ClientConstants.CLIENT_NAME, "My Client Name");
         additionalInformation.put(ClientConstants.AUTO_APPROVE, true);
         additionalInformation.put(ClientConstants.TOKEN_SALT, new RandomValueStringGenerator().generate());
-        client.setAdditionalInformation(additionalInformation);
-        return client;
+        return additionalInformation;
     }
 }

@@ -15,8 +15,10 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
+import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -24,6 +26,8 @@ import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
@@ -50,6 +54,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     private static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
 
+    private static final String GET_CREATED_BY_SQL = "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
     private static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
             + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
             + "refresh_token_validity, additional_information, autoapprove, lastmodified";
@@ -64,7 +69,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
-            + ", client_id, identity_zone_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
@@ -125,7 +130,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     public void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException {
         try {
-            jdbcTemplate.update(insertClientDetailsSql, getFields(clientDetails));
+            jdbcTemplate.update(insertClientDetailsSql, getInsertClientDetailsFields(clientDetails));
         } catch (DuplicateKeyException e) {
             throw new ClientAlreadyExistsException("Client already exists: " + clientDetails.getClientId(), e);
         }
@@ -156,13 +161,14 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         return listFactory.getList(findClientDetailsSql, Collections.<String, Object> singletonMap("identityZoneId",IdentityZoneHolder.get().getId()), rowMapper);
     }
 
-    private Object[] getFields(ClientDetails clientDetails) {
+    private Object[] getInsertClientDetailsFields(ClientDetails clientDetails) {
         Object[] fieldsForUpdate = getFieldsForUpdate(clientDetails);
-        Object[] fields = new Object[fieldsForUpdate.length + 1];
-        System.arraycopy(fieldsForUpdate, 0, fields, 1, fieldsForUpdate.length);
-        fields[0] = clientDetails.getClientSecret() != null ? passwordEncoder.encode(clientDetails.getClientSecret())
+        Object[] clientDetailFieldsForUpdate = new Object[fieldsForUpdate.length + 2];
+        System.arraycopy(fieldsForUpdate, 0, clientDetailFieldsForUpdate, 1, fieldsForUpdate.length);
+        clientDetailFieldsForUpdate[0] = clientDetails.getClientSecret() != null ? passwordEncoder.encode(clientDetails.getClientSecret())
                 : null;
-        return fields;
+        clientDetailFieldsForUpdate[clientDetailFieldsForUpdate.length - 1] = getUserId();
+        return clientDetailFieldsForUpdate;
     }
 
     private Object[] getFieldsForUpdate(ClientDetails clientDetails) {
@@ -348,4 +354,22 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         return 0;
     }
 
+    protected String getUserId() {
+        String userId = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        //Bootstrap will not have authenticated session
+        if(authentication == null) return null;
+        if(authentication.getPrincipal() instanceof UaaPrincipal) {
+            userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
+        } else if(authentication.getPrincipal() instanceof String) {
+            ContextSensitiveOAuth2SecurityExpressionMethods contextSensitiveOAuth2SecurityExpressionMethods = new ContextSensitiveOAuth2SecurityExpressionMethods(authentication);
+            userId = getCreatedByForClientAndZone((String)authentication.getPrincipal(), contextSensitiveOAuth2SecurityExpressionMethods.getAuthenticationZoneId());
+        }
+        return userId;
+    }
+
+    String getCreatedByForClientAndZone(String clientId, String zoneId) {
+        return jdbcTemplate.queryForObject(GET_CREATED_BY_SQL, new Object[]{clientId, zoneId}, String.class);
+    }
 }
