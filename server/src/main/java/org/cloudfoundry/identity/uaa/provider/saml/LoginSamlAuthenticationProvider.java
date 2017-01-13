@@ -167,6 +167,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             userDatabase.storeUserInfo(user.getId(),
                                        new UserInfo()
                                            .setUserAttributes(resultUaaAuthentication.getUserAttributes())
+                                           .setRoles(new LinkedList(resultUaaAuthentication.getExternalGroups()))
             );
         }
         return resultUaaAuthentication;
