@@ -335,6 +335,11 @@ task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
   dependsOn = [test]
 }
 
+task jacocoRootReportServerTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  configure jacocoRootReportConfiguration
+  dependsOn(':cloudfoundry-identity-server:test')
+}
+
 
 coveralls {
   sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
