@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManag
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -184,6 +185,44 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         testClient = new TestClient();
 
         super.setUpContext();
+    }
+
+    @Test
+    public void test_logon_timestamps_with_password_grant() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        ScimUser scimUser = provisioning.retrieve(user.getId());
+        assertNull(scimUser.getLastLogonTime());
+        assertNull(scimUser.getPreviousLogonTime());
+
+        doPasswordGrant(username);
+        scimUser = provisioning.retrieve(user.getId());
+        assertNotNull(scimUser.getLastLogonTime());
+        assertNull(scimUser.getPreviousLogonTime());
+
+        long lastLogonTime = scimUser.getLastLogonTime();
+        doPasswordGrant(username);
+        scimUser = provisioning.retrieve(user.getId());
+        assertNotNull(scimUser.getLastLogonTime());
+        assertNotNull(scimUser.getPreviousLogonTime());
+        assertEquals(lastLogonTime, (long)scimUser.getPreviousLogonTime());
+        assertTrue(scimUser.getLastLogonTime() > scimUser.getPreviousLogonTime());
+
+    }
+
+    public void doPasswordGrant(String username) throws Exception {
+        getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", username)
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isOk());
     }
 
     @Test

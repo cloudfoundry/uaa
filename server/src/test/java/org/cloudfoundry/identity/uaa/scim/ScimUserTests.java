@@ -89,6 +89,16 @@ public class ScimUserTests {
     }
 
     @Test
+    public void test_logon_timestamps_are_null() {
+        String oldJson = "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+        for (String json : Arrays.asList(oldJson, JsonUtils.writeValueAsString(new ScimUser()))) {
+            ScimUser user = JsonUtils.readValue(json, ScimUser.class);
+            assertNull(json, user.getPreviousLogonTime());
+            assertNull(json, user.getLastLogonTime());
+        }
+    }
+
+    @Test
     public void testDeserializeNullPasswordLastModified() {
         String json = "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
         JsonUtils.readValue(json, ScimUser.class);
@@ -478,6 +488,21 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         assertTrue(user.isVerified());
     }
+
+    @Test
+    public void test_patch_last_logon() {
+        patch.setLastLogonTime(System.currentTimeMillis());
+        user.patch(patch);
+        assertNull(user.getLastLogonTime());
+    }
+
+    @Test
+    public void test_patch_previous_logon() {
+        patch.setPreviousLogonTime(System.currentTimeMillis());
+        user.patch(patch);
+        assertNull(user.getPreviousLogonTime());
+    }
+
 
     @Test
     public void testPatchUserSetPrimaryEmail() {
