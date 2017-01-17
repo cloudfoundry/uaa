@@ -47,7 +47,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     private static Log logger = LogFactory.getLog(JdbcUaaUserDatabase.class);
 
-    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required,last_logon_success_time ";
+    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required,last_logon_success_time,previous_logon_success_time ";
 
     public static final String PRE_DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users where %s = ? and active=? and origin=? and identity_zone_id=?";
     public static final String DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY = String.format(PRE_DEFAULT_USER_BY_USERNAME_QUERY, "lower(username)");
@@ -56,7 +56,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public static final String PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY = "select " + USER_FIELDS + "from users where %s=? and active=? and origin=? and identity_zone_id=?";
     public static final String DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "lower(email)");
     public static final String DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "email");
-    public static final String DEFAULT_UPDATE_USER_LAST_LOGON = "update users set last_logon_success_time = ? where id = ? and identity_zone_id=?";
+    public static final String DEFAULT_UPDATE_USER_LAST_LOGON = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = ? and identity_zone_id=?";
 
     public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users where id = ? and active=? and identity_zone_id=?";
     private final TimeService timeService;
@@ -182,24 +182,35 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
             String id = rs.getString("id");
             UaaUserPrototype prototype = new UaaUserPrototype().withId(id)
-                    .withUsername(rs.getString("username"))
-                    .withPassword(rs.getString("password"))
-                    .withEmail(rs.getString("email"))
-                    .withGivenName(rs.getString("givenName"))
-                    .withFamilyName(rs.getString("familyName"))
-                    .withCreated(rs.getTimestamp("created"))
-                    .withModified(rs.getTimestamp("lastModified"))
-                    .withOrigin(rs.getString("origin"))
-                    .withExternalId(rs.getString("external_id"))
-                    .withVerified(rs.getBoolean("verified"))
-                    .withZoneId(rs.getString("identity_zone_id"))
-                    .withSalt(rs.getString("salt"))
-                    .withPasswordLastModified(rs.getTimestamp("passwd_lastmodified"))
-                    .withPhoneNumber(rs.getString("phoneNumber"))
-                    .withLegacyVerificationBehavior(rs.getBoolean("legacy_verification_behavior"))
-                    .withPasswordChangeRequired(rs.getBoolean("passwd_change_required"))
-                    .withLastLogonSuccess(rs.getLong("last_logon_success_time"))
-                    ;
+                .withUsername(rs.getString("username"))
+                .withPassword(rs.getString("password"))
+                .withEmail(rs.getString("email"))
+                .withGivenName(rs.getString("givenName"))
+                .withFamilyName(rs.getString("familyName"))
+                .withCreated(rs.getTimestamp("created"))
+                .withModified(rs.getTimestamp("lastModified"))
+                .withOrigin(rs.getString("origin"))
+                .withExternalId(rs.getString("external_id"))
+                .withVerified(rs.getBoolean("verified"))
+                .withZoneId(rs.getString("identity_zone_id"))
+                .withSalt(rs.getString("salt"))
+                .withPasswordLastModified(rs.getTimestamp("passwd_lastmodified"))
+                .withPhoneNumber(rs.getString("phoneNumber"))
+                .withLegacyVerificationBehavior(rs.getBoolean("legacy_verification_behavior"))
+                .withPasswordChangeRequired(rs.getBoolean("passwd_change_required"))
+                ;
+
+            Long lastLogon = rs.getLong("last_logon_success_time");
+            if (rs.wasNull()) {
+                lastLogon = null;
+            }
+            Long previousLogon = rs.getLong("previous_logon_success_time");
+            if (rs.wasNull()) {
+                previousLogon = null;
+            }
+            prototype.withLastLogonSuccess(lastLogon)
+                .withPreviousLogonSuccess(previousLogon);
+
 
             List<GrantedAuthority> authorities =
                 AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(id));

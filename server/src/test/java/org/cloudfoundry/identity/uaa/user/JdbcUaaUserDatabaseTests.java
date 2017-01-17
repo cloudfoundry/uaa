@@ -313,15 +313,17 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void testUpdateLastLogonTime() {
+    public void testUpdatePreviousAndLastLogonTime() {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         db.updateLastLogonTime(JOE_ID);
         UaaUser joe = db.retrieveUserById(JOE_ID);
         assertEquals((long) joe.getLastLogonTime(), 1000L);
+        assertNull(joe.getPreviousLogonTime());
 
         when(timeService.getCurrentTimeMillis()).thenReturn(2000L);
         db.updateLastLogonTime(JOE_ID);
         joe = db.retrieveUserById(JOE_ID);
+        assertEquals((long) joe.getPreviousLogonTime(), 1000L);
         assertEquals((long) joe.getLastLogonTime(), 2000L);
     }
 

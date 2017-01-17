@@ -338,6 +338,8 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     private Date passwordLastModified = null;
 
+    private Long previousLogonTime = null;
+
     private Long lastLogonTime = null;
 
     @JsonProperty
@@ -552,6 +554,15 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     public ScimUser setLastLogonTime(Long lastLogonTime) {
         this.lastLogonTime = lastLogonTime;
+        return this;
+    }
+
+    public Long getPreviousLogonTime() {
+        return previousLogonTime;
+    }
+
+    public ScimUser setPreviousLogonTime(Long previousLogonTime) {
+        this.previousLogonTime = previousLogonTime;
         return this;
     }
 

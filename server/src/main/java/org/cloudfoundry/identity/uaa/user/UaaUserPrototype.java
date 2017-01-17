@@ -57,6 +57,8 @@ public final class UaaUserPrototype {
 
     private Long lastLogonTime;
 
+    private Long previousLogonTime;
+
     public String getId() {
         return id;
     }
@@ -224,5 +226,14 @@ public final class UaaUserPrototype {
     public UaaUserPrototype withLastLogonSuccess(Long lastLogonTime) {
         this.lastLogonTime = lastLogonTime;
         return this;
+    }
+
+    public UaaUserPrototype withPreviousLogonSuccess(Long previousLogonTime) {
+        this.previousLogonTime = previousLogonTime;
+        return this;
+    }
+
+    public Long getPreviousLogonTime() {
+        return previousLogonTime;
     }
 }

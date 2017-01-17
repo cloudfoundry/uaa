@@ -28,7 +28,9 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -73,10 +75,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return logger;
     }
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified,last_logon_success_time";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified,last_logon_success_time,previous_logon_success_time";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=? and identity_zone_id=?";
 
@@ -94,7 +96,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where id=? and identity_zone_id=?";
 
-    public static final String UPDATE_LAST_LOGON_TIME_SQL = "update users set last_logon_success_time=? where id=? and identity_zone_id=?";
+    public static final String UPDATE_LAST_LOGON_TIME_SQL = JdbcUaaUserDatabase.DEFAULT_UPDATE_USER_LAST_LOGON;
 
     public static final String READ_PASSWORD_CHANGE_REQUIRED_SQL = "select passwd_change_required from users where id=? and identity_zone_id=?";
 
@@ -124,11 +126,17 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
 
+    private TimeService timeService = new TimeServiceImpl();
+
     public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new ScimSearchQueryConverter());
+    }
+
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 
     @Override
@@ -210,7 +218,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
                     ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
                     ps.setNull(17, Types.BIGINT);
-                    ps.setString(18, user.getPassword());
+                    ps.setNull(18, Types.BIGINT);
+                    ps.setString(19, user.getPassword());
                 }
 
             });
@@ -492,6 +501,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             String salt = rs.getString("salt");
             Date passwordLastModified = rs.getTimestamp("passwd_lastmodified");
             Long lastLogonTime = (Long) rs.getObject("last_logon_success_time");
+            Long previousLogonTime = (Long) rs.getObject("previous_logon_success_time");
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -516,6 +526,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             user.setSalt(salt);
             user.setPasswordLastModified(passwordLastModified);
             user.setLastLogonTime(lastLogonTime);
+            user.setPreviousLogonTime(previousLogonTime);
             return user;
         }
     }
@@ -536,6 +547,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public void updateLastLogonTime(String id) {
-        jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, new TimeService().getCurrentTimeMillis(), id, IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, new TimeServiceImpl().getCurrentTimeMillis(), id, IdentityZoneHolder.get().getId());
     }
 }
