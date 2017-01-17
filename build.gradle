@@ -312,6 +312,7 @@ def jacocoRootReportConfiguration = {
   reports {
     html.enabled = true
     xml.enabled = true
+    xml.destination = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
     csv.enabled = false
   }
   onlyIf = {
