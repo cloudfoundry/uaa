@@ -547,6 +547,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public void updateLastLogonTime(String id) {
-        jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, new TimeServiceImpl().getCurrentTimeMillis(), id, IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, IdentityZoneHolder.get().getId());
     }
 }
