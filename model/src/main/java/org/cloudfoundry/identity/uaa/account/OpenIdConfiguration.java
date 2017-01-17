@@ -33,7 +33,7 @@ public class OpenIdConfiguration {
     @JsonProperty("jwks_uri")
     private String jwksUri;
     @JsonProperty("scopes_supported")
-    private String[] scopes = new String[]{"openid", "profile", "email", "phone"};
+    private String[] scopes = new String[]{"openid", "profile", "email", "phone", "roles", "user_attributes"};
     @JsonProperty("response_types_supported")
     private String[] responseTypes = new String[]{"code", "code id_token", "id_token", "token id_token"};
     @JsonProperty("subject_types_supported")
