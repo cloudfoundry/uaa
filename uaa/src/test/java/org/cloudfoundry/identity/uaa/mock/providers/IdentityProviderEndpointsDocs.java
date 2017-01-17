@@ -121,7 +121,11 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor ADDITIONAL_CONFIGURATION = fieldWithPath("config.additionalConfiguration").optional(null).type(OBJECT).description("(Unused.)");
     private static final SnippetUtils.ConstrainableField VERSION = (SnippetUtils.ConstrainableField) fieldWithPath("version").type(NUMBER).description(VERSION_DESC);
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("<small><mark>UAA 3.4.0</mark></small> Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
-    private final String ldapServerUrl = "ldap://localhost:33389";
+
+    private static final int LDAP_PORT = 23389;
+    private static final int LDAPS_PORT = 23636;
+    private final String ldapServerUrl = "ldap://localhost:"+LDAP_PORT;
+
 
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
@@ -145,7 +149,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     @BeforeClass
     public static void startApacheDS() throws Exception {
-        apacheDS = ApacheDSHelper.start();
+        apacheDS = ApacheDSHelper.start(LDAP_PORT, LDAPS_PORT);
     }
 
     private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");
