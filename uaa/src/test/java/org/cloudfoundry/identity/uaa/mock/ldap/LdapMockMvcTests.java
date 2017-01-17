@@ -115,6 +115,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class LdapMockMvcTests  {
 
 
+    private static int ldapPortRotation = 0;
     private String host;
     private static WebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
@@ -805,8 +806,8 @@ public class LdapMockMvcTests  {
 
     @Test
     public void testTwoLdapServers() throws Exception {
-        int port = 43390 + new Random(System.currentTimeMillis()).nextInt(300);
-        int sslPort = port + 300;
+        int port = 33389 + 400 + (ldapPortRotation++);
+        int sslPort = 33636 + 400 + (ldapPortRotation++);
         apacheDS2 = ApacheDSHelper.start(port,sslPort);
         String originalUrl = ldapBaseUrl;
         if (ldapBaseUrl.contains("ldap://")) {
@@ -832,6 +833,7 @@ public class LdapMockMvcTests  {
                 apacheDS2.stop();
             }
             apacheDS2 = null;
+            Thread.sleep(1500);
             apacheDS = ApacheDSHelper.start();
         }
     }
