@@ -138,8 +138,9 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static ApacheDsSSLContainer apacheDS;
 
     @AfterClass
-    public static void afterClass() {
+    public static void afterClass() throws Exception {
         apacheDS.stop();
+        Thread.sleep(1500);
     }
 
     @BeforeClass
