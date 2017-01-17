@@ -8,6 +8,8 @@ import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -36,7 +38,7 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
         assertArrayEquals(new String[]{"client_secret_basic", "client_secret_post"}, openIdConfiguration.getTokenAMR());
         assertArrayEquals(new String[]{"RS256", "HS256"}, openIdConfiguration.getTokenEndpointAuthSigningValues());
         assertEquals("http://subdomain.localhost/userInfo", openIdConfiguration.getUserInfoUrl());
-        assertArrayEquals(new String[]{"openid", "profile", "email", "phone"}, openIdConfiguration.getScopes());
+        assertArrayEquals(new String[]{"openid", "profile", "email", "phone", ROLES, USER_ATTRIBUTES}, openIdConfiguration.getScopes());
         assertArrayEquals(new String[]{"code", "code id_token", "id_token", "token id_token"}, openIdConfiguration.getResponseTypes());
         assertArrayEquals(new String[]{"RS256", "HS256"}, openIdConfiguration.getIdTokenSigningAlgValues());
         assertArrayEquals(new String[]{"normal"}, openIdConfiguration.getClaimTypesSupported());
