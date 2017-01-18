@@ -13,6 +13,10 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation.PasswordConfirmationException;
+import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -30,7 +34,11 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.sql.Timestamp;
 
 import static junit.framework.TestCase.assertNull;
 import static org.junit.Assert.assertEquals;
@@ -63,6 +71,7 @@ public class ResetPasswordAuthenticationFilterTest {
     private AuthenticationSuccessHandler authenticationSuccessHandler;
     private AuthenticationEntryPoint entryPoint;
     private String email;
+    private InMemoryExpiringCodeStore codeStore;
 
     @Before
     @After
@@ -72,7 +81,9 @@ public class ResetPasswordAuthenticationFilterTest {
 
     @Before
     public void setup() throws Exception {
-        code = "12345";
+        codeStore = new InMemoryExpiringCodeStore();
+        code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10*60*1000), "").getCode();
+
         password = "test";
         passwordConfirmation = "test";
         email = "test@test.org";
@@ -90,10 +101,10 @@ public class ResetPasswordAuthenticationFilterTest {
         service = mock(ResetPasswordService.class);
         user = new ScimUser("id", "username", "first name", "last name");
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "/", null);
-        when(service.resetPassword(eq(code), eq(password))).thenReturn(resetPasswordResponse);
+        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
         authenticationSuccessHandler = mock(AuthenticationSuccessHandler.class);
         entryPoint = mock(AuthenticationEntryPoint.class);
-        filter = new ResetPasswordAuthenticationFilter(service, authenticationSuccessHandler, entryPoint);
+        filter = new ResetPasswordAuthenticationFilter(service, authenticationSuccessHandler, entryPoint, codeStore);
     }
 
     @Test
@@ -105,7 +116,7 @@ public class ResetPasswordAuthenticationFilterTest {
     public void test_happy_day_password_reset_with_redirect() throws Exception {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "http://test.com", null);
-        when(service.resetPassword(eq(code), eq(password))).thenReturn(resetPasswordResponse);
+        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
         happy_day_password_reset(resetPasswordResponse.getRedirectUri());
     }
 
@@ -113,7 +124,7 @@ public class ResetPasswordAuthenticationFilterTest {
     public void test_happy_day_password_reset_with_null_redirect() throws Exception {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, null, null);
-        when(service.resetPassword(eq(code), eq(password))).thenReturn(resetPasswordResponse);
+        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
         happy_day_password_reset(resetPasswordResponse.getRedirectUri());
     }
 
@@ -121,7 +132,7 @@ public class ResetPasswordAuthenticationFilterTest {
     public void test_happy_day_password_reset_with_home_redirect() throws Exception {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "home", null);
-        when(service.resetPassword(eq(code), eq(password))).thenReturn(resetPasswordResponse);
+        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
         happy_day_password_reset(null);
     }
 
@@ -129,7 +140,7 @@ public class ResetPasswordAuthenticationFilterTest {
     public void happy_day_password_reset(String redirectUri) throws Exception {
         filter.doFilterInternal(request, response, chain);
         //do our assertion
-        verify(service, times(1)).resetPassword(eq(code), eq(password));
+        verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
         verify(authenticationSuccessHandler, times(1)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
         verify(chain, times(0)).doFilter(anyObject(), anyObject());
@@ -141,7 +152,7 @@ public class ResetPasswordAuthenticationFilterTest {
     @Test
     public void invalid_password_confirmation() throws Exception {
         request.setParameter("password_confirmation", "invalid");
-        Exception e = error_during_password_reset(new PasswordConfirmationException(null,null));
+        Exception e = error_during_password_reset(PasswordConfirmationException.class);
         assertTrue(e instanceof AuthenticationException);
         assertNotNull(e.getCause());
         assertTrue(e.getCause() instanceof PasswordConfirmationException);
@@ -155,22 +166,27 @@ public class ResetPasswordAuthenticationFilterTest {
     public void error_during_password_reset_uaa_exception() throws Exception {
         reset(service);
         UaaException failed = new UaaException("failed");
-        when(service.resetPassword(anyString(), anyString())).thenThrow(failed);
-        error_during_password_reset(failed);
-        verify(service, times(1)).resetPassword(eq(code), eq(password));
+        when(service.resetPassword(any(ExpiringCode.class), anyString())).thenThrow(failed);
+        error_during_password_reset(failed.getClass());
+        verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
     }
 
     @Test
     public void error_during_password_reset_invalid_password_exception() throws Exception {
         reset(service);
         InvalidPasswordException failed = new InvalidPasswordException("failed", HttpStatus.BAD_REQUEST);
-        when(service.resetPassword(anyString(), anyString())).thenThrow(failed);
-        error_during_password_reset(failed);
-        verify(service, times(1)).resetPassword(eq(code), eq(password));
+        when(service.resetPassword(any(ExpiringCode.class), anyString())).thenThrow(failed);
+        error_during_password_reset(failed.getClass());
+        verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
     }
 
+    @Test
+    public void invalid_code_password_reset() throws Exception {
+        request.setParameter("code", "invalid");
+        error_during_password_reset(InvalidCodeException.class);
+    }
 
-    public AuthenticationException error_during_password_reset(Exception failed) throws Exception {
+    public AuthenticationException error_during_password_reset(Class<? extends Exception> failure) throws Exception {
         ArgumentCaptor<AuthenticationException> authenticationException = ArgumentCaptor.forClass(AuthenticationException.class);
         filter.doFilterInternal(request, response, chain);
 
@@ -180,7 +196,7 @@ public class ResetPasswordAuthenticationFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
 
         AuthenticationException exception = authenticationException.getValue();
-        assertSame(failed.getClass(), exception.getCause().getClass());
+        assertSame(failure, exception.getCause().getClass());
 
         return exception;
     }

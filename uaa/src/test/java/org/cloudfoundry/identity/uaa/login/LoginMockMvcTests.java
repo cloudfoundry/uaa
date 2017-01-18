@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -79,6 +81,7 @@ import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -1598,11 +1601,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         inviteContext.setAuthentication(inviteToken);
         inviteSession.setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
 
+        ExpiringCode code = getWebApplicationContext().getBean(ExpiringCodeStore.class).generateCode("{ \"origin\" : \"uaa\"}", new Timestamp(System.currentTimeMillis() + 1000 * 60), null);
+
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .session(inviteSession)
             .with(csrf())
-            .param("code","thecode")
+            .param("code",code.getCode())
             .param("client_id", "random")
             .param("password", "password")
             .param("password_confirmation", "yield_unprocessable_entity");

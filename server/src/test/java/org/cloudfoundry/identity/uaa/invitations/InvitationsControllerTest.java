@@ -172,7 +172,7 @@ public class InvitationsControllerTest {
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
-        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));;
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));;
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
             .param("code", "the_secret_code");
@@ -184,7 +184,6 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedSamlUser() throws Exception {
         Map<String,String> codeData = getInvitationsCode("test-saml");
-        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(createCode(codeData));
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(createCode(codeData));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(createCode(codeData));
         IdentityProvider provider = new IdentityProvider();
@@ -212,7 +211,6 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedOIDCUser() throws Exception {
         Map<String,String> codeData = getInvitationsCode("test-oidc");
-        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(createCode(codeData));
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(createCode(codeData));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(createCode(codeData));
 
@@ -238,7 +236,6 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
         Map<String, String> codeData = getInvitationsCode(LDAP);
-        when(expiringCodeStore.checkCode("the_secret_code")).thenReturn(createCode(codeData));
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(createCode(codeData));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(createCode(codeData));
 
@@ -552,7 +549,10 @@ public class InvitationsControllerTest {
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a","b");
 
         Map<String,String> codeData = getInvitationsCode("test-oidc");
-        when(expiringCodeStore.retrieveCode("thecode")).thenReturn(new ExpiringCode("thecode", new Timestamp(1), "data", "intent"), null);
+        when(expiringCodeStore.retrieveCode("thecode")).thenReturn(new ExpiringCode("thecode", new Timestamp(1), "{\"origin\":\"uaa\"}", "intent"), null);
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(OriginKeys.UAA);
+        when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
         when(expiringCodeStore.generateCode(anyString(), anyObject(), anyString())).thenReturn(createCode(codeData));
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
