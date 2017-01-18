@@ -17,6 +17,7 @@ import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.http.client.utils.URIBuilder;
+import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.provider.saml.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
@@ -59,6 +60,7 @@ public class SamlServiceProviderConfigurator {
     private BasicParserPool parserPool;
     private Set<String> supportedNameIDs = new HashSet<>(Arrays.asList(NameIDType.EMAIL, NameIDType.PERSISTENT,
             NameIDType.UNSPECIFIED));
+    private UrlContentCache contentCache;
 
     private Timer dummyTimer = new Timer() {
 
@@ -102,6 +104,15 @@ public class SamlServiceProviderConfigurator {
             // Do nothing.
         }
     };
+
+    public UrlContentCache getContentCache() {
+        return contentCache;
+    }
+
+    public SamlServiceProviderConfigurator setContentCache(UrlContentCache contentCache) {
+        this.contentCache = contentCache;
+        return this;
+    }
 
     public SamlServiceProviderConfigurator() {
         dummyTimer.cancel();
@@ -273,7 +284,8 @@ public class SamlServiceProviderConfigurator {
             fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(
                 dummyTimer, getClientParams(),
                 adjustURIForPort(def.getMetaDataLocation()),
-                new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation()))
+                new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation())),
+                this.contentCache
 
             );
         } catch (URISyntaxException e) {

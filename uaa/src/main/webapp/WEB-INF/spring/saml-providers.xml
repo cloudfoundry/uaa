@@ -305,6 +305,7 @@
         <property name="clientParams" ref="httpClientParams" />
         <property name="parserPool" ref="parserPool"/>
         <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+        <property name="contentCache" ref="urlCache"/>
     </bean>
 
     <bean id="bootstrapMetaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator">

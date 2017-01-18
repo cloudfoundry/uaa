@@ -125,6 +125,7 @@
         class="org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator">
         <property name="clientParams" ref="httpClientParams" />
         <property name="parserPool" ref="parserPool"/>
+        <property name="contentCache" ref="urlCache"/>
     </bean>
 
     <bean id="serviceProviderChangedListener"
