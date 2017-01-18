@@ -138,22 +138,6 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public ExpiringCode checkCode(String code) {
-        cleanExpiredEntries();
-
-        if (code == null) {
-            throw new NullPointerException();
-        }
-
-        try {
-            ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code);
-            return expiringCode;
-        } catch (EmptyResultDataAccessException x) {
-            return null;
-        }
-    }
-
-    @Override
     public void setGenerator(RandomValueStringGenerator generator) {
         this.generator = generator;
     }

@@ -139,6 +139,7 @@
         <constructor-arg name="entryPoint" ref="resetPasswordEntryPoint"/>
         <constructor-arg name="handler" ref="accountSavingAuthenticationSuccessHandler"/>
         <constructor-arg name="service" ref="resetPasswordService"/>
+        <constructor-arg name="expiringCodeStore" ref="codeStore"/>
     </bean>
     <http name="resetPasswordSubmit"
           pattern="/reset_password.do"

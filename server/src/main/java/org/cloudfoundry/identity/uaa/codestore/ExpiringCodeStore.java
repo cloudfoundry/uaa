@@ -30,14 +30,6 @@ public interface ExpiringCodeStore {
     ExpiringCode generateCode(String data, Timestamp expiresAt, String intent);
 
     /**
-     * Lookup an ExpiringCode without deleting it
-     *
-     * @param code the one-time code to look for
-     * @return code the ExpiringCode, or null if code not found
-     */
-    ExpiringCode checkCode(String code);
-
-    /**
      * Retrieve a code and delete it if it exists.
      * 
      * @param code the one-time code to look for

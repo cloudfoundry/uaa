@@ -67,15 +67,6 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
         return expiringCode;
     }
 
-    @Override
-    public ExpiringCode checkCode(String code) {
-        ExpiringCode expiringCode = store.get(code);
-        if (expiringCode == null || isExpired(expiringCode)) {
-            return null;
-        }
-        return expiringCode;
-    }
-
     private boolean isExpired(ExpiringCode expiringCode) {
         return expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis();
     }
