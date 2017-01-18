@@ -327,8 +327,6 @@
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
     </http>
-    <bean id="savedRequestAwareAuthenticationDetailsSource"
-          class="org.cloudfoundry.identity.uaa.security.SavedRequestAwareAuthenticationDetailsSource"/>
 
     <bean id="errorMessageAuthenticationFailureHandler"
           class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
