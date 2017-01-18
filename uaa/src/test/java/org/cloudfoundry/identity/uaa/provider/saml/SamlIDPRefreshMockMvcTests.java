@@ -137,8 +137,6 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         zoneAwareMetadataManager = getWebApplicationContext().getBean(NonSnarlMetadataManager.class);
         zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         configurator = getWebApplicationContext().getBean(SamlIdentityProviderConfigurator.class);
-        //ensure that we don't fire the listener, we want to test the DB refresh
-        getWebApplicationContext().getBean(ProviderChangedListener.class).setMetadataManager(null);
         cleanSamlProviders();
 
     }
