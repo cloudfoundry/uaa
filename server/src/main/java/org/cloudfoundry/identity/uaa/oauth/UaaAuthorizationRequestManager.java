@@ -223,9 +223,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             Set<String> scopes = OAuth2Utils.parseParameterList(parameters.get("scope"));
             for (String scope : scopes) {
                 if (!matches(validWildcards, scope)) {
-                    throw new InvalidScopeException("Invalid scope: " + scope
-                                    + ". Did you know that you can get default requested scopes by simply sending no value?",
-                                    validScope);
+                    throw new InvalidScopeException(scope + " is invalid. Please use a valid scope name in the request");
                 }
             }
         }
