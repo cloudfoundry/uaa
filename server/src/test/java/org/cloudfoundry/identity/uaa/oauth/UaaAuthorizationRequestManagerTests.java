@@ -309,7 +309,7 @@ public class UaaAuthorizationRequestManagerTests {
           throw new AssertionError();
         }
         catch (InvalidScopeException ex) {
-          assertEquals("Invalid scope (empty) - this user is not allowed any of the requested scopes: [one, two] (either you requested a scope that was not allowed or client 'null' is not allowed to act on behalf of this user)", ex.getMessage());
+          assertEquals("[one, two] is invalid. This user is not allowed any of the requested scopes", ex.getMessage());
         }
     }
 

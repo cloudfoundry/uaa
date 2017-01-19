@@ -702,7 +702,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andExpect(status().isUnauthorized())
             .andReturn();
 
-        assertThat(result.getResponse().getErrorMessage(), containsString("Invalid scope (empty) - this user is not allowed any of the requested scopes: [something_else]"));
+        assertThat(result.getResponse().getErrorMessage(), containsString("[something_else] is invalid. This user is not allowed any of the requested scopes"));
     }
 
     @Test
@@ -1262,6 +1262,38 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
         MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
         String errorMessage = URIUtil.encodeQuery("scim.write is invalid. Please use a valid scope name in the request");
+        assertTrue(!queryParams.containsKey("scope"));
+        assertEquals(errorMessage, queryParams.getFirst("error_description"));
+    }
+
+    @Test
+    public void invalidScopeErrorMessageIsNotShowingAllUserScopes() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        String scopes = "openid,password.write,cloud_controller.read,scim.userids,password.write,something.else";
+        setUpClients(clientId, scopes, scopes, "authorization_code", true);
+
+        String username = "testuser"+ generator.generate();
+        ScimUser developer = setUpUser(username, "openid", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+
+        String state = generator.generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "something.else")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        MvcResult mvcResult = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+
+        UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
+        MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
+        String errorMessage = URIUtil.encodeQuery("[something.else] is invalid. This user is not allowed any of the requested scopes");
         assertTrue(!queryParams.containsKey("scope"));
         assertEquals(errorMessage, queryParams.getFirst("error_description"));
     }
