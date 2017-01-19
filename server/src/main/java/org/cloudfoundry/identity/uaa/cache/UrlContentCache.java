@@ -21,7 +21,7 @@ public interface UrlContentCache {
 
     /**
      * Retrieves and caches the content for a given URI by invoking
-     * {@link RestTemplate#getForObject(URI, Class<byte[]>)} method.
+     * {@link org.springframework.web.client.RestTemplate#getForObject(URI, Class)} method.
      * The template may throw {@link org.springframework.web.client.RestClientException} to indicate content not available
      * @param uri - must be a valid URI
      * @param template - RestTemplate used for content retrieval
@@ -37,7 +37,7 @@ public interface UrlContentCache {
 
     /**
      * Returns the current number of entries in the cache
-     * @return
+     * @return the number of entries in the cache
      */
     long size();
 }
