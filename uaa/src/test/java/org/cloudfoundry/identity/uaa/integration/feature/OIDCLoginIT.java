@@ -65,7 +65,6 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -333,15 +332,18 @@ public class OIDCLoginIT {
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
         config.setStoreCustomAttributes(true);
+
         config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
         config.setTokenUrl(new URL(urlBase + "/oauth/token"));
         config.setTokenKeyUrl(keyUrl==null ? new URL(urlBase + "/token_key") : new URL(keyUrl));
+        config.setIssuer(issuer);
+        config.setUserInfoUrl(new URL(urlBase+"/userinfo"));
+
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);
         config.setRelyingPartyId("identity");
         config.setRelyingPartySecret("identitysecret");
-        config.setIssuer(issuer);
         List<String> requestedScopes = new ArrayList<>();
         requestedScopes.add("openid");
         requestedScopes.add("cloud_controller.read");

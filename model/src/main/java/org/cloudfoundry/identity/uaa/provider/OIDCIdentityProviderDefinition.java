@@ -12,13 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider;
 
-import java.net.URL;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.net.URL;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> {
+public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
+implements Cloneable {
 
     private URL userInfoUrl;
     private URL discoveryUrl;
@@ -38,5 +39,31 @@ public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProvid
 
     public void setDiscoveryUrl(URL discoveryUrl) {
         this.discoveryUrl = discoveryUrl;
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
+
+        if (userInfoUrl != null ? !userInfoUrl.equals(that.userInfoUrl) : that.userInfoUrl != null) return false;
+        return discoveryUrl != null ? discoveryUrl.equals(that.discoveryUrl) : that.discoveryUrl == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
+        result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
+        return result;
     }
 }

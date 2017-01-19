@@ -15,19 +15,27 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
@@ -35,19 +43,60 @@ public class XOAuthProviderConfigurator {
 
 
     private final IdentityProviderProvisioning providerProvisioning;
+    private final UrlContentCache contentCache;
+    private final RestTemplateFactory restTemplateFactory;
 
-    public XOAuthProviderConfigurator(IdentityProviderProvisioning providerProvisioning) {
+    public XOAuthProviderConfigurator(IdentityProviderProvisioning providerProvisioning,
+                                      UrlContentCache contentCache,
+                                      RestTemplateFactory restTemplateFactory) {
         this.providerProvisioning = providerProvisioning;
+        this.contentCache = contentCache;
+        this.restTemplateFactory = restTemplateFactory;
     }
+
 
     public List<IdentityProvider> getActiveXOAuthProviders(String zoneId) {
         final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> providers = providerProvisioning.retrieveAll(true, zoneId);
-        return providers.stream().filter(p -> types.contains(p.getType())).collect(Collectors.toList());
+        return providers.stream()
+            .filter(p -> types.contains(p.getType()))
+            .map(p -> {
+                if (p.getType().equals(OIDC10)) {
+                    p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
+                }
+                return p;
+            })
+            .collect(Collectors.toList());
     }
 
     protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
-        return null;
+        if (definition.getDiscoveryUrl() == null) {
+            return definition;
+        }
+
+        byte[] oidcJson = contentCache.getUrlContent(definition.getDiscoveryUrl().toString(), restTemplateFactory.getRestTemplate(definition.isSkipSslValidation()));
+        Map<String,Object> oidcConfig = JsonUtils.readValue(oidcJson, new TypeReference<Map<String, Object>>() {});
+
+        OIDCIdentityProviderDefinition overlayedDefinition = null;
+        try {
+            overlayedDefinition = (OIDCIdentityProviderDefinition) definition.clone();
+            URL authorizationEndpoint = new URL((String) oidcConfig.get("authorization_endpoint"));
+            URL userinfoEndpoint = new URL((String) oidcConfig.get("userinfo_endpoint"));
+            URL tokenEndpoint = new URL((String) oidcConfig.get("token_endpoint"));
+            URL tokenKeyUrl = new URL((String) oidcConfig.get("jwks_uri"));
+            String issuer = (String) oidcConfig.get("issuer");
+            overlayedDefinition.setAuthUrl(ofNullable(overlayedDefinition.getAuthUrl()).orElse(authorizationEndpoint));
+            overlayedDefinition.setUserInfoUrl(ofNullable(overlayedDefinition.getUserInfoUrl()).orElse(userinfoEndpoint));
+            overlayedDefinition.setTokenUrl(ofNullable(overlayedDefinition.getTokenUrl()).orElse(tokenEndpoint));
+            overlayedDefinition.setIssuer(ofNullable(overlayedDefinition.getIssuer()).orElse(issuer));
+            overlayedDefinition.setTokenKeyUrl(ofNullable(overlayedDefinition.getTokenKeyUrl()).orElse(tokenKeyUrl));
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+
+        return overlayedDefinition;
     }
 
     public String getCompleteAuthorizationURI(String alias, String baseURL, AbstractXOAuthIdentityProviderDefinition definition) {
