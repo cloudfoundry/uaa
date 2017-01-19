@@ -763,13 +763,15 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public void getToken_withPasswordGrantType_resultsInUserLastLogonTimestampUpdate() throws Exception {
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
         String accessToken = getAccessTokenForPasswordGrant(username);
-        Long firstTimestamp = getLastLogonTime(accessToken);
+        Long firstTimestamp = getPreviousLogonTime(accessToken);
 
         String accessToken2 = getAccessTokenForPasswordGrant(username);
-        Long secondTimestamp = getLastLogonTime(accessToken2);
+        Long secondTimestamp = getPreviousLogonTime(accessToken2);
 
         assertNotEquals(firstTimestamp, secondTimestamp);
         assertTrue(firstTimestamp < secondTimestamp);
@@ -791,7 +793,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         return (String) JsonUtils.readValue(response, Map.class).get("access_token");
     }
 
-    private Long getLastLogonTime(String accessToken) throws Exception {
+    private Long getPreviousLogonTime(String accessToken) throws Exception {
         UserInfoResponse userInfo;
         String userInfoResponse = getMockMvc().perform(
             get("/userinfo")
@@ -801,7 +803,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         assertNotNull(userInfoResponse);
         userInfo = JsonUtils.readValue(userInfoResponse, UserInfoResponse.class);
-        return userInfo.getLastLogonSuccess();
+        return userInfo.getPreviousLogonSuccess();
     }
 
     @Test
@@ -1596,7 +1598,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser"+ generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(developer.getId());
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(developer.getId());
         String authCodeClientId = "testclient"+ generator.generate();
         setUpClients(authCodeClientId, scopes, scopes, "authorization_code", true);
 
@@ -1893,7 +1896,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
     }
 
-    private void validateOpenIdConnectToken(String token, String userId, String clientId) {
+    private void validateOpenIdConnectToken(String token, String userId, String clientId) throws Exception {
         Map<String,Object> result = getClaimsForToken(token);
         String iss = (String)result.get(ClaimConstants.ISS);
         assertEquals(tokenServices.getTokenEndpoint(), iss);
@@ -1912,8 +1915,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //TODO OpenID
         Integer auth_time = (Integer)result.get(ClaimConstants.AUTH_TIME);
         assertNotNull(auth_time);
-        Long last_logon_time = (Long) result.get(ClaimConstants.LAST_LOGON_TIME);
-        assertNotNull(last_logon_time);
+        Long previous_logon_time = (Long) result.get(ClaimConstants.PREVIOUS_LOGON_TIME);
+        assertNotNull(previous_logon_time);
+        Long dbPreviousLogonTime = getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserById(userId).getPreviousLogonTime();
+        assertEquals(dbPreviousLogonTime, previous_logon_time);
 
     }
 

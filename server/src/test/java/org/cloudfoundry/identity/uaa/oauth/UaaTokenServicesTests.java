@@ -200,6 +200,7 @@ public class UaaTokenServicesTests {
             .withSalt(userId)
             .withPasswordLastModified(new Date(System.currentTimeMillis() - 15000))
             .withLastLogonSuccess(12345L)
+            .withPreviousLogonSuccess(12365L)
         );
 
 
@@ -1101,7 +1102,7 @@ public class UaaTokenServicesTests {
     @Test
     public void create_id_token_with_last_logon_time_claim() {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
-        assertTrue(idTokenJwt.getClaims().contains("\"last_logon_time\":12345"));
+        assertTrue(idTokenJwt.getClaims().contains("\"previous_logon_time\":12365"));
     }
 
     private Jwt getIdToken(List<String> scopes) {
