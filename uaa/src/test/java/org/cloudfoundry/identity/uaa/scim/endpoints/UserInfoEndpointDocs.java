@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,7 +76,7 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("family_name").description("The user's last name."),
             fieldWithPath("name").description("A map with the user's first name and last name."),
             fieldWithPath("phone_number").description("The user's phone number."),
-            fieldWithPath("last_logon_time").description("The unix epoch timestamp of when the user last authenticated.")
+            fieldWithPath(ClaimConstants.PREVIOUS_LOGON_TIME).description("The unix epoch timestamp of 2nd to last successful user authentication.")
         );
 
         getMockMvc().perform(
