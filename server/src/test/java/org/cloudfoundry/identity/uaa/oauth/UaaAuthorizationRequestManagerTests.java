@@ -26,7 +26,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -73,6 +75,9 @@ public class UaaAuthorizationRequestManagerTests {
     private BaseClientDetails client = new BaseClientDetails();
 
     private UaaUser user = null;
+
+    @Rule
+    public ExpectedException thrown= ExpectedException.none();
 
     @Before
     public void initUaaAuthorizationRequestManagerTests() {
@@ -345,14 +350,18 @@ public class UaaAuthorizationRequestManagerTests {
         factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
     }
 
-    @Test(expected = InvalidScopeException.class)
+    @Test
     public void testScopesInvValidWithWildcard() throws Exception {
+        thrown.expect(InvalidScopeException.class);
+        thrown.expectMessage("space.1.admin is invalid. Please use a valid scope name in the request");
         parameters.put("scope","read write space.1.developer space.2.developer space.1.admin");
         factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
     }
 
-    @Test(expected = InvalidScopeException.class)
+    @Test
     public void testScopesInvalid() throws Exception {
+        thrown.expect(InvalidScopeException.class);
+        thrown.expectMessage("admin is invalid. Please use a valid scope name in the request");
         parameters.put("scope", "admin");
         factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
     }
