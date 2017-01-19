@@ -391,7 +391,9 @@
         </bean>
     </util:list>
 
-    <bean id="xoauthProviderConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator"/>
+    <bean id="xoauthProviderConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
+        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
 
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
