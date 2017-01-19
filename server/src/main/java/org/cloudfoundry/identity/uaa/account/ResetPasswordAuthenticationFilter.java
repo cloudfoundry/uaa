@@ -13,7 +13,10 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation.PasswordConfirmationException;
+import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -34,16 +37,19 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.Timestamp;
 
 public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     private final ResetPasswordService service;
     private final AuthenticationSuccessHandler handler;
     private final AuthenticationEntryPoint entryPoint;
+    private final ExpiringCodeStore expiringCodeStore;
 
-    public ResetPasswordAuthenticationFilter(ResetPasswordService service, AuthenticationSuccessHandler handler, AuthenticationEntryPoint entryPoint) {
+    public ResetPasswordAuthenticationFilter(ResetPasswordService service, AuthenticationSuccessHandler handler, AuthenticationEntryPoint entryPoint, ExpiringCodeStore expiringCodeStore) {
         this.service = service;
         this.handler = handler;
         this.entryPoint = entryPoint;
+        this.expiringCodeStore = expiringCodeStore;
     }
 
     @Override
@@ -54,9 +60,14 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
         String passwordConfirmation = request.getParameter("password_confirmation");
 
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(email, password, passwordConfirmation);
+        ExpiringCode expiringCode = null;
         try {
+            expiringCode = expiringCodeStore.retrieveCode(code);
             validation.throwIfNotValid();
-            ResetPasswordService.ResetPasswordResponse resetPasswordResponse = service.resetPassword(code, password);
+            if (expiringCode == null) {
+                throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
+            }
+            ResetPasswordService.ResetPasswordResponse resetPasswordResponse = service.resetPassword(expiringCode, password);
             ScimUser user = resetPasswordResponse.getUser();
             UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
@@ -67,12 +78,20 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             }
             handler.onAuthenticationSuccess(request, response, token);
         } catch (InvalidPasswordException e) {
+            refreshCode(request, expiringCode);
             entryPoint.commence(request, response, new BadCredentialsException(e.getMessagesAsOneString(), e));
         } catch (UaaException e) {
             entryPoint.commence(request, response, new InternalAuthenticationServiceException(e.getMessage(), e));
         } catch (PasswordConfirmationException pe) {
+            refreshCode(request, expiringCode);
             entryPoint.commence(request, response, new BadCredentialsException("Password did not pass validation.", pe));
         }
         return;
     }
+
+    private void refreshCode(HttpServletRequest request, ExpiringCode expiringCode) {
+        ExpiringCode newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + 1000 * 60 * 10), expiringCode.getIntent());
+        request.setAttribute("code", newCode.getCode());
+    }
+
 }

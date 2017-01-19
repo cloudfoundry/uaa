@@ -182,7 +182,6 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .andReturn().getResponse().getContentAsString();
 
         String renderedCode = findInRenderedPage(content, "\\<input type=\\\"hidden\\\" name=\\\"code\\\" value=\\\"(.*?)\\\" \\/\\>");
-        assertEquals(renderedCode, code.getCode());
 
         String renderedEmail = findInRenderedPage(content, "\\<input type=\\\"hidden\\\" name=\\\"email\\\" value=\\\"(.*?)\\\" \\/\\>");
         assertEquals(renderedEmail, user.getPrimaryEmail());
@@ -347,8 +346,6 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(request().attribute("message", equalTo("Your new password cannot be the same as the old password.")))
-            .andExpect(request().attribute("code", equalTo(code.getCode())))
-            .andExpect(request().attribute("email", equalTo(user.getPrimaryEmail())))
             .andExpect(forwardedUrl("/reset_password"));
     }
 
@@ -376,8 +373,6 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         getMockMvc().perform(createChangePasswordRequest(user, code, true, "a", "a"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(request().attribute("message", equalTo("Password must be at least 3 characters in length.")))
-            .andExpect(request().attribute("code", equalTo(code.getCode())))
-            .andExpect(request().attribute("email", equalTo(user.getPrimaryEmail())))
             .andExpect(forwardedUrl("/reset_password"));
 
         uaaProvider = getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());

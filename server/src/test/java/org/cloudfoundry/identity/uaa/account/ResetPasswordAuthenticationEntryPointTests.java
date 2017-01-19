@@ -82,8 +82,6 @@ public class ResetPasswordAuthenticationEntryPointTests {
 
         verify(request, times(1)).getRequestDispatcher(eq("/reset_password"));
         verify(request, times(1)).setAttribute(eq("message_code"), eq(messageCode));
-        verify(request, times(1)).setAttribute(eq("email"), eq(email));
-        verify(request, times(1)).setAttribute(eq("code"), eq(code));
 
         verify(requestDispatcher, timeout(1)).forward(any(request.getClass()), same(response));
         verify(response, times(1)).setStatus(eq(HttpStatus.UNPROCESSABLE_ENTITY.value()));
@@ -112,8 +110,6 @@ public class ResetPasswordAuthenticationEntryPointTests {
 
         verify(request, times(1)).getRequestDispatcher(eq("/reset_password"));
         verify(request, times(1)).setAttribute(eq("message"), eq(pe.getMessagesAsOneString()));
-        verify(request, times(1)).setAttribute(eq("email"), eq(email));
-        verify(request, times(1)).setAttribute(eq("code"), eq(code));
 
         verify(requestDispatcher, timeout(1)).forward(any(request.getClass()), same(response));
         verify(response, times(1)).setStatus(eq(HttpStatus.UNPROCESSABLE_ENTITY.value()));

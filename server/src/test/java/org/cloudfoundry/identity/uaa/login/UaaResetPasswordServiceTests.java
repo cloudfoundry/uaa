@@ -157,33 +157,24 @@ public class UaaResetPasswordServiceTests {
 
     @Test
     public void testResetPassword() throws Exception {
-        setupResetPassword("example", "redirect.example.com/login");
+        ExpiringCode code = setupResetPassword("example", "redirect.example.com/login");
 
         BaseClientDetails client = new BaseClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("redirect.example.com/*"));
         when(clientDetailsService.loadClientByClientId("example")).thenReturn(client);
 
-        ResetPasswordResponse response = uaaResetPasswordService.resetPassword("secret_code", "new_secret");
+        ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
 
         Assert.assertEquals("usermans-id", response.getUser().getId());
         Assert.assertEquals("userman", response.getUser().getUserName());
         Assert.assertEquals("redirect.example.com/login", response.getRedirectUri());
     }
 
-    @Test
-    public void testResetPasswordWhenTheCodeIsDenied() throws Exception {
-        try {
-            uaaResetPasswordService.resetPassword("b4d_k0d3z", "new_password");
-        } catch (InvalidCodeException e) {
-            assertEquals("Sorry, your reset password link is no longer valid. Please request a new one", e.getMessage());
-            assertEquals(422, e.getHttpStatus());
-        }
-    }
-
     @Test(expected = InvalidPasswordException.class)
     public void resetPassword_validatesNewPassword() {
         doThrow(new InvalidPasswordException("foo")).when(passwordValidator).validate("new_secret");
-        uaaResetPasswordService.resetPassword("secret_code", "new_secret");
+        ExpiringCode code1 = new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000*60*10), "{}", null);
+        uaaResetPasswordService.resetPassword(code1, "new_secret");
     }
 
     @Test
@@ -193,7 +184,7 @@ public class UaaResetPasswordServiceTests {
         user.setPrimaryEmail("foo@example.com");
         ExpiringCode expiringCode = new ExpiringCode("good_code",
             new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
-        when(codeStore.checkCode("good_code")).thenReturn(expiringCode);
+        when(codeStore.retrieveCode("good_code")).thenReturn(expiringCode);
         when(scimUserProvisioning.retrieve("user-id")).thenReturn(user);
         when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld"))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
@@ -201,7 +192,7 @@ public class UaaResetPasswordServiceTests {
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
         SecurityContextHolder.setContext(securityContext);
         try {
-            uaaResetPasswordService.resetPassword("good_code", "Passwo3dAsOld");
+            uaaResetPasswordService.resetPassword(expiringCode, "Passwo3dAsOld");
             fail();
         } catch (InvalidPasswordException e) {
             assertEquals("Your new password cannot be the same as the old password.", e.getMessage());
@@ -218,7 +209,7 @@ public class UaaResetPasswordServiceTests {
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
         SecurityContextHolder.setContext(securityContext);
         try {
-            uaaResetPasswordService.resetPassword("good_code", "password");
+            uaaResetPasswordService.resetPassword(expiringCode, "password");
             fail();
         } catch (InvalidCodeException e) {
             assertEquals("Sorry, your reset password link is no longer valid. Please request a new one", e.getMessage());
@@ -227,38 +218,38 @@ public class UaaResetPasswordServiceTests {
 
     @Test
     public void resetPassword_WithInvalidClientId() {
-        setupResetPassword("invalid_client", "redirect.example.com");
+        ExpiringCode code = setupResetPassword("invalid_client", "redirect.example.com");
         doThrow(new NoSuchClientException("no such client")).when(clientDetailsService).loadClientByClientId("invalid_client");
-        ResetPasswordResponse response = uaaResetPasswordService.resetPassword("secret_code", "new_secret");
+        ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
         assertEquals("home", response.getRedirectUri());
     }
 
     @Test
     public void resetPassword_WithNoClientId() {
-        setupResetPassword("", "redirect.example.com");
-        ResetPasswordResponse response = uaaResetPasswordService.resetPassword("secret_code", "new_secret");
+        ExpiringCode code = setupResetPassword("", "redirect.example.com");
+        ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
         assertEquals("home", response.getRedirectUri());
     }
 
     @Test
     public void resetPassword_WhereWildcardsDoNotMatch() {
-        setupResetPassword("example", "redirect.example.com");
+        ExpiringCode code = setupResetPassword("example", "redirect.example.com");
         BaseClientDetails client = new BaseClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("doesnotmatch.example.com/*"));
         when(clientDetailsService.loadClientByClientId("example")).thenReturn(client);
 
-        ResetPasswordResponse response = uaaResetPasswordService.resetPassword("secret_code", "new_secret");
+        ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
         assertEquals("home", response.getRedirectUri());
     }
 
     @Test
     public void resetPassword_WithNoRedirectUri() {
-        setupResetPassword("example", "");
+        ExpiringCode code = setupResetPassword("example", "");
         BaseClientDetails client = new BaseClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("redirect.example.com/*"));
         when(clientDetailsService.loadClientByClientId("example")).thenReturn(client);
 
-        ResetPasswordResponse response = uaaResetPasswordService.resetPassword("secret_code", "new_secret");
+        ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
         assertEquals("home", response.getRedirectUri());
     }
     @Test
@@ -294,17 +285,18 @@ public class UaaResetPasswordServiceTests {
         verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId);
     }
 
-    private void setupResetPassword(String clientId, String redirectUri) {
+    private ExpiringCode setupResetPassword(String clientId, String redirectUri) {
         ScimUser user = new ScimUser("usermans-id","userman","firstName","lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve(eq("usermans-id"))).thenReturn(user);
         ExpiringCode code = new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
                                              "{\"user_id\":\"usermans-id\",\"username\":\"userman\",\"passwordModifiedTime\":null,\"client_id\":\"" + clientId + "\",\"redirect_uri\":\"" + redirectUri + "\"}", null);
-        when(codeStore.checkCode(eq("secret_code"))).thenReturn(code);
         when(codeStore.retrieveCode(eq("secret_code"))).thenReturn(code);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
         SecurityContextHolder.setContext(securityContext);
+
+        return code;
     }
 }
