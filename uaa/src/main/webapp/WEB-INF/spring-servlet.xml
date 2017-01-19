@@ -391,8 +391,12 @@
         </bean>
     </util:list>
 
+    <bean id="restTemplateFactory" class="org.cloudfoundry.identity.uaa.util.RestTemplateFactory"/>
+
     <bean id="xoauthProviderConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+        <constructor-arg name="contentCache" ref="urlCache"/>
+        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
     </bean>
 
     <!--Basic application beans. -->

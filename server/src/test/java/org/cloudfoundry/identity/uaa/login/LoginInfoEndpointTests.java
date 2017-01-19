@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -31,6 +32,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -119,7 +121,7 @@ public class LoginInfoEndpointTests {
         idps = getIdps();
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
-        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning);
+        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, mock(UrlContentCache.class), mock(RestTemplateFactory.class));
 
     }
 
