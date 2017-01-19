@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinitio
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -63,6 +64,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -99,6 +101,7 @@ public class LoginInfoEndpointTests {
     private IdentityProviderProvisioning identityProviderProvisioning;
     private IdentityProvider uaaProvider;
     private IdentityZoneConfiguration originalConfiguration;
+    private XOAuthProviderConfigurator configurator;
 
     @Before
     public void setUpPrincipal() {
@@ -116,6 +119,8 @@ public class LoginInfoEndpointTests {
         idps = getIdps();
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
+        configurator = new XOAuthProviderConfigurator();
+
     }
 
     @After
@@ -611,7 +616,7 @@ public class LoginInfoEndpointTests {
         endpoint.setClientDetailsService(clientDetailsService);
         endpoint.loginForHtml(model, null, request);
 
-        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) model.asMap().get("oauthDefinitions");
+        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) model.asMap().get(OAUTH_LINKS);
         assertEquals(2, idpDefinitions.size());
     }
 
@@ -710,6 +715,7 @@ public class LoginInfoEndpointTests {
         endpoint.setIdpDefinitions(emptyConfigurator);
         IdentityZoneHolder.get().getConfig().setPrompts(prompts);
         endpoint.setProviderProvisioning(identityProviderProvisioning);
+        endpoint.setXoAuthProviderConfigurator(configurator);
         return endpoint;
     }
 
@@ -739,7 +745,10 @@ public class LoginInfoEndpointTests {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcIdentityProvider= new IdentityProvider<>();
         oidcIdentityProvider.setOriginKey(originKey);
         oidcIdentityProvider.setType(OriginKeys.OIDC10);
-        oidcIdentityProvider.setConfig(new OIDCIdentityProviderDefinition());
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+        definition.setAuthUrl(new URL("https://"+originKey+".com"));
+        oidcIdentityProvider.setConfig(definition);
+
         return oidcIdentityProvider;
 
     }

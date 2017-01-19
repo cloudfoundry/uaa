@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertThat;
 import static org.springframework.http.HttpMethod.GET;
 
 
-public class XOAuthIdentityProviderDefinitionTestx {
+public class XOAuthProviderConfiguratorTests {
 
     private OIDCIdentityProviderDefinition oidc;
     private RawXOAuthIdentityProviderDefinition oauth;
@@ -41,6 +42,7 @@ public class XOAuthIdentityProviderDefinitionTestx {
     private String baseExpect = "https://oidc10.identity.cf-app.com/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
     private String redirectUri;
     private MockHttpServletRequest request;
+    XOAuthProviderConfigurator configurator;
 
     @Before
     public void setup() throws MalformedURLException {
@@ -67,6 +69,7 @@ public class XOAuthIdentityProviderDefinitionTestx {
         }
 
         redirectUri = URLEncoder.encode("https://localhost:8443/uaa/login/callback/alias");
+        configurator = new XOAuthProviderConfigurator();
     }
 
     @Test
@@ -78,12 +81,12 @@ public class XOAuthIdentityProviderDefinitionTestx {
     @Test
     public void nonce_included_on_oidc() throws UnsupportedEncodingException {
         String expected = String.format(baseExpect, oidc.getRelyingPartyId(), URLEncoder.encode("id_token code"), redirectUri, URLEncoder.encode("openid password.write"), "&nonce=");
-        assertThat(oidc.getCompleteAuthorizationURI(UaaUrlUtils.getBaseURL(request), "alias"), startsWith(expected));
+        assertThat(configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc), startsWith(expected));
     }
 
     @Test
     public void nonce_not_included_on_oauth() throws UnsupportedEncodingException {
         String expected = String.format(baseExpect, oauth.getRelyingPartyId(), URLEncoder.encode("code"), redirectUri, URLEncoder.encode("openid password.write"), "");
-        assertEquals(oauth.getCompleteAuthorizationURI(UaaUrlUtils.getBaseURL(request), "alias"), expected);
+        assertEquals(configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth), expected);
     }
 }
