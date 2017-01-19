@@ -38,9 +38,9 @@ import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.LAST_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
@@ -142,12 +142,12 @@ public class UserInfoResponse {
         );
     }
 
-    public Long getLastLogonSuccess() {
-        return (Long) getAttributeValue(LAST_LOGON_TIME);
+    public Long getPreviousLogonSuccess() {
+        return (Long) getAttributeValue(PREVIOUS_LOGON_TIME);
     }
 
-    public void setLastLogonSuccess(Long lastLogonSuccess) {
-        setAttributeValue(LAST_LOGON_TIME, lastLogonSuccess);
+    public void setPreviousLogonSuccess(Long previousLogonSuccess) {
+        setAttributeValue(PREVIOUS_LOGON_TIME, previousLogonSuccess);
     }
 
 
@@ -181,7 +181,7 @@ public class UserInfoResponse {
                         }
                         break;
                     }
-                    case LAST_LOGON_TIME:
+                    case PREVIOUS_LOGON_TIME:
                         gen.writeFieldName(key);
                         gen.writeObject(value.get(0));
                         break;
@@ -222,9 +222,11 @@ public class UserInfoResponse {
                         response.setAttributeValue(key, value);
                         break;
                     }
-                    case LAST_LOGON_TIME:
-                        Long longValue = value.getClass() == Long.class ? (Long) value : (Long) ((Integer) value).longValue();
-                        response.setAttributeValue(key, longValue);
+                    case PREVIOUS_LOGON_TIME:
+                        if (value!=null) {
+                            Long longValue = value.getClass() == Long.class ? (Long) value : (Long) ((Integer) value).longValue();
+                            response.setAttributeValue(key, longValue);
+                        }
                         break;
                     //multi value fields
                     default:

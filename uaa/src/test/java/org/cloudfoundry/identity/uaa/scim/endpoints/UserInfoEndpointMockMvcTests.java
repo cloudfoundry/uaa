@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
@@ -39,7 +40,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTR
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,6 +72,9 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
 
         tokenServices = getWebApplicationContext().getBean(UaaTokenServices.class);
         excludedClaims = tokenServices.getExcludedClaims();
+
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
         userAttributes = new LinkedMultiValueMap<>();
         userAttributes.add("single", "1");
@@ -116,7 +119,10 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
         assertEquals(user.getUserName(), map.get("user_name"));
         assertEquals(user.getFamilyName(), map.get("family_name"));
         assertEquals(user.getGivenName(), map.get("given_name"));
-        assertTrue(System.currentTimeMillis()/1000 - ((long) map.get("last_logon_time"))/1000 <= 5);
+        String userId = (String) map.get(ClaimConstants.USER_ID);
+        assertNotNull(userId);
+        Long dbPreviousLogonTime = getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserById(userId).getPreviousLogonTime();
+        assertEquals(dbPreviousLogonTime, map.get(ClaimConstants.PREVIOUS_LOGON_TIME));
         return map;
     }
 

@@ -109,10 +109,10 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.LAST_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PROFILE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCABLE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
@@ -500,7 +500,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     clone.put(ACR, acrValues);
                 }
                 clone.put(SCOPE, idTokenScopes);
-                clone.put(LAST_LOGON_TIME, user.getLastLogonTime());
+
+                clone.put(PREVIOUS_LOGON_TIME, user.getPreviousLogonTime());
                 clone.put(AUD, new HashSet(Arrays.asList(aud)));
 
                 if (scopes.contains(ROLES) && (externalGroupsForIdToken != null && !externalGroupsForIdToken.isEmpty())) {
