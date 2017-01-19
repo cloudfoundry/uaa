@@ -30,6 +30,7 @@ import java.util.Arrays;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.springframework.http.HttpMethod.GET;
 
 
@@ -69,7 +70,8 @@ public class XOAuthProviderConfiguratorTests {
         }
 
         redirectUri = URLEncoder.encode("https://localhost:8443/uaa/login/callback/alias");
-        configurator = new XOAuthProviderConfigurator();
+        IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
+        configurator = new XOAuthProviderConfigurator(provisioning);
     }
 
     @Test

@@ -119,7 +119,7 @@ public class LoginInfoEndpointTests {
         idps = getIdps();
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
-        configurator = new XOAuthProviderConfigurator();
+        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning);
 
     }
 

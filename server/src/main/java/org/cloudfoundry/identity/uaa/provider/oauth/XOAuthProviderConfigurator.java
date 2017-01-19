@@ -16,15 +16,39 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
 public class XOAuthProviderConfigurator {
+
+
+    private final IdentityProviderProvisioning providerProvisioning;
+
+    public XOAuthProviderConfigurator(IdentityProviderProvisioning providerProvisioning) {
+        this.providerProvisioning = providerProvisioning;
+    }
+
+    public List<IdentityProvider> getActiveXOAuthProviders(String zoneId) {
+        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
+        List<IdentityProvider> providers = providerProvisioning.retrieveAll(true, zoneId);
+        return providers.stream().filter(p -> types.contains(p.getType())).collect(Collectors.toList());
+    }
+
+    protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
+        return null;
+    }
 
     public String getCompleteAuthorizationURI(String alias, String baseURL, AbstractXOAuthIdentityProviderDefinition definition) {
         try {
