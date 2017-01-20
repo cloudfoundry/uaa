@@ -473,7 +473,7 @@ public class LoginInfoEndpoint {
     protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
 
         List<IdentityProvider> identityProviders =
-            xoAuthProviderConfigurator.getActiveXOAuthProviders(IdentityZoneHolder.get().getId());
+            xoAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
 
         Map<String, AbstractXOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
                 .filter(p -> allowedIdps==null || allowedIdps.contains(p.getOriginKey()))

@@ -35,12 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
-public class XOAuthProviderConfigurator {
-
+public class XOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
     private final IdentityProviderProvisioning providerProvisioning;
     private final UrlContentCache contentCache;
@@ -52,21 +52,6 @@ public class XOAuthProviderConfigurator {
         this.providerProvisioning = providerProvisioning;
         this.contentCache = contentCache;
         this.restTemplateFactory = restTemplateFactory;
-    }
-
-
-    public List<IdentityProvider> getActiveXOAuthProviders(String zoneId) {
-        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
-        List<IdentityProvider> providers = providerProvisioning.retrieveAll(true, zoneId);
-        return providers.stream()
-            .filter(p -> types.contains(p.getType()))
-            .map(p -> {
-                if (p.getType().equals(OIDC10)) {
-                    p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
-                }
-                return p;
-            })
-            .collect(Collectors.toList());
     }
 
     protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
@@ -91,9 +76,9 @@ public class XOAuthProviderConfigurator {
             overlayedDefinition.setIssuer(ofNullable(overlayedDefinition.getIssuer()).orElse(issuer));
             overlayedDefinition.setTokenKeyUrl(ofNullable(overlayedDefinition.getTokenKeyUrl()).orElse(tokenKeyUrl));
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+            throw new IllegalStateException(e);
         } catch (CloneNotSupportedException e) {
-            e.printStackTrace();
+            throw new IllegalStateException(e);
         }
 
         return overlayedDefinition;
@@ -121,4 +106,51 @@ public class XOAuthProviderConfigurator {
         }
     }
 
+    @Override
+    public IdentityProvider create(IdentityProvider identityProvider) {
+        return providerProvisioning.create(identityProvider);
+    }
+
+    @Override
+    public IdentityProvider update(IdentityProvider identityProvider) {
+        return providerProvisioning.update(identityProvider);
+    }
+
+    @Override
+    public IdentityProvider retrieve(String id) {
+        IdentityProvider p = providerProvisioning.retrieve(id);
+        if (p!=null && p.getType().equals(OIDC10)) {
+            p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
+        }
+        return p;
+    }
+
+    @Override
+    public List<IdentityProvider> retrieveActive(String zoneId) {
+        return retrieveAll(true, zoneId);
+    }
+
+    @Override
+    public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
+        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
+        List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
+        return ofNullable(providers).orElse(emptyList()).stream()
+            .filter(p -> types.contains(p.getType()))
+            .map(p -> {
+                if (p.getType().equals(OIDC10)) {
+                    p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
+                }
+                return p;
+            })
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public IdentityProvider retrieveByOrigin(String origin, String zoneId) {
+        IdentityProvider p = providerProvisioning.retrieveByOrigin(origin, zoneId);
+        if (p!=null && p.getType().equals(OIDC10)) {
+            p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
+        }
+        return p;
+    }
 }
