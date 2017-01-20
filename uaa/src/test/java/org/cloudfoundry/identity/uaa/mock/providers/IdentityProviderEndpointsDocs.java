@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
@@ -338,7 +339,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             "adminsecret",
             "");
 
-        identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
     }
 
     @After

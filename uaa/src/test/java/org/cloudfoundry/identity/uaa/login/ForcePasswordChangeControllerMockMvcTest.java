@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -42,7 +43,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
         user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username);
         user.setPassword("secret");
-        identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
     }
