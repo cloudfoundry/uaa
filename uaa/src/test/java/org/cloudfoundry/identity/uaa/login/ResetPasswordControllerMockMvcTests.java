@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -49,7 +49,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import javax.servlet.http.Cookie;
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -352,13 +351,13 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     @Test
     public void resetPassword_ReturnsUnprocessableEntity_NewPasswordNotAccordingToPolicy() throws Exception {
 
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition currentDefinition = uaaProvider.getConfig();
         PasswordPolicy passwordPolicy = new PasswordPolicy();
         passwordPolicy.setMinLength(3);
         passwordPolicy.setMaxLength(20);
         uaaProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
-        getWebApplicationContext().getBean(IdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
 
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
@@ -375,9 +374,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .andExpect(request().attribute("message", equalTo("Password must be at least 3 characters in length.")))
             .andExpect(forwardedUrl("/reset_password"));
 
-        uaaProvider = getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         uaaProvider.setConfig(currentDefinition);
-        getWebApplicationContext().getBean(IdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
     }
 
     private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF) throws Exception {

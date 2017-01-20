@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
@@ -385,7 +386,7 @@ public class BootstrapTests {
             zoneConfiguration.getPrompts()
         );
 
-        IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning idpProvisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
         assertFalse(uaaIdp.isActive());

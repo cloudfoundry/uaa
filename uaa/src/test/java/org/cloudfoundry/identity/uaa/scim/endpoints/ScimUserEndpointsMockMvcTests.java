@@ -23,7 +23,7 @@ import org.cloudfoundry.identity.uaa.invitations.InvitationConstants;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -226,7 +226,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         scimUser.setPassword("");
 
         IdentityProvider<UaaIdentityProviderDefinition> uaa =
-            getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieveByOrigin(
+            getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(
                 OriginKeys.UAA,
                 otherIdentityZone.getId()
             );
