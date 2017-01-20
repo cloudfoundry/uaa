@@ -447,7 +447,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = generator.generate();
 
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
-        assertNull(created.getConfig().getTokenPolicy().getKeys());
+        assertEquals(Collections.EMPTY_MAP, created.getConfig().getTokenPolicy().getKeys());
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
         created.setDescription("updated description");
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
@@ -459,7 +459,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
         IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
-        assertNull(updated.getConfig().getTokenPolicy().getKeys());
+        assertEquals(Collections.EMPTY_MAP, updated.getConfig().getTokenPolicy().getKeys());
     }
 
     @Test
@@ -945,7 +945,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk());
         IdentityZone deletedZone = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), IdentityZone.class);
-        assertNull(deletedZone.getConfig().getTokenPolicy().getKeys());
+        assertEquals(Collections.EMPTY_MAP, deletedZone.getConfig().getTokenPolicy().getKeys());
 
         assertThat(uaaEventListener.getEventCount(), is(1));
         AbstractUaaEvent event = uaaEventListener.getLatestEvent();
@@ -1278,7 +1278,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         });
         assertEquals(identityZone, zoneResult);
         assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
-        assertNull(zoneResult.getConfig().getTokenPolicy().getKeys());
+        assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
 
 
         String userAccessTokenReadAndAdmin = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ");
@@ -1295,7 +1295,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         });
         assertEquals(identityZone, zoneResult);
         assertNotNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
-        assertNull(zoneResult.getConfig().getTokenPolicy().getKeys());
+        assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
     }
 
     private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {

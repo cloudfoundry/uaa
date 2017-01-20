@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.zone;
 import com.fasterxml.jackson.annotation.*;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -38,7 +39,7 @@ public class TokenPolicy {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, KeyInformation> getKeysLegacy() {
         Map<String, String> keys = getKeys();
-        return keys == null ? null : keys.entrySet().stream().collect(outputCollector);
+        return (keys == null || keys.isEmpty()) ? null : keys.entrySet().stream().collect(outputCollector);
     }
 
     @JsonSetter("keys")
@@ -85,7 +86,7 @@ public class TokenPolicy {
 
     @JsonIgnore
     public Map<String, String> getKeys() {
-        return this.keys == null ? null : new HashMap<>(this.keys);
+        return this.keys == null ? Collections.EMPTY_MAP : new HashMap<>(this.keys);
     }
 
     @JsonIgnore
