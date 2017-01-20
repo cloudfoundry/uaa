@@ -13,13 +13,9 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.*;
 import org.springframework.util.StringUtils;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -39,6 +35,7 @@ public class TokenPolicy {
     private boolean jwtRevocable = false;
 
     @JsonGetter("keys")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, KeyInformation> getKeysLegacy() {
         Map<String, String> keys = getKeys();
         return keys == null ? null : keys.entrySet().stream().collect(outputCollector);
@@ -88,7 +85,7 @@ public class TokenPolicy {
 
     @JsonIgnore
     public Map<String, String> getKeys() {
-        return this.keys == null ? Collections.emptyMap() : new HashMap<>(this.keys);
+        return this.keys == null ? null : new HashMap<>(this.keys);
     }
 
     @JsonIgnore
