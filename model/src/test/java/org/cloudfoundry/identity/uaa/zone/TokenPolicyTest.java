@@ -4,11 +4,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
