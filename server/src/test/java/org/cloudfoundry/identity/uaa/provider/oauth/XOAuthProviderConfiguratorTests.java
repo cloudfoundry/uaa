@@ -44,6 +44,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
@@ -51,6 +52,8 @@ import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -125,6 +128,9 @@ public class XOAuthProviderConfiguratorTests {
     private RestTemplateFactory factory;
     private OIDCIdentityProviderDefinition config;
     private String discoveryUrl;
+    private IdentityProviderProvisioning provisioning;
+    private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
+    private IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider;
 
     @Before
     public void setup() throws MalformedURLException {
@@ -152,7 +158,7 @@ public class XOAuthProviderConfiguratorTests {
         }
 
         redirectUri = URLEncoder.encode("https://localhost:8443/uaa/login/callback/alias");
-        IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
+        provisioning = mock(IdentityProviderProvisioning.class);
         cache = mock(UrlContentCache.class);
         when(cache.getUrlContent(anyString(), anyObject())).thenReturn(jsonResponse.getBytes());
         factory = mock(RestTemplateFactory.class);
@@ -174,10 +180,11 @@ public class XOAuthProviderConfiguratorTests {
         requestedScopes.add("cloud_controller.read");
         config.setScopes(requestedScopes);
 
-        IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider<>();
+        oidcProvider = new IdentityProvider<>();
         oidcProvider.setType(OIDC10);
         oidcProvider.setConfig(config);
-        IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider = new IdentityProvider<>();
+        oidcProvider.setOriginKey(OIDC10);
+        oauthProvider = new IdentityProvider<>();
         oauthProvider.setType(OAUTH20);
         oauthProvider.setConfig(new RawXOAuthIdentityProviderDefinition());
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
@@ -185,10 +192,44 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getActiveXOauthProviders() {
-        List<IdentityProvider> activeXOAuthProviders = configurator.getActiveXOAuthProviders(IdentityZone.getUaa().getId());
+    public void retrieveAll() {
+        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveAll(true, IdentityZone.getUaa().getId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
+    }
+
+    @Test
+    public void retrieveActive() {
+        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaa().getId());
+        assertEquals(2, activeXOAuthProviders.size());
+        verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    public void retrieveByOrigin() {
+        when(provisioning.retrieveByOrigin(eq(OIDC10),anyString())).thenReturn(oidcProvider);
+        when(provisioning.retrieveByOrigin(eq(OAUTH20),anyString())).thenReturn(oauthProvider);
+
+        assertNotNull(configurator.retrieveByOrigin(OIDC10, IdentityZone.getUaa().getId()));
+        verify(configurator, times(1)).overlay(eq(config));
+
+        reset(configurator);
+        assertNotNull(configurator.retrieveByOrigin(OAUTH20, IdentityZone.getUaa().getId()));
+        verify(configurator, never()).overlay(anyObject());
+    }
+
+    @Test
+    public void retrieveById() {
+        when(provisioning.retrieve(eq(OIDC10))).thenReturn(oidcProvider);
+        when(provisioning.retrieve(eq(OAUTH20))).thenReturn(oauthProvider);
+
+        assertNotNull(configurator.retrieve(OIDC10));
+        verify(configurator, times(1)).overlay(eq(config));
+
+        reset(configurator);
+        assertNotNull(configurator.retrieve(OAUTH20));
+        verify(configurator, never()).overlay(anyObject());
     }
 
     @Test
