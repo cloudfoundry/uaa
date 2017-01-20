@@ -204,18 +204,18 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
-    public String loginForJson(Model model, Principal principal) {
-        return login(model, principal, Collections.<String>emptyList(), true);
+    public String loginForJson(Model model, Principal principal, HttpServletRequest request) {
+        return login(model, principal, Collections.emptyList(), true, request);
     }
 
     @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
-    public String infoForJson(Model model, Principal principal) {
-        return login(model, principal, Collections.<String>emptyList(), true);
+    public String infoForJson(Model model, Principal principal, HttpServletRequest request) {
+        return login(model, principal, Collections.emptyList(), true, request);
     }
 
     @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
-    public String infoForHtml(Model model, Principal principal) {
-        return login(model, principal, Arrays.asList(PASSCODE), false);
+    public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
+        return login(model, principal, Arrays.asList(PASSCODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -257,10 +257,6 @@ public class LoginInfoEndpoint {
 
     protected String getZonifiedEntityId() {
         return SamlRedirectUtils.getZonifiedEntityId(entityID);
-    }
-
-    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse) {
-        return login(model, principal, excludedPrompts, jsonResponse, null);
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse, HttpServletRequest request) {
