@@ -449,18 +449,29 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
         assertEquals(Collections.EMPTY_MAP, created.getConfig().getTokenPolicy().getKeys());
+        assertNull(created.getConfig().getSamlConfig().getPrivateKey());
+        assertNull(created.getConfig().getSamlConfig().getPrivateKeyPassword());
+        assertNull(created.getConfig().getSamlConfig().getCertificate());
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
         created.setDescription("updated description");
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
         HashMap<String, String> keys = new HashMap<>();
         keys.put("key1","value1");
         tokenPolicy.setKeys(keys);
+        SamlConfig samlConfig = new SamlConfig();
+        samlConfig.setCertificate(serviceProviderCertificate);
+        samlConfig.setPrivateKey(serviceProviderKey);
+        samlConfig.setPrivateKeyPassword(serviceProviderKeyPassword);
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
+        definition.setSamlConfig(samlConfig);
         created.setConfig(definition);
 
         IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
         assertEquals(Collections.EMPTY_MAP, updated.getConfig().getTokenPolicy().getKeys());
+        assertNull(updated.getConfig().getSamlConfig().getPrivateKey());
+        assertNull(updated.getConfig().getSamlConfig().getPrivateKeyPassword());
+        assertNull(updated.getConfig().getSamlConfig().getCertificate());
     }
 
     @Test
@@ -947,6 +958,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isOk());
         IdentityZone deletedZone = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), IdentityZone.class);
         assertEquals(Collections.EMPTY_MAP, deletedZone.getConfig().getTokenPolicy().getKeys());
+        assertNull(deletedZone.getConfig().getSamlConfig().getPrivateKey());
+        assertNull(deletedZone.getConfig().getSamlConfig().getPrivateKeyPassword());
+        assertNull(deletedZone.getConfig().getSamlConfig().getCertificate());
 
         assertThat(uaaEventListener.getEventCount(), is(1));
         AbstractUaaEvent event = uaaEventListener.getLatestEvent();
@@ -1295,7 +1309,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {
         });
         assertEquals(identityZone, zoneResult);
-        assertNotNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
+        assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
+        assertNull(zoneResult.getConfig().getSamlConfig().getCertificate());
+        assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
     }
 
