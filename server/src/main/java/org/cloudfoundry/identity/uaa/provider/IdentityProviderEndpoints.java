@@ -118,7 +118,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         } catch (IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
         } catch (Exception x) {
-            logger.debug("Unable to create IdentityProvider["+x.getMessage()+"].", x);
+            logger.debug("Unable to create IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"]", x);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
     }
