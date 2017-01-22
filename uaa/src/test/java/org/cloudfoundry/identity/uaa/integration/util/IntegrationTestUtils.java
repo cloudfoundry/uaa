@@ -136,6 +136,15 @@ public class IntegrationTestUtils {
         return rest.exchange(request, UserInfoResponse.class).getBody();
     }
 
+    public static void deleteZone(String baseUrl, String id, String adminToken) throws URISyntaxException {
+        RestTemplate rest = new RestTemplate(createRequestFactory(true));
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add(AUTHORIZATION, "Bearer "+adminToken);
+        headers.add(ACCEPT, APPLICATION_JSON_VALUE);
+        RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.DELETE, new URI(baseUrl+"/identity-zones/"+id));
+        rest.exchange(request, Void.class);
+    }
+
     public static class RegexMatcher extends TypeSafeMatcher<String> {
 
         private final String regex;
@@ -568,11 +577,11 @@ public class IntegrationTestUtils {
 
         ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
         if (zoneGet.getStatusCode()==HttpStatus.OK) {
-        IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
-        existing.setSubdomain(subdomain);
-        existing.setConfig(config);
-        client.put(url + "/identity-zones/{id}", existing, id);
-        return existing;
+            IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
+            existing.setSubdomain(subdomain);
+            existing.setConfig(config);
+            client.put(url + "/identity-zones/{id}", existing, id);
+            return existing;
         }
         IdentityZone identityZone = fixtureIdentityZone(id, subdomain, config);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
