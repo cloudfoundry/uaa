@@ -89,6 +89,7 @@
             <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:true}" />
             <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
             <property name="entityId" ref="samlEntityID" />
+            <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
         </bean>
 
         <!-- Filter automatically generates default SP metadata -->
@@ -105,6 +106,7 @@
             <constructor-arg name="generator" ref="zoneAwareMetadataGenerator"/>
             <property name="manager" ref="metadata" />
             <property name="contextProvider" ref="basicContextProvider" />
+            <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
         </bean>
 
         <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
@@ -119,6 +121,7 @@
             <constructor-arg name="zoneDao" ref="identityZoneProvisioning"/>
             <constructor-arg name="configurator" ref="metaDataProviders"/>
             <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}"/>
+            <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
         </bean>
 
         <bean name="metadataFetchingHttpClientTimer" class="java.util.Timer">
@@ -150,6 +153,7 @@
         <!-- Provider of default SAML Context -->
         <bean id="basicContextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" primary="true">
             <property name="metadataResolver" ref="nonCachingSPMetadataCredentialsResolver"/>
+            <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
         </bean>
 
         <!-- Processing filter for WebSSO profile messages -->
