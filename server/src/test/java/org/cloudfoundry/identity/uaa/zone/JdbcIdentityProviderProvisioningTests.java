@@ -27,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
@@ -120,7 +121,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(rawCreatedIdp.get("origin_key"), createdIdp.getOriginKey());
         assertEquals(UAA, createdIdp.getType()); //we don't allow other types anymore
         assertEquals(idp.getConfig(), createdIdp.getConfig());
-        assertEquals(idp.getLastModified().getTime()/1000, createdIdp.getLastModified().getTime()/1000);
+        assertTrue(Math.abs(idp.getLastModified().getTime() - createdIdp.getLastModified().getTime()) < 1001);
         assertEquals(Integer.valueOf(rawCreatedIdp.get("version").toString())+1, createdIdp.getVersion());
         assertEquals(zoneId, createdIdp.getIdentityZoneId());
     }
