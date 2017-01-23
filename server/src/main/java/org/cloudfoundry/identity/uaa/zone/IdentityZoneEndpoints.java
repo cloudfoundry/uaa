@@ -251,11 +251,21 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
     private void validateAndUpdateConfig(IdentityZone existingZone, IdentityZone newZone) {
-        if(newZone.getConfig() != null && newZone.getConfig().getTokenPolicy() != null){
-            if(newZone.getConfig().getTokenPolicy().getKeys() != null && !newZone.getConfig().getTokenPolicy().getKeys().isEmpty()) {
-                return;
+        if(newZone.getConfig() != null) {
+            if (newZone.getConfig().getTokenPolicy() != null) {
+                if (newZone.getConfig().getTokenPolicy().getKeys() != null && !newZone.getConfig().getTokenPolicy().getKeys().isEmpty()) {
+                    return;
+                }
+                newZone.getConfig().getTokenPolicy().setKeys(existingZone.getConfig().getTokenPolicy().getKeys());
             }
-            newZone.getConfig().getTokenPolicy().setKeys(existingZone.getConfig().getTokenPolicy().getKeys());
+            if(newZone.getConfig().getSamlConfig() != null) {
+                SamlConfig config = newZone.getConfig().getSamlConfig();
+                if(config.getCertificate() == null && config.getPrivateKey() == null && config.getPrivateKeyPassword() == null) {
+                    config.setCertificate(existingZone.getConfig().getSamlConfig().getCertificate());
+                    config.setPrivateKey(existingZone.getConfig().getSamlConfig().getPrivateKey());
+                    config.setPrivateKeyPassword(existingZone.getConfig().getSamlConfig().getPrivateKeyPassword());
+                }
+            }
         }
     }
 
