@@ -383,8 +383,8 @@
     </http>
 
     <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
-        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
-
+        <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
+        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 

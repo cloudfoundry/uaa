@@ -35,7 +35,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -387,7 +387,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         provider.setOriginKey(origin);
 
         IdentityZoneHolder.set(zone.getIdentityZone());
-        getWebApplicationContext().getBean(IdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
         getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
         IdentityZoneHolder.clear();
 

@@ -16,10 +16,12 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
+import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -101,6 +103,7 @@ public class SamlIdentityProviderConfiguratorTests {
             .setIconUrl("sample-icon-url")
             .setZoneId("uaa");
         configurator.setIdentityProviderProvisioning(provisioning);
+        configurator.setContentCache(new ExpiringUrlCache(1000*60*10, new TimeServiceImpl(), 100));
     }
 
     @Test

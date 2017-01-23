@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
+import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
@@ -32,7 +33,6 @@ import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -40,6 +40,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
@@ -61,6 +63,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -89,10 +92,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.same;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -130,6 +135,7 @@ public class XOAuthAuthenticationManagerTest {
     private RsaSigner signer;
     private Map<String, Object> header;
     private String invalidRsaSigningKey;
+    private XOAuthProviderConfigurator xoAuthProviderConfigurator;
 
     @Before
     @After
@@ -156,10 +162,20 @@ public class XOAuthAuthenticationManagerTest {
                 "-----END RSA PRIVATE KEY-----";
         signer = new RsaSigner(rsaSigningKey);
 
-        provisioning = mock(JdbcIdentityProviderProvisioning.class);
+        provisioning = mock(IdentityProviderProvisioning.class);
+
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
-        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(provisioning));
+        RestTemplateFactory restTemplateFactory = mock(RestTemplateFactory.class);
+        when(restTemplateFactory.getRestTemplate(anyBoolean())).thenReturn(new RestTemplate());
+        xoAuthProviderConfigurator = spy(
+            new XOAuthProviderConfigurator(
+                provisioning,
+                new ExpiringUrlCache(10000, new TimeServiceImpl(), 10),
+                restTemplateFactory
+            )
+        );
+        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, restTemplateFactory));
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
@@ -192,6 +208,7 @@ public class XOAuthAuthenticationManagerTest {
         config = new OIDCIdentityProviderDefinition()
             .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
             .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
+            .setIssuer("http://oidc10.identity.cf-app.com/oauth/token")
             .setShowLinkText(true)
             .setLinkText("My OIDC Provider")
             .setRelyingPartyId("identity")
@@ -207,7 +224,7 @@ public class XOAuthAuthenticationManagerTest {
             )
         );
 
-        mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate(config));
+        mockUaaServer = MockRestServiceServer.createServer(restTemplateFactory.getRestTemplate(config.isSkipSslValidation()));
         reset(xoAuthAuthenticationManager);
 
         invalidRsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -219,6 +236,37 @@ public class XOAuthAuthenticationManagerTest {
             "uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg\n" +
             "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
             "-----END RSA PRIVATE KEY-----";
+    }
+
+    @Test
+    public void discoveryURL_is_used() throws MalformedURLException {
+        URL authUrl = config.getAuthUrl();
+        URL tokenUrl = config.getTokenUrl();
+
+        config.setAuthUrl(null);
+        config.setTokenUrl(null);
+        config.setDiscoveryUrl(new URL("http://some.discovery.url"));
+
+        Map<String, Object> discoveryContent = new HashMap();
+        discoveryContent.put("authorization_endpoint", authUrl.toString());
+        discoveryContent.put("token_endpoint", tokenUrl.toString());
+        //mandatory but not used
+        discoveryContent.put("userinfo_endpoint", "http://localhost/userinfo");
+        discoveryContent.put("jwks_uri", "http://localhost/token_keys");
+        discoveryContent.put("issuer", "http://localhost/issuer");
+
+        mockUaaServer.expect(requestTo("http://some.discovery.url"))
+            .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(JsonUtils.writeValueAsBytes(discoveryContent)));
+
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        mockToken();
+        addTheUserOnAuth();
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+        verify(xoAuthProviderConfigurator, atLeast(1)).overlay(eq(config));
+        mockUaaServer.verify();
+
     }
 
     @Test

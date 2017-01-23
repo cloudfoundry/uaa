@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
+import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -85,15 +86,17 @@ import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
-import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
     public static Log logger = LogFactory.getLog(XOAuthAuthenticationManager.class);
 
-    public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
+    private final RestTemplateFactory restTemplateFactory;
+
+    public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning, RestTemplateFactory restTemplateFactory) {
         super(providerProvisioning);
+        this.restTemplateFactory = restTemplateFactory;
     }
 
     @Override
@@ -313,41 +316,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return provider.getConfig().isAddShadowUserOnLogin();
     }
 
-    /*
-     * BEGIN
-     * The following thread local only exists to satisfy that the unit test
-     * that require the template to be bound to the mock server
-     */
-    public static class RestTemplateHolder {
-        private final RestTemplate skipSslValidationTemplate;
-        private final RestTemplate restTemplate;
-
-        public RestTemplateHolder() {
-            skipSslValidationTemplate = new RestTemplate(createRequestFactory(true));
-            restTemplate = new RestTemplate(createRequestFactory(false));
-        }
-
-        public RestTemplate getRestTemplate(boolean skipSslValidation) {
-            return skipSslValidation ? skipSslValidationTemplate : restTemplate;
-        }
-    }
-
-    private ThreadLocal<RestTemplateHolder> restTemplateHolder = new ThreadLocal<RestTemplateHolder>() {
-        @Override
-        protected RestTemplateHolder initialValue() {
-            return new RestTemplateHolder();
-        }
-    };
-
     public RestTemplate getRestTemplate(AbstractXOAuthIdentityProviderDefinition config) {
-        return restTemplateHolder.get().getRestTemplate(config.isSkipSslValidation());
+        return restTemplateFactory.getRestTemplate(config.isSkipSslValidation());
     }
-
-    /*
-     * END
-     * The following thread local only exists to satisfy that the unit test
-     * that require the template to be bound to the mock server
-     */
 
     private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {

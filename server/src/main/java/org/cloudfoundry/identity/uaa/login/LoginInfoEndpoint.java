@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
@@ -88,9 +89,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -122,7 +123,7 @@ public class LoginInfoEndpoint {
     public static final String ZONE_NAME = "zone_name";
     public static final String ENTITY_ID = "entityID";
     public static final String IDP_DEFINITIONS = "idpDefinitions";
-    public static final String OAUTH_DEFINITIONS = "oauthDefinitions";
+    public static final String OAUTH_LINKS = "oauthLinks";
 
     private Properties gitProperties = new Properties();
 
@@ -146,7 +147,18 @@ public class LoginInfoEndpoint {
     private ClientDetailsService clientDetailsService;
 
     private IdentityProviderProvisioning providerProvisioning;
-    private static MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector = new MapCollector<>(idp -> idp.getOriginKey(), idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig());
+    private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
+        new MapCollector<>(
+            idp -> idp.getOriginKey(),
+            idp ->  (AbstractXOAuthIdentityProviderDefinition) idp.getConfig()
+        );
+
+    private XOAuthProviderConfigurator xoAuthProviderConfigurator;
+
+    public LoginInfoEndpoint setXoAuthProviderConfigurator(XOAuthProviderConfigurator xoAuthProviderConfigurator) {
+        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
+        return this;
+    }
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -192,18 +204,18 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
-    public String loginForJson(Model model, Principal principal) {
-        return login(model, principal, Collections.<String>emptyList(), true);
+    public String loginForJson(Model model, Principal principal, HttpServletRequest request) {
+        return login(model, principal, Collections.emptyList(), true, request);
     }
 
     @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
-    public String infoForJson(Model model, Principal principal) {
-        return login(model, principal, Collections.<String>emptyList(), true);
+    public String infoForJson(Model model, Principal principal, HttpServletRequest request) {
+        return login(model, principal, Collections.emptyList(), true, request);
     }
 
     @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
-    public String infoForHtml(Model model, Principal principal) {
-        return login(model, principal, Arrays.asList(PASSCODE), false);
+    public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
+        return login(model, principal, Arrays.asList(PASSCODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -231,7 +243,7 @@ public class LoginInfoEndpoint {
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
-        return Arrays.asList(Optional.ofNullable(cookies).orElse(new Cookie[]{}))
+        return Arrays.asList(ofNullable(cookies).orElse(new Cookie[]{}))
                 .stream()
                 .filter(c -> c.getName().startsWith("Saved-Account"))
                 .map(c -> JsonUtils.readValue(c.getValue(), clazz))
@@ -245,10 +257,6 @@ public class LoginInfoEndpoint {
 
     protected String getZonifiedEntityId() {
         return SamlRedirectUtils.getZonifiedEntityId(entityID);
-    }
-
-    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse) {
-        return login(model, principal, excludedPrompts, jsonResponse, null);
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse, HttpServletRequest request) {
@@ -297,10 +305,10 @@ public class LoginInfoEndpoint {
 
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
 
-        Optional<String> loginHintParam = Optional
-            .ofNullable(session)
-            .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
-            .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
+        Optional<String> loginHintParam =
+            ofNullable(session)
+            .flatMap(s -> ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
+            .flatMap(sr -> ofNullable(sr.getParameterValues("login_hint")))
             .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
 
         if(loginHintParam.isPresent()) {
@@ -351,7 +359,19 @@ public class LoginInfoEndpoint {
             model.addAttribute(LINK_CREATE_ACCOUNT_SHOW, linkCreateAccountShow);
             model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
             model.addAttribute(IDP_DEFINITIONS, samlIdps.values());
-            model.addAttribute(OAUTH_DEFINITIONS, oauthIdentityProviderDefinitions);
+            Map<String, String> oauthLinks = new HashMap<>();
+            ofNullable(oauthIdentityProviderDefinitions).orElse(emptyMap()).entrySet().stream()
+                .filter(e -> e.getValue().isShowLinkText() == true)
+                .forEach(e ->
+                    oauthLinks.put(
+                        xoAuthProviderConfigurator.getCompleteAuthorizationURI(
+                            e.getKey(),
+                            UaaUrlUtils.getBaseURL(request),
+                            e.getValue()),
+                        e.getValue().getLinkText()
+                    )
+                );
+            model.addAttribute(OAUTH_LINKS, oauthLinks);
             model.addAttribute("clientName", clientName);
         }
         model.addAttribute(LINKS, links);
@@ -438,7 +458,7 @@ public class LoginInfoEndpoint {
     }
 
     private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) throws UnsupportedEncodingException {
-        return definition.getCompleteAuthorizationURI(UaaUrlUtils.getBaseURL(request), alias);
+        return xoAuthProviderConfigurator.getCompleteAuthorizationURI(alias, UaaUrlUtils.getBaseURL(request), definition);
     }
 
     protected Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
@@ -447,11 +467,11 @@ public class LoginInfoEndpoint {
     }
 
     protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
-        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
-        List<IdentityProvider> identityProviders = providerProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId());
+
+        List<IdentityProvider> identityProviders =
+            xoAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
 
         Map<String, AbstractXOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
-                .filter(p -> (types.contains(p.getType())))
                 .filter(p -> allowedIdps==null || allowedIdps.contains(p.getOriginKey()))
                 .collect(idpsMapCollector);
         return identityProviderDefinitions;

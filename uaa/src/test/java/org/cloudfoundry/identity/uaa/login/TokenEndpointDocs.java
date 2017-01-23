@@ -2,12 +2,11 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
@@ -17,7 +16,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Test;
@@ -45,12 +43,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.Arrays;
 
-import static org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests.SECRET;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
@@ -356,7 +353,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         provider.setOriginKey(origin);
 
         IdentityZoneHolder.set(zone.getIdentityZone());
-        getWebApplicationContext().getBean(IdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
         getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
         IdentityZoneHolder.clear();
 

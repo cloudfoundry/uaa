@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -257,14 +258,14 @@ public final class MockMvcUtils {
     }
 
     public static void setDisableInternalAuth(ApplicationContext context, String zoneId, boolean disable) {
-        IdentityProviderProvisioning provisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning provisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
         uaaIdp.setActive(!disable);
         provisioning.update(uaaIdp);
     }
 
     public static void setDisableInternalUserManagement(ApplicationContext context, String zoneId, boolean disabled) {
-        IdentityProviderProvisioning provisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning provisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
         uaaIdp.getConfig().setDisableInternalUserManagement(disabled);
         provisioning.update(uaaIdp);
@@ -406,7 +407,7 @@ public final class MockMvcUtils {
     }
 
     public static void setDisableInternalUserManagement(boolean disableInternalUserManagement, ApplicationContext applicationContext) {
-        IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa");
         UaaIdentityProviderDefinition config = idp.getConfig();
         if (config == null) {

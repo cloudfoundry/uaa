@@ -15,6 +15,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreation
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -794,7 +795,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void test_delete_zone_cleans_db() throws Exception {
-        IdentityProviderProvisioning idpp = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning idpp = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         ScimGroupProvisioning groupProvisioning = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         ScimGroupMembershipManager membershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
