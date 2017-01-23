@@ -553,6 +553,49 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testUpdateWithPartialSamlKeyCertPair() throws Exception {
+        String id = generator.generate();
+
+        IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
+
+        SamlConfig samlConfig = created.getConfig().getSamlConfig();
+        samlConfig.setPrivateKey(serviceProviderKey);
+        samlConfig.setPrivateKeyPassword(null);
+        samlConfig.setCertificate(serviceProviderCertificate);
+        updateZone(created, HttpStatus.UNPROCESSABLE_ENTITY, identityClientToken);
+
+        samlConfig = created.getConfig().getSamlConfig();
+        samlConfig.setPrivateKey(null);
+        samlConfig.setPrivateKeyPassword(serviceProviderKeyPassword);
+        samlConfig.setCertificate(serviceProviderCertificate);
+        updateZone(created, HttpStatus.UNPROCESSABLE_ENTITY, identityClientToken);
+    }
+
+    @Test
+    public void testUpdateWithEmptySamlKeyCertPairRetainsCurrentValue() throws Exception {
+        String id = generator.generate();
+
+        IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
+
+        SamlConfig samlConfig = created.getConfig().getSamlConfig();
+
+
+        samlConfig.setAssertionTimeToLiveSeconds(77);
+
+        samlConfig.setCertificate(null);
+        samlConfig.setPrivateKey(null);
+        samlConfig.setPrivateKeyPassword(null);
+        updateZone(created, HttpStatus.OK, identityClientToken);
+
+        IdentityZone updated = provisioning.retrieve(created.getId());
+        SamlConfig updatedSamlConfig = updated.getConfig().getSamlConfig();
+        assertEquals(77, samlConfig.getAssertionTimeToLiveSeconds());
+        assertEquals(serviceProviderCertificate, updatedSamlConfig.getCertificate());
+        assertEquals(serviceProviderKey, updatedSamlConfig.getPrivateKey());
+        assertEquals(serviceProviderKeyPassword, updatedSamlConfig.getPrivateKeyPassword());
+    }
+
+    @Test
     public void testUpdateZoneWithExistingSubdomain() throws Exception {
         String id1 = generator.generate();
         IdentityZone created1 = createZone(id1, HttpStatus.CREATED, identityClientToken);
