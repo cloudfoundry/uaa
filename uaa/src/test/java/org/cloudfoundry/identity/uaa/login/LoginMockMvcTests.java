@@ -132,6 +132,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
@@ -1614,7 +1615,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("password_confirmation", "yield_unprocessable_entity");
 
         getMockMvc().perform(post)
-            .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrlPattern("accept?error_message_code=form_error&code=*"))
+        ;
 
         //logged in, invalid CSRF
         post = post("/invitations/accept.do")
