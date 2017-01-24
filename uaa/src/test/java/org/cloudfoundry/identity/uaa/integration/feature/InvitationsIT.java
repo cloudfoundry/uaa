@@ -202,10 +202,11 @@ public class InvitationsIT {
 
     @Test
     public void invitedOIDCUserVerified() throws Exception {
-        BaseClientDetails clientDetails = new BaseClientDetails("invite-client", null, null, "client_credentials", "scim.invite");
+        String clientId = "invite-client" + new RandomValueStringGenerator().generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "scim.invite");
         clientDetails.setClientSecret("invite-client-secret");
         testClient.createClient(scimToken, clientDetails);
-        String inviteToken = testClient.getOAuthAccessToken("invite-client", "invite-client-secret", "client_credentials", "scim.invite");
+        String inviteToken = testClient.getOAuthAccessToken(clientId, "invite-client-secret", "client_credentials", "scim.invite");
         IntegrationTestUtils.createOidcIdentityProvider("oidc-invite-provider", "puppy-invite", baseUrl);
 
         RestTemplate uaaTemplate = new RestTemplate();

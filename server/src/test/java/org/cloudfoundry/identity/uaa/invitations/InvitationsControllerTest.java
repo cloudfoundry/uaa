@@ -10,8 +10,8 @@ import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -56,10 +56,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 import java.net.URL;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
@@ -75,7 +73,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -447,11 +444,10 @@ public class InvitationsControllerTest {
         when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
         when(expiringCodeStore.generateCode(anyString(), anyObject(), anyString())).thenReturn(createCode(codeData));
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
+            .andExpect(status().isFound())
             .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
             .andExpect(model().attribute("code", "code"))
-            .andExpect(model().attribute("provider", OriginKeys.UAA))
-            .andExpect(view().name("invitations/accept_invite"));
+            .andExpect(view().name("redirect:accept"));
         verify(expiringCodeStore).retrieveCode("thecode");
         verify(expiringCodeStore).generateCode(anyString(),anyObject(),anyString());
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
@@ -555,10 +551,10 @@ public class InvitationsControllerTest {
         when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
         when(expiringCodeStore.generateCode(anyString(), anyObject(), anyString())).thenReturn(createCode(codeData));
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
+            .andExpect(status().isFound())
             .andExpect(model().attribute("error_message_code", "form_error"))
             .andExpect(model().attribute("code", "code"))
-            .andExpect(view().name("invitations/accept_invite"));
+            .andExpect(view().name("redirect:accept"));
         verify(expiringCodeStore).retrieveCode("thecode");
         verify(expiringCodeStore).generateCode(anyString(),anyObject(),anyString());
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
