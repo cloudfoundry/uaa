@@ -63,6 +63,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -130,6 +131,8 @@ public class InvitationsController {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
 
+        transferErrorParameters(model, request);
+
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         String origin = codeData.get(ORIGIN);
         try {
@@ -176,6 +179,14 @@ public class InvitationsController {
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        }
+    }
+
+    public void transferErrorParameters(Model model, HttpServletRequest request) {
+        for (String p : Arrays.asList("error_message_code", "error_code", "error_message")) {
+            if (hasText(request.getParameter(p))) {
+                model.addAttribute(p, request.getParameter(p));
+            }
         }
     }
 
@@ -276,11 +287,10 @@ public class InvitationsController {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
 
-            model.addAttribute("provider", provider.getType());
-            model.addAttribute("email", email);
+            model.addAttribute(errorCode, error);
             model.addAttribute("code", newCode);
-
-            return handleUnprocessableEntity(model, response, errorCode, error, "invitations/accept_invite");
+            return "redirect:accept";
+            //return handleUnprocessableEntity(model, response, errorCode, error, "invitations/accept_invite");
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
