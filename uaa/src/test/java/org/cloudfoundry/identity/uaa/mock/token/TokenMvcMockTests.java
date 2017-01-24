@@ -437,6 +437,82 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void test_two_zone_saml_bearer_grant() throws Exception {
+        String subdomain  = generator.generate().toLowerCase();
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        String spInvocationEndpoint = "/uaa/oauth/token/alias/cloudfoundry-saml-login";
+        String idpOrigin = subdomain + ".cloudfoundry-saml-login";
+
+        //create an zone - that zone will be our IDP
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
+        //create an actual IDP, so we can fetch metadata
+        String spMetadata = MockMvcUtils.getSPMetadata(getMockMvc(), null);
+        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
+
+        //create an IDP in the default zone
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(idpOrigin, IdentityZone.getUaa().getId(), idpMetadata);
+        IdentityProvider provider = new IdentityProvider();
+        provider.setConfig(idpDef);
+        provider.setActive(true);
+        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setName(idpOrigin);
+        provider.setOriginKey(idpOrigin);
+
+        IdentityZoneHolder.clear();
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+        IdentityZoneHolder.clear();
+
+        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
+                                                              "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                                                              "Saml2BearerIntegrationUser",
+                                                              "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login",
+                                                              "cloudfoundry-saml-login"
+        );
+
+        //create client in default zone
+        String clientId = "testclient"+ generator.generate();
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, null);
+
+
+        MockHttpServletRequestBuilder post = post(spInvocationEndpoint)
+            .with(new RequestPostProcessor() {
+                @Override
+                public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+                    request.setServerPort(8080);
+                    request.setRequestURI(spInvocationEndpoint);
+                    request.setServerName("localhost");
+                    return request;
+                }
+            })
+            .contextPath("/uaa")
+            .accept(APPLICATION_JSON)
+            .header(HOST, "localhost")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer")
+            .param("client_id", clientId)
+            .param("client_secret", "secret")
+            .param("assertion",assertion);
+
+
+        String json = getMockMvc().perform(post)
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.access_token").exists())
+            .andExpect(jsonPath("$.scope").value("openid uaa.user"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        System.out.println("json = " + json);
+
+        getMockMvc().perform(post.param("scope","uaa.admin"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized());
+
+    }
+
+    @Test
     public void getOauthToken_Password_Grant_When_UAA_Provider_is_Disabled() throws Exception {
         String clientId = "testclient"+ generator.generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
