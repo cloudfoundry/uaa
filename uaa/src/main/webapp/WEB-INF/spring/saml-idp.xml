@@ -71,9 +71,18 @@
         </constructor-arg>
     </bean>
 
+    <bean id="idpZoneAwareSamlKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager" depends-on="identityZoneHolderInitializer"/>
+
+    <bean id="idpNonCachingMetadataCredentialsResolver" class="org.cloudfoundry.identity.uaa.provider.saml.NonCachingMetadataCredentialResolver">
+        <constructor-arg name="metadataProvider" ref="idpMetadataManager"/>
+        <constructor-arg name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
+    </bean>
+
     <bean id="idpContextProvider"
         class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlContextProviderImpl">
         <property name="metadata" ref="idpMetadataManager" />
+        <property name="metadataResolver" ref="idpNonCachingMetadataCredentialsResolver"/>
+        <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
 
     <!-- Filter automatically generates default IdP metadata -->
@@ -89,6 +98,7 @@
         <property name="contextProvider" ref="idpContextProvider" />
         <property name="manager" ref="idpMetadataManager" />
         <property name="filterProcessesUrl" value="/saml/idp/metadata" />
+        <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
 
     <bean id="zoneAwareIdpMetadataGenerator"
@@ -100,6 +110,7 @@
             value="${login.entityBaseURL:http://localhost:8080/uaa}" />
         <property name="entityId" ref="samlIdpEntityID" />
         <property name="samlWebSSOFilter" ref="samlIdpWebSsoProcessingFilter" />
+        <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
 
     <bean id="idpExtendedMetaData"
