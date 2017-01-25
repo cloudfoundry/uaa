@@ -287,9 +287,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 apply plugin: 'com.github.kt3k.coveralls'
 
 Project identityModel = subprojects.find { it.name.equals('cloudfoundry-identity-model') }
-Project identityCommon = subprojects.find { it.name.equals('cloudfoundry-identity-common') }
-Project identityScim = subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
-Project identityLogin = subprojects.find { it.name.equals('cloudfoundry-identity-login') }
+Project identityServer = subprojects.find { it.name.equals('cloudfoundry-identity-server') }
 Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-uaa') }
 
 def publishedProjects = subprojects
@@ -338,6 +336,11 @@ task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
 task jacocoRootReportServerTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
   configure jacocoRootReportConfiguration
   dependsOn(':cloudfoundry-identity-server:test')
+}
+
+task mockAssertion(type: JavaExec) {
+  main = 'org.cloudfoundry.identity.uaa.saml.MockSamlAssertion'
+  classpath = files(subprojects.sourceSets.test.runtimeClasspath)
 }
 
 
