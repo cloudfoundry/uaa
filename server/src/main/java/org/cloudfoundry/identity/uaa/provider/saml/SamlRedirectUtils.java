@@ -69,6 +69,7 @@ public class SamlRedirectUtils {
         response.setVersion(SAMLVersion.VERSION_20);
         response.setIssueInstant(new DateTime());
         response.getAssertions().add(assertion);
+        //XMLHelper.adoptElement(assertion.getDOM(), assertion.getDOM().getOwnerDocument());
         return response;
     }
 
