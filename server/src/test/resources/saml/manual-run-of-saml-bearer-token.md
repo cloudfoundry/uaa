@@ -18,7 +18,7 @@
 
 ###  Assign the output to a variable
 
-    export ASSERTION=<paste value here>
+    export ASSERTION=`cat /tmp/assertion.txt`
 
 ###  Run the command
 
