@@ -340,6 +340,7 @@ task jacocoRootReportServerTest(type: org.gradle.testing.jacoco.tasks.JacocoRepo
 
 task mockAssertion(type: JavaExec) {
   main = 'org.cloudfoundry.identity.uaa.saml.MockSamlAssertion'
+  args = System.getProperty("file", null) == null ? [] : [System.getProperty("file")]
   classpath = files(subprojects.sourceSets.test.runtimeClasspath)
 }
 

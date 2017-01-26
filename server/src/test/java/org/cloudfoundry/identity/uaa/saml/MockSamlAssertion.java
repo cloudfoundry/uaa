@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.opensaml.saml2.core.Assertion;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
 import org.yaml.snakeyaml.Yaml;
 
@@ -30,8 +31,7 @@ public class MockSamlAssertion {
 
     public static final String RAW_YAML = "raw-yaml";
 
-    public Map<String, Object> getYamlConfig() {
-        Resource resource = new ClassPathResource("saml/mock-assertion.yml");
+    public Map<String, Object> getYamlConfig(Resource resource) {
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
         factory.setResources(new Resource[] {resource});
@@ -55,7 +55,20 @@ public class MockSamlAssertion {
 
     public static void main(String[] args) throws Exception {
         MockSamlAssertion mock = new MockSamlAssertion();
-        Map<String, Object> config = mock.getYamlConfig();
+        Resource resource = new ClassPathResource("saml/mock-assertion-local-testzone4.yml");
+        if (args!=null && args.length>0) {
+            PathResource pathResource = new PathResource(args[0]);
+            if (!(pathResource.exists() && pathResource.isReadable())) {
+                String message = "Unable to load resource[path:" + args[0] + "; readable:" + pathResource.isReadable() + "; exists:" + pathResource.exists() + "]";
+                System.err.println("\n\n\n=======================ASSERTION ERROR=====================\n");
+                System.err.println(message);
+                System.err.println("\n========================ASSERTION ERROR======================\n\n\n");
+                throw new Exception(message);
+            }
+            resource = pathResource;
+        }
+        System.out.println("Processing assertion for config:"+resource.getURL());
+        Map<String, Object> config = mock.getYamlConfig(resource);
         SamlTestUtils saml = new SamlTestUtils();
         saml.initialize();
 
@@ -70,9 +83,9 @@ public class MockSamlAssertion {
         String certificate = (String) mock.getProperty("saml.issuer.signing.cert", config);
 
         Assertion assertion = saml.mockAssertion(issuerEntityId, nameIdFormat, username, endpoint, audienceEntityId, privateKey, keyPassword, certificate);
-        System.out.println("\n\n\n=======================START=====================\n");
+        System.out.println("\n\n\n=======================ASSERTION START=====================\n");
         System.out.println(saml.mockAssertionEncoded(assertion));
-        System.out.println("\n========================END======================\n\n\n");
+        System.out.println("\n========================ASSERTION END======================\n\n\n");
 
     }
 }
