@@ -918,10 +918,19 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void two_zone_saml_bearer_grant() throws Exception {
+    public void two_zone_saml_bearer_grant_url_metadata() throws Exception {
+        two_zone_saml_bearer_grant(true, "testzone4");
+    }
+
+    @Test
+    public void two_zone_saml_bearer_grant_xml_metadata() throws Exception {
+        two_zone_saml_bearer_grant(false, "testzone3");
+    }
+
+    public void two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-        String zoneId = "testzone4";
+        String zoneId = zoneName;
         String zoneUrl = baseUrl.replace("localhost", zoneId+".localhost");
 
 
@@ -939,7 +948,10 @@ public class SamlLoginIT {
         //create the zone
         IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
 
-        String idpMetadata = new RestTemplate().getForObject(zoneUrl + "/saml/idp/metadata", String.class);
+        String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
+        //String idpMetadata = idpMetadataUrl;
+
+        String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
 
         //TODO Remove this and the test fails if it runs against a newly started instance
         //see https://www.pivotaltracker.com/story/show/138365807
