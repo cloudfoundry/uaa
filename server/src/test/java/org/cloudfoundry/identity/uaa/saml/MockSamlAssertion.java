@@ -25,6 +25,8 @@ import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.Map;
 
 public class MockSamlAssertion {
@@ -84,8 +86,18 @@ public class MockSamlAssertion {
 
         Assertion assertion = saml.mockAssertion(issuerEntityId, nameIdFormat, username, endpoint, audienceEntityId, privateKey, keyPassword, certificate);
         System.out.println("\n\n\n=======================ASSERTION START=====================\n");
-        System.out.println(saml.mockAssertionEncoded(assertion));
+        String encoded = saml.mockAssertionEncoded(assertion);
+        System.out.println(encoded);
         System.out.println("\n========================ASSERTION END======================\n\n\n");
 
+        File assertionFile = new File(System.getProperty("java.io.tmpdir", "/tmp"), "assertion.txt");
+        if (assertionFile.exists()) {
+            assertionFile.delete();
+        }
+        FileWriter fileWriter = new FileWriter(assertionFile, false);
+        fileWriter.write(encoded);
+        fileWriter.flush();
+        fileWriter.close();
+        System.out.println("Assertion stored in:"+assertionFile.getAbsolutePath());
     }
 }
