@@ -448,6 +448,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
         assertEquals(Collections.EMPTY_MAP, created.getConfig().getTokenPolicy().getKeys());
+        assertEquals("kid", created.getConfig().getTokenPolicy().getActiveKeyId());
         assertNull(created.getConfig().getSamlConfig().getPrivateKey());
         assertNull(created.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertNull(created.getConfig().getSamlConfig().getCertificate());
@@ -457,6 +458,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         HashMap<String, String> keys = new HashMap<>();
         keys.put("key1","value1");
         tokenPolicy.setKeys(keys);
+        tokenPolicy.setActiveKeyId("key1");
         SamlConfig samlConfig = new SamlConfig();
         samlConfig.setCertificate(serviceProviderCertificate);
         samlConfig.setPrivateKey(serviceProviderKey);
@@ -468,6 +470,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
         assertEquals(Collections.EMPTY_MAP, updated.getConfig().getTokenPolicy().getKeys());
+        assertEquals("key1", updated.getConfig().getTokenPolicy().getActiveKeyId());
         assertNull(updated.getConfig().getSamlConfig().getPrivateKey());
         assertNull(updated.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertNull(updated.getConfig().getSamlConfig().getCertificate());
@@ -1355,6 +1358,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertNull(zoneResult.getConfig().getSamlConfig().getCertificate());
         assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
+        assertEquals("kid", zoneResult.getConfig().getTokenPolicy().getActiveKeyId());
     }
 
     private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {
@@ -1379,6 +1383,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         Map<String, String> keys = new HashMap<>();
         keys.put("kid", "key");
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
+        identityZone.getConfig().getTokenPolicy().setActiveKeyId("kid");
 
         MvcResult result = getMockMvc().perform(
             post("/identity-zones")
