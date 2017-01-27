@@ -480,7 +480,7 @@
         </entry>
     </util:map>
 
-    <mvc:annotation-driven>
+    <mvc:annotation-driven content-negotiation-manager="contentNegotiationManager">
         <mvc:message-converters>
             <bean class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinRequestConverter"/>
         </mvc:message-converters>
@@ -609,6 +609,7 @@
                 <property name="extractValueFromSingleKeyModel" value="true"/>
             </bean>
         </property>
+        <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
     </bean>
 
     <bean id="buildInfo" class="org.cloudfoundry.identity.uaa.home.BuildInfo"/>
