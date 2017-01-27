@@ -398,11 +398,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
-
+    private static final String CF_LAST_LOGIN = "Last Login";
     @Test
     public void testDefaultFooter() throws Exception {
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(containsString(cfCopyrightText)));
+                .andExpect(content().string(containsString(cfCopyrightText)))
+                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
     @Test
@@ -414,7 +415,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setZoneConfiguration(identityZoneConfiguration);
 
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))));
+                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))))
+                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
     @Test
