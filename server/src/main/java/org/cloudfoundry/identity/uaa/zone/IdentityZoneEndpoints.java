@@ -227,6 +227,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             throw new AccessDeniedException("Zone admins can only update their own zone.");
         }
 
+        // make sure it exists
+        IdentityZone existingZone = zoneDao.retrieve(id);
+        restoreSecretProperties(existingZone, body);
+
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
         } catch(InvalidIdentityZoneDetailsException ex) {
@@ -236,11 +240,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - updating id["+id+"] subdomain["+body.getSubdomain()+"]");
-            // make sure it exists
-            IdentityZone existingZone = zoneDao.retrieve(id);
             // ignore the id in the body, the id in the path is the only one that matters
             body.setId(id);
-            validateAndUpdateConfig(existingZone, body);
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated); //what???
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
@@ -250,7 +251,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    private void validateAndUpdateConfig(IdentityZone existingZone, IdentityZone newZone) {
+    private void restoreSecretProperties(IdentityZone existingZone, IdentityZone newZone) {
         if(newZone.getConfig() != null) {
             if (newZone.getConfig().getTokenPolicy() != null) {
                 if (newZone.getConfig().getTokenPolicy().getKeys() != null && !newZone.getConfig().getTokenPolicy().getKeys().isEmpty()) {
