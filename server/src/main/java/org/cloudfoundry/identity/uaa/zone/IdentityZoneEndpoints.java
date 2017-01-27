@@ -102,17 +102,16 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (result.size()==0) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
-        return removeKeysAndCerts(result.get(0));
+        return removeKeys(result.get(0));
     }
 
-    private IdentityZone removeKeysAndCerts(IdentityZone identityZone) {
+    private IdentityZone removeKeys(IdentityZone identityZone) {
         if(identityZone.getConfig() != null && identityZone.getConfig().getTokenPolicy() != null) {
             identityZone.getConfig().getTokenPolicy().setKeys(null);
         }
         if(identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
             identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(null);
             identityZone.getConfig().getSamlConfig().setPrivateKey(null);
-            identityZone.getConfig().getSamlConfig().setCertificate(null);
         }
         return identityZone;
     }
@@ -126,7 +125,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         List<IdentityZone> result = new LinkedList<>();
         if (IdentityZoneHolder.isUaa()) {
             for (IdentityZone zone : zones) {
-                    result.add(removeKeysAndCerts(zone));
+                    result.add(removeKeys(zone));
                 }
             return result;
         }
@@ -134,7 +133,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
         for (IdentityZone zone : zones) {
             if (currentId.equals(zone.getId())) {
-                result.add(removeKeysAndCerts(filterForZonesDotRead(zone)));
+                result.add(removeKeys(filterForZonesDotRead(zone)));
                 break;
             }
         }
@@ -203,7 +202,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             defaultIdp.setConfig(idpDefinition);
             idpDao.create(defaultIdp);
             logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
-            return new ResponseEntity<>(removeKeysAndCerts(created), CREATED);
+            return new ResponseEntity<>(removeKeys(created), CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
         }
@@ -245,7 +244,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated); //what???
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
-            return new ResponseEntity<>(removeKeysAndCerts(updated), OK);
+            return new ResponseEntity<>(removeKeys(updated), OK);
         } finally {
             IdentityZoneHolder.set(previous);
         }
@@ -261,10 +260,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             }
             if(newZone.getConfig().getSamlConfig() != null) {
                 SamlConfig config = newZone.getConfig().getSamlConfig();
-                if(config.getCertificate() == null && config.getPrivateKey() == null && config.getPrivateKeyPassword() == null) {
-                    config.setCertificate(existingZone.getConfig().getSamlConfig().getCertificate());
-                    config.setPrivateKey(existingZone.getConfig().getSamlConfig().getPrivateKey());
-                    config.setPrivateKeyPassword(existingZone.getConfig().getSamlConfig().getPrivateKeyPassword());
+                SamlConfig oldConfig = existingZone.getConfig().getSamlConfig();
+                if(config.getPrivateKey() == null && config.getPrivateKeyPassword() == null && oldConfig.getCertificate() != null && oldConfig.getCertificate().equals(config.getCertificate())) {
+                    config.setPrivateKey(oldConfig.getPrivateKey());
+                    config.setPrivateKeyPassword(oldConfig.getPrivateKeyPassword());
                 }
             }
         }
@@ -289,7 +288,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             if (publisher!=null && zone!=null) {
                 publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
-                return new ResponseEntity<>(removeKeysAndCerts(zone), OK);
+                return new ResponseEntity<>(removeKeys(zone), OK);
             } else {
                 return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
             }
