@@ -253,10 +253,9 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private void restoreSecretProperties(IdentityZone existingZone, IdentityZone newZone) {
         if(newZone.getConfig() != null) {
             if (newZone.getConfig().getTokenPolicy() != null) {
-                if (newZone.getConfig().getTokenPolicy().getKeys() != null && !newZone.getConfig().getTokenPolicy().getKeys().isEmpty()) {
-                    return;
+                if (newZone.getConfig().getTokenPolicy().getKeys() == null || newZone.getConfig().getTokenPolicy().getKeys().isEmpty()) {
+                    newZone.getConfig().getTokenPolicy().setKeys(existingZone.getConfig().getTokenPolicy().getKeys());
                 }
-                newZone.getConfig().getTokenPolicy().setKeys(existingZone.getConfig().getTokenPolicy().getKeys());
             }
             if(newZone.getConfig().getSamlConfig() != null) {
                 SamlConfig config = newZone.getConfig().getSamlConfig();
