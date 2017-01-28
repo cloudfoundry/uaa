@@ -170,8 +170,6 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <bean id="metadata" class="org.cloudfoundry.identity.uaa.provider.saml.NonSnarlMetadataManager"
               depends-on="idpBootstrap, metaDataProviders, identityZoneHolderInitializer"
               destroy-method="destroy">
-            <constructor-arg name="providerDao" ref="identityProviderProvisioning"/>
-            <constructor-arg name="zoneDao" ref="identityZoneProvisioning"/>
             <constructor-arg name="configurator" ref="metaDataProviders"/>
             <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}"/>
         </bean>
