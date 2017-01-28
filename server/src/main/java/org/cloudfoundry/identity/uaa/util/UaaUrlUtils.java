@@ -161,8 +161,11 @@ public abstract class UaaUrlUtils {
     }
 
     public static String addSubdomainToUrl(String url) {
+        return addSubdomainToUrl(url, getSubdomain());
+    }
+    public static String addSubdomainToUrl(String url, String subdomain) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
-        builder.host(getSubdomain() + builder.build().getHost());
+        builder.host(subdomain + builder.build().getHost());
         return builder.build().toUriString();
     }
 
