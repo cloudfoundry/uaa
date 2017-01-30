@@ -27,6 +27,17 @@ public class XOAuthIdentityProviderConfigValidatorTest {
         validator = new XOAuthIdentityProviderConfigValidator();
     }
 
+    @Test
+    public void discovery_url_renders_other_urls_nullable() throws Exception {
+        definition.setAuthUrl(null);
+        definition.setTokenUrl(null);
+        definition.setTokenKeyUrl(null);
+        definition.setTokenKey(null);
+        ((OIDCIdentityProviderDefinition)definition).setDiscoveryUrl(new URL("http://localhost:8080/uaa/.well-known/openid-configuration"));
+        validator = new XOAuthIdentityProviderConfigValidator();
+        validator.validate(definition);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void configWithNullAuthUrl_ThrowsException() throws Exception {
         definition.setAuthUrl(null);

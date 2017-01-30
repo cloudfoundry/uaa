@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -83,6 +84,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.requestF
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -414,7 +416,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         IdentityProvider identityProvider = new IdentityProvider();
         identityProvider.setType(OAUTH20);
         identityProvider.setName("UAA Provider");
-        identityProvider.setOriginKey(OAUTH20);
+        identityProvider.setOriginKey("my-oauth2-provider");
         AbstractXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
@@ -426,22 +428,20 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setSerializeConfigRaw(true);
 
         FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-            fieldWithPath("type").required().description("`\""+OAUTH20+"\"` or `\""+OIDC10+"\"`"),
+            fieldWithPath("type").required().description("`\""+OAUTH20+"\"`"),
             fieldWithPath("originKey").required().description("A unique alias for a OAuth provider"),
             fieldWithPath("config.authUrl").required().type(STRING).description("The OAuth 2.0 authorization endpoint URL"),
             fieldWithPath("config.tokenUrl").required().type(STRING).description("The OAuth 2.0 token endpoint URL"),
             fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures"),
-            fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures"),
+            fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures, set to null if a `tokenKeyUrl` is provided."),
             fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
             fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
             fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
             fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider"),
             fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
-            fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
-                "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
+            fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
             fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
-            fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use."),
-            fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
+            fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
             ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS,
             ATTRIBUTE_MAPPING,
@@ -477,6 +477,78 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             commonRequestParams,
             requestFields,
             responseFields
+        ));
+    }
+
+    @Test
+    public void createOidcIdentityProvider() throws Exception {
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(OIDC10);
+        identityProvider.setName("UAA Provider");
+        identityProvider.setOriginKey("my-oidc-provider-"+new RandomValueStringGenerator().generate().toLowerCase());
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+        definition.setDiscoveryUrl(new URL("https://login.identity.cf-app.com/.well-known/openid-configuration"));
+        definition.setSkipSslValidation(true);
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        identityProvider.setConfig(definition);
+        identityProvider.setSerializeConfigRaw(true);
+
+        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+            fieldWithPath("type").required().description("`\""+OIDC10+"\"`"),
+            fieldWithPath("originKey").required().description("A unique alias for the OIDC 1.0 provider"),
+            fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with "),
+            fieldWithPath("config.authUrl").required().type(STRING).description("The OIDC 1.0 authorization endpoint URL. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+            fieldWithPath("config.tokenUrl").required().type(STRING).description("The OIDC 1.0 token endpoint URL.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+            fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+            fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+            fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
+            fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
+            fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
+            fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider"),
+            fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
+            fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
+                                                                                      "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
+            fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth/OIDC use."),
+            fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+            fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
+            ADD_SHADOW_USER_ON_LOGIN,
+            EXTERNAL_GROUPS,
+            ATTRIBUTE_MAPPING,
+            fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
+            fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token.")
+        });
+        Snippet requestFields = requestFields(idempotentFields);
+
+        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
+            VERSION,
+            ID,
+            ADDITIONAL_CONFIGURATION,
+            IDENTITY_ZONE_ID,
+            CREATED,
+            LAST_MODIFIED,
+            fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
+        }));
+
+        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+                                                               .param("rawConfig", "true")
+                                                               .header("Authorization", "Bearer " + adminToken)
+                                                               .contentType(APPLICATION_JSON)
+                                                               .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.externalGroupsWhitelist", "config.checkTokenUrl", "config.additionalConfiguration")))
+            .andDo(print())
+            .andExpect(status().isCreated());
+
+        resultActions.andDo(document("{ClassName}/{methodName}",
+                                     preprocessRequest(prettyPrint()),
+                                     preprocessResponse(prettyPrint()),
+                                     requestHeaders(
+                                         headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                                         headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                                     ),
+                                     commonRequestParams,
+                                     requestFields,
+                                     responseFields
         ));
     }
 
