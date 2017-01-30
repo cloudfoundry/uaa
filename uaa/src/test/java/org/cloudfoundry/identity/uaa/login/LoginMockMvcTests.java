@@ -155,6 +155,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private XmlWebApplicationContext webApplicationContext;
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
+    
 
     @Before
     public void setUpContext() throws Exception {

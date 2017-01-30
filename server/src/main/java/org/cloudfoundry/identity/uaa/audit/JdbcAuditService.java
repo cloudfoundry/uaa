@@ -43,6 +43,11 @@ public class JdbcAuditService implements UaaAuditService {
                         "principal_id=? and created > ? order by created desc", new AuditEventRowMapper(), principal,
                         new Timestamp(after));
     }
+    
+
+    public List<AuditEvent> find(String principal, long after, String IdentityzoneId) {
+        return find(principal, after);
+    }
 
     @Override
     public void log(AuditEvent auditEvent) {
