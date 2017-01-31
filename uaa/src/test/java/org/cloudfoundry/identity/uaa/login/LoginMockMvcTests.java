@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -65,6 +66,7 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -105,15 +107,19 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -138,8 +144,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 public class LoginMockMvcTests extends InjectedMockContextTest {
-
-    private static MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
 
     private MockEnvironment mockEnvironment;
 
@@ -321,6 +325,35 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
     }
 
+    @Test
+    public void test_previous_login_time_upon_authentication() throws Exception {
+        ScimUser user = createUser("", adminToken);
+        MockHttpSession session = new MockHttpSession();
+        long beforeAuthTime = System.currentTimeMillis();
+        getMockMvc().perform(post("/uaa/login.do")
+            .session(session)
+            .with(cookieCsrf())
+            .contextPath("/uaa")
+            .param("username", user.getUserName())
+            .param("password", user.getPassword()));
+        long afterAuthTime = System.currentTimeMillis();
+        SecurityContext securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        assertNull(((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime());
+        session = new MockHttpSession();
+
+        getMockMvc().perform(post("/uaa/login.do")
+            .session(session)
+            .with(cookieCsrf())
+            .contextPath("/uaa")
+            .param("username", user.getUserName())
+            .param("password", user.getPassword()));
+        securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+
+        Long lastLoginTime = ((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime();
+        assertThat(lastLoginTime, greaterThanOrEqualTo(beforeAuthTime));
+        assertThat(lastLoginTime, lessThanOrEqualTo(afterAuthTime));
+
+    }
     @Test
     public void testLogin_Post_When_DisableInternalUserManagement_Is_True() throws Exception {
         ScimUser user = createUser("", adminToken);

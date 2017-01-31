@@ -156,7 +156,7 @@ public class UaaAuthenticationSerializationTests {
 
     @Test
     public void deserialization_with_user_attributes() throws Exception {
-        String dataWithoutUserAttributes ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\"}";
+        String dataWithoutUserAttributes ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\", \"previousLoginSuccessTime\":1485305759347}";
         UaaAuthentication authentication = JsonUtils.readValue(dataWithoutUserAttributes, UaaAuthentication.class);
         assertEquals(3, authentication.getExternalGroups().size());
         assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder("something", "or", "other"));
@@ -179,6 +179,7 @@ public class UaaAuthenticationSerializationTests {
         assertEquals(3, authentication.getExternalGroups().size());
         assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder("something", "or", "other"));
         assertTrue(authentication.isAuthenticated());
+        assertEquals((Long) 1485305759347L, authentication.getLastLoginSuccessTime());
     }
 
 }

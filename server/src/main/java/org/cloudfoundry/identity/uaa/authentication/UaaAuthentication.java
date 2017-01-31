@@ -47,7 +47,18 @@ public class UaaAuthentication implements Authentication, Serializable {
     private Set<String> externalGroups;
     private Set<String> authenticationMethods;
     private Set<String> authContextClassRef;
+    private Long lastLoginSuccessTime;
+
     private Map userAttributes;
+
+    public Long getLastLoginSuccessTime() {
+        return lastLoginSuccessTime;
+    }
+
+    public UaaAuthentication setLastLoginSuccessTime(Long lastLoginSuccessTime) {
+        this.lastLoginSuccessTime = lastLoginSuccessTime;
+        return this;
+    }
 
     //This is used when UAA acts as a SAML IdP
     @JsonIgnore
