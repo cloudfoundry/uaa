@@ -498,7 +498,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
             fieldWithPath("type").required().description("`\""+OIDC10+"\"`"),
             fieldWithPath("originKey").required().description("A unique alias for the OIDC 1.0 provider"),
-            fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with "),
+            fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with /.well-known/openid-configurationmit "),
             fieldWithPath("config.authUrl").required().type(STRING).description("The OIDC 1.0 authorization endpoint URL. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
             fieldWithPath("config.tokenUrl").required().type(STRING).description("The OIDC 1.0 token endpoint URL.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
             fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
