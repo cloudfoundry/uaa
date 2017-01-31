@@ -18,8 +18,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 
-import java.util.Date;
-
 
 public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryable<ScimUser> {
 

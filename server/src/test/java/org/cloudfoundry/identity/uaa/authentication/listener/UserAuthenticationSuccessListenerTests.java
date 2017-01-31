@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.listener;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -8,12 +9,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.verification.VerificationMode;
 
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -99,6 +96,24 @@ public class UserAuthenticationSuccessListenerTests {
 
         listener.onApplicationEvent(event);
         verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId);
+    }
+
+    @Test
+    public void previousLoginIsSetOnTheAuthentication() {
+        String userId = "userId";
+        UaaAuthentication mockAuth = mock(UaaAuthentication.class);
+        UaaUserPrototype uaaUserPrototype = new UaaUserPrototype()
+            .withId(userId)
+            .withEmail("test@test.org")
+            .withUsername("testUser")
+            .withVerified(false)
+            .withLastLogonSuccess(123456789L);
+
+        UserAuthenticationSuccessEvent event = new UserAuthenticationSuccessEvent(new UaaUser(uaaUserPrototype), mockAuth);
+        when(scimUserProvisioning.retrieve(userId)).thenReturn(getScimUser(event.getUser()));
+        UaaAuthentication authentication = (UaaAuthentication) event.getAuthentication();
+        listener.onApplicationEvent(event);
+        verify(authentication).setLastLoginSuccessTime(123456789L);
     }
 
 }

@@ -44,7 +44,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -143,6 +145,25 @@ public class LoginIT {
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString("Last Login"));
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
+    }
+
+    @Test
+    public void testSuccessfulLoginNewUser() throws Exception {
+        String newUserEmail = createAnotherUser();
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(baseUrl + "/login");
+        assertEquals("Cloud Foundry", webDriver.getTitle());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd");
+        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
+        attemptLogin(newUserEmail, "sec3Tas");
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.not(Matchers.containsString((expectedLastLoginTime))));
+        webDriver.get(baseUrl + "/logout.do");
+        attemptLogin(newUserEmail, "sec3Tas");
+
+        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString(expectedLastLoginTime));
+
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
