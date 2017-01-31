@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.junit.Before;
@@ -35,7 +34,7 @@ public class UserAuthenticationSuccessListenerTests {
 
     UserAuthenticationSuccessListener listener;
     ScimUserProvisioning scimUserProvisioning;
-
+    UaaAuthentication mockAuth = mock(UaaAuthentication.class);
     @Before
     public void SetUp()
     {
@@ -43,11 +42,11 @@ public class UserAuthenticationSuccessListenerTests {
         listener = new UserAuthenticationSuccessListener(scimUserProvisioning);
     }
 
-    private static UserAuthenticationSuccessEvent getEvent(UaaUserPrototype userPrototype) {
-        return new UserAuthenticationSuccessEvent(new UaaUser(userPrototype), new MockAuthentication());
+    private UserAuthenticationSuccessEvent getEvent(UaaUserPrototype userPrototype) {
+        return new UserAuthenticationSuccessEvent(new UaaUser(userPrototype), mockAuth);
     }
 
-    private static ScimUser getScimUser(UaaUser user) {
+    private ScimUser getScimUser(UaaUser user) {
         ScimUser scimUser = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
         scimUser.setVerified(user.isVerified());
         return scimUser;
@@ -101,7 +100,6 @@ public class UserAuthenticationSuccessListenerTests {
     @Test
     public void previousLoginIsSetOnTheAuthentication() {
         String userId = "userId";
-        UaaAuthentication mockAuth = mock(UaaAuthentication.class);
         UaaUserPrototype uaaUserPrototype = new UaaUserPrototype()
             .withId(userId)
             .withEmail("test@test.org")
