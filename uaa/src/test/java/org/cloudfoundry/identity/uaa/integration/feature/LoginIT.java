@@ -139,16 +139,6 @@ public class LoginIT {
     }
 
     @Test
-    public void testSuccessfulLogin() throws Exception {
-        webDriver.get(baseUrl + "/login");
-        assertEquals("Cloud Foundry", webDriver.getTitle());
-        attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
-        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString("Last Login"));
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
-    }
-
-    @Test
     public void testSuccessfulLoginNewUser() throws Exception {
         String newUserEmail = createAnotherUser();
         webDriver.get(baseUrl + "/logout.do");
