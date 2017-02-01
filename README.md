@@ -58,21 +58,27 @@ https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/required_
 You can also build the app and push it to Cloud Foundry, e.g.
 Our recommended way is to use a manifest file, but you can do everything on the command line.
 
-    $ ./gradlew :cloudfoundry-identity-uaa:war
-    $ cf push myuaa --no-start -m 1024M -p uaa/build/libs/cloudfoundry-identity-uaa-<YOUR-VERSION-HERE>.war 
-    $ cf set-env myuaa SPRING_PROFILES_ACTIVE default,hsqldb
-    $ cf set-env myuaa UAA_URL http://myuaa.<domain>
-    $ cf set-env myuaa LOGIN_URL http://myuaa.<domain>
-    $ cf set-env myuaa JBP_CONFIG_SPRING_AUTO_RECONFIGURATION '[enabled: false]'
-    $ cf set-env myuaa JBP_CONFIG_TOMCAT '{tomcat: { version: 7.0.+ }}'
-    $ cf start myuaa
+Assuming we have a [local bosh-lite](https://github.com/cloudfoundry/bosh-lite) instance running you could do
 
-In the steps above, replace:
-  
-* `myuaa` with a unique application name
-* `2.3.2-SNAPSHOT` with the appropriate version label from your build
-* `<domain>` this is your app domain. We will be parsing this from the system environment in the future
-* You may also provide a configuration manifest where the environment variable UAA_CONFIG_YAML contains full configuration yaml.
+    $ ./gradlew manifests
+    $ cf api --skip-ssl-validation api.bosh-lite.com
+    $ cf auth admin admin
+    $ cf create-org sample-org
+    $ cf create-space -o sample-org sample-space
+    $ cf target -o sample-org -s sample-space
+    $ cf push -f build/sample-manifests/uaa-cf-application.yml
+
+Your application is now available on [http://myuaa.bosh-lite.com](http://myuaa.bosh-lite.com)
+
+We can also deploy to Pivotal Web Services
+
+    $ ./gradlew manifests -Dapp=myuaa-app -Dapp-domain=cfapps.io
+    $ cf api api.run.pivotal.io
+    $ cf auth <your username> <your password>
+    $ cf create-org <your org>
+    $ cf create-space -o <your org> <your space>
+    $ cf target -o <your org> -s <your space>
+    $ cf push -f build/sample-manifests/uaa-cf-application.yml
 
 ### Demo of command line usage on local server
 
