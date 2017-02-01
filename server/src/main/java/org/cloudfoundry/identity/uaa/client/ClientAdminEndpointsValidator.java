@@ -230,15 +230,15 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     }
 
     private void validateClientRedirectUri(Set<String> uris) {
-        if(uris == null || uris.size() == 0) {
+        if (uris == null || uris.size() == 0) {
             throw new InvalidClientDetailsException(
-                "Client should have at least one valid redirect_uri");
+                    "Client should have at least one valid redirect_uri");
         }
-        Pattern pattern = Pattern.compile("http(s?)://.*");
-        for(String uri: uris) {
-            if (!pattern.matcher(uri).matches()) {
+        String permittedURLs = "https?://[^\\*/]+(/.*|$)";
+        for (String uri : uris) {
+            if (uri == null || !Pattern.matches(permittedURLs, uri)) {
                 throw new InvalidClientDetailsException(
-                    String.format("One of the redirect_uri is invalid: %s", uri));
+                        String.format("One of the redirect_uri is invalid: %s", uri));
             }
         }
     }

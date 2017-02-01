@@ -65,21 +65,22 @@ public class ClientAdminEndpointsValidatorTests {
     @Test
     public void test_validate_user_token_grant_type() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_USER_TOKEN));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
     }
 
     @Test
     public void test_validate_saml_bearer_grant_type() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_SAML2_BEARER));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
     }
-
-
 
     @Test
     public void testValidate_Should_Allow_Prefix_Names() throws Exception {
 
         client.setAuthorities(Arrays.asList(new SimpleGrantedAuthority("uaa.resource")));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
         client.setAuthorities(Arrays.asList(new SimpleGrantedAuthority(caller.getClientId()+".some.other.authority")));
 
@@ -103,10 +104,10 @@ public class ClientAdminEndpointsValidatorTests {
         validator.validate(client, true, true);
     }
 
-    @Test(expected = InvalidClientDetailsException.class)
+    @Test
     public void testValidate_should_not_allow_invalid_wildcard_redirect_uri() {
         List<String> invalidRedirectUris = Arrays.asList(new String[]{ "*","**","*/**", "**/*","*/*", "**/**",
-            "http://*","http://**","http://*/**","http://*/*","http://**/*" +
+            "http://*","http://**","http://*/**","http://*/*","http://**/*", "http://a*","http://abc*.domain.com",
             "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path"});
         for(String url : invalidRedirectUris) {
             testValidatorForURL(url);
