@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,6 +24,10 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -71,7 +76,7 @@ public class ClientAdminEndpointsValidatorTests {
 
 
 
-        @Test
+    @Test
     public void testValidate_Should_Allow_Prefix_Names() throws Exception {
 
         client.setAuthorities(Arrays.asList(new SimpleGrantedAuthority("uaa.resource")));
@@ -84,8 +89,66 @@ public class ClientAdminEndpointsValidatorTests {
         } catch (InvalidClientDetailsException x) {
             assertThat(x.getMessage(), containsString("not an allowed authority"));
         }
-
-
     }
 
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testValidate_should_not_allow_empty_redirect_uri() {
+        client.setRegisteredRedirectUri(Collections.emptySet());
+        validator.validate(client, true, true);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testValidate_should_not_allow_null_redirect_uri() {
+        client.setRegisteredRedirectUri(null);
+        validator.validate(client, true, true);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testValidate_should_not_allow_invalid_wildcard_redirect_uri() {
+        List<String> invalidRedirectUris = Arrays.asList(new String[]{ "*","**","*/**", "**/*","*/*", "**/**",
+            "http://*","http://**","http://*/**","http://*/*","http://**/*" +
+            "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path"});
+        for(String url : invalidRedirectUris) {
+            testValidatorForURL(url);
+            testValidatorForHTTPSURL(url);
+        }
+        testValidatorForURL(null);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testValidateOneValidOneInvalidURL() {
+        Set<String> urls = new HashSet<>();
+        urls.add("http://valid.com");
+        urls.add("http://valid.com/with/path*");
+        urls.add("http://invalid*");
+        client.setRegisteredRedirectUri(urls);
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void testValidateValidURLs() {
+        Set<String> urls = new HashSet<>();
+        urls.add("http://valid.com");
+        urls.add("http://sub.valid.com");
+        urls.add("http://valid.com/with/path");
+        urls.add("https://subsub.sub.valid.com/**");
+        urls.add("https://valid.com/path/*/path");
+        urls.add("http://sub.valid.com/*/with/path**");
+        client.setRegisteredRedirectUri(urls);
+        validator.validate(client, true, true);
+    }
+
+    private void testValidatorForURL(String url) {
+        try {
+            client.setRegisteredRedirectUri(Collections.singleton(url));
+            validator.validate(client, true, true);
+        } catch (InvalidClientDetailsException e) {
+            return;
+        }
+        Assert.fail(String.format("Url %s should not be allowed", url));
+    }
+
+    private void testValidatorForHTTPSURL(String url) {
+        testValidatorForURL(url.replace("http", "https"));
+    }
 }

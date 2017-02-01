@@ -30,9 +30,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 
 public class ClientAdminEndpointsValidator implements InitializingBean, ClientDetailsValidator {
 
@@ -100,14 +101,14 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
-
         String clientId = client.getClientId();
         if (create && reservedClientIds.contains(clientId)) {
             throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
         }
 
-        Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
+        validateClientRedirectUri(client.getRegisteredRedirectUri());
 
+        Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
         if (requestedGrantTypes.isEmpty()) {
             throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
                             + VALID_GRANTS.toString());
@@ -228,6 +229,20 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     }
 
+    private void validateClientRedirectUri(Set<String> uris) {
+        if(uris == null || uris.size() == 0) {
+            throw new InvalidClientDetailsException(
+                "Client should have at least one valid redirect_uri");
+        }
+        Pattern pattern = Pattern.compile("http(s?)://.*");
+        for(String uri: uris) {
+            if (!pattern.matcher(uri).matches()) {
+                throw new InvalidClientDetailsException(
+                    String.format("One of the redirect_uri is invalid: %s", uri));
+            }
+        }
+    }
+
     public static void checkRequestedGrantTypes(Set<String> requestedGrantTypes) {
         for (String grant : requestedGrantTypes) {
             if (!VALID_GRANTS.contains(grant)) {
@@ -236,6 +251,4 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
     }
-
-
 }
