@@ -183,7 +183,7 @@ public class LoginInfoEndpointTests {
         Cookie cookie2 = new Cookie("Saved-Account-zzzz", JsonUtils.writeValueAsString(savedAccount));
 
         request.setCookies(cookie1, cookie2);
-        endpoint.loginForHtml(model, null, request, Arrays.asList(MediaType.TEXT_XML));
+        endpoint.loginForHtml(model, null, request, Arrays.asList(MediaType.TEXT_HTML));
 
         assertThat(model, hasKey("savedAccounts"));
         assertThat(model.get("savedAccounts"), instanceOf(List.class));
@@ -214,7 +214,7 @@ public class LoginInfoEndpointTests {
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         assertFalse(model.containsAttribute("zone_name"));
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Arrays.asList(MediaType.TEXT_XML));
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Arrays.asList(MediaType.TEXT_HTML));
         assertEquals("some_other_zone", model.asMap().get("zone_name"));
     }
 
@@ -636,7 +636,7 @@ public class LoginInfoEndpointTests {
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Arrays.asList(MediaType.TEXT_XML));
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Arrays.asList(MediaType.TEXT_HTML));
 
         assertThat(model.get(SHOW_LOGIN_LINKS), equalTo(true));
     }
