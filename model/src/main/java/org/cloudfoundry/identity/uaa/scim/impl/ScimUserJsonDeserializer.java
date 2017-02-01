@@ -98,6 +98,14 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     }
                 } else if ("approvals".equalsIgnoreCase(fieldName)) {
                     user.setApprovals(new HashSet<>(Arrays.asList(jp.readValueAs(Approval[].class))));
+                } else if("lastLogonTime".equalsIgnoreCase(fieldName)) {
+                    if(jp.getValueAsString() != null) {
+                        user.setLastLogonTime(jp.getValueAsLong());
+                    }
+                } else if("previousLogonTime".equalsIgnoreCase(fieldName)) {
+                    if(jp.getValueAsString() != null) {
+                        user.setPreviousLogonTime(jp.getValueAsLong());
+                    }
                 } else {
                     throw new UnrecognizedPropertyException("unrecognized field", jp.getCurrentLocation(),
                                     ScimUser.class, fieldName, Collections.emptySet());

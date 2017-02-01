@@ -15,11 +15,9 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.joda.time.DateTime;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.common.Extensions;
@@ -53,9 +51,12 @@ import org.opensaml.xml.validation.ValidationException;
 import org.opensaml.xml.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
@@ -72,34 +73,27 @@ import javax.xml.namespace.QName;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
 
 
-public class NonSnarlMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean {
+public class NonSnarlMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, ApplicationContextAware {
 
     // Class logger
     protected final Logger log = LoggerFactory.getLogger(NonSnarlMetadataManager.class);
 
     private ExtendedMetadata defaultExtendedMetadata;
 
-    // Timer used to refresh the metadata upon changes
-    private Timer timer;
-
     // Storage for cryptographic data used to verify metadata signatures
     protected KeyManager keyManager;
 
     private final SamlIdentityProviderConfigurator configurator;
+    private ZoneAwareMetadataGenerator generator;
 
-    private Map<IdentityZone, ExtendedMetadataDelegate> localSps = new HashMap<>();
-
-    public NonSnarlMetadataManager(IdentityProviderProvisioning providerDao, IdentityZoneProvisioning zoneDao, SamlIdentityProviderConfigurator configurator) throws MetadataProviderException {
+    public NonSnarlMetadataManager(SamlIdentityProviderConfigurator configurator) throws MetadataProviderException {
         super(Collections.EMPTY_LIST);
         this.configurator = configurator;
         this.defaultExtendedMetadata = new ExtendedMetadata();
@@ -119,16 +113,18 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     public void refreshMetadata() {
     }
 
+    public ExtendedMetadataDelegate getLocalServiceProvider() throws MetadataProviderException {
+        EntityDescriptor descriptor = generator.generateMetadata();
+        ExtendedMetadata extendedMetadata = generator.generateExtendedMetadata();
+        log.info("Initialized local service provider for entityID: " + descriptor.getEntityID());
+        MetadataMemoryProvider memoryProvider = new MetadataMemoryProvider(descriptor);
+        memoryProvider.initialize();
+        return new ExtendedMetadataDelegate(memoryProvider, extendedMetadata);
+    }
+
     @Override
     public void addMetadataProvider(MetadataProvider newProvider) throws MetadataProviderException {
         //no op
-        if (newProvider instanceof ExtendedMetadataDelegate) {
-
-            ExtendedMetadataDelegate provider = (ExtendedMetadataDelegate) newProvider;
-            if (provider.getDelegate() instanceof MetadataMemoryProvider) {
-                localSps.put(IdentityZoneHolder.get(), provider);
-            }
-        }
     }
 
     @Override
@@ -147,9 +143,10 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     public List<ExtendedMetadataDelegate> getAvailableProviders() {
         IdentityZone zone = IdentityZoneHolder.get();
         List<ExtendedMetadataDelegate> result = new ArrayList<>();
-        MetadataProvider localSp = localSps.get(IdentityZoneHolder.get());
-        if (localSp!=null) {
-            result.add((ExtendedMetadataDelegate)localSp);
+        try {
+            result.add(getLocalServiceProvider());
+        } catch (MetadataProviderException e) {
+            throw new IllegalStateException(e);
         }
         for (SamlIdentityProviderDefinition definition : configurator.getIdentityProviderDefinitions()) {
             log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
@@ -568,7 +565,6 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
         super.setRefreshCheckInterval(0);
     }
 
-    @Autowired
     public void setKeyManager(KeyManager keyManager) {
         this.keyManager = keyManager;
         super.setKeyManager(keyManager);
@@ -658,6 +654,11 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     @Override
     public XMLObject getMetadata() throws MetadataProviderException {
         return new ChainingEntitiesDescriptor();
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.generator = applicationContext.getBean(ZoneAwareMetadataGenerator.class);
     }
 
     public class ChainingEntitiesDescriptor implements EntitiesDescriptor {

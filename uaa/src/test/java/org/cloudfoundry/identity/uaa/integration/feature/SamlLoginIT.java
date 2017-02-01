@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
@@ -27,6 +28,7 @@ import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -39,6 +41,7 @@ import org.flywaydb.core.internal.util.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,21 +53,26 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntry;
 import org.opensaml.saml2.core.AuthnContext;
+import org.opensaml.xml.ConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Collections;
@@ -72,9 +80,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
@@ -86,13 +97,17 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class SamlLoginIT {
 
+    private static final String SAML_ORIGIN = "simplesamlphp";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -115,6 +130,17 @@ public class SamlLoginIT {
     TestClient testClient;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
+    private static SamlTestUtils samlTestUtils;
+
+    @BeforeClass
+    public static void setupSamlUtils() throws Exception {
+        samlTestUtils = new SamlTestUtils();
+        try {
+            samlTestUtils.initialize();
+        } catch (ConfigurationException e) {
+            samlTestUtils.initializeSimple();
+        }
+    }
 
     public static String getValidRandomIDPMetaData() {
         return String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
@@ -172,7 +198,7 @@ public class SamlLoginIT {
 
         // Deleting marissa@test.org from simplesamlphp because previous SAML authentications automatically
         // create a UAA user with the email address as the username.
-        deleteUser("simplesamlphp", testAccounts.getEmail());
+        deleteUser(SAML_ORIGIN, testAccounts.getEmail());
 
         IdentityProvider provider = IntegrationTestUtils.createIdentityProvider("simplesamlphp", false, baseUrl, serverRunning);
         String clientId = "app-addnew-false"+ new RandomValueStringGenerator().generate();
@@ -271,7 +297,12 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlPhpLogin() throws Exception {
+        Long beforeTest = System.currentTimeMillis();
         testSimpleSamlLogin("/login", "Where to?");
+        Long afterTest = System.currentTimeMillis();
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
     }
 
     @Test
@@ -797,6 +828,7 @@ public class SamlLoginIT {
                                                            "secr3T");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        samlIdentityProviderDefinition.setStoreCustomAttributes(true);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, MANAGER);
 
@@ -865,8 +897,8 @@ public class SamlLoginIT {
         Jwt idTokenClaims = JwtHelper.decode(idToken);
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
-        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(ClaimConstants.USER_ATTRIBUTES);
+        assertNotNull(claims.get(USER_ATTRIBUTES));
+        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(USER_ATTRIBUTES);
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
@@ -874,6 +906,125 @@ public class SamlLoginIT {
         Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
         assertNotNull("acr claim should contain values attribute", acr.get("values"));
         assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+
+        UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
+
+        Map<String,List<String>> userAttributeMap = (Map<String,List<String>>) userInfo.getAttributeValue(USER_ATTRIBUTES);
+        List<String> costCenterData = userAttributeMap.get(COST_CENTERS);
+        List<String> managerData = userAttributeMap.get(MANAGERS);
+        assertThat(costCenterData, containsInAnyOrder(DENVER_CO));
+        assertThat(managerData, containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+
+    }
+
+    @Test
+    public void two_zone_saml_bearer_grant_url_metadata() throws Exception {
+        two_zone_saml_bearer_grant(true, "testzone4");
+    }
+
+    @Test
+    public void two_zone_saml_bearer_grant_xml_metadata() throws Exception {
+        two_zone_saml_bearer_grant(false, "testzone3");
+    }
+
+    public void two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
+        //ensure we are able to resolve DNS for hostname testzone1.localhost
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String zoneId = zoneName;
+        String zoneUrl = baseUrl.replace("localhost", zoneId+".localhost");
+
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        //admin client token - to create users
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+
+        //create the zone
+        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
+        //String idpMetadata = idpMetadataUrl;
+
+        String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
+
+        //TODO Remove this and the test fails if it runs against a newly started instance
+        //see https://www.pivotaltracker.com/story/show/138365807
+        //String spMetadata = new RestTemplate().getForObject(baseUrl + "/saml/metadata", String.class);
+
+        String idpOrigin = zone.getSubdomain() + ".cloudfoundry-saml-login";
+
+        String uaaZoneId = IdentityZone.getUaa().getId();
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
+            .setZoneId(uaaZoneId)
+            .setMetaDataLocation(idpMetadata)
+            .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+            .setAssertionConsumerIndex(0)
+            .setMetadataTrustCheck(false)
+            .setShowSamlLink(false)
+            .setIdpEntityAlias(idpOrigin);
+
+        IdentityProvider provider = new IdentityProvider();
+        provider.setConfig(def);
+        provider.setActive(true);
+        provider.setIdentityZoneId(uaaZoneId);
+        provider.setName(idpOrigin);
+        provider.setOriginKey(idpOrigin);
+
+        provider = IntegrationTestUtils.createOrUpdateProvider(adminToken,baseUrl,provider);
+
+        String clientId = new RandomValueStringGenerator().generate().toLowerCase();
+        String username = "saml2bearerUser";
+        BaseClientDetails saml2BearerClient = new BaseClientDetails(clientId,
+                                                                    null,
+                                                                    "openid",
+                                                                    GRANT_TYPE_SAML2_BEARER,
+                                                                    "uaa.resource",
+                                                                    null);
+        saml2BearerClient.setAutoApproveScopes(Arrays.asList("true"));
+        saml2BearerClient.setClientSecret("secret");
+        saml2BearerClient = IntegrationTestUtils.createClient(adminToken, baseUrl, saml2BearerClient);
+
+
+        String audienceEntityID = "cloudfoundry-saml-login";
+        String spAudienceEndpoint = baseUrl + "/oauth/token/alias/"+audienceEntityID;
+        String assertion = samlTestUtils.mockAssertionEncoded(
+            zone.getSubdomain()+".cloudfoundry-saml-login",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            username,
+            spAudienceEndpoint,
+            audienceEntityID
+        );
+
+        MultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+        postBody.add(CLIENT_ID, saml2BearerClient.getClientId());
+        postBody.add(CLIENT_SECRET, "secret");
+        postBody.add(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
+        postBody.add("assertion", assertion);
+
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE);
+        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE);
+
+        System.out.println("curl"+
+            " -H\"Accept: application/json\""+
+            " -d \"client_id="+saml2BearerClient.getClientId()+"\""+
+            " -d \"client_secret=secret\""+
+            " -d \"grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer\"" +
+            " -d \"assertion="+assertion+"\"" +
+            " " + spAudienceEndpoint+"\n\n"
+        );
+
+        ResponseEntity<String> response = new RestTemplate().exchange(new URI(spAudienceEndpoint), HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<String,Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+        assertNotNull("Expecting access_token to be present in response", tokenResponse.get("access_token"));
     }
 
     @Test
@@ -977,7 +1128,7 @@ public class SamlLoginIT {
         Jwt idTokenClaims = JwtHelper.decode(idToken);
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        assertNotNull(claims.get(USER_ATTRIBUTES));
         assertEquals("marissa6", claims.get(ClaimConstants.USER_NAME));
         assertEquals("marissa6@test.org", claims.get(ClaimConstants.EMAIL));
     }

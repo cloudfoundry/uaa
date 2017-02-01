@@ -32,5 +32,6 @@ public class UserAuthenticationSuccessListener implements ApplicationListener<Us
         if(user.isLegacyVerificationBehavior() && !user.isVerified()) {
             scimUserProvisioning.verifyUser(user.getId(), -1);
         }
+        scimUserProvisioning.updateLastLogonTime(user.getId());
     }
 }

@@ -31,6 +31,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     if (samlSpKey != null && samlSpCert != null) {
                         KeyWithCert keyWithCert = new KeyWithCert(samlSpKey, samlSpkeyPassphrase, samlSpCert);
                     }
+                    failIfPartialCertKeyInfo(samlSpCert, samlSpKey, samlSpkeyPassphrase);
                 }
             } catch(GeneralSecurityException ex) {
                 throw new InvalidIdentityZoneConfigurationException("There is a security problem with the SAML SP configuration.", ex);
@@ -54,5 +55,13 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         }
 
         return config;
+    }
+
+    private void failIfPartialCertKeyInfo(String samlSpCert, String samlSpKey, String samlSpkeyPassphrase) throws InvalidIdentityZoneConfigurationException {
+        if((samlSpCert == null && samlSpKey == null && samlSpkeyPassphrase == null) ||
+            (samlSpCert != null && samlSpKey != null && samlSpkeyPassphrase != null)) {
+            return;
+        }
+        throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be udpated with partial Saml CertKey config.", null);
     }
 }

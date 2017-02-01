@@ -1,7 +1,15 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserAccountStatus {
-  public Boolean isLocked() {
+
+  private Boolean locked;
+
+  private Boolean passwordChangeRequired;
+
+  public Boolean getLocked() {
     return locked;
   }
 
@@ -9,5 +17,11 @@ public class UserAccountStatus {
     this.locked = locked;
   }
 
-  private Boolean locked;
+  public Boolean isPasswordChangeRequired() {
+    return passwordChangeRequired;
+  }
+
+  public void setPasswordChangeRequired(Boolean passwordChangeRequired) {
+    this.passwordChangeRequired = passwordChangeRequired;
+  }
 }

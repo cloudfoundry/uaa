@@ -22,6 +22,12 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
 
+    <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
+        <constructor-arg name="expiringTimeMillis" value="600000"/>
+        <constructor-arg name="maxEntries" value="10000"/>
+        <constructor-arg name="ticker" ref="timeService"/>
+    </bean>
+
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
             <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor" />
@@ -385,6 +391,14 @@
         </bean>
     </util:list>
 
+    <bean id="restTemplateFactory" class="org.cloudfoundry.identity.uaa.util.RestTemplateFactory"/>
+
+    <bean id="xoauthProviderConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
+        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+        <constructor-arg name="contentCache" ref="urlCache"/>
+        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
+    </bean>
+
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
@@ -395,6 +409,7 @@
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
+        <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
@@ -437,7 +452,7 @@
                            @config['logout']['redirect']['parameter']['whitelist']}"/>
         <property name="logoutRedirectParameterName" value="redirect" />
         <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
-        <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
+        <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
         <property name="prompts" ref="prompts"/>
         <property name="branding" value="#{@config['login']['branding']}" />
         <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
@@ -446,9 +461,9 @@
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
+        <constructor-arg index="0" ref="identityProviderProvisioning"/>
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
-        <property name="provisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.authentication.listener.UserAuthenticationSuccessListener">

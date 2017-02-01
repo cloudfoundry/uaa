@@ -272,6 +272,32 @@ _Response Fields_
 
 </aside>
 
+## SAML2 Bearer Grant
+
+<aside class="notice">
+  Planed for UAA 3.9.x
+</aside>
+
+The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in 
+[RFC 7522](https://tools.ietf.org/html/rfc7522). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer`.
+In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
+
+This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
+The endpoint of the bearer assertion is `/oauth/token` so the Recipient attribute in
+the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token.
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/response-fields.md")).result(binding) %>
 
 ## Refresh Token
 
@@ -539,9 +565,13 @@ _Request Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/request-headers.md")).result(binding) %>
 
-_Request and Response Fields_
+_Request Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/response-fields.md")).result(binding) %>
 
 _Error Codes_
 
@@ -863,6 +893,40 @@ _Error Codes_
 | 422        | Unprocessable Entity - Invalid configuration                          |
 | 500        | Internal Server Error                                                 |
 
+
+<aside class="success">
+  Added in UAA 3.3.0, Discovery URL added in UAA 3.10.0
+</aside>
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOidcIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOidcIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOidcIdentityProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOidcIdentityProvider/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOidcIdentityProvider/request-parameters.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOidcIdentityProvider/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOidcIdentityProvider/request-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 409        | Conflict - Provider with same origin and zone id exists               |
+| 422        | Unprocessable Entity - Invalid configuration                          |
+| 500        | Internal Server Error                                                 |
+
 ## Retrieve All
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getAllIdentityProviders/curl-request.md")).result(binding) %>
@@ -978,6 +1042,36 @@ _Error Codes_
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity                                                  |
+
+## Force pasword change for Users
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/request-headers.md")).result(binding) %>
+
+<aside class="notice">
+  This example is for updating the internal (uaa) identity provider only. <br/>
+  It is not a valid operation to update SAML or LDAP identity providers <br/>
+</aside>
+
+_Request and Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/patchIdentityProviderStatus/request-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 422        | Unprocessable Entity - Invalid config                                 |
+
 
 # Service Providers
 
@@ -1409,25 +1503,25 @@ uaac password change -o secret -p newsecret
   Added in UAA 3.7.0
 </aside>
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/http-response.md")).result(binding) %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/path-parameters.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/path-parameters.md")).result(binding) %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/request-headers.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/request-headers.md")).result(binding) %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/request-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/request-fields.md")).result(binding) %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/response-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/response-fields.md")).result(binding) %>
 
 _Error Codes_
 
@@ -1437,6 +1531,41 @@ _Error Codes_
 | 401        | Unauthorized - Invalid token                                                                               |
 | 403        | Forbidden - Insufficient scope (scim.write or uaa.account_status.write)                                    |
 | 404        | User id not found                                                                                          |
+
+## Force user password to expire
+
+<aside class="success">
+  Added in UAA 3.9.0
+</aside>
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                                |
+|------------|------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or illegal value                                                         |
+| 401        | Unauthorized - Invalid token                                                                               |
+| 403        | Forbidden - Insufficient scope (scim.write or uaa.account_status.write)                                    |
+| 404        | User id not found
 
 ## Get user verification link
 

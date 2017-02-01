@@ -14,10 +14,13 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.collections.map.HashedMap;
+import org.apache.commons.httpclient.util.URIUtil;
+import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
@@ -32,11 +35,16 @@ import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -48,11 +56,14 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensaml.xml.ConfigurationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
@@ -71,7 +82,10 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
@@ -102,11 +116,13 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthA
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.CoreMatchers.not;
@@ -128,6 +144,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
@@ -141,6 +158,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -151,12 +169,89 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     private TestClient testClient;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    public static final String IDP_ENTITY_ID = "cloudfoundry-saml-login";
+
+    private static SamlTestUtils samlTestUtils = new SamlTestUtils();
+
+    @BeforeClass
+    public static void initializeSamlUtils() {
+        try {
+            samlTestUtils.initializeSimple();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @Override
     public void setUpContext() throws Exception {
         testClient = new TestClient();
 
         super.setUpContext();
+    }
+
+    @Test
+    public void test_logon_timestamps_with_password_grant() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        ScimUser scimUser = provisioning.retrieve(user.getId());
+        assertNull(scimUser.getLastLogonTime());
+        assertNull(scimUser.getPreviousLogonTime());
+
+        doPasswordGrant(username);
+        scimUser = provisioning.retrieve(user.getId());
+        assertNotNull(scimUser.getLastLogonTime());
+        assertNull(scimUser.getPreviousLogonTime());
+
+        long lastLogonTime = scimUser.getLastLogonTime();
+        doPasswordGrant(username);
+        scimUser = provisioning.retrieve(user.getId());
+        assertNotNull(scimUser.getLastLogonTime());
+        assertNotNull(scimUser.getPreviousLogonTime());
+        assertEquals(lastLogonTime, (long)scimUser.getPreviousLogonTime());
+        assertTrue(scimUser.getLastLogonTime() > scimUser.getPreviousLogonTime());
+
+    }
+
+    public void doPasswordGrant(String username) throws Exception {
+        getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", username)
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    public void passcode_with_client_parameters_when_password_change_required_for_user() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        userProvisioning.updatePasswordChangeRequired(user.getId(), true);
+
+        String response = getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", username)
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isUnauthorized())
+            .andReturn().getResponse().getContentAsString();
+
+        Map<String, String> error = (JsonUtils.readValue(response, new TypeReference<Map<String, String>>() {}));
+        String error_description = error.get("error_description");
+        assertNotNull(error_description);
+        assertEquals("User password needs to be changed", error_description);
+
     }
 
     @Test
@@ -267,6 +362,154 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotEquals(accessToken, accessTokenId);
         assertEquals(accessToken, jti);
         assertNotEquals(refreshToken, jti);
+    }
+
+    @Test
+    public void test_saml_bearer_grant() throws Exception {
+        String subdomain  = generator.generate().toLowerCase();
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        String host = subdomain + ".localhost";
+        String fullPath = "/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login";
+        String origin = subdomain + ".cloudfoundry-saml-login";
+
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
+
+        //create an actual IDP, so we can fetch metadata
+        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
+
+        //create an IDP in the default zone
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, zone.getIdentityZone().getId(), idpMetadata);
+        IdentityProvider provider = new IdentityProvider();
+        provider.setConfig(idpDef);
+        provider.setActive(true);
+        provider.setIdentityZoneId(zone.getIdentityZone().getId());
+        provider.setName(origin);
+        provider.setOriginKey(origin);
+
+        IdentityZoneHolder.set(zone.getIdentityZone());
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+        IdentityZoneHolder.clear();
+
+        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
+                                                              "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                                                              "Saml2BearerIntegrationUser",
+                                                              "http://"+subdomain+".localhost:8080/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login",
+                                                              subdomain + ".cloudfoundry-saml-login"
+        );
+
+        //create client in default zone
+        String clientId = "testclient"+ generator.generate();
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
+
+
+        //String fullPath = "/uaa/oauth/token";
+        MockHttpServletRequestBuilder post = post(fullPath)
+            .with(new RequestPostProcessor() {
+                @Override
+                public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+                    request.setServerPort(8080);
+                    request.setRequestURI(fullPath);
+                    request.setServerName(host);
+                    return request;
+                }
+            })
+            .contextPath("/uaa")
+            .accept(APPLICATION_JSON)
+            .header(HOST, host)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer")
+            .param("client_id", clientId)
+            .param("client_secret", "secret")
+            .param("assertion",assertion);
+
+
+        getMockMvc().perform(post)
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.access_token").exists())
+            .andExpect(jsonPath("$.scope").value("openid uaa.user"));
+
+        getMockMvc().perform(post.param("scope","uaa.admin"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized());
+
+    }
+
+    @Test
+    public void test_two_zone_saml_bearer_grant() throws Exception {
+        String subdomain  = generator.generate().toLowerCase();
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        String spInvocationEndpoint = "/uaa/oauth/token/alias/cloudfoundry-saml-login";
+        String idpOrigin = subdomain + ".cloudfoundry-saml-login";
+
+        //create an zone - that zone will be our IDP
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
+        //create an actual IDP, so we can fetch metadata
+        String spMetadata = MockMvcUtils.getSPMetadata(getMockMvc(), null);
+        String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
+
+        //create an IDP in the default zone
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(idpOrigin, IdentityZone.getUaa().getId(), idpMetadata);
+        IdentityProvider provider = new IdentityProvider();
+        provider.setConfig(idpDef);
+        provider.setActive(true);
+        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setName(idpOrigin);
+        provider.setOriginKey(idpOrigin);
+
+        IdentityZoneHolder.clear();
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+        IdentityZoneHolder.clear();
+
+        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
+                                                              "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                                                              "Saml2BearerIntegrationUser",
+                                                              "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login",
+                                                              "cloudfoundry-saml-login"
+        );
+
+        //create client in default zone
+        String clientId = "testclient"+ generator.generate();
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, null);
+
+
+        MockHttpServletRequestBuilder post = post(spInvocationEndpoint)
+            .with(new RequestPostProcessor() {
+                @Override
+                public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+                    request.setServerPort(8080);
+                    request.setRequestURI(spInvocationEndpoint);
+                    request.setServerName("localhost");
+                    return request;
+                }
+            })
+            .contextPath("/uaa")
+            .accept(APPLICATION_JSON)
+            .header(HOST, "localhost")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer")
+            .param("client_id", clientId)
+            .param("client_secret", "secret")
+            .param("assertion",assertion);
+
+
+        String json = getMockMvc().perform(post)
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.access_token").exists())
+            .andExpect(jsonPath("$.scope").value("openid uaa.user"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        System.out.println("json = " + json);
+
+        getMockMvc().perform(post.param("scope","uaa.admin"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized());
+
     }
 
     @Test
@@ -516,6 +759,29 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void getOauthToken_usingPassword_withNoCommonScopes_shouldBeUnauthorized() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        setUpClients(clientId, "uaa.user", "something_else", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        MvcResult result = getMockMvc().perform(post("/oauth/token")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param("client_secret", SECRET)
+            .param("username", username)
+            .param("password", SECRET))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+
+        assertThat(result.getResponse().getErrorMessage(), containsString("[something_else] is invalid. This user is not allowed any of the requested scopes"));
+    }
+
+    @Test
     public void getOauthToken_usingClientCredentials_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
         String clientId = "testclient"+ generator.generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "client_credentials", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
@@ -572,6 +838,52 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     }
 
+    @Test
+    public void getToken_withPasswordGrantType_resultsInUserLastLogonTimestampUpdate() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
+
+        String accessToken = getAccessTokenForPasswordGrant(username);
+        Long firstTimestamp = getPreviousLogonTime(accessToken);
+
+        String accessToken2 = getAccessTokenForPasswordGrant(username);
+        Long secondTimestamp = getPreviousLogonTime(accessToken2);
+
+        assertNotEquals(firstTimestamp, secondTimestamp);
+        assertTrue(firstTimestamp < secondTimestamp);
+    }
+
+    private String getAccessTokenForPasswordGrant(String username) throws Exception {
+        String response = getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", username)
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        return (String) JsonUtils.readValue(response, Map.class).get("access_token");
+    }
+
+    private Long getPreviousLogonTime(String accessToken) throws Exception {
+        UserInfoResponse userInfo;
+        String userInfoResponse = getMockMvc().perform(
+            get("/userinfo")
+                .header("Authorization", "bearer " + accessToken)
+                .accept(APPLICATION_JSON)
+        ).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        assertNotNull(userInfoResponse);
+        userInfo = JsonUtils.readValue(userInfoResponse, UserInfoResponse.class);
+        return userInfo.getPreviousLogonSuccess();
+    }
 
     @Test
     public void testClientIdentityProviderClientWithoutAllowedProvidersForAuthCodeAlreadyLoggedInWorksInAnotherZone() throws Exception {
@@ -999,6 +1311,70 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void invalidScopeErrorMessageIsNotShowingAllClientScopes() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        String scopes = "openid";
+        setUpClients(clientId, scopes, scopes, "authorization_code", true);
+
+        String username = "testuser"+ generator.generate();
+        ScimUser developer = setUpUser(username, "scim.write", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+
+        String state = generator.generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "scim.write")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        MvcResult mvcResult = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+
+        UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
+        MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
+        String errorMessage = URIUtil.encodeQuery("scim.write is invalid. Please use a valid scope name in the request");
+        assertTrue(!queryParams.containsKey("scope"));
+        assertEquals(errorMessage, queryParams.getFirst("error_description"));
+    }
+
+    @Test
+    public void invalidScopeErrorMessageIsNotShowingAllUserScopes() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        String scopes = "openid,password.write,cloud_controller.read,scim.userids,password.write,something.else";
+        setUpClients(clientId, scopes, scopes, "authorization_code", true);
+
+        String username = "testuser"+ generator.generate();
+        ScimUser developer = setUpUser(username, "openid", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+
+        String state = generator.generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "something.else")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        MvcResult mvcResult = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+
+        UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
+        MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
+        String errorMessage = URIUtil.encodeQuery("[something.else] is invalid. This user is not allowed any of the requested scopes");
+        assertTrue(!queryParams.containsKey("scope"));
+        assertEquals(errorMessage, queryParams.getFirst("error_description"));
+    }
+
+    @Test
     public void ensure_that_form_redirect_is_not_a_parameter_unless_there_is_a_saved_request() throws Exception {
         //make sure we don't create a session on the homepage
         assertNull(
@@ -1365,7 +1741,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser"+ generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(developer.getId());
+        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(developer.getId());
         String authCodeClientId = "testclient"+ generator.generate();
         setUpClients(authCodeClientId, scopes, scopes, "authorization_code", true);
 
@@ -1662,7 +2039,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
     }
 
-    private void validateOpenIdConnectToken(String token, String userId, String clientId) {
+    private void validateOpenIdConnectToken(String token, String userId, String clientId) throws Exception {
         Map<String,Object> result = getClaimsForToken(token);
         String iss = (String)result.get(ClaimConstants.ISS);
         assertEquals(tokenServices.getTokenEndpoint(), iss);
@@ -1681,7 +2058,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //TODO OpenID
         Integer auth_time = (Integer)result.get(ClaimConstants.AUTH_TIME);
         assertNotNull(auth_time);
-
+        Long previous_logon_time = (Long) result.get(ClaimConstants.PREVIOUS_LOGON_TIME);
+        assertNotNull(previous_logon_time);
+        Long dbPreviousLogonTime = getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserById(userId).getPreviousLogonTime();
+        assertEquals(dbPreviousLogonTime, previous_logon_time);
 
     }
 

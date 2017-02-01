@@ -76,9 +76,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
-import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
-
 /**
  * Controller for listing and manipulating OAuth2 clients.
  */
@@ -214,7 +211,9 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
-        return removeSecret(clientDetailsService.create(details));
+        ClientDetails ret = removeSecret(clientDetailsService.create(details));
+
+        return ret;
     }
 
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)
@@ -428,7 +427,6 @@ public class ClientAdminEndpoints implements InitializingBean {
         clientSecretChanges.getAndAdd(change.length);
         return clientDetails;
     }
-
 
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
@@ -718,5 +716,4 @@ public class ClientAdminEndpoints implements InitializingBean {
     public void setClientDetailsResourceMonitor(ResourceMonitor<ClientDetails> clientDetailsResourceMonitor) {
         this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
     }
-
 }

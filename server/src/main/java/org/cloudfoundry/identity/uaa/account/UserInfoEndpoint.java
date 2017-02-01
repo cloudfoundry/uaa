@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -15,8 +15,10 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,9 +26,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
+
+
 /**
  * Controller that sends user info to clients wishing to authenticate.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
@@ -48,7 +54,9 @@ public class UserInfoEndpoint implements InitializingBean {
     public UserInfoResponse loginInfo(Principal principal) {
         OAuth2Authentication authentication = (OAuth2Authentication) principal;
         UaaPrincipal uaaPrincipal = extractUaaPrincipal(authentication);
-        return getResponse(uaaPrincipal);
+        boolean addCustomAttributes = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {USER_ATTRIBUTES});
+        boolean addRoles = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {ROLES});
+        return getResponse(uaaPrincipal, addCustomAttributes, addRoles);
     }
 
     protected UaaPrincipal extractUaaPrincipal(OAuth2Authentication authentication) {
@@ -59,7 +67,7 @@ public class UserInfoEndpoint implements InitializingBean {
         throw new IllegalStateException("User authentication could not be converted to UaaPrincipal");
     }
 
-    protected UserInfoResponse getResponse(UaaPrincipal principal) {
+    protected UserInfoResponse getResponse(UaaPrincipal principal, boolean addCustomAttributes, boolean addRoles) {
         UaaUser user = userDatabase.retrieveUserById(principal.getId());
         UserInfoResponse response = new UserInfoResponse();
         response.setUserId(user.getId());
@@ -69,7 +77,15 @@ public class UserInfoEndpoint implements InitializingBean {
         response.setEmail(user.getEmail());
         response.setPhoneNumber(user.getPhoneNumber());
         response.setSub(user.getId());
-        // TODO: other attributes
+        response.setPreviousLogonSuccess(user.getPreviousLogonTime());
+
+        UserInfo info = userDatabase.getUserInfo(user.getId());
+        if (addCustomAttributes && info!=null) {
+            response.setAttributeValue(USER_ATTRIBUTES, info.getUserAttributes());
+        }
+        if (addRoles && info!=null) {
+            response.setAttributeValue(ROLES, info.getRoles());
+        }
         return response;
     }
 }

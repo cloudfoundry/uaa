@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,21 +12,20 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.UUID;
+import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import javax.validation.constraints.NotNull;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
-import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-/**
- * @author Dave Syer
- * 
- */
 public class UaaAuthenticationTestFactory {
 
     public static UaaPrincipal getPrincipal(String id, String name, String email) {
@@ -35,6 +34,12 @@ public class UaaAuthenticationTestFactory {
 
     public static UaaAuthentication getAuthentication(String id, String name, String email) {
         return new UaaAuthentication(getPrincipal(id, name, email), UaaAuthority.USER_AUTHORITIES, null);
+    }
+
+    public static UaaAuthentication getAuthentication(String id, String name, String email, @NotNull Set<String> scopes) {
+        return new UaaAuthentication(getPrincipal(id, name, email),
+                                     scopes.stream().map(scope -> new SimpleGrantedAuthority(scope)).collect(Collectors.toSet()),
+                                     null);
     }
 
     public static AuthzAuthenticationRequest getAuthenticationRequest(String name) {

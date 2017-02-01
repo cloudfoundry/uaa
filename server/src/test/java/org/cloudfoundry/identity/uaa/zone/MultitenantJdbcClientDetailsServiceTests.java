@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
@@ -13,12 +16,16 @@ import org.junit.rules.ExpectedException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.sql.Timestamp;
@@ -36,6 +43,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class MultitenantJdbcClientDetailsServiceTests {
@@ -70,6 +79,8 @@ public class MultitenantJdbcClientDetailsServiceTests {
         flyway.setDataSource(db);
         flyway.migrate();
 
+        Authentication authentication = mock(Authentication.class);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         jdbcTemplate = new JdbcTemplate(db);
         service = new MultitenantJdbcClientDetailsService(db);
         otherIdentityZone = new IdentityZone();
@@ -494,4 +505,79 @@ public class MultitenantJdbcClientDetailsServiceTests {
         assertEquals(IdentityZone.getUaa().getId(), identityZoneId.trim());
     }
 
+    @Test
+    public void testCreatedByIdInCaseOfUser() throws Exception {
+        String userId = "4097895b-ebc1-4732-b6e5-2c33dd2c7cd1";
+        Authentication oldAuth = authenticateAsUserAndReturnOldAuth(userId);
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        String clientId = "clientInDefaultZone";
+        clientDetails.setClientId(clientId);
+        service.addClientDetails(clientDetails);
+
+        assertEquals(userId, service.getCreatedByForClientAndZone(clientId, OriginKeys.UAA));
+
+        //Restore context
+        SecurityContextHolder.getContext().setAuthentication(oldAuth);
+    }
+
+    @Test
+    public void testCreatedByIdInCaseOfClient() throws Exception {
+        String userId = "4097895b-ebc1-4732-b6e5-2c33dd2c7cd1";
+        Authentication oldAuth = authenticateAsUserAndReturnOldAuth(userId);
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client1");
+        service.addClientDetails(clientDetails);
+
+        authenticateAsClient();
+
+        clientDetails = new BaseClientDetails();
+        String clientId = "client2";
+        clientDetails.setClientId(clientId);
+        service.addClientDetails(clientDetails);
+
+        assertEquals(userId, service.getCreatedByForClientAndZone(clientId, OriginKeys.UAA));
+
+        //Restore context
+        SecurityContextHolder.getContext().setAuthentication(oldAuth);
+    }
+
+    @Test
+    public void testNullCreatedById() throws Exception {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String client1 = "client1";
+        String client2 = "client2";
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(client1);
+        service.addClientDetails(clientDetails);
+        assertNull(service.getCreatedByForClientAndZone(client1, OriginKeys.UAA));
+
+        authenticateAsClient();
+
+        clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(client2);
+        service.addClientDetails(clientDetails);
+
+        assertNull(service.getCreatedByForClientAndZone(client2, OriginKeys.UAA));
+    }
+
+    private Authentication authenticateAsUserAndReturnOldAuth(String userId) {
+        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+            Arrays.asList("read")).createOAuth2Request(), UaaAuthenticationTestFactory.getAuthentication(userId, "joe",
+            "joe@test.org"));
+        Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return currentAuth;
+    }
+
+    private void authenticateAsClient() {
+        UaaOauth2Authentication authentication = mock(UaaOauth2Authentication.class);
+        when(authentication.getZoneId()).thenReturn(OriginKeys.UAA);
+        when(authentication.getPrincipal()).thenReturn("client1");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
 }

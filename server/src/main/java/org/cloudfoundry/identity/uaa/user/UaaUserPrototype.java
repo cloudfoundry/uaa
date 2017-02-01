@@ -1,13 +1,6 @@
-package org.cloudfoundry.identity.uaa.user;
-
-import org.springframework.security.core.GrantedAuthority;
-
-import java.util.Date;
-import java.util.List;
-
 /*******************************************************************************
  * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
  * This product is licensed to you under the Apache License, Version 2.0 (the "License").
  * You may not use this product except in compliance with the License.
@@ -17,6 +10,13 @@ import java.util.List;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.user;
+
+import org.springframework.security.core.GrantedAuthority;
+
+import java.util.Date;
+import java.util.List;
+
 public final class UaaUserPrototype {
 
     private String id = "NaN";
@@ -52,6 +52,12 @@ public final class UaaUserPrototype {
     private boolean verified = false;
 
     private boolean legacyVerificationBehavior;
+
+    private boolean passwordChangeRequired;
+
+    private Long lastLogonTime;
+
+    private Long previousLogonTime;
 
     public String getId() {
         return id;
@@ -202,5 +208,32 @@ public final class UaaUserPrototype {
     public UaaUserPrototype withLegacyVerificationBehavior(boolean legacyVerificationBehavior) {
         this.legacyVerificationBehavior = legacyVerificationBehavior;
         return this;
+    }
+
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public UaaUserPrototype withPasswordChangeRequired(boolean requiresPasswordChange) {
+        this.passwordChangeRequired = requiresPasswordChange;
+        return this;
+    }
+
+    public Long getLastLogonTime() {
+        return lastLogonTime;
+    }
+
+    public UaaUserPrototype withLastLogonSuccess(Long lastLogonTime) {
+        this.lastLogonTime = lastLogonTime;
+        return this;
+    }
+
+    public UaaUserPrototype withPreviousLogonSuccess(Long previousLogonTime) {
+        this.previousLogonTime = previousLogonTime;
+        return this;
+    }
+
+    public Long getPreviousLogonTime() {
+        return previousLogonTime;
     }
 }

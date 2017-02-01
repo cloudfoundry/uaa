@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 public class SamlConfig {
     private boolean assertionSigned = true;
     private boolean requestSigned = true;
@@ -72,14 +74,17 @@ public class SamlConfig {
         this.assertionTimeToLiveSeconds = assertionTimeToLiveSeconds;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getCertificate() {
         return certificate;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getPrivateKey() {
         return privateKey;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getPrivateKeyPassword() {
         return privateKeyPassword;
     }

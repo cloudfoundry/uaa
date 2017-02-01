@@ -1,16 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.Map;
-import java.util.UUID;
-
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -24,6 +13,18 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
     private JdbcSamlServiceProviderProvisioning db;
@@ -33,11 +34,25 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     @Before
     public void createDatasource() throws Exception {
         db = new JdbcSamlServiceProviderProvisioning(jdbcTemplate);
+        cleanUp();
     }
 
     @After
     public void cleanUp() {
+        jdbcTemplate.update("delete from service_provider");
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void testRetrieveActive() {
+        IdentityZoneHolder.set(IdentityZone.getUaa());
+        assertEquals(0 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        String zoneId = IdentityZone.getUaa().getId();
+        SamlServiceProvider sp = createSamlServiceProvider(zoneId);
+        SamlServiceProvider createdSp = db.create(sp);
+        assertEquals(1 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        jdbcTemplate.update("update service_provider set active=?", false);
+        assertEquals(0 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
@@ -71,7 +86,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         assertEquals(sp.getName(), createdSp.getName());
         assertEquals(sp.getConfig(), createdSp.getConfig());
-        assertEquals(sp.getLastModified().getTime() / 1000, createdSp.getLastModified().getTime() / 1000);
+        assertTrue(Math.abs(sp.getLastModified().getTime()  - createdSp.getLastModified().getTime()) < 1001);
         assertEquals(Integer.valueOf(rawCreatedSp.get("version").toString()) + 1, createdSp.getVersion());
         assertEquals(zoneId, createdSp.getIdentityZoneId());
     }
@@ -178,7 +193,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         String zoneId = IdentityZone.getUaa().getId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         db.create(sp);
- 
+
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
         IdentityZoneHolder.set(zone);
         zoneId = zone.getId();

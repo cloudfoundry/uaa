@@ -185,8 +185,11 @@
         <property name="loginAuthenticationManager" ref="loginAuthenticationMgr"/>
     </bean>
 
+    <bean id="timeService" class="org.cloudfoundry.identity.uaa.util.TimeServiceImpl"/>
+
     <bean id="codeStore" class="org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore">
-        <constructor-arg ref="dataSource" />
+        <constructor-arg name="dataSource" ref="dataSource" />
+        <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
     <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.account.PasswordResetEndpoint">

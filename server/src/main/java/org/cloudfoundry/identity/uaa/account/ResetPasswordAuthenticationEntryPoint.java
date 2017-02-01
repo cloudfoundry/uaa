@@ -26,6 +26,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class ResetPasswordAuthenticationEntryPoint implements AuthenticationEntryPoint {
@@ -39,11 +41,34 @@ public class ResetPasswordAuthenticationEntryPoint implements AuthenticationEntr
             public String getMethod() {
                 return "GET";
             }
+
+            @Override
+            public String getParameter(String name) {
+                if(name.equals("code")) {
+                    return (String) getAttribute(name);
+                }
+                return super.getParameter(name);
+            }
+
+            @Override
+            public Map<String, String[]> getParameterMap() {
+                Map<String, String[]> map = super.getParameterMap();
+                if (map.containsKey("code")) {
+                    Map<String, String[]> newMap = new HashMap<>(map);
+                    newMap.put("code",new String[] {(String)getAttribute("code")});
+                    map = newMap;
+                }
+                return map;
+            }
+
+            @Override
+            public String[] getParameterValues(String name) {
+                return getParameterMap().get(name);
+            }
         };
+
         if (cause instanceof PasswordConfirmationException) {
             PasswordConfirmationException passwordConfirmationException = (PasswordConfirmationException) cause;
-            request.setAttribute("email", passwordConfirmationException.getEmail());
-            request.setAttribute("code", request.getParameter("code"));
             request.setAttribute("message_code", passwordConfirmationException.getMessageCode());
 
             request.getRequestDispatcher("/reset_password").forward(wrapper, response);
@@ -52,10 +77,11 @@ public class ResetPasswordAuthenticationEntryPoint implements AuthenticationEntr
             if (cause instanceof InvalidPasswordException) {
                 InvalidPasswordException exception = (InvalidPasswordException)cause;
                 request.setAttribute("message", exception.getMessagesAsOneString());
+                request.getRequestDispatcher("/reset_password").forward(wrapper, response);
             } else {
                 request.setAttribute("message_code", "bad_code");
+                request.getRequestDispatcher("/forgot_password").forward(wrapper, response);
             }
-            request.getRequestDispatcher("/forgot_password").forward(wrapper, response);
         }
     }
 }
