@@ -121,6 +121,21 @@ cargoRunLocal.dependsOn cleanCargoConfDir, assemble
 
 task run(dependsOn: cargoRunLocal)
 
+import org.apache.tools.ant.filters.ReplaceTokens
+task manifests(dependsOn: assemble, type: Copy) {
+  from('uaa/src/test/resources/sample-manifests') {
+    include '**/*.yml'
+    filter(ReplaceTokens,
+           tokens: [
+             version: uaaVersion,
+             app: System.getProperty('app', 'myuaa'),
+             appdomain: System.getProperty('app-domain', 'bosh-lite.com'),
+           ]
+    )
+  }
+  into 'build/sample-manifests'
+}
+
 subprojects {
   apply plugin: 'java'
   [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
