@@ -247,9 +247,20 @@ public class ClientAdminBootstrap implements InitializingBean {
                     logger.debug(e.getMessage());
                 }
             }
+
+            for (String s : Arrays.asList("authorization_code", "implicit")) {
+                if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
+                    throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL.");
+                }
+            }
+
             ClientMetadata clientMetadata = buildClientMetadata(map, clientId);
             clientMetadataProvisioning.update(clientMetadata);
         }
+    }
+
+    private boolean isMissingRedirectUris(BaseClientDetails client) {
+        return client.getRegisteredRedirectUri() == null || client.getRegisteredRedirectUri().isEmpty();
     }
 
     private ClientMetadata buildClientMetadata(Map<String, Object> map, String clientId) {
