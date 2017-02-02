@@ -23,6 +23,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -43,6 +44,9 @@ public class ClientAdminEndpointsValidatorTests {
     BaseClientDetails client;
     BaseClientDetails caller;
     ClientAdminEndpointsValidator validator;
+    private List wildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
+    private List httpWildCardUrls = Arrays.asList("http://*", "http://**", "http://*/**", "http://*/*", "http://**/*", "http://a*", "http://abc*.domain.com",
+        "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path");
 
     @Before
     public void createClient() throws Exception {
@@ -92,28 +96,35 @@ public class ClientAdminEndpointsValidatorTests {
         }
     }
 
-    @Test(expected = InvalidClientDetailsException.class)
-    public void testValidate_should_not_allow_empty_redirect_uri() {
-        client.setRegisteredRedirectUri(Collections.emptySet());
-        validator.validate(client, true, true);
-    }
+    @Test
+    public void test_validate_not_permits_restricted_urls_for_authcode_implicit_grant_types() {
+        List<String> invalidRedirectUris = new ArrayList<>(wildCardUrls);
+        invalidRedirectUris.addAll(httpWildCardUrls);
+        invalidRedirectUris.addAll(convertToHttps(httpWildCardUrls));
 
-    @Test(expected = InvalidClientDetailsException.class)
-    public void testValidate_should_not_allow_null_redirect_uri() {
-        client.setRegisteredRedirectUri(null);
-        validator.validate(client, true, true);
+        for(String s : Arrays.asList(new String[] {"authorization_code", "implicit"})) {
+            client.setAuthorizedGrantTypes(Collections.singleton(s));
+            for(String url : invalidRedirectUris) {
+                testValidatorForInvalidURL(url);
+            }
+            testValidatorForInvalidURL(null);
+            testValidatorForInvalidURL("");
+        }
     }
 
     @Test
-    public void testValidate_should_not_allow_invalid_wildcard_redirect_uri() {
-        List<String> invalidRedirectUris = Arrays.asList(new String[]{ "*","**","*/**", "**/*","*/*", "**/**",
-            "http://*","http://**","http://*/**","http://*/*","http://**/*", "http://a*","http://abc*.domain.com",
-            "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path"});
-        for(String url : invalidRedirectUris) {
-            testValidatorForURL(url);
-            testValidatorForHTTPSURL(url);
+    public void testValidate_permits_restricted_urls_for_other_grant_types() {
+        List<String> redirectUris = new ArrayList<>(wildCardUrls);
+        redirectUris.addAll(httpWildCardUrls);
+        redirectUris.addAll(convertToHttps(httpWildCardUrls));
+
+        for(String s : Arrays.asList(new String[] {"client_credentials", "password"})) {
+            client.setAuthorizedGrantTypes(Collections.singleton(s));
+            for(String url : redirectUris) {
+                testValidatorForURL(url);
+            }
+            testValidatorForURL(null);
         }
-        testValidatorForURL(null);
     }
 
     @Test(expected = InvalidClientDetailsException.class)
@@ -122,8 +133,9 @@ public class ClientAdminEndpointsValidatorTests {
         urls.add("http://valid.com");
         urls.add("http://valid.com/with/path*");
         urls.add("http://invalid*");
+        client.setAuthorizedGrantTypes(Collections.singleton("authorization_code"));
         client.setRegisteredRedirectUri(urls);
-        validator.validate(client, true, true);
+        validator.validateClientRedirectUri(client);
     }
 
     @Test
@@ -136,20 +148,29 @@ public class ClientAdminEndpointsValidatorTests {
         urls.add("https://valid.com/path/*/path");
         urls.add("http://sub.valid.com/*/with/path**");
         client.setRegisteredRedirectUri(urls);
-        validator.validate(client, true, true);
+        validator.validateClientRedirectUri(client);
     }
 
-    private void testValidatorForURL(String url) {
+    private void testValidatorForInvalidURL(String url) {
         try {
-            client.setRegisteredRedirectUri(Collections.singleton(url));
-            validator.validate(client, true, true);
+            testValidatorForURL(url);
         } catch (InvalidClientDetailsException e) {
             return;
         }
         Assert.fail(String.format("Url %s should not be allowed", url));
     }
 
-    private void testValidatorForHTTPSURL(String url) {
-        testValidatorForURL(url.replace("http", "https"));
+    private void testValidatorForURL(String url) {
+        client.setRegisteredRedirectUri(Collections.singleton(url));
+        validator.validateClientRedirectUri(client);
+    }
+
+    private List<String> convertToHttps(List<String> urls) {
+        List<String> httpsUrls = new ArrayList<>(urls.size());
+        for(String url : urls) {
+            httpsUrls.add(url.replace("http", "https"));
+        }
+
+        return httpsUrls;
     }
 }

@@ -106,7 +106,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
         }
 
-        validateClientRedirectUri(client.getRegisteredRedirectUri());
+        validateClientRedirectUri(client);
 
         Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
         if (requestedGrantTypes.isEmpty()) {
@@ -229,18 +229,29 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     }
 
-    private void validateClientRedirectUri(Set<String> uris) {
-        if (uris == null || uris.size() == 0) {
-            throw new InvalidClientDetailsException(
-                    "Client should have at least one valid redirect_uri");
-        }
-        String permittedURLs = "https?://[^\\*/]+(/.*|$)";
-        for (String uri : uris) {
-            if (uri == null || !Pattern.matches(permittedURLs, uri)) {
-                throw new InvalidClientDetailsException(
-                        String.format("One of the redirect_uri is invalid: %s", uri));
+    public void validateClientRedirectUri(ClientDetails client) {
+        Set<String> uris = client.getRegisteredRedirectUri();
+
+        for(String grant_type: Arrays.asList("authorization_code", "implicit")) {
+            if(client.getAuthorizedGrantTypes().contains(grant_type)) {
+
+                if (isMissingRedirectUris(uris)) {
+                    throw new InvalidClientDetailsException(grant_type + " grant type requires at least one redirect URL.");
+                }
+
+                String permittedURLs = "https?://[^\\*/]+(/.*|$)";
+                for (String uri : uris) {
+                    if (uri == null || !Pattern.matches(permittedURLs, uri)) {
+                        throw new InvalidClientDetailsException(
+                            String.format("One of the redirect_uri is invalid: %s", uri));
+                    }
+                }
             }
         }
+    }
+
+    private boolean isMissingRedirectUris(Set<String> uris) {
+        return uris == null || uris.isEmpty();
     }
 
     public static void checkRequestedGrantTypes(Set<String> requestedGrantTypes) {
