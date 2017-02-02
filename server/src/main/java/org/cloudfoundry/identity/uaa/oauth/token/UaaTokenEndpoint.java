@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
@@ -27,7 +28,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
 
+import static java.util.Collections.singleton;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -48,10 +51,17 @@ public class UaaTokenEndpoint extends TokenEndpoint {
         return super.postAccessToken(principal, parameters);
     }
 
+    @Override
+    public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
+        super.setAllowedRequestMethods(singleton(HttpMethod.POST));
+    }
+
     @ExceptionHandler(Exception.class)
     @Override
     public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
         logger.error("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
         return getExceptionTranslator().translate(e);
     }
+
+
 }
