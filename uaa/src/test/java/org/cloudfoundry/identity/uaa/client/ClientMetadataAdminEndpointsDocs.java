@@ -215,7 +215,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
     }
 
     private void createClient(String clientId) throws Exception {
-        BaseClientDetails newClient = new BaseClientDetails(clientId, "oauth", "oauth.approvals", "password", "oauth.login");
+        BaseClientDetails newClient = new BaseClientDetails(clientId, "oauth", "oauth.approvals", "password", "oauth.login","http://redirect.url");
         newClient.setClientSecret("secret");
         MockHttpServletRequestBuilder createClient = post("/oauth/clients")
             .header("Authorization", "Bearer " + adminUserToken)

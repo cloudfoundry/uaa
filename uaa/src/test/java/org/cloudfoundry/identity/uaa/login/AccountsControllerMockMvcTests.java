@@ -245,12 +245,12 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreatingAnAccountWithClientRedirect() throws Exception {
-        createAccount("http://client.redirect.uri", "http://client.redirect.uri");
+        createAccount("http://redirect.uri/client", "http://redirect.uri/client");
     }
 
     @Test
     public void testCreatingAnAccountWithFallbackClientRedirect() throws Exception {
-        createAccount("http://fallback.redirect.uri", null);
+        createAccount("http://redirect.uri/fallback", null);
     }
 
     @Test
@@ -354,7 +354,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         clientDetails.setClientId("myzoneclient");
         clientDetails.setClientSecret("myzoneclientsecret");
         clientDetails.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
-        clientDetails.setRegisteredRedirectUri(Collections.singleton("http://*.example.com"));
+        clientDetails.setRegisteredRedirectUri(Collections.singleton("http://myzoneclient.example.com"));
 
         mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext(), clientDetails);
 
@@ -441,8 +441,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(2));
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
-        clientDetails.setRegisteredRedirectUri(Collections.singleton("http://client.*.uri"));
-        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://fallback.redirect.uri");
+        clientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.uri/*"));
+        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://redirect.uri/fallback");
 
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(testAccounts.getAdminClientId(),

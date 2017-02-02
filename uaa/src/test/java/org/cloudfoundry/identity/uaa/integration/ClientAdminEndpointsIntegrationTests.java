@@ -122,6 +122,7 @@ public class ClientAdminEndpointsIntegrationTests {
             clients[i] = detailsModification;
             clients[i].setClientSecret("secret");
             clients[i].setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+            clients[i].setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         }
         ResponseEntity<ClientDetailsModification[]> result =
             serverRunning.getRestTemplate().exchange(
@@ -192,6 +193,7 @@ public class ClientAdminEndpointsIntegrationTests {
             clients[i] = new BaseClientDetails(ids[i], "", "foo,bar",grantTypes, "uaa.none");
             clients[i].setClientSecret("secret");
             clients[i].setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+            clients[i].setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         }
         clients[clients.length-1].setClientId(ids[0]);
         ResponseEntity<UaaException> result =
@@ -221,7 +223,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void implicitGrantClientWithoutSecretIsOk() throws Exception {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-                        "implicit", "uaa.none");
+                        "implicit", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 
@@ -231,7 +233,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void passwordGrantClientWithoutSecretIsOk() throws Exception {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-                        "password", "uaa.none");
+                        "password", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 
@@ -583,6 +585,7 @@ public class ClientAdminEndpointsIntegrationTests {
         ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
+        client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
@@ -598,6 +601,7 @@ public class ClientAdminEndpointsIntegrationTests {
         ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+        client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                 HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());

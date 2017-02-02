@@ -42,6 +42,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -849,7 +850,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 "",
                 scopes,
                 grantTypes,
-                authorities);
+                authorities, "http://redirect.url");
         client.setClientSecret(SECRET);
         BaseClientDetails clientDetails = MockMvcUtils.createClient(getMockMvc(), token, client);
         clientDetails.setClientSecret(SECRET);

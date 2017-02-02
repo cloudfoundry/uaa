@@ -68,11 +68,11 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     private static final FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
         fieldWithPath("client_id").required().description(clientIdDescription),
         fieldWithPath("authorized_grant_types").required().description("List of grant types that can be used to obtain a token with this client. Can include `authorization_code`, `password`, `implicit`, and/or `client_credentials`."),
+        fieldWithPath("redirect_uri").required().type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. Null/Empty value is forbidden."),
         fieldWithPath("scope").optional("uaa.none").type(ARRAY).description("Scopes allowed for the client"),
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
         fieldWithPath("autoapprove").optional(Collections.emptySet()).type(ARRAY).description("Scopes that do not require user approval"),
-        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. A null value (not recommended) matches any uri."),
         fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
         fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
         fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
@@ -207,6 +207,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         updatedClientDetails.setScope(Arrays.asList("clients.new", "clients.autoapprove"));
         updatedClientDetails.setAutoApproveScopes(Arrays.asList("clients.autoapprove"));
         updatedClientDetails.setAuthorizedGrantTypes(createdClientDetails.getAuthorizedGrantTypes());
+        updatedClientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
 
         ResultActions resultActions = getMockMvc().perform(put("/oauth/clients/{client_id}", createdClientDetails.getClientId())
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -472,7 +473,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
 
     private Map<String, Object> additionalInfo() {
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http*://ant.path.wildcard/**/passback/*"));
+        additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http://ant.path.wildcard/**/passback/*"));
         additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, "my-saml-provider"));
         additionalInformation.put(ClientConstants.CLIENT_NAME, "My Client Name");
         additionalInformation.put(ClientConstants.AUTO_APPROVE, true);

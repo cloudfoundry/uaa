@@ -641,7 +641,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             null,
             "",
             "client_credentials",
-            "uaa.admin"
+            "uaa.admin",
+             "http://redirect.url"
         );
         admin.setClientSecret("adminsecret");
 

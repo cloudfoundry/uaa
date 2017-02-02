@@ -106,7 +106,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
         }
 
-        validateClientRedirectUri(client.getRegisteredRedirectUri());
+        validateClientRedirectUri(client.getRegisteredRedirectUri(), );
 
         Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
         if (requestedGrantTypes.isEmpty()) {
