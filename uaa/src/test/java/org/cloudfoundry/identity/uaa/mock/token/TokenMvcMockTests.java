@@ -225,16 +225,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andExpect(content().string(containsString("Parameters must be passed in the body of the request")));
     }
 
-    public String setUpUserForPasswordGrant() throws Exception {
-        String username = "testuser" + generator.generate();
-        String userScopes = "uaa.user";
-        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
-        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        ScimUser scimUser = provisioning.retrieve(user.getId());
-        assertNull(scimUser.getLastLogonTime());
-        assertNull(scimUser.getPreviousLogonTime());
-        return username;
-    }
+
 
     public void try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
         String username = setUpUserForPasswordGrant();
