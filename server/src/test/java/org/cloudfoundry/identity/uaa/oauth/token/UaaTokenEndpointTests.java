@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
@@ -32,6 +34,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 
 
 public class UaaTokenEndpointTests {
@@ -55,10 +58,35 @@ public class UaaTokenEndpointTests {
     }
 
     @Test(expected = HttpRequestMethodNotSupportedException.class)
-    public void call_to_get_always_throws() throws Exception {
+    public void call_to_get_always_throws_super_method() throws Exception {
         UaaTokenEndpoint endpoint = new UaaTokenEndpoint();
         endpoint.setAllowedRequestMethods(allowedRequestMethods);
-        endpoint.getAccessToken(mock(Principal.class), emptyMap());
+        try {
+            endpoint.getAccessToken(mock(Principal.class), emptyMap());
+        } catch (HttpRequestMethodNotSupportedException e) {
+            assertEquals("GET", e.getMethod());
+            throw e;
+        }
+    }
+
+
+    @Test(expected = HttpRequestMethodNotSupportedException.class)
+    public void call_to_get_always_throws_override_method() throws Exception {
+        UaaTokenEndpoint endpoint = new UaaTokenEndpoint();
+        endpoint.setAllowedRequestMethods(allowedRequestMethods);
+        try {
+            endpoint.doDelegateGet(mock(Principal.class), emptyMap());
+        } catch (HttpRequestMethodNotSupportedException e) {
+            assertEquals("GET", e.getMethod());
+            throw e;
+        }
+    }
+
+    @Test
+    public void call_to_post_with_query_string_throws_not_acceptable() throws Exception {
+        ResponseEntity<OAuth2Exception> result = endpoint.handleHttpRequestMethodNotSupportedException(new HttpRequestMethodNotSupportedException("POST"));
+        assertNotNull(result);
+        assertEquals(NOT_ACCEPTABLE, result.getStatusCode());
     }
 
 }

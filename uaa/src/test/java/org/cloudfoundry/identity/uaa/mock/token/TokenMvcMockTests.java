@@ -211,7 +211,21 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         try_token_with_non_post(post("/oauth/token"), status().isOk());
     }
 
-    public void try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
+    @Test
+    public void token_endpoint_post_query_string() throws Exception {
+        String username = setUpUserForPasswordGrant();
+
+        getMockMvc().perform(
+            post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret", username)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andDo(print())
+            .andExpect(status().isNotAcceptable())
+            .andExpect(content().string(containsString("query_string_not_allowed")))
+            .andExpect(content().string(containsString("Parameters must be passed in the body of the request")));
+    }
+
+    public String setUpUserForPasswordGrant() throws Exception {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
@@ -219,6 +233,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser scimUser = provisioning.retrieve(user.getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
+        return username;
+    }
+
+    public void try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
+        String username = setUpUserForPasswordGrant();
 
         getMockMvc().perform(
             builder
