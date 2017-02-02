@@ -12,13 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.util.Assert;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.util.Assert;
 
 /**
  * User data for authentication against UAA's internal authentication provider.
@@ -27,6 +29,8 @@ import org.springframework.util.Assert;
  * @author Dave Syer
  * @author Joel D'sa
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UaaUser {
 
     private final String id;
@@ -55,6 +59,10 @@ public class UaaUser {
 
     private final String phoneNumber;
 
+    private Long lastLogonTime;
+
+    private Long previousLogonTime;
+
     public String getZoneId() {
         return zoneId;
     }
@@ -66,6 +74,8 @@ public class UaaUser {
     private boolean verified = false;
 
     private boolean legacyVerificationBehavior = false;
+
+    private boolean passwordChangeRequired;
 
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
@@ -122,6 +132,9 @@ public class UaaUser {
         this.passwordLastModified = prototype.getPasswordLastModified();
         this.phoneNumber = prototype.getPhoneNumber();
         this.legacyVerificationBehavior = prototype.isLegacyVerificationBehavior();
+        this.passwordChangeRequired = prototype.isPasswordChangeRequired();
+        this.lastLogonTime = prototype.getLastLogonTime();
+        this.previousLogonTime = prototype.getPreviousLogonTime();
     }
 
     public String getId() {
@@ -341,5 +354,29 @@ public class UaaUser {
 
     public boolean isLegacyVerificationBehavior() {
         return legacyVerificationBehavior;
+    }
+
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public void setPasswordChangeRequired(boolean passwordChangeRequired) {
+        this.passwordChangeRequired = passwordChangeRequired;
+    }
+
+    public Long getLastLogonTime() {
+        return lastLogonTime;
+    }
+
+    public void setLastLogonTime(Long lastLogonTime) {
+        this.lastLogonTime = lastLogonTime;
+    }
+
+    public Long getPreviousLogonTime() {
+        return previousLogonTime;
+    }
+
+    public void setPreviousLogonTime(Long previousLogonTime) {
+        this.previousLogonTime = previousLogonTime;
     }
 }

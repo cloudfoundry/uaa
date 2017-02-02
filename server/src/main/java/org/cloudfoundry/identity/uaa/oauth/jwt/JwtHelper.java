@@ -12,19 +12,18 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms.sigAlg;
-import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
-import static org.springframework.security.jwt.codec.Codecs.b64UrlEncode;
-import static org.springframework.security.jwt.codec.Codecs.concat;
-import static org.springframework.security.jwt.codec.Codecs.utf8Decode;
-import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
+import org.springframework.security.jwt.BinaryFormat;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 
 import java.nio.CharBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.springframework.security.jwt.BinaryFormat;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
+import static org.springframework.security.jwt.codec.Codecs.b64UrlEncode;
+import static org.springframework.security.jwt.codec.Codecs.concat;
+import static org.springframework.security.jwt.codec.Codecs.utf8Decode;
+import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
 /**
  * @author Luke Taylor
@@ -99,7 +98,7 @@ class JwtHeaderHelper {
     }
 
     static JwtHeader create(Signer signer) {
-        HeaderParametersImpl p = new HeaderParametersImpl(sigAlg(signer.algorithm()), null, null, signer.keyId());
+        HeaderParametersImpl p = new HeaderParametersImpl(signer.algorithm(), null, null, signer.keyId());
         return new JwtHeader(serializeParams(p), p);
     }
 

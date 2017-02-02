@@ -142,6 +142,13 @@
         </property>
     </bean>
 
+    <bean id="uaaTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint">
+        <property name="OAuth2RequestValidator" ref="oauth2RequestValidator"/>
+        <property name="tokenGranter" ref="oauth2TokenGranter"/> <!--this bean created by <oauth:authorization-server/> -->
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
+    </bean>
+
     <bean id="uaaAuthorizationEndpoint" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint">
         <property name="authorizationCodeServices" ref="authorizationCodeServices"/>
         <property name="OAuth2RequestValidator" ref="oauth2RequestValidator"/>
@@ -263,6 +270,7 @@
     <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
         <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
+        <constructor-arg ref="samlWebSSOProcessingFilter"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
     </bean>
@@ -350,7 +358,7 @@
 
     <bean id="promptOauthAuthorizeEntryPoint" class="org.cloudfoundry.identity.uaa.oauth.AuthorizePromptNoneEntryPoint">
         <constructor-arg name="failureHandler">
-            <bean class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieDestructor">
+            <bean class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
                 <constructor-arg name="delegate">
                     <null/>
                 </constructor-arg>
@@ -375,8 +383,8 @@
     </http>
 
     <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
-        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
-
+        <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
+        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
@@ -546,7 +554,8 @@
     </util:set>
 
     <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
-        <constructor-arg ref="jdbcTemplate" />
+        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
+        <constructor-arg name="timeService" ref="timeService" />
         <property name="defaultAuthorities" ref="defaultUserAuthorities" />
         <property name="caseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>

@@ -67,13 +67,14 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
-    public void test_allow_open_redirect() throws Exception {
+    public void test_open_redirect_no_longer_allowed() throws Exception {
         handler.setWhitelist(null);
         handler.setAlwaysUseDefaultTargetUrl(false);
+        handler.setDefaultTargetUrl("/login");
         request.setParameter("redirect", "http://testing.com");
-        assertEquals("http://testing.com", handler.determineTargetUrl(request, response));
+        assertEquals("/login", handler.determineTargetUrl(request, response));
         request.setParameter("redirect", "http://www.testing.com");
-        assertEquals("http://www.testing.com", handler.determineTargetUrl(request, response));
+        assertEquals("/login", handler.determineTargetUrl(request, response));
     }
 
     @Test

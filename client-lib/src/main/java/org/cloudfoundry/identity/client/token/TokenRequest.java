@@ -128,6 +128,15 @@ public class TokenRequest {
                         authorizationCode
                     )
                 );
+            case SAML2_BEARER:
+                return !hasAnyNullValues(
+                        Arrays.asList(
+                            tokenEndpoint,
+                            clientId,
+                            clientSecret,
+                            authCodeAPIToken
+                        )
+                    );
             default: return false;
         }
     }

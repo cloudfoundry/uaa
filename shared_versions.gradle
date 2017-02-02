@@ -1,7 +1,8 @@
 ext {
   apacheLdapApiVersion = '1.0.0-M22'
   aspectJVersion = '1.6.9'
-  bcpkixVersion  = '1.47'
+  bcpkixVersion  = '1.56'
+  bcprovVersion  = '1.56'
   cglibVersion = '2.2.2'
   commonsHttpClientVersion = '4.3.6'
   commonsLoggingVersion = '1.2'
@@ -18,6 +19,7 @@ ext {
   mockitoVersion = '1.8.5'
   passayVersion = '1.0'
   postgresqlVersion = '9.1-901.jdbc3'
+  mssqlVersion = '6.1.0.jre8'
   scimSDKVersion = '1.6.0'
   servletVersion = '3.1.0'
   slf4jVersion = '1.7.7'
@@ -32,8 +34,8 @@ ext {
   thymeleafVersion = '2.1.2.RELEASE'
   thymeleafDialectVersion = '1.2.3'
   thymeleafExtrasVersion = '2.1.1.RELEASE'
-  tomcatVersion = '8.0.36'
-  tomcatJdbcPoolVersion = '7.0.70'
+  tomcatVersion = '8.0.39'
+  tomcatJdbcPoolVersion = '8.0.39'
   tomcatContainerId = 'tomcat8x'
   validationAPIVersion = '1.0.0.GA'
 }

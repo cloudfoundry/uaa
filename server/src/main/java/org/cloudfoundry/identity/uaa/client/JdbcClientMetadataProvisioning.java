@@ -42,9 +42,10 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     private static final Log logger = LogFactory.getLog(JdbcClientMetadataProvisioning.class);
 
 
-    private static final String CLIENT_METADATA_FIELDS = "client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, additional_information";
+    private static final String CLIENT_METADATA_FIELDS = "client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, additional_information, created_by";
     private static final String CLIENT_METADATA_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where client_id=? and identity_zone_id=?";
-    private static final String CLIENT_METADATAS_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where identity_zone_id=? and ((app_launch_url is not null and char_length(app_launch_url)>0) or (app_icon is not null and octet_length(app_icon)>0))";
+    //private static final String CLIENT_METADATAS_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where identity_zone_id=? and ((app_launch_url is not null and char_length(app_launch_url)>0) or (app_icon is not null and octet_length(app_icon)>0))";
+    private static final String CLIENT_METADATAS_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where identity_zone_id=? and (app_launch_url is not null or app_icon is not null)";
     private static final String CLIENT_METADATA_UPDATE_FIELDS = "show_on_home_page, app_launch_url, app_icon";
     private static final String CLIENT_METADATA_UPDATE = "update oauth_client_details set " + CLIENT_METADATA_UPDATE_FIELDS.replace(",", "=?,") + "=?" + " where client_id=? and identity_zone_id=?";
 
@@ -124,19 +125,20 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
         public ClientMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
             ClientMetadata clientMetadata = new ClientMetadata();
             int pos = 1;
-            clientMetadata.setClientId(rs.getString(pos++));
-            clientMetadata.setIdentityZoneId(rs.getString(pos++));
-            clientMetadata.setShowOnHomePage(rs.getBoolean(pos++));
+            clientMetadata.setClientId(rs.getString("client_id"));
+            clientMetadata.setIdentityZoneId(rs.getString("identity_zone_id"));
+            clientMetadata.setShowOnHomePage(rs.getBoolean("show_on_home_page"));
             try {
-                clientMetadata.setAppLaunchUrl(new URL(rs.getString(pos++)));
+                clientMetadata.setAppLaunchUrl(new URL(rs.getString("app_launch_url")));
             } catch (MalformedURLException mue) {
                 // it is safe to ignore this as client_metadata rows are always created from a ClientMetadata instance whose launch url property is strongly typed to URL
             }
-            byte[] iconBytes = rs.getBytes(pos++);
+            byte[] iconBytes = rs.getBytes("app_icon");
             if(iconBytes != null) {
                 clientMetadata.setAppIcon(new String(Base64Utils.encode(iconBytes)));
             }
-            String json = rs.getString(pos++);
+            clientMetadata.setCreatedBy(rs.getString("created_by"));
+            String json = rs.getString("additional_information");
             if (hasText(json)) {
                 Map<String,Object> additionalInformation = JsonUtils.readValue(json, new TypeReference<Map<String,Object>>() {});
                 clientMetadata.setClientName((String)additionalInformation.get(CLIENT_NAME));

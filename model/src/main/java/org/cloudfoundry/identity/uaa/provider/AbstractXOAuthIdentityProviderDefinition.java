@@ -15,13 +15,9 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.ParameterizedType;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -154,22 +150,46 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
         return (Class) parameterizedType.getActualTypeArguments()[0];
     }
 
-    @JsonIgnore
-    public String getCompleteAuthorizationURI(String baseURL, String alias) throws UnsupportedEncodingException {
-        String authUrlBase = getAuthUrl().toString();
-        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
-        List<String> query = new ArrayList<>();
-        query.add("client_id=" + getRelyingPartyId());
-        query.add("response_type="+ URLEncoder.encode(getResponseType(), "UTF-8"));
-        query.add("redirect_uri=" + URLEncoder.encode(baseURL + "/login/callback/" + alias, "UTF-8"));
-        if (getScopes() != null && !getScopes().isEmpty()) {
-            query.add("scope=" + URLEncoder.encode(String.join(" ", getScopes()), "UTF-8"));
-        }
-        if (OIDCIdentityProviderDefinition.class.equals(getParameterizedClass())) {
-            final RandomValueStringGenerator nonceGenerator = new RandomValueStringGenerator(12);
-            query.add("nonce=" + nonceGenerator.generate());
-        }
-        String queryString = String.join("&", query);
-        return authUrlBase + queryAppendDelimiter + queryString;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        AbstractXOAuthIdentityProviderDefinition<?> that = (AbstractXOAuthIdentityProviderDefinition<?>) o;
+
+        if (showLinkText != that.showLinkText) return false;
+        if (skipSslValidation != that.skipSslValidation) return false;
+        if (authUrl != null ? !authUrl.equals(that.authUrl) : that.authUrl != null) return false;
+        if (tokenUrl != null ? !tokenUrl.equals(that.tokenUrl) : that.tokenUrl != null) return false;
+        if (tokenKeyUrl != null ? !tokenKeyUrl.equals(that.tokenKeyUrl) : that.tokenKeyUrl != null) return false;
+        if (tokenKey != null ? !tokenKey.equals(that.tokenKey) : that.tokenKey != null) return false;
+        if (linkText != null ? !linkText.equals(that.linkText) : that.linkText != null) return false;
+        if (relyingPartyId != null ? !relyingPartyId.equals(that.relyingPartyId) : that.relyingPartyId != null)
+            return false;
+        if (relyingPartySecret != null ? !relyingPartySecret.equals(that.relyingPartySecret) : that.relyingPartySecret != null)
+            return false;
+        if (scopes != null ? !scopes.equals(that.scopes) : that.scopes != null) return false;
+        if (issuer != null ? !issuer.equals(that.issuer) : that.issuer != null) return false;
+        return responseType != null ? responseType.equals(that.responseType) : that.responseType == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (authUrl != null ? authUrl.hashCode() : 0);
+        result = 31 * result + (tokenUrl != null ? tokenUrl.hashCode() : 0);
+        result = 31 * result + (tokenKeyUrl != null ? tokenKeyUrl.hashCode() : 0);
+        result = 31 * result + (tokenKey != null ? tokenKey.hashCode() : 0);
+        result = 31 * result + (linkText != null ? linkText.hashCode() : 0);
+        result = 31 * result + (showLinkText ? 1 : 0);
+        result = 31 * result + (skipSslValidation ? 1 : 0);
+        result = 31 * result + (relyingPartyId != null ? relyingPartyId.hashCode() : 0);
+        result = 31 * result + (relyingPartySecret != null ? relyingPartySecret.hashCode() : 0);
+        result = 31 * result + (scopes != null ? scopes.hashCode() : 0);
+        result = 31 * result + (issuer != null ? issuer.hashCode() : 0);
+        result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
+        return result;
     }
 }

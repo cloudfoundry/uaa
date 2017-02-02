@@ -94,7 +94,7 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
         return hasScope;
     }
 
-    private String getAuthenticationZoneId() {
+    public String getAuthenticationZoneId() {
         if (authentication.getPrincipal() instanceof UaaPrincipal) {
             return ((UaaPrincipal) authentication.getPrincipal()).getZoneId();
         } else if (authentication instanceof UaaOauth2Authentication) {

@@ -94,12 +94,21 @@ public class PasswordResetEndpoint {
         }
     }
 
+    private ExpiringCode getExpiringCode(String code) {
+        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        if (expiringCode == null) {
+            throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
+        }
+        return expiringCode;
+    }
+
     @RequestMapping(value = "/password_change", method = RequestMethod.POST)
     public ResponseEntity<LostPasswordChangeResponse> changePassword(@RequestBody LostPasswordChangeRequest passwordChangeRequest) {
         ResponseEntity<LostPasswordChangeResponse> responseEntity;
         if (passwordChangeRequest.getChangeCode() != null) {
             try {
-                ResetPasswordService.ResetPasswordResponse reset = resetPasswordService.resetPassword(passwordChangeRequest.getChangeCode(), passwordChangeRequest.getNewPassword());
+                ExpiringCode expiringCode = getExpiringCode(passwordChangeRequest.getChangeCode());
+                ResetPasswordService.ResetPasswordResponse reset = resetPasswordService.resetPassword(expiringCode, passwordChangeRequest.getNewPassword());
                 ScimUser user = reset.getUser();
                 ExpiringCode loginCode = getCode(user.getId(), user.getUserName(), reset.getClientId());
                 LostPasswordChangeResponse response = new LostPasswordChangeResponse();

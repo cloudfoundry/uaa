@@ -23,6 +23,9 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.user.DialableByPhone;
 import org.cloudfoundry.identity.uaa.user.ExternallyIdentifiable;
 import org.cloudfoundry.identity.uaa.user.Mailable;
@@ -31,6 +34,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.context.ApplicationEvent;
@@ -51,10 +55,13 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+
+import static java.util.Collections.EMPTY_SET;
+import static java.util.Optional.ofNullable;
 
 public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
+    public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
     protected final Log logger = LogFactory.getLog(getClass());
 
     private ApplicationEventPublisher eventPublisher;
@@ -64,6 +71,20 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     private String name;
 
     private String origin = "unknown";
+
+    private IdentityProviderProvisioning providerProvisioning;
+
+    public ExternalLoginAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
+        this.providerProvisioning = providerProvisioning;
+    }
+
+    public IdentityProviderProvisioning getProviderProvisioning() {
+        return providerProvisioning;
+    }
+
+    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
+        this.providerProvisioning = providerProvisioning;
+    }
 
     public String getOrigin() {
         return origin;
@@ -91,6 +112,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
+        logger.debug("Starting external authentication for:"+request);
         ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
         UaaUser userFromRequest = getUser(request, authenticationData);
         if (userFromRequest == null) {
@@ -100,8 +122,10 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         UaaUser userFromDb;
 
         try {
+            logger.debug(String.format("Searching for user by (username:%s , origin:%s)", userFromRequest.getUsername(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
+            logger.debug(String.format("Searching for user by (email:%s , origin:%s)", userFromRequest.getEmail(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByEmail(userFromRequest.getEmail(), getOrigin());
         }
 
@@ -139,9 +163,21 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             authentication.setUserAttributes(getUserAttributes(userDetails));
             authentication.setExternalGroups(new HashSet<>(getExternalUserAuthorities(userDetails)));
         }
-        Set<String> amr = new HashSet<>();
-        amr.add("ext");
-        authentication.setAuthenticationMethods(amr);
+
+        if (authentication.getAuthenticationMethods()==null) {
+            authentication.setAuthenticationMethods(new HashSet<>());
+        }
+        authentication.getAuthenticationMethods().add("ext");
+        if (authentication.getUserAttributes()!=null && authentication.getUserAttributes().size()>0 && getProviderProvisioning()!=null) {
+            IdentityProvider<ExternalIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            if (provider.getConfig()!=null && provider.getConfig().isStoreCustomAttributes()) {
+                logger.debug("Storing custom attributes for user_id:"+authentication.getPrincipal().getId());
+                UserInfo userInfo = new UserInfo()
+                    .setUserAttributes(authentication.getUserAttributes())
+                    .setRoles(new LinkedList(ofNullable(authentication.getExternalGroups()).orElse(EMPTY_SET)));
+                getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), userInfo);
+            }
+        }
     }
 
     protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) {

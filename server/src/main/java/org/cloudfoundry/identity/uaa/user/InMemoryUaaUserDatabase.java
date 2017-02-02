@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,7 +20,7 @@ import java.util.Map;
 
 /**
  * In-memory user account information storage.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  * @author Joel D'sa
@@ -29,10 +29,12 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
 
     private final Map<String, UaaUser> users;
     private final Map<String, UaaUser> ids;
+    private final Map<String, UserInfo> userInfo;
 
     public InMemoryUaaUserDatabase(Collection<UaaUser> users) {
         this.users = new HashMap<>();
         this.ids = new HashMap<>();
+        this.userInfo = new HashMap<>();
         for (UaaUser user : users) {
             addUser(user);
         }
@@ -65,6 +67,25 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
         return users.values().stream().filter(u -> origin.equalsIgnoreCase(u.getOrigin()) && email.equalsIgnoreCase(u.getEmail())).findAny().orElse(null);
+    }
+
+    @Override
+    public UserInfo getUserInfo(String id) {
+        return userInfo.get(id);
+    }
+
+    @Override
+    public UserInfo storeUserInfo(String id, UserInfo i) {
+        UserInfo info = new UserInfo()
+            .setUserAttributes(i.getUserAttributes())
+            .setRoles(i.getRoles());
+        this.userInfo.put(id, info);
+        return i;
+    }
+
+    @Override
+    public void updateLastLogonTime(String id) {
+        retrieveUserById(id).setLastLogonTime(System.currentTimeMillis());
     }
 
     public UaaUser updateUser(String userId, UaaUser user) throws UsernameNotFoundException {

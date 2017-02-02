@@ -198,7 +198,11 @@ public class UaaTokenServicesTests {
             .withVerified(false)
             .withZoneId(IdentityZoneHolder.get().getId())
             .withSalt(userId)
-            .withPasswordLastModified(new Date(System.currentTimeMillis() - 15000)));
+            .withPasswordLastModified(new Date(System.currentTimeMillis() - 15000))
+            .withLastLogonSuccess(12345L)
+            .withPreviousLogonSuccess(12365L)
+        );
+
 
     // Need to create a user with a modified time slightly in the past because
     // the token IAT is in seconds and the token
@@ -1093,6 +1097,12 @@ public class UaaTokenServicesTests {
         assertFalse(idTokenJwt.getClaims().contains("\"given_name\":"));
         assertFalse(idTokenJwt.getClaims().contains("\"family_name\":"));
         assertFalse(idTokenJwt.getClaims().contains("\"phone_number\":"));
+    }
+
+    @Test
+    public void create_id_token_with_last_logon_time_claim() {
+        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        assertTrue(idTokenJwt.getClaims().contains("\"previous_logon_time\":12365"));
     }
 
     private Jwt getIdToken(List<String> scopes) {

@@ -61,6 +61,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         CsrfToken token = repo.generateToken(request);
+        assertTrue("The token is at least 22 characters long.", token.getToken().length() >= 22);
         repo.saveToken(token, request, response);
 
         Cookie cookie = response.getCookie(token.getParameterName());

@@ -1,41 +1,55 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.clients.AdminClientCreator;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
+import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import javax.servlet.http.HttpServletResponse;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
+import static org.mockito.Mockito.mock;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
+public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
 
   private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
   private MultitenantJdbcClientDetailsService clients;
   private String adminClientTokenWithClientsWrite;
+  private String adminUserToken;
   private UaaTestAccounts testAccounts;
+  private static final String RESOURCE_OWNER_GUID = "The user guid of the resource owner who created this client";
   private static final String CLIENT_ID_DESC = "Client identifier, unique within identity zone";
+  private static final String CLIENT_NAME_DESC = "Human readable display name for the client";
   private static final String SHOW_ON_HOME_PAGE_DESC = "Flag to control visibility on home page";
   private static final String APP_LAUNCH_URL_DESC = "URL to which the app is linked to";
   private static final String APP_ICON_DESC = "Base64 encoded image file";
@@ -43,7 +57,8 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
     fieldWithPath("clientId").description(CLIENT_ID_DESC),
     fieldWithPath("showOnHomePage").description(SHOW_ON_HOME_PAGE_DESC),
     fieldWithPath("appLaunchUrl").description(APP_LAUNCH_URL_DESC),
-    fieldWithPath("appIcon").description(APP_ICON_DESC)
+    fieldWithPath("appIcon").description(APP_ICON_DESC),
+    fieldWithPath("createdBy").description(RESOURCE_OWNER_GUID).type(JsonFieldType.STRING).optional()
   );
 
   @Before
@@ -53,13 +68,38 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
     adminClientTokenWithClientsWrite = testClient.getClientCredentialsOAuthAccessToken(
       testAccounts.getAdminClientId(),
       testAccounts.getAdminClientSecret(),
-      "clients.write");
+      "clients.write,uaa.admin");
+
+    ClientDetails adminClient = createAdminClient(adminClientTokenWithClientsWrite);
+
+    HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+
+    ScimUserEndpoints scimUserEndpoints = getWebApplicationContext().getBean(ScimUserEndpoints.class);
+    ScimGroupEndpoints scimGroupEndpoints = getWebApplicationContext().getBean(ScimGroupEndpoints.class);
+
+    SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq \"marissa\"", "userName", "asc", 0, 1);
+    String marissaId = (String)marissa.getResources().iterator().next().get("id");
+
+    //add marissa to uaa.admin
+    SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"uaa.admin\"", "displayName", "asc", 1, 1);
+    String groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
+    ScimGroup group = scimGroupEndpoints.getGroup(groupId, mockResponse);
+    ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
+    group.getMembers().add(gm);
+    scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
+
+   adminUserToken = testClient.getUserOAuthAccessToken(adminClient.getClientId(),
+        "secret",
+        "marissa",
+        "koala",
+        "uaa.admin");
   }
 
   @Test
   public void getClientMetadata() throws Exception {
     String clientId = generator.generate();
-
+    createClient(clientId);
+    updateClientMetadata(clientId);
     String marissaToken = getUserAccessToken(clientId);
 
     MockHttpServletRequestBuilder get = get("/oauth/clients/{clientId}/meta", clientId)
@@ -86,6 +126,8 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
   @Test
   public void getAllClientMetadata() throws Exception {
     String clientId1 = generator.generate();
+    createClient(clientId1);
+    updateClientMetadata(clientId1);
     String marissaToken = getUserAccessToken(clientId1);
 
     String clientId2 = generator.generate();
@@ -116,9 +158,11 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
 
     Snippet responseFields = responseFields(
       fieldWithPath("[].clientId").description(CLIENT_ID_DESC),
+      fieldWithPath("[].clientName").description(CLIENT_NAME_DESC),
       fieldWithPath("[].showOnHomePage").description(SHOW_ON_HOME_PAGE_DESC),
       fieldWithPath("[].appLaunchUrl").description(APP_LAUNCH_URL_DESC),
-      fieldWithPath("[].appIcon").description(APP_ICON_DESC)
+      fieldWithPath("[].appIcon").description(APP_ICON_DESC),
+      fieldWithPath("[].createdBy").description(RESOURCE_OWNER_GUID)
     );
 
     getMockMvc().perform(get("/oauth/clients/meta")
@@ -134,7 +178,7 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
   @Test
   public void updateClientMetadata() throws Exception {
     String clientId = generator.generate();
-    clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
+    createClient(clientId);
 
     ClientMetadata updatedClientMetadata = new ClientMetadata();
     updatedClientMetadata.setClientId(clientId);
@@ -158,19 +202,30 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
   }
 
   private String getUserAccessToken(String clientId) throws Exception {
-    BaseClientDetails newClient = new BaseClientDetails(clientId, "oauth", "oauth.approvals", "password", "oauth.login");
-    newClient.setClientSecret("secret");
-    clients.addClientDetails(newClient);
-    ClientMetadata clientMetaData = new ClientMetadata();
-    clientMetaData.setClientId(clientId);
-    clientMetaData.setAppIcon("aWNvbiBmb3IgY2xpZW50IDQ=");
-    clientMetaData.setAppLaunchUrl(new URL("http://myloginpage.com"));
-    clientMetaData.setShowOnHomePage(true);
-    performUpdate(clientMetaData);
     return testClient.getUserOAuthAccessToken(clientId, "secret", "marissa", "koala", "oauth.approvals");
   }
 
-  private ResultActions performUpdate(ClientMetadata updatedClientMetadata) throws Exception {
+    private void updateClientMetadata(String clientId) throws Exception {
+        ClientMetadata clientMetaData = new ClientMetadata();
+        clientMetaData.setClientId(clientId);
+        clientMetaData.setAppIcon("aWNvbiBmb3IgY2xpZW50IDQ=");
+        clientMetaData.setAppLaunchUrl(new URL("http://myloginpage.com"));
+        clientMetaData.setShowOnHomePage(true);
+        performUpdate(clientMetaData);
+    }
+
+    private void createClient(String clientId) throws Exception {
+        BaseClientDetails newClient = new BaseClientDetails(clientId, "oauth", "oauth.approvals", "password", "oauth.login");
+        newClient.setClientSecret("secret");
+        MockHttpServletRequestBuilder createClient = post("/oauth/clients")
+            .header("Authorization", "Bearer " + adminUserToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(newClient));
+        getMockMvc().perform(createClient);
+    }
+
+    private ResultActions performUpdate(ClientMetadata updatedClientMetadata) throws Exception {
     MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + updatedClientMetadata.getClientId() + "/meta")
       .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
       .header("If-Match", "0")

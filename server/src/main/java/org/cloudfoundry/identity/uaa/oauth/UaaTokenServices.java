@@ -112,6 +112,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PROFILE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCABLE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
@@ -126,6 +127,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenForm
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
@@ -498,6 +500,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     clone.put(ACR, acrValues);
                 }
                 clone.put(SCOPE, idTokenScopes);
+
+                clone.put(PREVIOUS_LOGON_TIME, user.getPreviousLogonTime());
                 clone.put(AUD, new HashSet(Arrays.asList(aud)));
 
                 if (scopes.contains(ROLES) && (externalGroupsForIdToken != null && !externalGroupsForIdToken.isEmpty())) {
@@ -957,7 +961,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             return "authorization_code".equals(grantType) ||
                 "password".equals(grantType) ||
                 GRANT_TYPE_USER_TOKEN.equals(grantType) ||
-                GRANT_TYPE_REFRESH_TOKEN.equals(grantType);
+                GRANT_TYPE_REFRESH_TOKEN.equals(grantType) ||
+                GRANT_TYPE_SAML2_BEARER.equals(grantType);
         } else {
             return scope.contains(UAA_REFRESH_TOKEN);
         }
