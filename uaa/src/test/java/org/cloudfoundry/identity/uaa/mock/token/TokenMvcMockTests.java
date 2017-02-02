@@ -153,6 +153,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -188,6 +189,57 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         testClient = new TestClient();
 
         super.setUpContext();
+    }
+
+    @Test
+    public void token_endpoint_get() throws Exception {
+        try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed());
+    }
+
+    @Test
+    public void token_endpoint_put() throws Exception {
+        try_token_with_non_post(put("/oauth/token"), status().isMethodNotAllowed());
+    }
+
+    @Test
+    public void token_endpoint_delete() throws Exception {
+        try_token_with_non_post(delete("/oauth/token"), status().isMethodNotAllowed());
+    }
+
+    @Test
+    public void token_endpoint_post() throws Exception {
+        try_token_with_non_post(post("/oauth/token"), status().isOk());
+    }
+
+    @Test
+    public void token_endpoint_post_query_string() throws Exception {
+        String username = setUpUserForPasswordGrant();
+
+        getMockMvc().perform(
+            post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret", username)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andDo(print())
+            .andExpect(status().isNotAcceptable())
+            .andExpect(content().string(containsString("query_string_not_allowed")))
+            .andExpect(content().string(containsString("Parameters must be passed in the body of the request")));
+    }
+
+
+
+    public void try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
+        String username = setUpUserForPasswordGrant();
+
+        getMockMvc().perform(
+            builder
+                .param("client_id", "cf")
+                .param("client_secret", "")
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", username)
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status);
     }
 
     @Test

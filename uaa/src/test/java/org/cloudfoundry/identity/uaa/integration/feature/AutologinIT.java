@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,6 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -40,6 +40,7 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -202,17 +203,23 @@ public class AutologinIT {
         //request a token using our code
         String tokenUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
             .path("/oauth/token")
-            .queryParam("response_type", "token")
-            .queryParam("grant_type", "authorization_code")
-            .queryParam("code", newCode)
-            .queryParam("redirect_uri", appUrl)
             .build().toUriString();
 
-        ResponseEntity<Map> tokenResponse = template.exchange(
-            tokenUrl,
+        MultiValueMap<String,String> tokenParams = new LinkedMultiValueMap<>();
+        tokenParams.add("response_type", "token");
+        tokenParams.add("grant_type", "authorization_code");
+        tokenParams.add("code", newCode);
+        tokenParams.add("redirect_uri", appUrl);
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+        headers.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
+
+        RequestEntity<MultiValueMap<String,String>> requestEntity = new RequestEntity<>(
+            tokenParams,
+            headers,
             HttpMethod.POST,
-            new HttpEntity<>(new HashMap<String, String>(), headers),
-            Map.class);
+            new URI(tokenUrl)
+        );
+        ResponseEntity<Map> tokenResponse = template.exchange(requestEntity,Map.class);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
 
         //here we must reset our state. we do that by following the logout flow.
