@@ -71,8 +71,6 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
 
     public static final String GET_MEMBERS_FILTER_SQL = String.format("select %s from %s where group_id in (select id from groups where identity_zone_id=%s)", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE, "'%s'");
 
-    public static final String GET_GROUPS_BY_MEMBER_SQL = String.format("select distinct(group_id) from %s where member_id=? and group_id in (select id from groups where identity_zone_id=?)", MEMBERSHIP_TABLE);
-
     public static final String GET_MEMBERS_WITH_AUTHORITY_SQL = String.format("select %s from %s where group_id=? and lower(authorities) like ?", MEMBERSHIP_FIELDS,MEMBERSHIP_TABLE);
 
     public static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id in (select id from groups where id=? and identity_zone_id=?)",MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
@@ -231,26 +229,39 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     public Set<ScimGroup> getGroupsWithMember(final String memberId, boolean transitive)
                     throws ScimResourceNotFoundException {
         List<ScimGroup> results = new ArrayList<>();
-        getGroupsWithMember(results, memberId, transitive);
+        getGroupsWithMember(results, memberId, null, transitive);
         if (isUser(memberId)) {
             results.addAll(getDefaultUserGroups(IdentityZoneHolder.get()));
         }
         return new HashSet<>(results);
     }
 
-    private void getGroupsWithMember(List<ScimGroup> results, final String memberId, boolean transitive) {
+    @Override
+    public Set<ScimGroup> getGroupsWithMember(final String memberId, String filter, boolean transitive)
+        throws ScimResourceNotFoundException {
+
+        List<ScimGroup> results = new ArrayList<>();
+        getGroupsWithMember(results, memberId, filter, transitive);
+        if (isUser(memberId)) {
+            results.addAll(getDefaultUserGroups(IdentityZoneHolder.get()));
+        }
+        return new HashSet<>(results);
+    }
+
+    private void getGroupsWithMember(List<ScimGroup> results, final String memberId, final String filter, boolean transitive) {
         if (results == null) {
             return;
         }
+        String scopedFilter = String.format("member_id eq \"%s\"", memberId);
+        if (StringUtils.hasText(filter)) {
+            scopedFilter = String.format(scopedFilter + " and (%s)", filter);
+        }
+        SearchQueryConverter.ProcessedFilter where = getQueryConverter().convert(scopedFilter, null, false);
+
         List<String> groupIds;
         try {
-            groupIds = jdbcTemplate.query(GET_GROUPS_BY_MEMBER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, memberId);
-                    ps.setString(2, IdentityZoneHolder.get().getId());
-                }
-            }, new SingleColumnRowMapper<>(String.class));
+            String completeSql = "SELECT DISTINCT(group_id) FROM "+ getTableName() + " WHERE group_id IN (SELECT id FROM groups WHERE identity_zone_id='"+IdentityZoneHolder.get().getId()+"') AND " + where.getSql();
+            groupIds = new NamedParameterJdbcTemplate(jdbcTemplate).query(completeSql, where.getParams(), new SingleColumnRowMapper<>(String.class));
         } catch (EmptyResultDataAccessException ex) {
             groupIds = Collections.EMPTY_LIST;
         }
@@ -267,7 +278,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                                             // nested group cycles
                 results.add(group);
                 if (transitive) {
-                    getGroupsWithMember(results, groupId, transitive);
+                    getGroupsWithMember(results, groupId, filter, transitive);
                 }
             }
         }

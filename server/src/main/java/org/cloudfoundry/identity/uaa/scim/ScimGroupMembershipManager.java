@@ -68,6 +68,18 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
     Set<ScimGroup> getGroupsWithMember(String memberId, boolean transitive) throws ScimResourceNotFoundException;
 
     /**
+     * Retrieve all groups that the given member belongs to
+     *
+     * @param memberId
+     * @param filter
+     * @param transitive true means indirect/transitive membership is also
+     *            processed (nested groups)
+     * @return
+     * @throws ScimResourceNotFoundException
+     */
+    Set<ScimGroup> getGroupsWithMember(String memberId, String filter, boolean transitive) throws ScimResourceNotFoundException;
+
+    /**
      * Retrieve a particular member's membership details
      *
      * @param groupId
