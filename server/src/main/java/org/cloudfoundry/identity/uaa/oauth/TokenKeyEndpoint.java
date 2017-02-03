@@ -21,13 +21,13 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Base64Utils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,8 +75,9 @@ public class TokenKeyEndpoint {
 
             RSAPublicKey rsaKey = key.getRsaPublicKey();
             if (rsaKey != null) {
-                String n = Base64Utils.encodeToUrlSafeString(rsaKey.getModulus().toByteArray());
-                String e = Base64Utils.encodeToUrlSafeString(rsaKey.getPublicExponent().toByteArray());
+                Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+                String n = encoder.encodeToString(rsaKey.getModulus().toByteArray());
+                String e = encoder.encodeToString(rsaKey.getPublicExponent().toByteArray());
                 result.put("n", n);
                 result.put("e", e);
             }
