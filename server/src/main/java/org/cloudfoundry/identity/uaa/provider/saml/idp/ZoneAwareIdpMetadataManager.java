@@ -414,7 +414,7 @@ public class ZoneAwareIdpMetadataManager extends IdpMetadataManager implements E
             timer = null;
         }
         for (Map.Entry<IdentityZone,ExtensionMetadataManager> manager : metadataManagers.entrySet()) {
-            manager.getValue().destroy();
+            //manager.getValue().destroy();
         }
         metadataManagers.clear();
         super.destroy();
