@@ -117,6 +117,8 @@
               destroy-method="destroy">
             <constructor-arg name="configurator" ref="metaDataProviders"/>
             <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}"/>
+            <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
+            <property name="metadataGenerator" ref="zoneAwareMetadataGenerator"/>
         </bean>
 
         <bean name="metadataFetchingHttpClientTimer" class="java.util.Timer">
