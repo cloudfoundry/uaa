@@ -55,8 +55,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
@@ -80,7 +78,7 @@ import java.util.List;
 import java.util.Set;
 
 
-public class NonSnarlMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, ApplicationContextAware {
+public class NonSnarlMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean {
 
     // Class logger
     protected final Logger log = LoggerFactory.getLogger(NonSnarlMetadataManager.class);
@@ -656,9 +654,8 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
         return new ChainingEntitiesDescriptor();
     }
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.generator = applicationContext.getBean(ZoneAwareMetadataGenerator.class);
+    public void setMetadataGenerator(ZoneAwareMetadataGenerator generator) throws BeansException {
+        this.generator = generator;
     }
 
     public class ChainingEntitiesDescriptor implements EntitiesDescriptor {

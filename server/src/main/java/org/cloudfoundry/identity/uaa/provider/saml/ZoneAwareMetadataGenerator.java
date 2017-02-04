@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.EntityDescriptor;
+import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
 import org.springframework.security.saml.util.SAMLUtil;
@@ -78,5 +79,10 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
         EntityDescriptor result = super.generateMetadata();
         result.setID(SAMLUtil.getNCNameString(result.getEntityID()));
         return result;
+    }
+
+    @Override
+    public void setSamlWebSSOFilter(SAMLProcessingFilter samlWebSSOFilter) {
+        super.setSamlWebSSOFilter(samlWebSSOFilter);
     }
 }
