@@ -250,7 +250,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 
             for (String s : Arrays.asList("authorization_code", "implicit")) {
                 if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
-                    throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL.");
+                    throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL. ClientID: " + client.getClientId());
                 }
             }
 
