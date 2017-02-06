@@ -90,7 +90,7 @@
                             <entry key="secret" value="loginsecret" />
                             <entry key="scope" value="openid,oauth.approvals" />
                             <entry key="authorized-grant-types" value="client_credentials,authorization_code" />
-                            <entry key="redirect-uri" value="http://localhost:8080/uaa/" />
+                            <entry key="redirect-uri" value="http://localhost/*" />
                             <entry key="authorities" value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write" />
                             <entry key="autoapprove" value="true" />
                         </map>
