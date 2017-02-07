@@ -119,7 +119,7 @@
                             <entry key="scope" value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write" />
                             <entry key="authorities" value="scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write" />
                             <entry key="autoapprove" value="true" />
-                            <entry key="redirect-uri" value="http://localhost/*,http://localhost:8080/**"/>
+                            <entry key="redirect-uri" value="http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_authorization_code">
