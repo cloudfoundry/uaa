@@ -80,6 +80,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -144,6 +145,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -167,10 +169,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     private String BADSECRET = "badsecret";
-
     private TestClient testClient;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    public static final String IDP_ENTITY_ID = "cloudfoundry-saml-login";
 
     private static SamlTestUtils samlTestUtils = new SamlTestUtils();
 
@@ -193,17 +193,26 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void token_endpoint_get() throws Exception {
-        try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed());
+        try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed())
+            .andExpect(jsonPath("$.error").value("method_not_allowed"))
+            .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
+
     }
 
     @Test
     public void token_endpoint_put() throws Exception {
-        try_token_with_non_post(put("/oauth/token"), status().isMethodNotAllowed());
+        try_token_with_non_post(put("/oauth/token"), status().isMethodNotAllowed())
+            .andExpect(jsonPath("$.error").value("method_not_allowed"))
+            .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
+
     }
 
     @Test
     public void token_endpoint_delete() throws Exception {
-        try_token_with_non_post(delete("/oauth/token"), status().isMethodNotAllowed());
+        try_token_with_non_post(delete("/oauth/token"), status().isMethodNotAllowed())
+            .andExpect(jsonPath("$.error").value("method_not_allowed"))
+            .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
+
     }
 
     @Test
@@ -219,18 +228,18 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret", username)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))
-            .andDo(print())
             .andExpect(status().isNotAcceptable())
-            .andExpect(content().string(containsString("query_string_not_allowed")))
-            .andExpect(content().string(containsString("Parameters must be passed in the body of the request")));
+            .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"))
+            .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
+            .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }
 
 
 
-    public void try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
+    public ResultActions try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
         String username = setUpUserForPasswordGrant();
 
-        getMockMvc().perform(
+        return getMockMvc().perform(
             builder
                 .param("client_id", "cf")
                 .param("client_secret", "")
@@ -239,7 +248,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("password", SECRET)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))
-            .andExpect(status);
+            .andDo(print())
+            .andExpect(status)
+            .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
     }
 
     @Test

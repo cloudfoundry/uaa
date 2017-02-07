@@ -112,6 +112,12 @@ public class CheckTokenEndpoint implements InitializingBean {
         return response;
     }
 
+    @RequestMapping(value = "/check_token")
+    public void checkToken(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
+        throw new HttpRequestMethodNotSupportedException(request.getMethod());
+    }
+
+
     private Claims getClaimsForToken(String token) {
         Jwt tokenJwt;
         try {

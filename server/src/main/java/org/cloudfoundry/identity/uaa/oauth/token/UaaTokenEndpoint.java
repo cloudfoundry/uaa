@@ -59,6 +59,11 @@ public class UaaTokenEndpoint extends TokenEndpoint {
         return super.postAccessToken(principal, parameters);
     }
 
+    @RequestMapping(value = "**")
+    public void methodsNotAllowed(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
+        throw new HttpRequestMethodNotSupportedException(request.getMethod());
+    }
+
     @Override
     public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
         super.setAllowedRequestMethods(singleton(HttpMethod.POST));
