@@ -124,7 +124,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             "uaa.user"
         );
 
-        String redirect = "https://uaa.cloudfoundry.com/redirect/cf";
+        String redirect = "http://localhost/redirect/cf";
         MockHttpServletRequestBuilder getAuthCode = get("/oauth/authorize")
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(RESPONSE_TYPE, "code")
@@ -579,7 +579,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             "uaa.user"
         );
 
-        String redirect = "https://uaa.cloudfoundry.com/redirect/cf";
+        String redirect = "http://localhost/redirect/cf";
         MockHttpServletRequestBuilder getAuthCode = get("/oauth/authorize")
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(RESPONSE_TYPE, "code")

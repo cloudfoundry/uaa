@@ -258,7 +258,7 @@ public class UaaTestAccounts implements TestAccounts {
 
     @Override
     public ImplicitResourceDetails getDefaultImplicitResource() {
-        return getImplicitResource("oauth.clients.cf", "cf", "https://uaa.cloudfoundry.com/redirect/cf");
+        return getImplicitResource("oauth.clients.cf", "cf", "http://localhost:8080/redirect/cf");
     }
 
     public AuthorizationCodeResourceDetails getDefaultAuthorizationCodeResource() {

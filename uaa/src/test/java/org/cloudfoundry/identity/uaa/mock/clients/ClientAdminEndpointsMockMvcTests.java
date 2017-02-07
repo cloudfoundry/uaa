@@ -166,7 +166,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
 
     @Test
     public void testCreateClientWithInvalidRedirectUrl() throws Exception {
-        BaseClientDetails client = createBaseClient(new RandomValueStringGenerator().generate(),Collections.singleton("client_credentials"));
+        BaseClientDetails client = createBaseClient(new RandomValueStringGenerator().generate(),Collections.singleton("implicit"));
         client.setRegisteredRedirectUri(Collections.singleton("*/**"));
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + adminToken)
