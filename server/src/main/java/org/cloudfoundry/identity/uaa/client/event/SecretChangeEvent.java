@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,15 +13,10 @@
 
 package org.cloudfoundry.identity.uaa.client.event;
 
-import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
-/**
- * @author Dave Syer
- * 
- */
 public class SecretChangeEvent extends AbstractClientAdminEvent {
 
     public SecretChangeEvent(ClientDetails client, Authentication principal) {
@@ -29,9 +24,8 @@ public class SecretChangeEvent extends AbstractClientAdminEvent {
     }
 
     @Override
-    public AuditEvent getAuditEvent() {
-        return createAuditRecord(getClient().getClientId(), AuditEventType.SecretChangeSuccess,
-                        getOrigin(getPrincipal()), "secret changed");
+    public AuditEventType getAuditEventType() {
+        return AuditEventType.SecretChangeSuccess;
     }
 
 }
