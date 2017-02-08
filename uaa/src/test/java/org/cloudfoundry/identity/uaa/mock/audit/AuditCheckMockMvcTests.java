@@ -72,12 +72,14 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientCreateSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientUpdateSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupCreatedEvent;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -875,10 +877,15 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(1, testListener.getEventCount());
         assertEquals(GroupModifiedEvent.class, testListener.getLatestEvent().getClass());
         GroupModifiedEvent event = (GroupModifiedEvent) testListener.getLatestEvent();
-        assertEquals(AuditEventType.GroupCreatedEvent, event.getAuditEvent().getType());
+        assertEquals(GroupCreatedEvent, event.getAuditEvent().getType());
         assertEquals(group.getId(), event.getAuditEvent().getPrincipalId());
-        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
-            JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
+        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(),
+                                                      ScimEventPublisher.getMembers(group)),
+                     JsonUtils.readValue(event.getAuditEvent().getData(),
+                                         GroupModifiedEvent.GroupInfo.class)
+        );
+
+        verifyGroupAuditData(group, GroupCreatedEvent);
 
         //update the group with one additional member
         List<ScimGroupMember> members = group.getMembers();
@@ -903,6 +910,8 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
             JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
+        verifyGroupAuditData(group, AuditEventType.GroupModifiedEvent);
+
 
         //delete the group
         MockHttpServletRequestBuilder groupDelete = delete("/Groups/" + group.getId())
@@ -924,7 +933,21 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
             JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
+        verifyGroupAuditData(group, AuditEventType.GroupDeletedEvent);
+    }
 
+    public void verifyGroupAuditData(ScimGroup group, AuditEventType eventType) {
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(mockAuditService, atLeast(1)).log(captor.capture());
+        List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType()== eventType).collect(Collectors.toList());
+        assertNotNull(auditEvents);
+        assertEquals(1, auditEvents.size());
+        AuditEvent auditEvent = auditEvents.get(0);
+        String auditEventData = auditEvent.getData();
+        assertNotNull(auditEventData);
+        Map<String, Object> auditObjects = JsonUtils.readValue(auditEventData, new TypeReference<Map<String, Object>>() {});
+        assertEquals("testgroup", auditObjects.get("group_name"));
+        assertThat((Collection<String>)auditObjects.get("members"), containsInAnyOrder(ScimEventPublisher.getMembers(group)));
     }
 
     private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email, String password, boolean verified) throws Exception {
