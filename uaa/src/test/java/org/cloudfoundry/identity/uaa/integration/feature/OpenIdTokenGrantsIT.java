@@ -147,7 +147,7 @@ public class OpenIdTokenGrantsIT {
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "cf");
-        postBody.add("redirect_uri", "https://uaa.cloudfoundry.com/redirect/cf");
+        postBody.add("redirect_uri", "http://localhost:8080/redirect/cf");
         postBody.add("response_type", "token id_token");
         postBody.add("source", "credentials");
         postBody.add("username", user.getUserName());
@@ -163,7 +163,7 @@ public class OpenIdTokenGrantsIT {
         Assert.assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
-        Assert.assertEquals("uaa.cloudfoundry.com", locationComponents.getHost());
+        Assert.assertEquals("localhost", locationComponents.getHost());
         Assert.assertEquals("/redirect/cf", locationComponents.getPath());
 
         MultiValueMap<String, String> params = parseFragmentParams(locationComponents);

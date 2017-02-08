@@ -123,7 +123,7 @@ public class TestAccountSetup extends TestWatchman {
 
     private void createScimClient(RestOperations client) {
         BaseClientDetails clientDetails = new BaseClientDetails("scim", "oauth", "uaa.none", "client_credentials",
-                        "scim.read,scim.write,password.write,oauth.approvals");
+                        "scim.read,scim.write,password.write,oauth.approvals","http://some.redirect.url.com");
         clientDetails.setClientSecret("scimsecret");
         createClient(client, testAccounts.getClientDetails("oauth.clients.scim", clientDetails));
     }

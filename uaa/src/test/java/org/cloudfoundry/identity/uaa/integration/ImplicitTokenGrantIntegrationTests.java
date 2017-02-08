@@ -42,6 +42,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ImplicitTokenGrantIntegrationTests {
 
+    private static final String REDIRECT_URL_PATTERN = "http://localhost:8080/redirect/cf#token_type=.+access_token=.+";
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -53,7 +54,7 @@ public class ImplicitTokenGrantIntegrationTests {
     private String implicitUrl() {
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
                         .queryParam("client_id", "cf")
-                        .queryParam("redirect_uri", "https://uaa.cloudfoundry.com/redirect/cf")
+                        .queryParam("redirect_uri", "http://localhost:8080/redirect/cf")
                         .queryParam("scope", "cloud_controller.read").build();
         return uri.toString();
     }
@@ -89,7 +90,7 @@ public class ImplicitTokenGrantIntegrationTests {
 
         assertNotNull(result.getHeaders().getLocation());
         assertTrue(result.getHeaders().getLocation().toString()
-            .matches("https://uaa.cloudfoundry.com/redirect/cf#token_type=.+access_token=.+"));
+            .matches(REDIRECT_URL_PATTERN));
 
     }
 
@@ -109,7 +110,7 @@ public class ImplicitTokenGrantIntegrationTests {
         URI location = result.getHeaders().getLocation();
         assertNotNull(location);
         assertTrue("Wrong location: " + location, location.toString()
-            .matches("https://uaa.cloudfoundry.com/redirect/cf#token_type=.+access_token=.+"));
+            .matches(REDIRECT_URL_PATTERN));
 
     }
 
@@ -154,7 +155,7 @@ public class ImplicitTokenGrantIntegrationTests {
 
         assertNotNull(result.getHeaders().getLocation());
         assertTrue(result.getHeaders().getLocation().toString()
-            .matches("https://uaa.cloudfoundry.com/redirect/cf#token_type=.+access_token=.+"));
+            .matches(REDIRECT_URL_PATTERN));
     }
 
 }

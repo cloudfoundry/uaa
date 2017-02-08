@@ -36,6 +36,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -73,8 +76,45 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("scope", "openid");
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
         ClientDetails created = doSimpleTest(map);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void no_registered_redirect_url_for_auth_code() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorities", "uaa.none");
+        doSimpleTest(map);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void no_registered_redirect_url_for_implicit() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", "implicit");
+        map.put("authorities", "uaa.none");
+        doSimpleTest(map);
+    }
+
+    @Test
+    public void redirect_url_not_required() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorities", "uaa.none");
+        for (String grantType : Arrays.asList("password", "client_credentials", GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN)) {
+            map.put("authorized-grant-types", grantType);
+            doSimpleTest(map);
+        }
+
     }
 
     @Test
@@ -98,6 +138,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("show-on-homepage", true);
         map.put("app-launch-url", "http://takemetothispage.com");
         map.put("app-icon", "bAsE64encODEd/iMAgE=");
+        map.put("redirect-uri", "http://localhost/callback");
         bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
         bootstrap.afterPropertiesSet();
 
@@ -151,8 +192,9 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("scope", "openid");
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
         BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
-                        "uaa.none");
+                        "uaa.none", "http://localhost/callback");
         output.setClientSecret("bar");
         bootstrap.setAutoApproveClients(Arrays.asList("foo"));
 
@@ -178,6 +220,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         Map<String, Object> map = new HashMap<>();
         map.put("secret", "bar");
         map.put("override", true);
+        map.put("redirect-uri", "http://localhost/callback");
         bootstrap.setClients(Collections.singletonMap("foo", map));
         when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
 
@@ -198,6 +241,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
         Map<String, Object> map = new HashMap<>();
         map.put("secret", "bar");
+        map.put("redirect-uri", "http://localhost/callback");
         bootstrap.setClients(Collections.singletonMap("foo", map));
         when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
         doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
@@ -218,14 +262,15 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
         @SuppressWarnings("rawtypes")
         Map fooClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
-                        + "access-token-validity: 100", Map.class);
+                        + "access-token-validity: 100\nredirect-uri: http://localhost/callback", Map.class);
         @SuppressWarnings("rawtypes")
         Map barClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: bar\n"
-                        + "access-token-validity: 100", Map.class);
+                        + "access-token-validity: 100\nredirect-uri: http://localhost/callback", Map.class);
         @SuppressWarnings("rawtypes")
         Map clients = new HashMap();
         clients.put("foo", fooClient);
         clients.put("bar", barClient);
+
         bootstrap.setClients(clients);
         when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
         doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
@@ -269,6 +314,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("scope", "openid");
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
         ClientDetails created = doSimpleTest(map);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = clientRegistrationService.loadClientByClientId("foo");
@@ -289,6 +335,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("scope", "openid");
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
         ClientDetails created = doSimpleTest(map);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = clientRegistrationService.loadClientByClientId("foo");

@@ -30,9 +30,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 
 public class ClientAdminEndpointsValidator implements InitializingBean, ClientDetailsValidator {
 
@@ -100,14 +101,14 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
-
         String clientId = client.getClientId();
         if (create && reservedClientIds.contains(clientId)) {
             throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
         }
 
-        Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
+        validateClientRedirectUri(client);
 
+        Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
         if (requestedGrantTypes.isEmpty()) {
             throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
                             + VALID_GRANTS.toString());
@@ -228,6 +229,31 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     }
 
+    public void validateClientRedirectUri(ClientDetails client) {
+        Set<String> uris = client.getRegisteredRedirectUri();
+
+        for(String grant_type: Arrays.asList("authorization_code", "implicit")) {
+            if(client.getAuthorizedGrantTypes().contains(grant_type)) {
+
+                if (isMissingRedirectUris(uris)) {
+                    throw new InvalidClientDetailsException(grant_type + " grant type requires at least one redirect URL.");
+                }
+
+                String permittedURLs = "https?://[^\\*/]+(/.*|$)";
+                for (String uri : uris) {
+                    if (uri == null || !Pattern.matches(permittedURLs, uri)) {
+                        throw new InvalidClientDetailsException(
+                            String.format("One of the redirect_uri is invalid: %s", uri));
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isMissingRedirectUris(Set<String> uris) {
+        return uris == null || uris.isEmpty();
+    }
+
     public static void checkRequestedGrantTypes(Set<String> requestedGrantTypes) {
         for (String grant : requestedGrantTypes) {
             if (!VALID_GRANTS.contains(grant)) {
@@ -236,6 +262,4 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
     }
-
-
 }

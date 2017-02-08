@@ -197,7 +197,8 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
             null,
             "openid,uaa.user,tokens.",
             TokenConstants.GRANT_TYPE_USER_TOKEN,
-            null
+            null,
+            "http://redirect.uri"
         );
         client.setClientSecret(SECRET);
         getMockMvc().perform(
