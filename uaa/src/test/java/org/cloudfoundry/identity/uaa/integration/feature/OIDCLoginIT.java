@@ -56,9 +56,11 @@ import java.net.Inet4Address;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -198,7 +200,15 @@ public class OIDCLoginIT {
         }
     }
 
-    public void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
+    private void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
+        login(zoneUrl, userName, password);
+
+        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        webDriver.findElement(By.linkText("Sign Out")).click();
+        IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver);
+    }
+
+    private void login(String zoneUrl, String userName, String password) {
         webDriver.get(zoneUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
@@ -206,15 +216,9 @@ public class OIDCLoginIT {
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
-
-        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
-        IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver);
     }
-
 
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
@@ -224,6 +228,16 @@ public class OIDCLoginIT {
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+    }
+
+    @Test
+    public void successfulLoginWithOIDCProviderSetsLastLogin() throws Exception {
+        login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        SimpleDateFormat dateFormat =  new SimpleDateFormat("EEE MMM dd");
+        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
+        doLogout(zoneUrl);
+        login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString((expectedLastLoginTime)));
     }
 
     @Test

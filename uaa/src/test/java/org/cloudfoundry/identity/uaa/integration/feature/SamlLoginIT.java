@@ -74,8 +74,10 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -306,6 +308,22 @@ public class SamlLoginIT {
     }
 
     @Test
+    public void testSimpleSamlPhpLoginDisplaysLastLogin() throws Exception {
+        Long beforeTest = System.currentTimeMillis();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+        login(provider);
+        logout();
+        login(provider);
+        SimpleDateFormat dateFormat =  new SimpleDateFormat("EEE MMM dd");
+        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
+        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString((expectedLastLoginTime)));
+        Long afterTest = System.currentTimeMillis();
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+    }
+
+    @Test
     public void testSingleLogout() throws Exception {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
 
@@ -319,8 +337,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
 
-        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
+        logout();
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
 
@@ -1424,5 +1441,22 @@ public class SamlLoginIT {
             definition
         );
     }
+
+    private void logout() {
+        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        webDriver.findElement(By.linkText("Sign Out")).click();
+    }
+
+    private void login(IdentityProvider<SamlIdentityProviderDefinition> provider) {
+        webDriver.get(baseUrl + "/login");
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+    }
+
 
 }
