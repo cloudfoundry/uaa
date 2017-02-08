@@ -20,9 +20,12 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
 
     private final String requiredScope;
 
+    private ClientSecretValidator clientSecretValidator;
+
     public ZoneEndpointsClientDetailsValidator(String requiredScope) {
         this.requiredScope = requiredScope;
     }
+
 
     @Override
     public ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException {
@@ -47,10 +50,12 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 if (StringUtils.isBlank(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client_secret cannot be blank");
                 }
+                clientSecretValidator.validate(clientDetails.getClientSecret());
             }
             if (!Collections.singletonList(OriginKeys.UAA).equals(clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS))) {
                 throw new InvalidClientDetailsException("only the internal IdP ('uaa') is allowed");
             }
+
 
             BaseClientDetails validatedClientDetails = new BaseClientDetails(clientDetails);
             validatedClientDetails.setAdditionalInformation(clientDetails.getAdditionalInformation());
@@ -68,4 +73,13 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
         throw new IllegalStateException("This validator must be called with a mode");
     }
 
+
+    @Override
+    public ClientSecretValidator getClientSecretValidator() {
+        return this.clientSecretValidator;
+    }
+
+    public void setClientSecretValidator(ClientSecretValidator clientSecretValidator) {
+        this.clientSecretValidator = clientSecretValidator;
+    }
 }

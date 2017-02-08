@@ -1953,7 +1953,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedRequest savedRequest = getSavedRequest(client);
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
@@ -1983,7 +1983,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedAccountOption savedAccount = new SavedAccountOption();
         savedAccount.setEmail("test@example.org");
@@ -2011,7 +2011,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedAccountOption savedAccount = new SavedAccountOption();
         savedAccount.setEmail("test@example.org");
@@ -2278,7 +2278,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         HashSet<String> registeredRedirectUris = new HashSet<>();
         registeredRedirectUris.add("http://idp-not-allowed.localhost/");
         client.setRegisteredRedirectUri(registeredRedirectUris);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         MockHttpServletRequestBuilder authorize = get("/oauth/authorize")
           .with(inZone)
@@ -2320,7 +2320,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, asList(originKey, "other-provider", UAA, LDAP));
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedRequest savedRequest = getSavedRequest(client);
         MockHttpSession session = new MockHttpSession();

@@ -31,6 +31,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -94,6 +95,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String CORS_XHR_METHODS_DESC = "`Access-Control-Allow-Methods` header. Indicates which method will be used in the actual request as part of the preflight request.";
     private static final String CORS_XHR_CREDENTIALS_DESC = "`Access-Control-Allow-Credentials` header. Indicates whether the response to request can be exposed when the omit credentials flag is unset. When part of the response to a preflight request it indicates that the actual request can include user credentials..";
     private static final String CORS_XHR_MAXAGE_DESC = "`Access-Control-Max-Age` header. Indicates how long the results of a preflight request can be cached in a preflight result cache";
+    private static final String SECRET_POLICY_MIN_LENGTH = "Minimum number of characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_MAX_LENGTH = "Maximum number of characters required for secret to be considered valid (defaults to 255).";
+    private static final String SECRET_POLICY_UPPERCASE = "Minimum number of uppercase characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_LOWERCASE = "Minimum number of lowercase characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_DIGIT = "Minimum number of digits required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_SPECIAL_CHAR = "Minimum number of special characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_EXPIRE_MONTHS = "Number of months after which current secret expires (defaults to 0).";
+
 
     private static final String SERVICE_PROVIDER_KEY =
         "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -159,6 +168,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.expireSecretsInMonths").type(NUMBER).description(SECRET_POLICY_EXPIRE_MONTHS).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+
             fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
@@ -167,7 +184,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
-
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
@@ -294,6 +310,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("[].config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.expireSecretInMonths").type(NUMBER).description(SECRET_POLICY_EXPIRE_MONTHS).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+
             fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
@@ -397,7 +421,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
-
             fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
             fieldWithPath("config.tokenPolicy.keys").description(KEYS_UPDATE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
@@ -405,6 +428,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.expireSecretInMonths").type(NUMBER).description(SECRET_POLICY_EXPIRE_MONTHS).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
@@ -548,6 +579,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.expireSecretInMonths").type(NUMBER).description(SECRET_POLICY_EXPIRE_MONTHS).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),

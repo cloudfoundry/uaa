@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.cloudfoundry.identity.uaa.zone.ZoneEndpointsClientDetailsValidator;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,6 +30,9 @@ public class ZoneEndpointsClientDetailsValidatorTests {
     @Before
     public void setUp() throws Exception {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator("zones.write");
+        zoneEndpointsClientDetailsValidator.setClientSecretValidator(
+                new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6)));
+
     }
 
     @Test

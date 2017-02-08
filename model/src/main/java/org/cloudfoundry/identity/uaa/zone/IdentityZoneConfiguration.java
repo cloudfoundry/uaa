@@ -24,6 +24,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IdentityZoneConfiguration {
 
+    private ClientSecretPolicy clientSecretPolicy = new ClientSecretPolicy();
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
     private CorsPolicy corsPolicy = new CorsPolicy();
@@ -41,6 +42,14 @@ public class IdentityZoneConfiguration {
 
     public IdentityZoneConfiguration(TokenPolicy tokenPolicy) {
         this.tokenPolicy = tokenPolicy;
+    }
+
+    public ClientSecretPolicy getClientSecretPolicy() {
+        return clientSecretPolicy;
+    }
+
+    public void setClientSecretPolicy(ClientSecretPolicy clientSecretPolicy) {
+        this.clientSecretPolicy = clientSecretPolicy;
     }
 
     public TokenPolicy getTokenPolicy() {

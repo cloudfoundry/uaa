@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -32,6 +33,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
+    private ClientSecretPolicy clientSecretPolicy;
     private TokenPolicy tokenPolicy;
     private IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
@@ -66,6 +68,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     public void afterPropertiesSet() throws InvalidIdentityZoneDetailsException {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
+        definition.setClientSecretPolicy(clientSecretPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);
         definition.getSamlConfig().setCertificate(samlSpCertificate);
@@ -108,6 +111,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     }
 
 
+    public void setClientSecretPolicy(ClientSecretPolicy clientSecretPolicy) {
+        this.clientSecretPolicy = clientSecretPolicy;
+    }
 
     public void setTokenPolicy(TokenPolicy tokenPolicy) {
         this.tokenPolicy = tokenPolicy;

@@ -814,22 +814,26 @@ public class IntegrationTestUtils {
     }
 
     public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning) throws Exception {
+        return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
+    }
+
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) throws Exception {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
         );
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
 
         return IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
-            UaaTestAccounts.standard(serverRunning),
-            "identity",
-            "identitysecret",
-            email,
-            "secr3T");
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                email,
+                "secr3T");
     }
 
     public static ScimUser createRandomUser(String baseUrl) throws Exception {
