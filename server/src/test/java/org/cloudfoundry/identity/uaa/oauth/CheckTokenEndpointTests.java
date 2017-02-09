@@ -617,7 +617,7 @@ public class CheckTokenEndpointTests {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList());
         assertNotNull("iss field is not present", result.getIss());
-        assertEquals("http://some.other.issuer/oauth/token", result.getIss());
+        assertEquals("http://some.other.issuer", result.getIss());
     }
 
     @Test
@@ -630,7 +630,7 @@ public class CheckTokenEndpointTests {
             setAccessToken(tokenServices.createAccessToken(authentication));
             Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList());
             assertNotNull("iss field is not present", result.getIss());
-            assertEquals("http://subdomain.some.other.issuer/oauth/token", result.getIss());
+            assertEquals("http://subdomain.some.other.issuer", result.getIss());
         } finally {
             IdentityZoneHolder.clear();
         }

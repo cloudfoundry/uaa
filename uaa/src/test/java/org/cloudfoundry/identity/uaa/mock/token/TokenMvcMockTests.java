@@ -3439,7 +3439,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andReturn();
         String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
         Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
-        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
+        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa");
     }
 
     @Test
