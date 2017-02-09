@@ -52,6 +52,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -109,6 +110,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
@@ -539,14 +541,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
 
         MockHttpServletRequestBuilder post = post(spInvocationEndpoint)
-            .with(new RequestPostProcessor() {
-                @Override
-                public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-                    request.setServerPort(8080);
-                    request.setRequestURI(spInvocationEndpoint);
-                    request.setServerName("localhost");
-                    return request;
-                }
+            .with(request -> {
+                request.setServerPort(8080);
+                request.setRequestURI(spInvocationEndpoint);
+                request.setServerName("localhost");
+                return request;
             })
             .contextPath("/uaa")
             .accept(APPLICATION_JSON)
@@ -1488,7 +1487,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .toUri()
             .toString();
 
-        String encodedRedirectUri = UriUtils.encodeQueryParam(redirectUri, "ISO-8859-1");
         MockHttpSession session = getAuthenticatedSession(user);
 
         MvcResult result = getMockMvc()
@@ -1583,7 +1581,53 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andExpect(header().string("Location", url));
     }
 
+    @Test
+    public void test_missing_redirect_uri() throws Exception {
 
+        test_invalid_registered_redirect_uris(emptySet(), status().isBadRequest());
+    }
+
+    @Test
+    public void test_invalid_redirect_uri() throws Exception {
+        test_invalid_registered_redirect_uris(new HashSet(Arrays.asList("*","*/*")), status().isBadRequest());
+    }
+
+    @Test
+    public void test_valid_redirect_uri() throws Exception {
+        String redirectUri = "https://example.com/**";
+        test_invalid_registered_redirect_uris(new HashSet(Arrays.asList(redirectUri)), status().isFound());
+    }
+
+
+    public void test_invalid_registered_redirect_uris(Set<String> redirectUris, ResultMatcher resultMatcher) throws Exception {
+        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid&ace_config=test";
+        String clientId = "authclient-"+ generator.generate();
+        String scopes = "openid";
+        BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        client.setRegisteredRedirectUri(redirectUris);
+        getWebApplicationContext().getBean(ClientServicesExtension.class).updateClientDetails(client);
+
+        String username = "authuser"+ generator.generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+
+        String state = generator.generate();
+
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUri);
+
+        getMockMvc().perform(authRequest).andExpect(resultMatcher);
+    }
 
     @Test
     public void testAuthorizationCodeGrantWithEncodedRedirectURL() throws Exception {
