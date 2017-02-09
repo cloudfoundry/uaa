@@ -173,7 +173,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(toString(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isBadRequest());
+        MvcResult mvcResult = getMockMvc().perform(createClientPost).andExpect(status().isBadRequest()).andReturn();
         verify(applicationEventPublisher, times(0)).publishEvent(captor.capture());
     }
 

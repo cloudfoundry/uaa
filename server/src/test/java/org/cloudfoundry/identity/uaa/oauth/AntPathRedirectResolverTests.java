@@ -15,9 +15,16 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AntPathRedirectResolverTests {
 
@@ -32,6 +39,30 @@ public class AntPathRedirectResolverTests {
         assertTrue(resolver.redirectMatches(requestedRedirectHttps, path));
     }
 
+    @Test
+    public void testClientMissingRedirectUri() {
+        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid","authorization_code","");
+        try {
+            resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
+            fail();
+        } catch (RedirectMismatchException e) {
+            String reason = "Client registration is missing redirect_uri";
+            Assert.assertThat(e.getMessage(), containsString(reason));
+        }
+    }
+
+    @Test
+    public void testClientWithInvalidRedirectUri() {
+        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid","authorization_code","", "*, */*");
+        try {
+            resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
+            fail();
+        } catch (RedirectMismatchException e) {
+            String reason = "Client registration contains invalid redirect_uri";
+            Assert.assertThat(e.getMessage(), containsString(reason));
+            Assert.assertThat(e.getMessage(), containsString("*,  */*"));
+        }
+    }
 
     @Test
     public void test_Redirect_Any_Scheme() throws Exception {

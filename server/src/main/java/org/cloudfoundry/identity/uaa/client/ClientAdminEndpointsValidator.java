@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -30,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -239,9 +239,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     throw new InvalidClientDetailsException(grant_type + " grant type requires at least one redirect URL.");
                 }
 
-                String permittedURLs = "https?://[^\\*/]+(/.*|$)";
                 for (String uri : uris) {
-                    if (uri == null || !Pattern.matches(permittedURLs, uri)) {
+                    if (!UaaUrlUtils.isValidRegisteredRedirectUrl(uri)) {
                         throw new InvalidClientDetailsException(
                             String.format("One of the redirect_uri is invalid: %s", uri));
                     }

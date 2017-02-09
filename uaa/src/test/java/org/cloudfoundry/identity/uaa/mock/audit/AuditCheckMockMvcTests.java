@@ -672,7 +672,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testUserCreatedEventDuringLoginServerAuthorize() throws Exception {
-        clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login"));
+        clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login","http://localhost:8080/uaa"));
         String username = "jacob"+new RandomValueStringGenerator().generate();
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(
             "login",
