@@ -73,7 +73,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final NoOpLdapLoginAuthenticationManager noOpManager = new NoOpLdapLoginAuthenticationManager();
     private final SamlIdentityProviderConfigurator samlConfigurator;
-    private final IdentityProviderConfigValidationDelegator configValidator;
+    private final IdentityProviderConfigValidator configValidator;
     private ApplicationEventPublisher publisher = null;
 
     @Override
@@ -86,7 +86,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
         ScimGroupProvisioning scimGroupProvisioning,
         SamlIdentityProviderConfigurator samlConfigurator,
-        IdentityProviderConfigValidationDelegator configValidator) {
+        IdentityProviderConfigValidator configValidator) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
@@ -100,7 +100,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
         try {
-            configValidator.validate(body.getConfig(), body.getType());
+            configValidator.validate(body);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
@@ -145,7 +145,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         body.setId(id);
         body.setIdentityZoneId(zoneId);
         try {
-            configValidator.validate(body.getConfig(), body.getType());
+            configValidator.validate(body);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
