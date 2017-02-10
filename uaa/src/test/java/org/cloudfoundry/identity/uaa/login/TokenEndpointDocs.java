@@ -367,7 +367,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         //create client in default zone
         String clientId = "testclient"+ generator.generate();
-        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password,refresh_token", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
 
 
         //String fullPath = "/uaa/oauth/token";
