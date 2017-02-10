@@ -37,7 +37,7 @@
         <constructor-arg name="requireLowerCaseCharacter" value="${password.policy.global.requireLowerCaseCharacter:0}"/>
         <constructor-arg name="requireDigit" value="${password.policy.global.requireDigit:0}"/>
         <constructor-arg name="requireSpecialCharacter" value="${password.policy.global.requireSpecialCharacter:0}"/>
-        <constructor-arg name="expirePasswordsInMonths" value="${password.policy.global.expirePasswordInMonths:0}"/>
+        <constructor-arg name="expirePasswordInMonths" value="${password.policy.global.expirePasswordInMonths:0}"/>
     </bean>
 
     <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
@@ -47,7 +47,7 @@
         <constructor-arg name="requireLowerCaseCharacter" value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
         <constructor-arg name="requireDigit" value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
         <constructor-arg name="requireSpecialCharacter" value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
-        <constructor-arg name="expirePasswordsInMonths" value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
+        <constructor-arg name="expirePasswordInMonths" value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpireInMonths()}}"/>
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>

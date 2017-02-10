@@ -61,9 +61,25 @@ public class ClientBasicAuthenticationFilter extends BasicAuthenticationFilter {
             String[] decodedHeader = extractAndDecodeHeader(header, request);
             //Validate against client lockout policy
             String clientId = decodedHeader[0];
+
+            //Validate against client secret expiration in the zone configured client secret policy
+            Timestamp lastModified = (Timestamp) clientDetailsService.loadClientByClientId(clientId).getAdditionalInformation().get(ClientConstants.LAST_MODIFIED);
+
+            int expiringPassword = IdentityZoneHolder.get().getConfig().
+                        getClientSecretPolicy().getExpireInMonths();
+            if (expiringPassword>0) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(lastModified.getTime());
+                cal.add(Calendar.MONTH, expiringPassword);
+                if (cal.getTimeInMillis() < System.currentTimeMillis()) {
+                    throw new ClientSecretExpiredException("Your current client secret has expired. Please reset your client secret.");
+                }
+            }
         } catch(BadCredentialsException e) {
             super.getAuthenticationEntryPoint().commence(request, response, e);
             return;
+        } catch(ClientRegistrationException e) {
+            logger.debug(e.getMessage());
         }
         //call parent class to authenticate
         super.doFilterInternal(request, response, chain);

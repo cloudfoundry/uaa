@@ -216,6 +216,10 @@ public class ClientAdminEndpointsIntegrationTests {
                 new HttpEntity<BaseClientDetails>(failClient, xZoneHeaders), UaaException.class);
 
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+
+        //cleanup
+        config.setClientSecretPolicy(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
     }
 
     @Test

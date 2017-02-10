@@ -291,6 +291,32 @@
     </bean>
 
 
+    <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
+        <constructor-arg name="minLength" value="${client.secret.policy.global.minLength:0}"/>
+        <constructor-arg name="maxLength"  value="${client.secret.policy.global.maxLength:255}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${client.secret.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${client.secret.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg name="requireDigit" value="${client.secret.policy.global.requireDigit:0}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${client.secret.policy.global.requireSpecialCharacter:0}"/>
+        <constructor-arg name="expireSecretInMonths" value="${client.secret.policy.global.expireSecretInMonths:0}"/>
+    </bean>
+
+    <bean id="defaultUaaClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
+        <constructor-arg name="minLength" value="${client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
+        <constructor-arg name="maxLength" value="${client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg name="requireDigit" value="${client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg name="expireSecretInMonths" value="${client.secret.policy.expireSecretInMonths:#{globalClientSecretPolicy.getExpireInMonths()}}"/>
+    </bean>
+
+
+    <bean id="zoneAwareClientSecretPolicyValidator" class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
+        <constructor-arg ref="globalClientSecretPolicy"/>
+    </bean>
+
+
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml" />
@@ -441,6 +467,7 @@
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="selfServiceLinks" ref="links" />

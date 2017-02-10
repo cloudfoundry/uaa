@@ -28,6 +28,6 @@ public class PasswordPolicyTest {
         assertFalse(passwordPolicy.setRequireLowerCaseCharacter(1).allPresentAndPositive());
         assertFalse(passwordPolicy.setRequireDigit(0).allPresentAndPositive());
         assertFalse(passwordPolicy.setRequireSpecialCharacter(2).allPresentAndPositive());
-        assertTrue(passwordPolicy.setExpirePasswordInMonths(23).allPresentAndPositive());
+        assertTrue(passwordPolicy.setExpireInMonths(23).allPresentAndPositive());
     }
 }

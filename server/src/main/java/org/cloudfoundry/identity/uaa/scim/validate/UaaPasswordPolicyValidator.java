@@ -11,12 +11,18 @@ import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
 import org.passay.PasswordData;
+import org.passay.PropertiesMessageResolver;
 import org.passay.Rule;
 import org.passay.RuleResult;
 
+import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.*;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * ****************************************************************************
@@ -36,6 +42,14 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     private final IdentityProviderProvisioning provisioning;
     private final PasswordPolicy globalDefaultPolicy;
+
+    public static final String DEFAULT_MESSAGE_PATH = "/messages.properties";
+
+    private static PropertiesMessageResolver messageResolver;
+
+    static {
+            messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
+    }
 
     public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy, IdentityProviderProvisioning provisioning) {
         this.globalDefaultPolicy = globalDefaultPolicy;
@@ -61,7 +75,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             policy = idpDefinition.getPasswordPolicy();
         }
 
-        org.passay.PasswordValidator validator = getPasswordValidator(policy);
+        org.passay.PasswordValidator validator = validator(policy, messageResolver);
         RuleResult result = validator.validate(new PasswordData(password));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>();

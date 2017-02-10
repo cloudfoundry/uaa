@@ -17,6 +17,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -71,6 +72,7 @@ public class ClientBasicAuthenticationFilterTests {
     @After
     public void tearDown() {
         IdentityZoneHolder.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test

@@ -24,9 +24,10 @@ public abstract class GenericPasswordPolicy <T extends GenericPasswordPolicy<T>>
     private int requireLowerCaseCharacter;
     private int requireDigit;
     private int requireSpecialCharacter;
+    private int expireInMonths;
 
     public GenericPasswordPolicy() {
-        minLength = maxLength = requireUpperCaseCharacter = requireLowerCaseCharacter = requireDigit = requireSpecialCharacter = -1;
+        minLength = maxLength = requireUpperCaseCharacter = requireLowerCaseCharacter = requireDigit = requireSpecialCharacter = expireInMonths = -1;
     }
 
     public GenericPasswordPolicy(int minLength,
@@ -34,13 +35,16 @@ public abstract class GenericPasswordPolicy <T extends GenericPasswordPolicy<T>>
                           int requireUpperCaseCharacter,
                           int requireLowerCaseCharacter,
                           int requireDigit,
-                          int requireSpecialCharacter) {
+                          int requireSpecialCharacter,
+                          int expireInMonths) {
         this.minLength = minLength;
         this.maxLength = maxLength;
         this.requireUpperCaseCharacter = requireUpperCaseCharacter;
         this.requireLowerCaseCharacter = requireLowerCaseCharacter;
         this.requireDigit = requireDigit;
         this.requireSpecialCharacter = requireSpecialCharacter;
+        this.expireInMonths = expireInMonths;
+
     }
 
     public int getMinLength() {
@@ -97,8 +101,17 @@ public abstract class GenericPasswordPolicy <T extends GenericPasswordPolicy<T>>
         return (T)this;
     }
 
+    public int getExpireInMonths() {
+        return expireInMonths;
+    }
+
+    public T setExpireInMonths(int expireInMonths) {
+        this.expireInMonths = expireInMonths;
+        return (T)this;
+    }
+
     public boolean allPresentAndPositive() {
-        return minLength >= 0 && maxLength >= 0 && requireUpperCaseCharacter >= 0 && requireLowerCaseCharacter >= 0 && requireDigit >= 0 && requireSpecialCharacter >= 0;
+        return minLength >= 0 && maxLength >= 0 && requireUpperCaseCharacter >= 0 && requireLowerCaseCharacter >= 0 && requireDigit >= 0 && requireSpecialCharacter >= 0 && expireInMonths >= 0;
     }
 
     @Override
@@ -106,25 +119,27 @@ public abstract class GenericPasswordPolicy <T extends GenericPasswordPolicy<T>>
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        PasswordPolicy that = (PasswordPolicy) o;
+        GenericPasswordPolicy<?> that = (GenericPasswordPolicy<?>) o;
 
-        if (getMinLength() != that.getMinLength()) return false;
-        if (getMaxLength() != that.getMaxLength()) return false;
-        if (getRequireUpperCaseCharacter() != that.getRequireUpperCaseCharacter()) return false;
-        if (getRequireLowerCaseCharacter() != that.getRequireLowerCaseCharacter()) return false;
-        if (getRequireDigit() != that.getRequireDigit()) return false;
-        if (getRequireSpecialCharacter() != that.getRequireSpecialCharacter()) return false;
-        return true;
+        if (minLength != that.minLength) return false;
+        if (maxLength != that.maxLength) return false;
+        if (requireUpperCaseCharacter != that.requireUpperCaseCharacter) return false;
+        if (requireLowerCaseCharacter != that.requireLowerCaseCharacter) return false;
+        if (requireDigit != that.requireDigit) return false;
+        if (requireSpecialCharacter != that.requireSpecialCharacter) return false;
+        return expireInMonths == that.expireInMonths;
+
     }
 
     @Override
     public int hashCode() {
-        int result = getMinLength();
-        result = 31 * result + getMaxLength();
-        result = 31 * result + getRequireUpperCaseCharacter();
-        result = 31 * result + getRequireLowerCaseCharacter();
-        result = 31 * result + getRequireDigit();
-        result = 31 * result + getRequireSpecialCharacter();
+        int result = minLength;
+        result = 31 * result + maxLength;
+        result = 31 * result + requireUpperCaseCharacter;
+        result = 31 * result + requireLowerCaseCharacter;
+        result = 31 * result + requireDigit;
+        result = 31 * result + requireSpecialCharacter;
+        result = 31 * result + expireInMonths;
         return result;
     }
 }

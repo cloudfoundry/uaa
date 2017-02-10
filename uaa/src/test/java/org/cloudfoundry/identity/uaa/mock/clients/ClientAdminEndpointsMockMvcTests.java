@@ -85,7 +85,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
 
     public static final String SECRET = "secret";
-    private String adminToken = null;
+    
     private String adminUserToken = null;
     private ScimUserEndpoints scimUserEndpoints = null;
     private ScimGroupEndpoints scimGroupEndpoints = null;

@@ -30,7 +30,7 @@ If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
     $ cd uaa
-    $ ./gradlew  run
+    $ ./gradlew run
     
     
 NOTE: Recent changes removed default keys and default users from the UAA.

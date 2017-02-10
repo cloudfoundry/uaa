@@ -533,7 +533,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(0, passwordPolicy.getRequireLowerCaseCharacter());
         assertEquals(1, passwordPolicy.getRequireDigit());
         assertEquals(0, passwordPolicy.getRequireSpecialCharacter());
-        assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+        assertEquals(6, passwordPolicy.getExpireInMonths());
     }
 
     @Test
