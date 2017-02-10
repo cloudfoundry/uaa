@@ -6,6 +6,10 @@
 	    	IDK what the most useful h1 would be for accessibility, I've added a simple one here. -->
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}" class="hidden">Sign in to cloud.gov</h1>
 
+    <div class="island">
+      <p>GovCloud environment (<a href="https://cloud.gov/docs/apps/govcloud/">what's this?</a>)</p>
+    </div>
+	
     <div class="island-content">
       <div class="card notice js-notice">
         <p>This is a U.S. government service. Your use indicates your consent to monitoring, recording, and no expectation of privacy. Misuse is subject to criminal and civil penalties. <a href="#" class="js-notice-read_more">Read more details.</a></p>
