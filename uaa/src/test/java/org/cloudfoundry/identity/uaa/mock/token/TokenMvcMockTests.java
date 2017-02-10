@@ -687,6 +687,39 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void testRefreshTokenNotPresentWhenClientDoesNotHaveGrantType() throws Exception {
+        BaseClientDetails clientWithoutRefreshTokenGrant = setUpClients("testclient"+generator.generate(), "", "openid", "authorization_code", true);
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user,other.scope,openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.CLIENT_ID, clientWithoutRefreshTokenGrant.getClientId()))
+            .andExpect(status().isFound())
+            .andReturn();
+
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        String code = ((List<String>) query.get("code")).get(0);
+
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.CLIENT_ID, clientWithoutRefreshTokenGrant.getClientId())
+            .param("client_secret", "secret")
+            .param("code", code);
+
+        MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+        assertNotNull(JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), Map.class).get("access_token"));
+        assertNull(JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), Map.class).get("refresh_token"));
+    }
+
+    @Test
     public void refreshAccessToken_withClient_withAutoApproveField() throws Exception {
         String clientId = "testclient"+ generator.generate();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
@@ -1059,7 +1092,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public void test_Oauth_Authorize_API_Endpoint() throws Exception {
         String clientId = "testclient"+ generator.generate();
         String scopes = "openid,uaa.user,scim.me";
-        setUpClients(clientId, "", scopes, "authorization_code", true);
+        setUpClients(clientId, "", scopes, "authorization_code,refresh_token", true);
         String username = "testuser"+ generator.generate();
         String userScopes = "";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -1103,7 +1136,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andReturn().getResponse().getContentAsString();
 
         assertNotNull("Token body must not be null.", body);
-        assertThat(body, stringContainsInOrder(Arrays.asList("access_token", REFRESH_TOKEN)));
+        assertThat(body, stringContainsInOrder(Arrays.asList(ACCESS_TOKEN, REFRESH_TOKEN)));
         Map<String,Object> map = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
         String accessToken = (String) map.get("access_token");
         OAuth2Authentication token = tokenServices.loadAuthentication(accessToken);
@@ -1116,7 +1149,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         bean.setRestrictRefreshGrant(true);
         String clientId = "testclient"+ generator.generate();
         String scopes = "openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN;
-        setUpClients(clientId, "", scopes, "password", true);
+        setUpClients(clientId, "", scopes, "password,refresh_token", true);
 
         String username = "testuser"+ generator.generate();
         String userScopes = UaaTokenServices.UAA_REFRESH_TOKEN;
@@ -1851,7 +1884,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(developer.getId());
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(developer.getId());
         String authCodeClientId = "testclient"+ generator.generate();
-        setUpClients(authCodeClientId, scopes, scopes, "authorization_code", true);
+        setUpClients(authCodeClientId, scopes, scopes, "authorization_code,refresh_token", true);
 
         String implicitClientId = "testclient"+ generator.generate();
         setUpClients(implicitClientId, scopes, scopes, "implicit", true);

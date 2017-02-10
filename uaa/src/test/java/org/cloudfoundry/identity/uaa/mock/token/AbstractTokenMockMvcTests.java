@@ -55,7 +55,7 @@ import static org.springframework.util.StringUtils.hasText;
 public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest {
 
     public static final String SECRET = "secret";
-    public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
+    public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code,refresh_token";
     public static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
     protected ClientServicesExtension clientDetailsService;
