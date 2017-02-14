@@ -198,6 +198,9 @@ public class ClientAdminBootstrap implements InitializingBean {
         for (Map.Entry<String, Map<String, Object>> entry : clients.entrySet()) {
             String clientId = entry.getKey();
             Map<String, Object> map = entry.getValue();
+            if(map.get("authorized-grant-types") == null) {
+                throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
+            }
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
                 (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                 (String) map.get("authorities"), getRedirectUris(map));
