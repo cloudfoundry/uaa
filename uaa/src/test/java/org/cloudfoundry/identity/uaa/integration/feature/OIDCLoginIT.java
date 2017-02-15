@@ -68,6 +68,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -198,23 +199,33 @@ public class OIDCLoginIT {
         }
     }
 
-    public void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
-        webDriver.get(zoneUrl + "/login");
+    private void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
+        login(zoneUrl, userName, password);
+    }
+
+    private void login(String zoneUrl, String userName, String password) {
+        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get(zoneUrl + "/");
+        Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(beforeLogin);
+        assertNotNull(beforeLogin.getValue());
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
 
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(afterLogin);
+        assertNotNull(afterLogin.getValue());
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
         IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver);
+        assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
     }
-
 
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
@@ -230,7 +241,7 @@ public class OIDCLoginIT {
     public void successfulLoginWithOIDCProvider_MultiKeys() throws Exception {
         identityProvider.getConfig().setTokenKeyUrl(new URL(baseUrl+"/token_keys"));
         updateProvider();
-        validateSuccessfulOIDCLogin(zoneHost, testAccounts.getUserName(), testAccounts.getPassword());
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test
