@@ -16,14 +16,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -32,16 +25,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -54,36 +38,23 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
@@ -327,6 +298,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken);
         assertEquals(id, zone.getId());
         assertEquals(id.toLowerCase(), zone.getSubdomain());
+        assertTrue(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+        assertEquals(OPAQUE.getStringValue(),zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
     }
 
@@ -805,6 +778,29 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(identityZone)))
             .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void testCreateZoneWithRefreshTokenConfig() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        tokenPolicy.setRefreshTokenFormat(JWT.getStringValue());
+        tokenPolicy.setRefreshTokenUnique(false);
+
+        getMockMvc().perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(identityZone)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenUnique").value(false))
+                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenFormat").value(JWT.getStringValue()));
+
+
+        IdentityZone createdZone = provisioning.retrieve(id);
+        assertEquals(JWT.getStringValue(), createdZone.getConfig().getTokenPolicy().getRefreshTokenFormat());
+        assertFalse(createdZone.getConfig().getTokenPolicy().isRefreshTokenUnique());
     }
 
     @Test
