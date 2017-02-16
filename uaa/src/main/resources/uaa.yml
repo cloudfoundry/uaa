@@ -294,6 +294,8 @@ oauth:
 #    # This is a feature flag to turn on/off the refresh token issuance behavior. If set to true, the refresh token is only granted to clients with a scope of refresh_token for offline access.
 #    refresh:
 #      restrict_grant: true
+#      unique: false
+#      format: jwt
 
 # Configure whitelist for allowing cross-origin XMLHttpRequest requests.
 #cors:

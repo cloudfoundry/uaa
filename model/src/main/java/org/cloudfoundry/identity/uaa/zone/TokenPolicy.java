@@ -125,7 +125,7 @@ public class TokenPolicy {
             String message = String.format("Invalid refresh token format %s. Acceptable values are: %s", refreshTokenFormat, validFormats.toString());
             throw new IllegalArgumentException(message);
         }
-        this.refreshTokenFormat = refreshTokenFormat;
+        this.refreshTokenFormat = refreshTokenFormat.toLowerCase();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

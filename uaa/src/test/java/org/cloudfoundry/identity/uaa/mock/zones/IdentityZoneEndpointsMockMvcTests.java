@@ -785,7 +785,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
-        tokenPolicy.setRefreshTokenFormat(JWT.getStringValue());
+        tokenPolicy.setRefreshTokenFormat(JWT.getStringValue().toUpperCase());
         tokenPolicy.setRefreshTokenUnique(false);
 
         getMockMvc().perform(
