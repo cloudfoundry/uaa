@@ -34,8 +34,8 @@ ext {
   thymeleafVersion = '2.1.2.RELEASE'
   thymeleafDialectVersion = '1.2.3'
   thymeleafExtrasVersion = '2.1.1.RELEASE'
-  tomcatVersion = '8.0.39'
-  tomcatJdbcPoolVersion = '8.0.39'
+  tomcatVersion = '8.0.41'
+  tomcatJdbcPoolVersion = '8.0.41'
   tomcatContainerId = 'tomcat8x'
   validationAPIVersion = '1.0.0.GA'
 }
