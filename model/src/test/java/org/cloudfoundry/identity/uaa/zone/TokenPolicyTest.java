@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
 import java.util.Map;
@@ -10,6 +12,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class TokenPolicyTest {
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void json_has_expected_properties() throws Exception {
@@ -60,6 +64,16 @@ public class TokenPolicyTest {
         String jsonTokenPolicy = "{\"keys\":{\"key-id-1\":{\"verificationKey\":\"some-verification-key-1\",\"signingKey\":\"some-signing-key-1\"}}}";
         TokenPolicy tokenPolicy = JsonUtils.readValue(jsonTokenPolicy, TokenPolicy.class);
         assertEquals(tokenPolicy.getKeys().get("key-id-1"), "some-signing-key-1");
+    }
+
+    @Test
+    public void tokenPolicy_whenInvalidUniquenessValue_throwsException() throws Exception {
+
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid refresh token format invalid. Acceptable values are: [opaque, jwt]");
+
+        tokenPolicy.setRefreshTokenFormat("invalid");
     }
 
     @Test

@@ -176,6 +176,9 @@ jwt:
       refreshTokenValiditySeconds: 9600
     refresh:
       restrict_grant: true
+      unique: false
+      format: jwt
+
 
 servlet:
   session-cookie:

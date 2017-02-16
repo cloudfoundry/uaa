@@ -14,13 +14,17 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.*;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 
 public class TokenPolicy {
     private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> outputCollector = Collectors.toMap(e -> e.getKey(), e -> {
@@ -34,6 +38,8 @@ public class TokenPolicy {
     private int accessTokenValidity;
     private int refreshTokenValidity;
     private boolean jwtRevocable = false;
+    private boolean refreshTokenUnique = true;
+    private String refreshTokenFormat = OPAQUE.getStringValue();
 
     @JsonGetter("keys")
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -99,6 +105,27 @@ public class TokenPolicy {
             });
         }
         this.keys = keys == null ? null : new HashMap<>(keys);
+    }
+
+    public boolean isRefreshTokenUnique() {
+        return refreshTokenUnique;
+    }
+
+    public void setRefreshTokenUnique(boolean refreshTokenUnique) {
+        this.refreshTokenUnique = refreshTokenUnique;
+    }
+
+    public String getRefreshTokenFormat() {
+        return refreshTokenFormat;
+    }
+
+    public void setRefreshTokenFormat(String refreshTokenFormat) {
+        if(TokenConstants.TokenFormat.fromStringValue(refreshTokenFormat) == null) {
+            List<String> validFormats = TokenConstants.TokenFormat.getStringValues();
+            String message = String.format("Invalid refresh token format %s. Acceptable values are: %s", refreshTokenFormat, validFormats.toString());
+            throw new IllegalArgumentException(message);
+        }
+        this.refreshTokenFormat = refreshTokenFormat.toLowerCase();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
