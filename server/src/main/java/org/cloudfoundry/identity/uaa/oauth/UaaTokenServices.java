@@ -725,7 +725,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                       boolean revocable) {
         String scope = token.getScope().toString();
         if (StringUtils.hasText(scope) && scope.length()>1000) {
-            scope.substring(0,1000);
+            scope = scope.substring(0,1000);
         }
 
         long now = System.currentTimeMillis();

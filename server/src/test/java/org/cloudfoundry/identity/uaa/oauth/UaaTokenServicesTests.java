@@ -52,6 +52,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
 import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -61,6 +62,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
@@ -122,6 +124,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
@@ -134,7 +137,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -333,6 +338,34 @@ public class UaaTokenServicesTests {
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
         tokenServices.afterPropertiesSet();
+    }
+
+    @Test
+    public void test_persist_scope_is_longer_than_1000_chars() throws Exception {
+        Set<String> scopes = new HashSet<>();
+        for (int i=0; i<1000; i++) {
+            scopes.add(String.valueOf(i));
+        }
+
+        CompositeAccessToken token = new CompositeAccessToken("token-value");
+        Date expiration = new Date(System.currentTimeMillis() + 10000);
+        token.setScope(scopes);
+        token.setExpiration(expiration);
+        tokenServices.persistRevocableToken("id",
+                                            "rid",
+                                            token,
+                                            new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
+                                            "clientId",
+                                            "userId",
+                                            true,
+                                            true);
+
+        ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
+        verify(tokenProvisioning, atLeast(1)).create(rt.capture());
+        assertNotNull(rt.getAllValues());
+        assertThat(rt.getAllValues().size(), greaterThanOrEqualTo(1));
+        assertNotNull(rt.getAllValues().get(0));
+        assertEquals(1000, rt.getAllValues().get(0).getScope().length());
     }
 
     @After
