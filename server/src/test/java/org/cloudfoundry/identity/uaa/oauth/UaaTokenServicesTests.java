@@ -410,6 +410,43 @@ public class UaaTokenServicesTests {
     }
 
     @Test
+    public void test_refresh_tokens_are_uniquely_persisted() {
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenUnique(true);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        tokenServices.persistRevocableToken("id",
+                "rid",
+                persistToken,
+                new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
+                "clientId",
+                "userId",
+                true,
+                true);
+        ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
+        verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId","userId");
+        verify(tokenProvisioning, times(2)).create(rt.capture());
+        RevocableToken refreshToken = rt.getAllValues().get(1);
+        assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
+    }
+
+    @Test
+    public void test_refresh_token_not_unique_when_set_to_false() {
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenUnique(false);
+        tokenServices.persistRevocableToken("id",
+                "rid",
+                persistToken,
+                new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
+                "clientId",
+                "userId",
+                true,
+                true);
+        ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
+        verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString());
+        verify(tokenProvisioning, times(2)).create(rt.capture());
+        RevocableToken refreshToken = rt.getAllValues().get(1);
+        assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
+    }
+
+    @Test
     public void test_jwt_no_token_is_not_persisted() throws Exception {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.JWT.getStringValue());
         CompositeAccessToken result = tokenServices.persistRevocableToken("id",

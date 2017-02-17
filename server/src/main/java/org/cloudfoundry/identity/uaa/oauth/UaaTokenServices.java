@@ -751,7 +751,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         boolean refreshTokenOpaque = opaque || TokenConstants.TokenFormat.OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
         boolean refreshTokenRevocable = refreshTokenOpaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
-
+        boolean refreshTokenUnique = IdentityZoneHolder.get().getConfig().getTokenPolicy().isRefreshTokenUnique();
         if (refreshToken!=null && refreshTokenRevocable) {
             RevocableToken revocableRefreshToken = new RevocableToken()
                 .setTokenId(refreshTokenId)
@@ -765,6 +765,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setScope(scope)
                 .setValue(refreshToken.getValue());
             try {
+                if(refreshTokenUnique) {
+                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId);
+                }
                 tokenProvisioning.create(revocableRefreshToken);
             } catch (DuplicateKeyException ignore) {
                 //no need to store refresh tokens again
