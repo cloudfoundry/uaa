@@ -749,13 +749,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        if (refreshToken!=null) {
+        boolean refreshTokenOpaque = opaque || TokenConstants.TokenFormat.OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
+        boolean refreshTokenRevocable = refreshTokenOpaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
+
+        if (refreshToken!=null && refreshTokenRevocable) {
             RevocableToken revocableRefreshToken = new RevocableToken()
                 .setTokenId(refreshTokenId)
                 .setClientId(clientId)
                 .setExpiresAt(((ExpiringOAuth2RefreshToken) refreshToken).getExpiration().getTime())
                 .setIssuedAt(now)
-                .setFormat(opaque ? OPAQUE.name() : JWT.name())
+                .setFormat(refreshTokenOpaque ? OPAQUE.name() : JWT.name())
                 .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN)
                 .setZoneId(IdentityZoneHolder.get().getId())
                 .setUserId(userId)
@@ -774,7 +777,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         result.setAdditionalInformation(token.getAdditionalInformation());
         result.setScope(token.getScope());
         result.setTokenType(token.getTokenType());
-        result.setRefreshToken(refreshToken==null ? null : new DefaultOAuth2RefreshToken(refreshTokenId));
+        result.setRefreshToken(refreshToken==null ? null : new DefaultOAuth2RefreshToken(refreshTokenOpaque ? refreshTokenId : refreshToken.getValue()));
         return result;
     }
 
