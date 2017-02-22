@@ -298,8 +298,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken);
         assertEquals(id, zone.getId());
         assertEquals(id.toLowerCase(), zone.getSubdomain());
-        assertTrue(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
-        assertEquals(OPAQUE.getStringValue(),zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
+        assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+        assertEquals(JWT.getStringValue(),zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
     }
 
@@ -785,8 +785,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
-        tokenPolicy.setRefreshTokenFormat(JWT.getStringValue().toUpperCase());
-        tokenPolicy.setRefreshTokenUnique(false);
+        tokenPolicy.setRefreshTokenFormat(OPAQUE.getStringValue().toUpperCase());
+        tokenPolicy.setRefreshTokenUnique(true);
 
         getMockMvc().perform(
                 post("/identity-zones")
@@ -794,13 +794,13 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenUnique").value(false))
-                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenFormat").value(JWT.getStringValue()));
+                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenUnique").value(true))
+                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenFormat").value(OPAQUE.getStringValue()));
 
 
         IdentityZone createdZone = provisioning.retrieve(id);
-        assertEquals(JWT.getStringValue(), createdZone.getConfig().getTokenPolicy().getRefreshTokenFormat());
-        assertFalse(createdZone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+        assertEquals(OPAQUE.getStringValue(), createdZone.getConfig().getTokenPolicy().getRefreshTokenFormat());
+        assertTrue(createdZone.getConfig().getTokenPolicy().isRefreshTokenUnique());
     }
 
     @Test
