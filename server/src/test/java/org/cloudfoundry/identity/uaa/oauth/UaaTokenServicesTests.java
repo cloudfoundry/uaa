@@ -1900,6 +1900,38 @@ public class UaaTokenServicesTests {
     }
 
     @Test
+    public void opaque_tokens_validate_signature() throws Exception {
+        defaultClient.setAutoApproveScopes(singleton("true"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeAccessToken.ID_TOKEN, "token")));
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        assertNotNull(accessToken);
+        assertTrue("Token should be composite token", accessToken instanceof CompositeAccessToken);
+        CompositeAccessToken composite = (CompositeAccessToken)accessToken;
+        assertThat("id_token should be JWT, thus longer than 36 characters", composite.getIdTokenValue().length(), greaterThan(36));
+        assertThat("Opaque access token must be shorter than 37 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
+        assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
+
+        Map<String, String> keys = new HashMap<>();
+        keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
+        tokenPolicy.setKeys(keys);
+        tokenPolicy.setActiveKeyId("otherKey");
+        IdentityZoneHolder.get().getConfig().setTokenPolicy(tokenPolicy);
+
+        expectedEx.expect(InvalidTokenException.class);
+        expectedEx.expectMessage("Invalid key ID: testKey");
+        tokenServices.validateToken(accessToken.getValue());
+    }
+
+    @Test
     public void testLoad_Opaque_AuthenticationForAUser() {
         defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
