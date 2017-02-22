@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -9,6 +10,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 public class TokenPolicyTest {
@@ -32,7 +34,15 @@ public class TokenPolicyTest {
         Map keys = (Map) properties.get("keys");
         assertNotNull(keys);
         assertEquals(keys.size(), 1);
-        assertEquals("KeyKeyKey", ((Map)keys.get("aKeyId")).get("signingKey"));
+        assertEquals("KeyKeyKey", ((Map) keys.get("aKeyId")).get("signingKey"));
+    }
+
+    @Test
+    public void test_default_values() throws Exception {
+        TokenPolicy policy = new TokenPolicy();
+        assertFalse(policy.isRefreshTokenUnique());
+        assertFalse(policy.isJwtRevocable());
+        assertEquals(TokenConstants.TokenFormat.JWT.getStringValue(), policy.getRefreshTokenFormat());
     }
 
     @Test(expected = IllegalArgumentException.class)
