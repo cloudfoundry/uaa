@@ -15,15 +15,22 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -33,6 +40,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
@@ -79,6 +87,8 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     String refreshToken;
     private Map<String, String> keys;
+    private JdbcTemplate template;
+    private RevocableTokenProvisioning revocableTokenProvisioning;
 
     @Before
     public void createClientAndUser() throws Exception {
@@ -103,6 +113,14 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         user = setUpUser(username, "", OriginKeys.UAA, zone.getId());
 
         refreshToken = getRefreshToken();
+
+        revocableTokenProvisioning = getWebApplicationContext().getBean(RevocableTokenProvisioning.class);
+        template = getWebApplicationContext().getBean(JdbcTemplate.class);
+    }
+
+    @After
+    public void reset() {
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -127,6 +145,55 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         testRefresh(status().isUnauthorized());
 
+    }
+
+    @Test
+    public void test_default_refresh_tokens_count() throws Exception {
+        template.update("delete from revocable_tokens");
+        assertEquals(0, countTokens(client.getClientId(), user.getId()));
+        getRefreshToken();
+        getRefreshToken();
+        assertEquals(0, countTokens(client.getClientId(), user.getId()));
+    }
+
+    @Test
+    public void test_opaque_refresh_tokens_count() throws Exception {
+        template.update("delete from revocable_tokens");
+        zone.getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        identityZoneProvisioning.update(zone);
+        assertEquals(0, countTokens(client.getClientId(), user.getId()));
+        getRefreshToken();
+        getRefreshToken();
+        assertEquals(2, countTokens(client.getClientId(), user.getId()));
+    }
+
+    @Test
+    public void test_opaque_refresh_tokens_sets_revocable_claim() throws Exception {
+        zone.getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        identityZoneProvisioning.update(zone);
+        String tokenId = getRefreshToken();
+        IdentityZoneHolder.set(zone);
+        String token = revocableTokenProvisioning.retrieve(tokenId).getValue();
+        Jwt jwt = JwtHelper.decode(token);
+        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        assertNotNull(claims.get(ClaimConstants.REVOCABLE));
+        assertTrue((Boolean) claims.get(ClaimConstants.REVOCABLE));
+    }
+
+    @Test
+    public void test_opaque_refresh_unique_tokens_count() throws Exception {
+        template.update("delete from revocable_tokens");
+        zone.getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        zone.getConfig().getTokenPolicy().setRefreshTokenUnique(true);
+        identityZoneProvisioning.update(zone);
+        assertEquals(0, countTokens(client.getClientId(), user.getId()));
+        getRefreshToken();
+        getRefreshToken();
+        assertEquals(1, countTokens(client.getClientId(), user.getId()));
+    }
+
+    protected int countTokens(String clientId, String userId) {
+        return template.queryForObject("select count(*) from revocable_tokens where client_id=? and user_id=?", new String[] {clientId, userId}, Integer.class);
     }
 
     protected String testRefresh(ResultMatcher resultMatcher) throws Exception {

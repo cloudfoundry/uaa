@@ -642,9 +642,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String refreshTokenId = generateUniqueTokenId() + REFRESH_TOKEN_SUFFIX;
 
         boolean opaque = opaqueTokenRequired(authentication);
-        boolean revocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
+        boolean accessTokenRevocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
+        boolean refreshTokenRevocable = accessTokenRevocable || TokenConstants.TokenFormat.OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
 
-        OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
+        OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, refreshTokenRevocable);
 
 
         String clientId = authentication.getOAuth2Request().getClientId();
@@ -705,11 +706,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 wasIdTokenRequestedThroughAuthCodeScopeParameter,
                 externalGroupsForIdToken,
                 userAttributesForIdToken,
-                revocable,
+                accessTokenRevocable,
                 authenticationMethods,
                 authNContextClassRef);
 
-        return persistRevocableToken(tokenId, refreshTokenId, accessToken, refreshToken, clientId, userId, opaque, revocable);
+        return persistRevocableToken(tokenId, refreshTokenId, accessToken, refreshToken, clientId, userId, opaque, accessTokenRevocable);
     }
 
     public CompositeAccessToken persistRevocableToken(String tokenId,

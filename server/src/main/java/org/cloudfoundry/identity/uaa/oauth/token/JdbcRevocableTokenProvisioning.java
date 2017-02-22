@@ -84,12 +84,15 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return retrieve(id, true);
     }
 
+
     @Override
-    public int deleteRefreshTokensForClientAndUserId(String userId, String clientId) {
+    public int deleteRefreshTokensForClientAndUserId(String clientId, String userId) {
         String zoneId = IdentityZoneHolder.get().getId();
         int deleted_rows = template.update(DELETE_REFRESH_TOKEN_QUERY, userId, clientId, zoneId);
         return deleted_rows;
     }
+
+
 
     @Override
     public RevocableToken create(RevocableToken t) {
