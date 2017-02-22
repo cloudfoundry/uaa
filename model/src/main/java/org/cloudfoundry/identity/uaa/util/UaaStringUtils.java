@@ -94,6 +94,29 @@ public class UaaStringUtils {
     }
 
     /**
+     * Hide the values in a config map (e.g. for logging).
+     *
+     * @param map a map with String keys (e.g. Properties) and String or nested
+     *            map values
+     * @return new properties with no plaintext passwords and secrets
+     */
+    public static Map<String, ?> redactValues(Map<String, ?> map) {
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        result.putAll(map);
+        for (String key : map.keySet()) {
+            Object value = map.get(key);
+            if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, ?> bare = (Map<String, ?>) value;
+                result.put(key, redactValues(bare));
+            } else if (value instanceof String) {
+                    result.put(key, "<redacted>");
+            }
+        }
+        return result;
+    }
+
+    /**
      * @param properties the properties with potential password values
      * @return new properties with no plaintext passwords
      */
@@ -217,7 +240,13 @@ public class UaaStringUtils {
     }
 
     private static boolean isPassword(String key) {
-        return key.endsWith("password") || key.endsWith("secret") || key.endsWith("signing-key");
+        key = key.toLowerCase();
+        return
+            key.endsWith("password") ||
+            key.endsWith("secret") ||
+            key.endsWith("signing-key") ||
+            key.contains("serviceproviderkey")
+            ;
     }
 
     public static Set<String> getStringsFromAuthorities(Collection<? extends GrantedAuthority> authorities) {

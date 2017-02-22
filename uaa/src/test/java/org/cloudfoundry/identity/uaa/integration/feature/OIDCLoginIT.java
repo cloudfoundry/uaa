@@ -54,6 +54,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
@@ -121,7 +122,12 @@ public class OIDCLoginIT {
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
         createOIDCProviderWithRequestedScopes();
-        webDriver.get(baseUrl + "/login");
+        webDriver.get(baseUrl + "/");
+
+        Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(beforeLogin);
+        assertNotNull(beforeLogin.getValue());
+
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
 
@@ -131,6 +137,12 @@ public class OIDCLoginIT {
 
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+
+        Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(afterLogin);
+        assertNotNull(afterLogin.getValue());
+
+        assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();

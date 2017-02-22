@@ -15,7 +15,38 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class TokenConstants {
+    public enum TokenFormat {
+        OPAQUE("opaque"),
+        JWT("jwt");
+
+        private String stringValue;
+
+        TokenFormat(String string) {
+            this.stringValue = string;
+        }
+
+        public String getStringValue() {
+            return this.stringValue;
+        }
+
+        static public TokenFormat fromStringValue(String stringValue) {
+            for (TokenFormat tokenFormat : TokenFormat.values()) {
+                if (tokenFormat.stringValue.equalsIgnoreCase(stringValue)) {
+                    return tokenFormat;
+                }
+            }
+            return null;
+        }
+
+        static public List<String> getStringValues() {
+            return Arrays.asList(TokenConstants.TokenFormat.values()).stream().map(format -> format.getStringValue()).collect(Collectors.toList());
+        }
+    }
 
     public static final String REQUEST_TOKEN_FORMAT = "token_format";
     public static final String OPAQUE = "opaque";
