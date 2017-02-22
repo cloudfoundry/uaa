@@ -253,8 +253,8 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         createData(new RandomValueStringGenerator().generate(), userId, clientId);
         expected.setResponseType(REFRESH_TOKEN);
         insertToken();
-        assertEquals(2, dao.deleteRefreshTokensForClientAndUserId(userId, clientId));
-        assertEquals(0, dao.deleteRefreshTokensForClientAndUserId(userId, clientId));
+        assertEquals(2, dao.deleteRefreshTokensForClientAndUserId(clientId,userId));
+        assertEquals(0, dao.deleteRefreshTokensForClientAndUserId(clientId,userId));
         List<RevocableToken> userTokens = dao.getUserTokens(userId, clientId);
         assertEquals(0, userTokens.stream().filter(t -> t.getResponseType().equals(REFRESH_TOKEN)).count());
     }
