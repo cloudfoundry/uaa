@@ -33,7 +33,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.AdditionalMatchers;
@@ -64,10 +66,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -114,6 +116,9 @@ public class CheckTokenEndpointTests {
     private RevocableTokenProvisioning tokenProvisioning;
 
     private HashMap<String, RevocableToken> tokenMap;
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     private MockHttpServletRequest request = new MockHttpServletRequest();
 
@@ -341,9 +346,8 @@ public class CheckTokenEndpointTests {
             configureDefaultZoneKeys(Collections.singletonMap("testKey", alternateSignerKey));
             endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
 
-            assertTrue("JWT tokens should fail validation if the verification key is incorrect.", useOpaque);
+            fail("Token validation should fail");
         } catch (InvalidTokenException ex) {
-            assertFalse("Opaque tokens should not be considered invalid due to JWT key issues.", useOpaque);
         }
     }
 
@@ -562,10 +566,8 @@ public class CheckTokenEndpointTests {
             OAuth2AccessToken alternateToken = tokenServices.createAccessToken(authentication);
             endpoint.checkToken(alternateToken.getValue(), Collections.emptyList(), request);
             endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
-
-            assertTrue("JWT tokens should fail validation if the verification key is incorrect.", useOpaque);
+            fail("Token validation should fail");
         } catch (InvalidTokenException ex) {
-            assertFalse("Opaque tokens should not be considered invalid due to JWT key issues.", useOpaque);
         }
     }
 
@@ -743,9 +745,8 @@ public class CheckTokenEndpointTests {
 
             Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
 
-            assertTrue("JWT tokens should fail validation if the verification key is incorrect.", useOpaque);
+            fail("Token validation should fail");
         } catch (InvalidTokenException ex) {
-            assertFalse("Opaque tokens should not be considered invalid due to JWT key issues.", useOpaque);
         }
     }
 

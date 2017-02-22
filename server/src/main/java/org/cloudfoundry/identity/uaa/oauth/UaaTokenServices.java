@@ -1124,29 +1124,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     protected TokenValidation validateToken(String token) {
         TokenValidation tokenValidation;
 
-        if (UaaTokenUtils.isJwtToken(token)) {
-            tokenValidation = validate(token)
-                .checkRevocableTokenStore(tokenProvisioning)
-                .throwIfInvalid();
-            Jwt tokenJwt = tokenValidation.getJwt();
-
-            String keyId = tokenJwt.getHeader().getKid();
-            KeyInfo key;
-            if(keyId!=null) {
-                key = KeyInfo.getKey(keyId);
-            } else {
-                key = KeyInfo.getActiveKey();
-            }
-
-            if(key == null) {
-                throw new InvalidTokenException("Invalid key ID: " + keyId);
-            }
-            SignatureVerifier verifier = key.getVerifier();
-            tokenValidation
-                .checkSignature(verifier)
-                .throwIfInvalid()
-            ;
-        } else {
+        if (!UaaTokenUtils.isJwtToken(token)) {
             RevocableToken revocableToken;
             try {
                  revocableToken = tokenProvisioning.retrieve(token);
@@ -1154,9 +1132,29 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect: " + token);
             }
             token = revocableToken.getValue();
-            tokenValidation = validate(token).throwIfInvalid();
         }
 
+        tokenValidation = validate(token)
+          .checkRevocableTokenStore(tokenProvisioning)
+          .throwIfInvalid();
+        Jwt tokenJwt = tokenValidation.getJwt();
+
+        String keyId = tokenJwt.getHeader().getKid();
+        KeyInfo key;
+        if(keyId!=null) {
+            key = KeyInfo.getKey(keyId);
+        } else {
+            key = KeyInfo.getActiveKey();
+        }
+
+        if(key == null) {
+            throw new InvalidTokenException("Invalid key ID: " + keyId);
+        }
+        SignatureVerifier verifier = key.getVerifier();
+        tokenValidation
+          .checkSignature(verifier)
+          .throwIfInvalid()
+        ;
         Map<String, Object> claims = tokenValidation.getClaims();
 
         tokenValidation

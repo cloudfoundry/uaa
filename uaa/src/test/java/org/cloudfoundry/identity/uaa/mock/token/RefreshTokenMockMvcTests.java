@@ -27,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.ResultMatcher;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -77,6 +78,7 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     RandomValueStringGenerator generator;
 
     String refreshToken;
+    private Map<String, String> keys;
 
     @Before
     public void createClientAndUser() throws Exception {
@@ -87,7 +89,7 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertTrue(provider.isActive());
         IdentityZoneHolder.clear();
 
-        Map<String,String> keys = new HashMap<>();
+        keys = new HashMap<>();
         keys.put("key1", signingKey1);
         keys.put("key2", signingKey2);
         zone.getConfig().getTokenPolicy().setKeys(keys);
@@ -109,20 +111,26 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         zone.getConfig().getTokenPolicy().setActiveKeyId("key2");
         zone = identityZoneProvisioning.update(zone);
 
-        testRefresh();
+        validateAccessTokenExists(testRefresh(status().isOk()));
 
-        Map<String,String> keys = new HashMap<>();
         keys.put("key2", signingKey2);
         keys.put("key3", signingKey3);
         zone.getConfig().getTokenPolicy().setKeys(keys);
         zone.getConfig().getTokenPolicy().setActiveKeyId("key3");
         zone = identityZoneProvisioning.update(zone);
 
-        testRefresh();
+        validateAccessTokenExists(testRefresh(status().isOk()));
+
+        keys.remove("key1");
+        zone.getConfig().getTokenPolicy().setKeys(keys);
+        zone = identityZoneProvisioning.update(zone);
+
+        testRefresh(status().isUnauthorized());
+
     }
 
-    protected void testRefresh() throws Exception {
-        String refreshResponse = getMockMvc().perform(
+    protected String testRefresh(ResultMatcher resultMatcher) throws Exception {
+        return getMockMvc().perform(
             post("/oauth/token")
                 .header("Host", zone.getSubdomain()+".localhost")
                 .accept(MediaType.APPLICATION_JSON)
@@ -132,9 +140,13 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
                 .param(REFRESH_TOKEN, refreshToken)
                 .param("client_secret", SECRET)
                 .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
-            .andExpect(status().isOk())
+            .andExpect(resultMatcher)
             .andReturn().getResponse().getContentAsString();
 
+
+    }
+
+    private void validateAccessTokenExists(String refreshResponse) {
         Map<String,Object> result = JsonUtils.readValue(refreshResponse, new TypeReference<Map<String, Object>>() {});
         assertNotNull(result.get(ACCESS_TOKEN));
     }
