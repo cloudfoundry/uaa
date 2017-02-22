@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 
 public class TokenPolicy {
@@ -38,8 +39,8 @@ public class TokenPolicy {
     private int accessTokenValidity;
     private int refreshTokenValidity;
     private boolean jwtRevocable = false;
-    private boolean refreshTokenUnique = true;
-    private String refreshTokenFormat = OPAQUE.getStringValue();
+    private boolean refreshTokenUnique = false;
+    private String refreshTokenFormat = JWT.getStringValue();
 
     @JsonGetter("keys")
     @JsonInclude(JsonInclude.Include.NON_NULL)

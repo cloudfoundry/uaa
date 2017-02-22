@@ -68,6 +68,7 @@ import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
@@ -616,8 +617,8 @@ public class BootstrapTests {
         TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
         assertThat(uaaTokenPolicy, is(notNullValue()));
         assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(2));
-        assertEquals(true, uaaTokenPolicy.isRefreshTokenUnique());
-        assertEquals(OPAQUE.getStringValue(), uaaTokenPolicy.getRefreshTokenFormat());
+        assertEquals(false, uaaTokenPolicy.isRefreshTokenUnique());
+        assertEquals(JWT.getStringValue(), uaaTokenPolicy.getRefreshTokenFormat());
         Map<String, String> keys = uaaTokenPolicy.getKeys();
         assertTrue(keys.keySet().contains("key-id-1"));
         String signingKey = keys.get("key-id-1");
@@ -629,8 +630,8 @@ public class BootstrapTests {
     public void test_bootstrap_of_token_policy() {
         context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
-        assertEquals(false, uaaTokenPolicy.isRefreshTokenUnique());
-        assertTrue(uaaTokenPolicy.getRefreshTokenFormat().equals("jwt"));
+        assertEquals(true, uaaTokenPolicy.isRefreshTokenUnique());
+        assertEquals(OPAQUE.getStringValue(), uaaTokenPolicy.getRefreshTokenFormat());
     }
 
     @Test

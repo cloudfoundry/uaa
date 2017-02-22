@@ -102,6 +102,7 @@ import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_T
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.cid;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.clientId;
@@ -378,7 +379,7 @@ public class UaaTokenServicesTests {
     @Test
     public void test_opaque_tokens_are_persisted() throws Exception {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(false);
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.JWT.getStringValue());
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         CompositeAccessToken result = tokenServices.persistRevocableToken("id",
                                                                           "rid",
                                                                           persistToken,
@@ -440,7 +441,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void test_jwt_no_token_is_not_persisted() throws Exception {
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.JWT.getStringValue());
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         CompositeAccessToken result = tokenServices.persistRevocableToken("id",
                                                                           "rid",
                                                                           persistToken,
@@ -567,8 +568,8 @@ public class UaaTokenServicesTests {
 
 
     @Test
-    public void test_refresh_token_is_opaque_by_default() {
-        OAuth2AccessToken accessToken = performPasswordGrant();
+    public void test_refresh_token_is_opaque_when_requested() {
+        OAuth2AccessToken accessToken = performPasswordGrant(TokenConstants.TokenFormat.OPAQUE.getStringValue());
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
 
         String refreshTokenValue = accessToken.getRefreshToken().getValue();
@@ -587,7 +588,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void test_using_opaque_parameter_on_refresh_grant() {
-        OAuth2AccessToken accessToken = performPasswordGrant();
+        OAuth2AccessToken accessToken = performPasswordGrant(TokenConstants.TokenFormat.OPAQUE.getStringValue());
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         String refreshTokenValue = refreshToken.getValue();
 
@@ -604,10 +605,14 @@ public class UaaTokenServicesTests {
     }
 
     protected OAuth2AccessToken performPasswordGrant() {
+        return performPasswordGrant(JWT.getStringValue());
+    }
+    protected OAuth2AccessToken performPasswordGrant(String tokenFormat) {
         AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, PASSWORD);
+        azParameters.put(REQUEST_TOKEN_FORMAT, tokenFormat);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
