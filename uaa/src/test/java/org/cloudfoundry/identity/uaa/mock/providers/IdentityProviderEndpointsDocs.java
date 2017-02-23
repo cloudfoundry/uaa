@@ -487,7 +487,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setName("UAA Provider");
         identityProvider.setOriginKey("my-oidc-provider-"+new RandomValueStringGenerator().generate().toLowerCase());
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-        definition.setDiscoveryUrl(new URL("https://login.identity.cf-app.com/.well-known/openid-configuration"));
+        definition.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
         definition.setSkipSslValidation(true);
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
