@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class LockoutPolicy {
     private int lockoutPeriodSeconds;
     private int lockoutAfterFailures;
@@ -13,6 +15,11 @@ public class LockoutPolicy {
         this.countFailuresWithin = countFailuresWithin;
         this.lockoutAfterFailures = lockoutAfterFailures;
         this.lockoutPeriodSeconds = lockoutPeriodSeconds;
+    }
+
+    @JsonIgnore
+    public boolean isLockoutEnabled() {
+        return countFailuresWithin > 0;
     }
 
     public LockoutPolicy setLockoutPeriodSeconds(int lockoutPeriod) {
