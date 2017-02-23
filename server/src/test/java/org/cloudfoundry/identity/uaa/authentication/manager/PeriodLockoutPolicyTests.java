@@ -21,8 +21,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
@@ -58,7 +56,6 @@ public class PeriodLockoutPolicyTests {
         now = System.currentTimeMillis();
         as = mock(UaaAuditService.class);
         joe = mock(UaaUser.class);
-        TimeService timeService = new TimeServiceImpl();
         when(joe.getId()).thenReturn("1");
         providerProvisioning = mock(IdentityProviderProvisioning.class);
         LockoutPolicy lockoutPolicy = new LockoutPolicy();
@@ -66,7 +63,7 @@ public class PeriodLockoutPolicyTests {
         lockoutPolicy.setLockoutPeriodSeconds(ONE_HOUR);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(new IdentityProvider());
         policyRetriever = new UserLockoutPolicyRetriever(providerProvisioning);
-        innerPolicy = new CommonLoginPolicy(as, policyRetriever, AuditEventType.UserAuthenticationSuccess, AuditEventType.UserAuthenticationFailure, timeService);
+        innerPolicy = new CommonLoginPolicy(as, policyRetriever, AuditEventType.UserAuthenticationSuccess, AuditEventType.UserAuthenticationFailure);
         policyRetriever.setDefaultLockoutPolicy(lockoutPolicy);
         policy = new PeriodLockoutPolicy(innerPolicy);
     }

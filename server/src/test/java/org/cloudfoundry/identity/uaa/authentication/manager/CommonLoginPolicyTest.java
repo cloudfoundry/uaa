@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,7 +21,6 @@ import static org.mockito.Mockito.when;
 public class CommonLoginPolicyTest {
     private CommonLoginPolicy commonLoginPolicy;
     private LockoutPolicyRetriever lockoutPolicyRetriever;
-    private TimeService timeService;
     private UaaAuditService auditService;
     private AuditEventType failureEventType;
     private AuditEventType successEventType;
@@ -30,12 +28,11 @@ public class CommonLoginPolicyTest {
     @Before
     public void setup() {
         auditService = mock(UaaAuditService.class);
-        timeService = mock(TimeService.class);
         lockoutPolicyRetriever = mock(LockoutPolicyRetriever.class);
         successEventType = AuditEventType.UserAuthenticationSuccess;
         failureEventType = AuditEventType.UserAuthenticationFailure;
 
-        commonLoginPolicy = new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType, timeService);
+        commonLoginPolicy = new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType);
     }
 
     @Test
@@ -51,7 +48,7 @@ public class CommonLoginPolicyTest {
     @Test
     public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsFalseIfTooManyFailedRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 1, 300));
-        AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null);
+        AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, System.currentTimeMillis()+100, null);
         List<AuditEvent> list = Arrays.asList(auditEvent);
         when(auditService.find(eq("principal"), anyLong())).thenReturn(list);
 

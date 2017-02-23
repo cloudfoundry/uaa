@@ -16,7 +16,6 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.util.TimeService;
 
 import java.util.List;
 
@@ -30,18 +29,15 @@ public class CommonLoginPolicy implements LoginPolicy {
     private final LockoutPolicyRetriever lockoutPolicyRetriever;
     private final AuditEventType successEventType;
     private final AuditEventType failureEventType;
-    private final TimeService timeService;
     
     public CommonLoginPolicy(UaaAuditService auditService,
                              LockoutPolicyRetriever lockoutPolicyRetriever,
                              AuditEventType successEventType,
-                             AuditEventType failureEventType,
-                             TimeService timeService) {
+                             AuditEventType failureEventType) {
         this.auditService = auditService;
         this.lockoutPolicyRetriever = lockoutPolicyRetriever;
         this.successEventType = successEventType;
         this.failureEventType = failureEventType;
-        this.timeService = timeService;
     }
 
     @Override
@@ -52,7 +48,7 @@ public class CommonLoginPolicy implements LoginPolicy {
             return new Result(true, 0);
         }
 
-        long eventsAfter = timeService.getCurrentTimeMillis() - lockoutPolicy.getCountFailuresWithin() * 1000;
+        long eventsAfter = System.currentTimeMillis() - lockoutPolicy.getCountFailuresWithin() * 1000;
         List<AuditEvent> events = auditService.find(principalId, eventsAfter);
 
         final int failureCount = sequentialFailureCount(events);
@@ -60,7 +56,7 @@ public class CommonLoginPolicy implements LoginPolicy {
         if (failureCount >= lockoutPolicy.getLockoutAfterFailures()) {
             // Check whether time of most recent failure is within the lockout period
             AuditEvent lastFailure = mostRecentFailure(events);
-            if (lastFailure != null && lastFailure.getTime() > timeService.getCurrentTimeMillis() - lockoutPolicy.getLockoutPeriodSeconds() * 1000) {
+            if (lastFailure != null && lastFailure.getTime() > System.currentTimeMillis() - lockoutPolicy.getLockoutPeriodSeconds() * 1000) {
                 return new Result(false, failureCount);
             }
         }
