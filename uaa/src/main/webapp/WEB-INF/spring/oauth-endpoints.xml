@@ -259,10 +259,11 @@
         <constructor-arg ref="clientLockoutPolicyRetriever"/>
         <constructor-arg type="AuditEventType" value="ClientAuthenticationSuccess"/>
         <constructor-arg type="AuditEventType" value="ClientAuthenticationFailure"/>
+        <constructor-arg type="TimeService" ref="timeService" />
     </bean>
 
     <bean id="clientLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.ClientLockoutPolicyRetriever">
-        <property name="defaultLockoutPolicy" ref="globalLockoutPolicy" />
+        <property name="defaultLockoutPolicy" ref="defaultClientLockoutPolicy" />
     </bean>
 
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
@@ -474,6 +475,8 @@
         <constructor-arg name="signingKeysMap" ref="signingKeysMap" />
         <property name="activeKeyId" value="${jwt.token.policy.activeKeyId:#{null}}" />
         <property name="jwtRevocable" value="${jwt.token.revocable:false}" />
+        <property name="refreshTokenFormat" value="${jwt.token.refresh.format:#{T(org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat).JWT.getStringValue()}}" />
+        <property name="refreshTokenUnique" value="${jwt.token.refresh.unique:false}" />
     </bean>
 
     <bean id="legacyTokenKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean" lazy-init="false" depends-on="setUpBouncyCastle">
@@ -560,16 +563,16 @@
         <property name="caseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 
-    <bean id="lockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
+    <bean id="userLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"
-                  value="${authentication.policy.lockoutAfterFailures:#{globalLockoutPolicy.getLockoutAfterFailures()}}"/>
+                  value="${authentication.policy.lockoutAfterFailures:#{defaultUserLockoutPolicy.getLockoutAfterFailures()}}"/>
         <property name="countFailuresWithin"
-                  value="${authentication.policy.countFailuresWithinSeconds:#{globalLockoutPolicy.getCountFailuresWithin()}}"/>
+                  value="${authentication.policy.countFailuresWithinSeconds:#{defaultUserLockoutPolicy.getCountFailuresWithin()}}"/>
         <property name="lockoutPeriodSeconds"
-                  value="${authentication.policy.lockoutPeriodSeconds:#{globalLockoutPolicy.getLockoutPeriodSeconds()}}"/>
+                  value="${authentication.policy.lockoutPeriodSeconds:#{defaultUserLockoutPolicy.getLockoutPeriodSeconds()}}"/>
     </bean>
 
-    <bean id="globalLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
+    <bean id="defaultUserLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"
                   value="${authentication.policy.global.lockoutAfterFailures:5}"/>
         <property name="countFailuresWithin"
@@ -578,9 +581,18 @@
                   value="${authentication.policy.global.lockoutPeriodSeconds:300}"/>
     </bean>
 
+    <bean id="defaultClientLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
+        <property name="lockoutAfterFailures"
+                  value="${authentication.policy.global.lockoutAfterFailures:5}"/>
+        <property name="countFailuresWithin"
+                  value="${authentication.policy.global.countFailuresWithinSeconds:-1}"/>
+        <property name="lockoutPeriodSeconds"
+                  value="${authentication.policy.global.lockoutPeriodSeconds:300}"/>
+    </bean>
+
     <bean id="globalUserLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
         <constructor-arg ref="identityProviderProvisioning"/>
-        <property name="defaultLockoutPolicy" ref="globalLockoutPolicy" />
+        <property name="defaultLockoutPolicy" ref="defaultUserLockoutPolicy" />
     </bean>
 
     <bean id="globalPeriodLockoutPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
@@ -592,6 +604,7 @@
         <constructor-arg ref="globalUserLockoutPolicyRetriever"/>
         <constructor-arg type="AuditEventType" value="UserAuthenticationSuccess"/>
         <constructor-arg type="AuditEventType" value="UserAuthenticationFailure"/>
+        <constructor-arg type="TimeService" ref="timeService" />
     </bean>
 
     <bean id="uaaUserDatabaseAuthenticationManager"

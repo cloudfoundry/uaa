@@ -188,6 +188,8 @@
                            @config['cors']['xhr']['max_age']}"/>
     </bean>
 
+    <bean id="sessionFixationProtectionStrategy"
+          class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
@@ -420,7 +422,7 @@
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
-        <property name="defaultLockoutPolicy" ref="lockoutPolicy"/>
+        <property name="defaultLockoutPolicy" ref="userLockoutPolicy"/>
         <property name="disableInternalUserManagement" value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
