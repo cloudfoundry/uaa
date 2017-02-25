@@ -263,6 +263,7 @@
     </bean>
 
     <bean id="clientLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.ClientLockoutPolicyRetriever">
+        <property name="enabled" value="${authentication.policy.client.lockoutEnabled:false}" />
         <property name="defaultLockoutPolicy" ref="defaultClientLockoutPolicy" />
     </bean>
 
@@ -583,11 +584,11 @@
 
     <bean id="defaultClientLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"
-                  value="${authentication.policy.global.lockoutAfterFailures:5}"/>
+                  value="${authentication.policy.global.lockoutAfterFailures:-1}"/>
         <property name="countFailuresWithin"
                   value="${authentication.policy.global.countFailuresWithinSeconds:-1}"/>
         <property name="lockoutPeriodSeconds"
-                  value="${authentication.policy.global.lockoutPeriodSeconds:300}"/>
+                  value="${authentication.policy.global.lockoutPeriodSeconds:-1}"/>
     </bean>
 
     <bean id="globalUserLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
