@@ -304,7 +304,6 @@ public class LoginInfoEndpoint {
         }
 
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
-
         Optional<String> loginHintParam =
             ofNullable(session)
             .flatMap(s -> ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
@@ -422,7 +421,7 @@ public class LoginInfoEndpoint {
             boolean discoveryNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
                 && (request == null || !Boolean.parseBoolean(request.getParameter("discoveryPerformed")));
 
-            if(discoveryNeeded) {
+            if(discoveryNeeded && !loginHintParam.isPresent()) {
                 return "idp_discovery/email";
             }
 
@@ -570,7 +569,7 @@ public class LoginInfoEndpoint {
         if (identityProviders.size() == 1) {
             IdentityProvider matchedIdp = identityProviders.get(0);
             if (matchedIdp.getType().equals(UAA)) {
-                return goToPasswordPage(email, model);
+                return "redirect:/login?discoveryPerformed=true";
             } else {
                 String redirectUrl;
                 if ((redirectUrl = redirectToExternalProvider(matchedIdp.getConfig(), matchedIdp.getOriginKey(), request)) != null) {
@@ -579,16 +578,6 @@ public class LoginInfoEndpoint {
             }
         }
         return "redirect:/login?discoveryPerformed=true";
-    }
-
-    private String goToPasswordPage(String email, Model model) {
-        model.addAttribute(ZONE_NAME, IdentityZoneHolder.get().getName());
-        model.addAttribute("email", email);
-        String forgotPasswordLink;
-        if ((forgotPasswordLink = getSelfServiceLinks().get(FORGOT_PASSWORD_LINK)) != null) {
-            model.addAttribute(FORGOT_PASSWORD_LINK, forgotPasswordLink);
-        }
-        return "idp_discovery/password";
     }
 
     @RequestMapping(value = "/autologin", method = RequestMethod.POST)
