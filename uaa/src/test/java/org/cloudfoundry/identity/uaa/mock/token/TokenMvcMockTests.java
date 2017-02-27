@@ -28,17 +28,8 @@ import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
-import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.oauth.token.*;
+import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -56,14 +47,12 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 import org.opensaml.xml.ConfigurationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -97,83 +86,39 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.stringContainsInOrder;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.springframework.http.HttpHeaders.HOST;
+import static org.junit.Assert.*;
+import static org.springframework.http.HttpHeaders.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     private String BADSECRET = "badsecret";
     private TestClient testClient;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-
+    private MockEnvironment mockEnvironment;
     private static SamlTestUtils samlTestUtils = new SamlTestUtils();
 
     @BeforeClass
@@ -185,7 +130,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         }
     }
 
-
+    @Before
+    public void setup () throws Exception {
+        mockEnvironment = ((MockEnvironment) getWebApplicationContext().getEnvironment());
+    }
     @Override
     public void setUpContext() throws Exception {
         testClient = new TestClient();
@@ -2872,17 +2820,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-
         for(int i = 0; i < 6; i++){
-            getMockMvc()
-                .perform(post("/oauth/token")
-                    .accept(MediaType.APPLICATION_JSON_VALUE)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .param("grant_type", "client_credentials")
-                    .param("client_id", clientId)
-                    .param("client_secret", BADSECRET))
-                .andExpect(status().isUnauthorized())
-                .andReturn().getResponse().getContentAsString();
+           tryLoginWithWrongSecretInBody(clientId);
         }
 
         getMockMvc()
@@ -2903,22 +2842,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
         for(int i = 0; i < 6; i++){
-            getMockMvc()
-                .perform(post("/oauth/token")
-                    .accept(MediaType.APPLICATION_JSON_VALUE)
-                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + BADSECRET).getBytes())))
-                    .param("grant_type", "client_credentials"))
-                .andExpect(status().isUnauthorized())
-                .andReturn().getResponse().getContentAsString();
+            tryLoginWithWrongSecretInHeader(clientId);
         }
 
-        getMockMvc()
-            .perform(post("/oauth/token")
-                .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param("grant_type", "client_credentials"))
-            .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString();
+        login(clientId);
     }
 
     @Test
@@ -2926,34 +2853,42 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+        for (int i = 0; i < 3; i++) {
+            tryLoginWithWrongSecretInHeader(clientId);
+            tryLoginWithWrongSecretInBody(clientId);
+        }
 
-        String body = null;
-        for(int i = 0; i < 3; i++){
-            body = getMockMvc().perform(post("/oauth/token")
+        login(clientId);
+    }
+
+    private void tryLoginWithWrongSecretInHeader(String clientId) throws Exception {
+        getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + BADSECRET).getBytes())))
                 .param("grant_type", "client_credentials")
-                )
+        )
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse().getContentAsString();
+    }
 
-            body = getMockMvc().perform(post("/oauth/token")
-                    .accept(MediaType.APPLICATION_JSON_VALUE)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .param("grant_type", "client_credentials")
-                    .param("client_id", clientId)
-                    .param("client_secret", BADSECRET)
-                    )
-                    .andExpect(status().isUnauthorized())
-                    .andReturn().getResponse().getContentAsString();
+    private void tryLoginWithWrongSecretInBody(String clientId) throws Exception {
+        getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param("grant_type", "client_credentials")
+                .param("client_id", clientId)
+                .param("client_secret", BADSECRET)
+        )
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse().getContentAsString();
+    }
 
-        }
-
-        body = getMockMvc().perform(post("/oauth/token")
+    private void login(String clientId) throws Exception {
+        getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
                 .param("grant_type", "client_credentials")
-                )
+        )
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
     }
