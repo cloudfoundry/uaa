@@ -44,10 +44,6 @@ public class CommonLoginPolicy implements LoginPolicy {
     public Result isAllowed(String principalId) {
         LockoutPolicy lockoutPolicy = lockoutPolicyRetriever.getLockoutPolicy();
 
-        if (!lockoutPolicy.isLockoutEnabled()) {
-            return new Result(true, 0);
-        }
-
         long eventsAfter = System.currentTimeMillis() - lockoutPolicy.getCountFailuresWithin() * 1000;
         List<AuditEvent> events = auditService.find(principalId, eventsAfter);
 
