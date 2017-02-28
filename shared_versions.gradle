@@ -18,7 +18,7 @@ ext {
   mariaDBClientVersion = '1.5.8'
   mockitoVersion = '1.10.19'
   passayVersion = '1.0'
-  postgresqlVersion = '9.1-901.jdbc3'
+  postgresqlVersion = '42.0.0'
   mssqlVersion = '6.1.0.jre8'
   scimSDKVersion = '1.6.0'
   servletVersion = '3.1.0'

@@ -82,7 +82,7 @@ dependencies {
   }
 
   testCompile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
-  testCompile group: 'postgresql', name: 'postgresql', version: parent.postgresqlVersion
+  testCompile group: 'org.postgresql', name: 'postgresql', version: parent.postgresqlVersion
   testCompile (group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion){
     exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
   }
