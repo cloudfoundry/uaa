@@ -22,7 +22,7 @@ ext {
   mssqlVersion = '6.1.0.jre8'
   scimSDKVersion = '1.6.0'
   servletVersion = '3.1.0'
-  slf4jVersion = '1.7.7'
+  slf4jVersion = '1.7.24'
   snakeYamlVersion = '1.12'
   springVersion = '4.3.6.RELEASE'
   springSecurityVersion = '4.1.2.RELEASE'
