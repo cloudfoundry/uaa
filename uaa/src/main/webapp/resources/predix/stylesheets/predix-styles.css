@@ -486,6 +486,44 @@ form {
       height: auto;
       line-height: auto; }
 
+
+/**
+ * Email page
+ *
+ *
+ */
+
+.email-h4 {
+  font-weight: 700;
+}
+.email-container-div {
+  flex-basis: 200px;
+}
+
+.email-form {
+  flex-grow: 2;
+}
+
+.email-form-label {
+  color:white;
+}
+
+.email-form-group {
+  display:flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.email-form-button {
+  min-width: 100%;
+  color: #fff;
+  border: 1px solid #2886af;
+  background-color: #2886af;
+}
+
+.email-links {
+  flex-grow: 1.5;
+}
 /**
      * Margin helper classes.
      *
