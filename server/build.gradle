@@ -44,7 +44,7 @@ dependencies {
 
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
   compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
-  compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity3', version: parent.thymeleafExtrasVersion
+  compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: parent.thymeleafExtrasVersion
 
   compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: parent.scimSDKVersion) {
     exclude(module: 'servlet-api')

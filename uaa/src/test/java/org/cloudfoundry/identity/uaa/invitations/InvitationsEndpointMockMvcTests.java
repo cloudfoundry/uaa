@@ -353,7 +353,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(accept)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<form method=\"post\" novalidate=\"novalidate\" action=\"/invitations/accept.do\">")));
+                .andExpect(content().string(containsString("<form action=\"/invitations/accept.do\" method=\"post\" novalidate=\"novalidate\">")));
     }
 
     public InvitationsResponse sendRequestWithTokenAndReturnResponse(String token,

@@ -555,64 +555,9 @@
     <mvc:resources mapping="/resources/**" location="/resources/"/>
     <mvc:default-servlet-handler/>
 
-    <bean id="springResourceResourceResolver"
-          class="org.thymeleaf.spring4.resourceresolver.SpringResourceResourceResolver"/>
-
-    <bean id="webTemplateResolver" class="org.thymeleaf.templateresolver.TemplateResolver">
-        <property name="resourceResolver" ref="springResourceResourceResolver"/>
-        <property name="prefix" value="classpath:/templates/web/"/>
-        <property name="suffix" value=".html"/>
-        <property name="templateMode" value="HTML5"/>
-    </bean>
-
-    <bean id="mailTemplateResolver" class="org.thymeleaf.templateresolver.TemplateResolver">
-        <property name="resourceResolver" ref="springResourceResourceResolver"/>
-        <property name="prefix" value="classpath:/templates/mail/"/>
-        <property name="suffix" value=".html"/>
-        <property name="templateMode" value="HTML5"/>
-    </bean>
-
-    <bean id="webTemplateEngine" class="org.thymeleaf.spring4.SpringTemplateEngine">
-        <property name="templateResolver" ref="webTemplateResolver"/>
-        <property name="additionalDialects">
-            <set>
-                <bean class="nz.net.ultraq.thymeleaf.LayoutDialect"/>
-                <bean class="org.thymeleaf.extras.springsecurity3.dialect.SpringSecurityDialect"/>
-            </set>
-        </property>
-    </bean>
-
-    <bean id="mailTemplateEngine" class="org.thymeleaf.spring4.SpringTemplateEngine">
-        <property name="templateResolver" ref="mailTemplateResolver"/>
-    </bean>
-
-    <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-        <!--<property name="mediaTypes">-->
-        <!--<map>-->
-        <!--<entry key="json" value="application/json" />-->
-        <!--</map>-->
-        <!--</property>-->
-        <property name="viewResolvers">
-            <list>
-                <bean class="org.thymeleaf.spring4.view.ThymeleafViewResolver">
-                    <property name="templateEngine" ref="webTemplateEngine"/>
-                    <property name="characterEncoding"
-                              value="#{T(java.nio.charset.StandardCharsets).UTF_8.toString()}"/>
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
-                </bean>
-                <bean class="org.springframework.web.servlet.view.BeanNameViewResolver"/>
-            </list>
-        </property>
-        <property name="defaultViews">
-            <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
-                <property name="extractValueFromSingleKeyModel" value="true"/>
-            </bean>
-        </property>
-        <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
-    </bean>
-
     <bean id="buildInfo" class="org.cloudfoundry.identity.uaa.home.BuildInfo"/>
+
+    <bean id="thymeleafConfig" class="org.cloudfoundry.identity.uaa.login.ThymeleafConfig"/>
 
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0"
