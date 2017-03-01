@@ -83,6 +83,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -94,6 +95,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.EMPTY_LIST;
@@ -120,6 +123,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -159,7 +163,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private XmlWebApplicationContext webApplicationContext;
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
-    
+
 
     @Before
     public void setUpContext() throws Exception {
@@ -408,7 +412,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setZoneFavIconAndProductLogo("/sM4lL==", null);
 
         getMockMvc().perform(get("/login"))
-            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
+            .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4lL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))));
     }
 
     @Test
@@ -416,8 +420,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setZoneFavIconAndProductLogo("/sM4\n\nlL==", "/sM4\n\nlL==");
 
         getMockMvc().perform(get("/login"))
-            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))))
-            .andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
+            .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4\n\nlL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))))
+            .andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
     }
 
     private void setZoneFavIconAndProductLogo(String favIcon, String productLogo) throws Exception {
@@ -429,7 +433,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
 
-    private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
+    private static final String defaultCopyrightTemplate =  "Copyright "+"\u00a9"+" %s";
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
     private static final String CF_LAST_LOGIN = "Last Login";
     @Test
@@ -499,9 +503,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         identityZoneConfiguration.setBranding(branding);
         setZoneConfiguration(identityZoneConfiguration);
 
-        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
-                "          <a href=\"/privacy\">Privacy</a>\n" +
-                "          &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
     }
 
     @Test
@@ -2267,11 +2269,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
           .param("client_secret", "secret")
           .param("garbage", "this-should-be-preserved");
 
-        String expectedMessage = "THE APPLICATION does not support your identity provider. To log into an identity provider supported by the application, <a href=\"/logout.do?redirect=" + URLEncoder.encode("http://idp-not-allowed.localhost/oauth/authorize?client_id=different-provider-client&response_type=code&client_secret=secret&garbage=this-should-be-preserved", "UTF-8") + "\">click here</a>.";
-        getMockMvc().perform(authorize)
+        String expectedUrl = "http://idp-not-allowed.localhost/oauth/authorize?client_id=different-provider-client&response_type=code&client_secret=secret&garbage=this-should-be-preserved";
+        String html = getMockMvc().perform(authorize)
             .andDo(print())
             .andExpect(status().isUnauthorized())
-            .andExpect(content().string(containsString(expectedMessage)));
+            .andReturn().getResponse().getContentAsString();
+        String extractPattern = "logout.do\\?redirect\\=(.*?)\">click here<";
+        Pattern pattern = Pattern.compile(extractPattern);
+        Matcher matcher = pattern.matcher(html);
+        assertTrue(matcher.find());
+        String group = matcher.group(1);
+        assertEquals(expectedUrl, URLDecoder.decode(group, "UTF-8"));
     }
 
     private MockHttpSession setUpClientAndProviderForIdpDiscovery(String originKey, IdentityZone zone) throws Exception {

@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -37,8 +36,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -53,13 +50,10 @@ import java.sql.Timestamp;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -72,7 +66,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = ThymeleafConfig.class)
+@ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class ResetPasswordControllerTest extends TestClassNullifier {
     private MockMvc mockMvc;
     private ResetPasswordService resetPasswordService;

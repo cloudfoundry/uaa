@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = ThymeleafConfig.class)
+@ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
 
     private MockMvc mockMvc;
