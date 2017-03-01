@@ -7,14 +7,12 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.passay.DigitCharacterRule;
+import org.passay.CharacterRule;
+import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
-import org.passay.LowercaseCharacterRule;
 import org.passay.PasswordData;
 import org.passay.Rule;
 import org.passay.RuleResult;
-import org.passay.SpecialCharacterRule;
-import org.passay.UppercaseCharacterRule;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -85,16 +83,16 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         rules.add(new LengthRule(minLength, maxLength));
 
         if (policy.getRequireUpperCaseCharacter()>0) {
-            rules.add(new UppercaseCharacterRule(policy.getRequireUpperCaseCharacter()));
+            rules.add(new CharacterRule(EnglishCharacterData.UpperCase, policy.getRequireUpperCaseCharacter()));
         }
         if (policy.getRequireLowerCaseCharacter()>0) {
-            rules.add(new LowercaseCharacterRule(policy.getRequireLowerCaseCharacter()));
+            rules.add(new CharacterRule(EnglishCharacterData.LowerCase, policy.getRequireLowerCaseCharacter()));
         }
         if (policy.getRequireDigit()>0) {
-            rules.add(new DigitCharacterRule(policy.getRequireDigit()));
+            rules.add(new CharacterRule(EnglishCharacterData.Digit, policy.getRequireDigit()));
         }
         if (policy.getRequireSpecialCharacter() > 0) {
-            rules.add(new SpecialCharacterRule(policy.getRequireSpecialCharacter()));
+            rules.add(new CharacterRule(EnglishCharacterData.Special, policy.getRequireSpecialCharacter()));
         }
         return new org.passay.PasswordValidator(rules);
     }
