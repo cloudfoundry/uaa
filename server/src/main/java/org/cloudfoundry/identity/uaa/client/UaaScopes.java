@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,6 +60,13 @@ public class UaaScopes {
 
     public boolean isUaaScope(GrantedAuthority authority) {
         return isUaaScope(authority.getAuthority());
+    }
+
+    public boolean hasMandatoryScopes(Collection<String> mandatoryScopes, Collection<String> requestedScopes) {
+        if (mandatoryScopes==null || requestedScopes==null) {
+            throw new NullPointerException();
+        }
+        return requestedScopes.containsAll(mandatoryScopes);
     }
 
 }
