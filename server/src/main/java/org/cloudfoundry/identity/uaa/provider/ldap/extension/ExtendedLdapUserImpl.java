@@ -56,6 +56,11 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     @Override
+    public void eraseCredentials() {
+        //noop
+    }
+
+    @Override
     public String[] getMail() {
         String[] mail = attributes.get(getMailAttributeName());
         if (mail==null) {
