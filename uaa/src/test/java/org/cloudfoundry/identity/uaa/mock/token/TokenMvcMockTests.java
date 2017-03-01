@@ -34,6 +34,8 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
@@ -108,6 +110,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -319,6 +322,51 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
 
     }
+
+    @Test
+    public void refresh_access_token_and_user_group_removed() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        setUpClients(clientId, "uaa.user", "uaa.user,uaa.admin", "password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+
+        String username = "testuser" + generator.generate();
+        String userScopes = "uaa.user,uaa.admin";
+        ScimUser scimUser = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String response = getMockMvc().perform(post("/oauth/token")
+                                                   .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                                                   .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                                   .param(OAuth2Utils.GRANT_TYPE, "password")
+                                                   .param(OAuth2Utils.CLIENT_ID, clientId)
+                                                   .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+                                                   .param("client_secret", SECRET)
+                                                   .param("username", username)
+                                                   .param("password", SECRET))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        Map<String, Object> tokens = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {});
+        String scopes = (String) tokens.get(SCOPE);
+        assertThat(scopes, containsString("uaa.admin"));
+        Object refreshToken = tokens.get(REFRESH_TOKEN);
+        String refreshTokenId = (String) refreshToken;
+
+        List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"");
+        assertEquals(1, groups.size());
+        getWebApplicationContext().getBean(ScimGroupMembershipManager.class).removeMemberById(groups.get(0).getId(), scimUser.getId());
+
+        getMockMvc().perform(
+            post("/oauth/token")
+                .header(AUTHORIZATION, "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                .param(REFRESH_TOKEN, refreshTokenId)
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE))
+
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andReturn().getResponse().getContentAsString();
+    }
+
 
     @Test
     public void test_token_ids() throws Exception {
@@ -1059,7 +1107,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder oauthAuthorizeGet = get("/oauth/authorize")
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "")
+            .param(SCOPE, "")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId);
 
@@ -1168,7 +1216,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
-                .param(OAuth2Utils.SCOPE, "openid")
+                .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -1203,7 +1251,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
-                .param(OAuth2Utils.SCOPE, "openid")
+                .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -1342,7 +1390,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, subDomainUri);
@@ -1371,7 +1419,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "scim.write")
+            .param(SCOPE, "scim.write")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -1403,7 +1451,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "something.else")
+            .param(SCOPE, "something.else")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -1602,7 +1650,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
@@ -1629,7 +1677,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
@@ -1687,7 +1735,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
             .accept(MediaType.TEXT_HTML)
             .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
-            .param(OAuth2Utils.SCOPE, userScopes)
+            .param(SCOPE, userScopes)
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
@@ -1769,7 +1817,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Authorization", basicDigestHeaderValue)
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
-                .param(OAuth2Utils.SCOPE, "openid")
+                .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, requestedUri)
@@ -1791,7 +1839,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
@@ -1851,7 +1899,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param("username", username)
             .param("password", SECRET)
-            .param(OAuth2Utils.SCOPE, "openid");
+            .param(SCOPE, "openid");
         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
@@ -1870,7 +1918,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
             .param("credentials", credentials)
             .param(OAuth2Utils.STATE, generator.generate())
-            .param(OAuth2Utils.SCOPE, "openid");
+            .param(SCOPE, "openid");
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         token = splitQuery(url);
@@ -1888,7 +1936,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, authCodeClientId)
             .param(ClaimConstants.NONCE, "testnonce")
@@ -1909,7 +1957,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param("code", code)
             .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, authCodeClientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -1935,7 +1983,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code id_token token")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -1962,7 +2010,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code token")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -1985,7 +2033,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         oauthTokenPost = get("/oauth/authorize")
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, authCodeClientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -2011,7 +2059,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.SCOPE, "openid")
+            .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
