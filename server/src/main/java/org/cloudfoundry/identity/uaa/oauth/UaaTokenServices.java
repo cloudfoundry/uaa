@@ -49,6 +49,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
@@ -59,7 +60,6 @@ import org.springframework.security.oauth2.common.exceptions.InsufficientScopeEx
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -1164,22 +1164,23 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String clientId = (String) claims.get(CID);
         String userId = (String) claims.get(USER_ID);
-        UaaUser user = null;
+
         ClientDetails client;
         try {
             client = clientDetailsService.loadClientByClientId(clientId);
         } catch (NoSuchClientException x) {
             //happens if the client is deleted and token exist
-            throw new UnauthorizedClientException("Invalid client ID "+clientId);
+            throw new InvalidTokenException("Invalid client ID "+clientId);
         }
-        tokenValidation.checkClient(client).throwIfInvalid();
-
+        UaaUser user = null;
         if( UaaTokenUtils.isUserToken(claims)) {
-            tokenValidation.checkUser(userDatabase).throwIfInvalid();
-            user = userDatabase.retrieveUserById(userId);
+            try {
+                user = userDatabase.retrieveUserById(userId);
+            } catch (UsernameNotFoundException e) {
+                throw new InvalidTokenException("Token bears a non-existent user ID: " + userId);
+            }
         }
-
-        tokenValidation.checkRevocableTokenStore(tokenProvisioning).throwIfInvalid();
+        tokenValidation.checkClientAndUser(client, user).throwIfInvalid();
 
         List<String> clientSecrets = new ArrayList<>();
         List<String> revocationSignatureList = new ArrayList<>();

@@ -129,9 +129,9 @@ public class TokenValidationTest {
         TokenValidation validation = validate(getToken())
                 .checkSignature(verifier)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient(clientDetailsService)
+                .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
-                .checkUser(userDb)
+                .checkUser((uid) -> userDb.retrieveUserById(uid))
                 .checkScopesInclude("acme.dev")
                 .checkScopesWithin("acme.dev", "another.scope")
                 .checkRevocationSignature(Collections.singletonList("fa1c787d"))
@@ -148,9 +148,9 @@ public class TokenValidationTest {
         TokenValidation validation = validate(getToken(Arrays.asList(EMAIL, USER_NAME)))
             .checkSignature(verifier)
             .checkIssuer("http://localhost:8080/uaa/oauth/token")
-            .checkClient(clientDetailsService)
+            .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
             .checkExpiry(oneSecondBeforeTheTokenExpires)
-            .checkUser(userDb)
+            .checkUser((uid) -> userDb.retrieveUserById(uid))
             .checkScopesInclude("acme.dev")
             .checkScopesWithin("acme.dev", "another.scope")
             .checkRevocationSignature(Collections.singletonList("fa1c787d"))
@@ -212,7 +212,7 @@ public class TokenValidationTest {
         UaaUserDatabase userDb = new InMemoryUaaUserDatabase(Collections.emptySet());
 
         TokenValidation validation = validate(getToken())
-                .checkUser(userDb);
+            .checkUser((uid) -> userDb.retrieveUserById(uid));
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
@@ -226,7 +226,7 @@ public class TokenValidationTest {
                 .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("a.different.scope"))));
 
         TokenValidation validation = validate(getToken())
-                .checkUser(userDb);
+            .checkUser((uid) -> userDb.retrieveUserById(uid));
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
@@ -252,7 +252,7 @@ public class TokenValidationTest {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         clientDetailsService.setClientDetailsStore(Collections.emptyMap());
         TokenValidation validation = validate(getToken())
-                .checkClient(clientDetailsService);
+            .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId));
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
@@ -263,7 +263,7 @@ public class TokenValidationTest {
         clientDetailsService.setClientDetailsStore(Collections.singletonMap("app", new BaseClientDetails("app", "acme", "a.different.scope", "authorization_code", "")));
 
         TokenValidation validation = validate(getToken())
-                .checkClient(clientDetailsService);
+            .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId));
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }

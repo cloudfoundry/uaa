@@ -49,9 +49,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 /**
  * Controller which decodes access tokens for clients who are not able to do so
  * (or where opaque token values are used).
- *
- * @author Luke Taylor
- * @author Joel D'sa
  */
 @Controller
 public class CheckTokenEndpoint implements InitializingBean {
