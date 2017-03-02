@@ -49,10 +49,10 @@ public class ClientDetailsHasRequiredUserScopes extends JdbcTestBase {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {null, "oauth_client_details", "required_user_groups"},
-            {"sqlserver", "oauth_client_details", "required_user_groups"},
-            {"mysql", "oauth_client_details", "required_user_groups"},
-            {"hsqldb", "oauth_client_details", "required_user_groups"},
-            {"postgresql", "oauth_client_details", "required_user_groups"},
+//            {"sqlserver", "oauth_client_details", "required_user_groups"},
+//            {"mysql", "oauth_client_details", "required_user_groups"},
+//            {"hsqldb", "oauth_client_details", "required_user_groups"},
+//            {"postgresql", "oauth_client_details", "required_user_groups"},
         });
     }
 
