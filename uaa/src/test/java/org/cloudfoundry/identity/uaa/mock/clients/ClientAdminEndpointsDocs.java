@@ -80,6 +80,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         fieldWithPath(ClientConstants.TOKEN_SALT).optional(null).type(STRING).description("A random string used to generate the client's revokation key. Change this value to revoke all active tokens for the client"),
         fieldWithPath(ClientConstants.CREATED_WITH).optional(null).type(STRING).description("What scope the bearer token had when client was created"),
         fieldWithPath(ClientConstants.APPROVALS_DELETED).optional(null).type(BOOLEAN).description("Were the approvals deleted for the client, and an audit event sent"),
+        fieldWithPath(ClientConstants.REQUIRED_USER_GROUPS).optional(null).type(ARRAY).description("A list of group names. If a user doesn't belong to all the required groups no tokens will be issued to this client for that user, regardless what scopes are being requested."),
     };
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
