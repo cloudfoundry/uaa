@@ -184,7 +184,7 @@ public class TokenValidation {
         return checkUser(userDb::retrieveUserById);
     }
 
-    private TokenValidation checkUser(Function<String, UaaUser> getUser) {
+    public TokenValidation checkUser(Function<String, UaaUser> getUser) {
         if(!decoded || !UaaTokenUtils.isUserToken(claims)) {
             addError("Token is not a user token.");
             return this;

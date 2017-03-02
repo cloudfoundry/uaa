@@ -49,7 +49,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
@@ -1176,11 +1175,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         tokenValidation.checkClient(client).throwIfInvalid();
 
         if( UaaTokenUtils.isUserToken(claims)) {
-            try {
-                user = userDatabase.retrieveUserById(userId);
-                tokenValidation.checkUser(user).throwIfInvalid();
-            } catch (UsernameNotFoundException x) {
-            }
+            tokenValidation.checkUser(userDatabase).throwIfInvalid();
+            user = userDatabase.retrieveUserById(userId);
         }
 
         tokenValidation.checkRevocableTokenStore(tokenProvisioning).throwIfInvalid();
