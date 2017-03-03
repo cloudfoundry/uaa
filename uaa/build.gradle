@@ -60,7 +60,7 @@ dependencies {
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.1.0'
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
   testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
   testCompile(group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0') {

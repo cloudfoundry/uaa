@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.mock.password;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -26,10 +25,9 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import javax.servlet.http.HttpSession;
-
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
@@ -117,6 +115,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         ScimUser user = createUser();
 
         MockHttpSession session = new MockHttpSession();
+        String beforeId = session.getId();
         MockHttpSession afterLoginSession = (MockHttpSession) getMockMvc().perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
@@ -127,8 +126,9 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .andExpect(redirectedUrl("/"))
             .andReturn().getRequest().getSession(false);
 
-        assertTrue(session.isInvalid());
+
         assertNotNull(afterLoginSession);
+        assertNotEquals(beforeId, afterLoginSession.getId());
         assertNotNull(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
 
         MockHttpSession afterPasswordChange = (MockHttpSession) getMockMvc().perform(post("/change_password.do")

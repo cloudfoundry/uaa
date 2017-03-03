@@ -60,7 +60,7 @@ dependencies {
   }
 
 
-  provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+  provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.1.0'
 
   testCompile group: 'org.springframework', name: 'spring-test', version:parent.springVersion
   testCompile group: 'junit', name: 'junit', version:'4.11'

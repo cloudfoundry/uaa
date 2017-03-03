@@ -191,12 +191,16 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <!-- Provider of default SAML Context -->
         <bean id="contextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" />
 
+        <bean id="sessionFixationProtectionStrategy"
+              class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
+
         <!-- Processing filter for WebSSO profile messages -->
         <bean id="samlWebSSOProcessingFilter" class="org.springframework.security.saml.SAMLProcessingFilter">
             <property name="authenticationManager" ref="samlAuthenticationManager" />
             <property name="authenticationSuccessHandler" ref="successRedirectHandler" />
             <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
             <property name="contextProvider" ref="contextProvider" />
+            <property name="sessionAuthenticationStrategy" ref="sessionFixationProtectionStrategy"/>
         </bean>
 
         <!-- Logout handler terminating local session -->

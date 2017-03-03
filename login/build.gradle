@@ -12,7 +12,7 @@ dependencies {
   }
 
   compile group: 'org.springframework', name: 'spring-context-support', version:springVersion
-  provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+  provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.1.0'
 
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output

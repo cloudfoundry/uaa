@@ -27,8 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -447,6 +447,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     private MockHttpSession getUserSession(String username, String password) throws Exception {
         MockHttpSession session = new MockHttpSession();
+        String beforeId = session.getId();
         MockHttpSession afterLoginSession = (MockHttpSession) getMockMvc().perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
@@ -455,8 +456,8 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("password", password))
             .andReturn().getRequest().getSession(false);
 
-        assertTrue(session.isInvalid());
         assertNotNull(afterLoginSession);
+        assertNotEquals(beforeId, afterLoginSession.getId());
         assertNotNull(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         return afterLoginSession;
     }
