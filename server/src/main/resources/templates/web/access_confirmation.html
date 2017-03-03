@@ -18,7 +18,7 @@
                href="https://cloudfoundry.cloudbees.com/authenticate"
                th:href="${redirect_uri}"
                th:text="${redirect_uri}">https://cloudfoundry.cloudbees.com/authenticate</a>
-            <p>
+            <p class="top-padding">
                 <th:block th:text="${client_display_name}">Cloudbees</th:block> has requested permission to
                 access your account. If you do not recognize this application or
                 its URL, you should click deny. The application will not see your password.
@@ -60,13 +60,13 @@
                         name="user_oauth_approval"
                         th:name="${options.get('deny').get('key')}"
                         value="false"
-                        class="btn btn-lowlight">Deny</button>
+                        class="island-button island-button--alt">Deny</button>
                 <button id="authorize"
                         type="submit"
                         name="user_oauth_approval"
                         th:name="${options.get('confirm').get('key')}"
                         value="true"
-                        class="btn btn-primary">Authorize</button>
+                        class="island-button">Authorize</button>
             </div>
             <input th:if="${original_uri}" th:name="form_redirect_uri" th:type="hidden" th:value="${original_uri}"/>
         </form>

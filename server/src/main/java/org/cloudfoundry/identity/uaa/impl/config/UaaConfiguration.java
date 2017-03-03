@@ -137,7 +137,7 @@ public class UaaConfiguration {
         public boolean logabandoned;
         public int abandonedtimeout;
         public long evictionintervalms;
-
+        public long maxwaittime;
     }
 
     public static class Logging {

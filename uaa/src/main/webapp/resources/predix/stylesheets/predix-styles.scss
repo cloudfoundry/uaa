@@ -1,0 +1,522 @@
+@charset "UTF-8";
+@import "_mixins.scss";
+
+
+///--------------------------
+/// Variables
+//solid #00659e;
+//background-color: #2886af;
+$predix-input-border-color: rgba(40,134,175,.8);
+$predix-border: #00659e;
+$predix-bg: #2886af;
+$black: #222;
+$link-color--hover: #3ab4d4;
+$link-color: #2886af;
+
+$predix-border-color: #2886af;
+$predix-border-color--hover: #3ab4d4;
+$error-color: #e32533;
+
+$white: #fff;
+$gray: #ccc;
+$gray5: #eee;
+$gray8: #888;
+
+$input-border-color: #D8D8D8;
+$input-background-color: $predix-border-color;
+$input-active-border: 1px solid rgba(40,134,175,.8);
+$input-border: 1px solid rgba(0, 101, 158, .8);
+$input-box-shadow: inset 0 0 3px 1px rgba(40,134,175,.8);
+$input-submit-border: 1px solid $predix-border-color;
+$input-submit-background-color: $predix-bg;
+$background-image: '../images/predix-word.svg';
+$error-message: 'We couldn\'t verify your email or password. Please try again.';
+
+///-----------------------------------------------
+///Island Variables
+$island-background-color: transparent;
+$island-font-color: #fff;
+$island-max-width: 290px;
+$island-transition: all 0.5 ease;
+$island-button-background-color: $predix-bg;
+$island-button-background-image: linear-gradient(-180deg, $predix-bg 0%, $predix-bg 100%);
+
+///-----------------------------------------------
+/// Fonts
+@include geFonts();
+
+///-----------------------------------------------
+///Globals
+html {
+	background: #333;
+	font-size : 16px;
+	overflow  : hidden;
+	max-width : none !important;
+	height    : 100%;
+	width     : 100%;
+	min-height: auto !important;
+	@include sm-down() {
+		overflow: auto;
+	}
+}
+
+hr {
+	margin-top: 5rem;
+}
+
+body {
+	height   : 100%;
+	width    : 100%;
+	padding  : 0;
+	font-size: 1rem;
+	max-width: none !important;
+	position : relative;
+	min-height: auto !important;
+}
+
+
+
+.brand{
+	display: block;
+	min-width:200px;
+	background-size: 130px !important;
+	background     : url($background-image) no-repeat center;
+	background-size: contain;
+	text-indent: -99999px;
+}
+
+.top-header{
+	display: flex;
+	position: absolute;
+}
+
+.box{
+	position:relative;
+}
+
+.box--has-header{
+	padding-top: 65px;
+}
+
+
+
+.content {
+	max-width: 80em;
+	margin   : 1rem auto;
+
+}
+
+.link-lowlight {
+	flex: 1;
+}
+
+.link-lowlight:hover,
+a:active,
+a:hover {
+	outline: 0;
+	color  : $link-color--hover;
+}
+
+.link-lowlight,
+a,
+a:link,
+a:visited {
+	outline        : 0;
+	color          : $link-color;
+	text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+	margin : 0;
+	padding: 0;
+}
+
+.alpha {
+	font-size  : 5rem;
+	line-height: 1.06667;
+}
+
+.beta {
+	font-size  : 4rem;
+	line-height: 1;
+}
+
+.gamma {
+	font-size  : 3rem;
+	line-height: 1.33333;
+}
+
+.delta {
+	font-size  : 2rem;
+	line-height: 1.33333;
+}
+
+.epsilon {
+	font-size  : 1.33333rem;
+	line-height: 1;
+}
+
+.zeta {
+	font-size  : 0.8rem;
+	line-height: 1.66667;
+}
+
+h1 {
+	display   : block;
+	text-align: center;
+	font-size : 1.5rem;
+	@include media-query(mobile) {
+		font-size: 1rem;
+	}
+}
+
+////Layout
+.predix-uaa {
+	box-sizing            : border-box;
+	position              : relative;
+	display               : flex;
+	flex-direction        : column;
+	transform             : translateZ(0);
+	backface-visibility   : hidden;
+	-webkit-font-smoothing: antialiased;
+	align-items           : center;
+	justify-content       : center;
+	margin                : 0;
+	min-height: auto !important;
+	@include xs-down() {
+		justify-content: initial;
+	}
+
+	&__header {
+		h1 {
+			margin-bottom: 1rem;
+		}
+	}
+
+	&__wrap {
+		max-width: 80em;
+		margin   : 1rem;
+		min-width: 330px;
+		@include sm-down() {
+			min-width: 300px;
+			width    : 300px;
+		}
+	}
+
+	&__content {
+		display       : flex;
+		flex-direction: column;
+
+		.island-title,
+		h1 {
+			margin-bottom: 1rem;
+		}
+	}
+
+	&__footer {
+		height    : auto;
+		background: transparent;
+	}
+}
+
+///-----------------------------------------------
+///Header
+.header {
+	margin         : 0 auto 1rem;
+	height         : 60px;
+	background     : url($background-image) no-repeat center;
+	background-size: contain;
+	@include sm-down() {
+		background-size: 150px;
+	}
+	@include media-query(tablet) {
+		background-size: 300px;
+	}
+}
+
+///-----------------------------------------------
+///Nav
+.nav {
+	display        : flex;
+	justify-content: space-between;
+	padding        : 0.5rem 1rem;
+
+	ul {
+		margin         : 0;
+		padding        : 0;
+		display        : flex;
+		align-self     : center;
+		justify-content: center;
+		list-style-type: none;
+	}
+}
+
+///-----------------------------------------------
+
+///Email Sent
+.predix-layout .island-content {
+	display       : flex;
+	flex-direction: column;
+	padding       : 0;
+}
+
+.island .island-content .left,
+.island .island-content .right {
+	display: block !important;
+}
+
+.island-content {
+	padding: 0;
+}
+
+.island-title {
+	margin-bottom: 1rem;
+}
+
+///Content
+.island {
+	border-radius   : 0;
+	color           : $island-font-color;
+	transition      : $island-transition;
+	max-width       : $island-max-width;
+	background-color: $island-background-color;
+	//box-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+	margin          : 0 auto;
+	padding         : 0;
+	max-width       : 330px;
+	box-sizing      : border-box;
+	display         : flex;
+	flex-direction  : column;
+	justify-content : center;
+	@include media-query(desktop) {
+		max-width: 400px;
+	}
+
+	h1 {
+		margin: 1rem 0;
+	}
+
+	///-----------------------------------------------
+	///Buttons
+	&-button,
+	.forgot-password-button,
+	form button,
+	input[type=submit] {
+		padding         : 0.5rem 1rem;
+		font-size       : 1.2rem;
+		border-radius   : 4px !important;
+		border          : 1px solid $predix-border-color;
+		background-color: $predix-border-color;
+		color           : $white;
+		text-align      : center;
+		cursor          : pointer;
+		appearance      : none;
+		outline         : none;
+		user-select     : none;
+		min-height      : 48px;
+		transition      : all 0.5s;
+		margin-top      : 1rem;
+
+		&:hover {
+			border          : 1px solid $predix-border-color--hover;
+			background-color: $predix-border-color--hover;
+			color           : $white;
+			box-shadow      : none;
+		}
+
+		&:active,
+		&:focus {
+			opacity: 0.8;
+		}
+	}
+
+	&-button--alt {
+		border-color    : #00659e;
+		background-color: transparent;
+		color           : #5184ad;
+	}
+
+	///-----------------------------------------------
+	///Footer
+	&-footer {
+
+		//border-top     : 1px solid #4A4A4A;
+		display        : flex;
+		//	align-items: center;
+		justify-content: space-between;
+		padding        : 1rem 0;
+		display: none !important;
+		opacity: 0;
+		> * {
+			//flex: 1;
+			//align-self: center;
+		}
+	}
+	///-----------------------------------------------
+	////*Create Account / Reset Password*/
+	.left,
+	.right {
+		display: none;
+	}
+
+	.left {
+		float     : left;
+		text-align: left;
+	}
+
+	.right {
+		float     : right;
+		text-align: right;
+	}
+}
+
+.alert-error p:before {
+	content: '';
+}
+
+///-----------------------------------------------
+///Forms
+form {
+	display       : flex;
+	flex-direction: column;
+	padding       : 0;
+	///-----------------------------------------------
+	/* Inputs */
+	input[type=email],
+	input[type=password],
+	input[type=text] {
+		box-sizing   : border-box;
+		appearance   : none;
+		flex         : 1;
+		display      : block;
+		border       : 1px solid $input-border-color;
+		width        : 100%;
+		line-height  : 28px;
+		margin-bottom: 0.8rem;
+		padding      : 0.5rem;
+		min-height   : 3rem;
+
+		&:active,
+		&:focus {
+			border    : $input-active-border;
+			box-shadow: inset 0 0 3px 1px $predix-input-border-color;
+			outline   : none;
+		}
+
+		&::-webkit-input-placeholder {
+			font-style: normal;
+		}
+
+		&::-moz-placeholder {
+			font-style: normal;
+		}
+
+		&:-ms-input-placeholder {
+			font-style: normal;
+		}
+
+		&::placeholder {
+			font-style: normal;
+		}
+	}
+}
+
+///-----------------------------------------------
+///Alerts
+.alert,
+.alert-error,
+.error-message {
+	padding      : 0;
+	margin-bottom: 1.5rem;
+	@include media-query(mobile) {
+		font-size: 0.9rem;
+	}
+}
+
+.alert-error,
+.error-message {
+	background-color: transparent;
+	border          : none;
+	font-size       : 16px;
+	line-height     : 1.66667;
+	color           : #dd2432;
+	font-weight     : 700;
+
+	&:after {
+		//content: $error-message;
+	}
+}
+
+///-----------------------------------------------
+////* Saml */
+.saml-login {
+	color    : $gray5;
+	font-size: 0.9rem;
+	padding  : 0.5rem 0;
+
+	&:empty {
+		display: none;
+	}
+}
+
+///-----------------------------------------------
+////*Footer*/
+.footer {
+	position: absolute;
+	bottom  : 0;
+	left    : 0;
+	right   : 0;
+	color   : $gray8;
+	display : flex;
+	height: auto !important;
+	background: transparent !important;
+
+	.copyright {
+		flex           : 1;
+		display        : flex;
+		align-self     : center;
+		justify-content: center;
+		padding        : 1rem;
+		font-size      : 10px;
+		@include media-query(mobile) {
+			font-size: 0.7rem;
+			font-size: 3vw;
+		}
+
+		a {
+			padding: 0 1rem;
+		}
+	}
+}
+
+///-----------------------------------------------
+///Panel
+.panel {
+	width  : 100%;
+	margin : 1rem auto;
+	padding: 1rem;
+
+	h1,
+	h2 {
+		color: #333 !important;
+	}
+
+	.actions {
+		display        : flex;
+		justify-content: space-around;
+
+		button {
+			flex       : 1;
+			height     : auto;
+			line-height: auto;
+		}
+	}
+}
+
+
+@include margins();
+@include paddings();

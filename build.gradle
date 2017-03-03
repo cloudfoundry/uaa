@@ -6,7 +6,7 @@ buildscript {
 
   repositories {
     mavenCentral()
-    jcenter()
+    //jcenter()
     maven {
       url 'http://repo.spring.io/plugins-release'
     }
@@ -19,13 +19,14 @@ buildscript {
     classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
     classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
-    classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.8'
     classpath group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
     classpath group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '6.1.0.jre8'
     classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
     classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
     classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.2.2"
     classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+    classpath 'org.springframework.cloud:spring-cloud-spring-service-connector:1.1.1.RELEASE'
+    classpath 'org.springframework.cloud:spring-cloud-cloudfoundry-connector:1.1.1.RELEASE'
   }
 }
 
@@ -34,9 +35,7 @@ apply plugin: "com.dorongold.task-tree"
 ext {
   databaseType = {
     List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
-    if (activeProfiles.contains('mysql')) {
-      'mysql'
-    } else if (activeProfiles.contains('postgresql')) {
+    if (activeProfiles.contains('postgresql')) {
       'postgresql'
     } else if (activeProfiles.contains('sqlserver')){
       'sqlserver'
@@ -50,6 +49,11 @@ ext {
 apply from: file('shared_versions.gradle')
 
 def uaaVersion = version
+def geArtifactoryReader = System.getenv('ARTIFACTORY_READER')
+def geArtifactoryReaderPassword  = System.getenv('ARTIFACTORY_READER_PW')
+def proxyHost  = System.getenv('PROXY_HOST')
+def proxyPort  = System.getenv('PROXY_PORT')
+def nonProxyHosts = 'localhost|*.localhost'
 
 allprojects {
   apply plugin: 'maven'
@@ -67,6 +71,11 @@ allprojects {
   repositories {
     mavenCentral()
   }
+
+  tasks.withType(Test) {
+    systemProperties = System.properties
+    systemProperties['user.dir'] = workingDir
+  }
 }
 
 //apply plugin: 'com.bmuschko.cargo-base'
@@ -76,13 +85,6 @@ apply plugin: 'jacoco'
 
 flyway {
   switch (databaseType()) {
-    case 'mysql':
-      driver = 'org.mariadb.jdbc.Driver'
-      url = 'jdbc:mysql://localhost:3306/uaa'
-      user = 'root'
-      password = 'changeme'
-      schemas = ['uaa']
-      break
     case 'postgresql':
       driver = 'org.postgresql.Driver'
       url = 'jdbc:postgresql:uaa'
@@ -147,6 +149,7 @@ subprojects {
 
   task integrationTest(type: Test) {
     dependsOn rootProject.cargoStartLocal
+    finalizedBy rootProject.cargoStopLocal
   }
 
   task packageSources(type: Jar) {
@@ -259,15 +262,29 @@ cargo {
   }
 
   local {
-    jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData} -DLOGIN_CONFIG_URL=file://"+new File(".").absolutePath+"/uaa/src/main/resources/required_configuration.yml"
+    //jacoco agent jar is causing startup to fail. see defect DE30159
+    jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
+    //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+    jvmArgs = ""
     outputFile = file('uaa/build/reports/tests/uaa-server.log')
     configFile {
       file = file('scripts/travis/tomcat-conf/context.xml')
       toDir = 'conf'
-
     }
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+      if (System.getProperty('mode') == 'truststoreWithLdapCerts') {
+        property 'javax.net.ssl.trustStore', "${projectDir}/scripts/ldap/truststore-with-ldap-certs.jks"
+        property 'javax.net.ssl.trustStoreType', 'JKS'
+      }
+      property 'http.proxyHost', proxyHost
+      property 'http.proxyPort', proxyPort
+      property 'https.proxyHost', proxyHost
+      property 'https.proxyPort', proxyPort
+      property 'http.nonProxyHosts', nonProxyHosts
+      property 'NUREGO_BATCH_INTERVAL_SECONDS', '1'
+      property 'NUREGO_BATCH_MAX_MAP_SIZE', '1'
+      property 'METER_BASE_DOMAIN', 'localhost'
     }
 
     installer {
@@ -286,7 +303,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     }
 
     local {
-//      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+      //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
       systemProperties {
           //property 'uaa.allowUnverifiedUsers', 'false'
@@ -311,6 +328,7 @@ def publishedProjects = subprojects
 assemble.dependsOn subprojects.assemble
 
 task integrationTest {
+  dependsOn cargoStartLocal
   finalizedBy cargoStopLocal
 }
 integrationTest.dependsOn subprojects.integrationTest

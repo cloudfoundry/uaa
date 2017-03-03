@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -86,9 +87,10 @@ import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
-public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
+public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData>  implements InitializingBean {
 
     public static Log logger = LogFactory.getLog(XOAuthAuthenticationManager.class);
 
@@ -97,6 +99,11 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning, RestTemplateFactory restTemplateFactory) {
         super(providerProvisioning);
         this.restTemplateFactory = restTemplateFactory;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+    	restTemplateHolder.get().getRestTemplate(false).setRequestFactory(createRequestFactory());
     }
 
     @Override
@@ -316,6 +323,31 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return provider.getConfig().isAddShadowUserOnLogin();
     }
 
+    /*
+    * BEGIN
+    * The following thread local only exists to satisfy that the unit test
+    * that require the template to be bound to the mock server
+    */
+    public static class RestTemplateHolder {
+        private final RestTemplate skipSslValidationTemplate;
+        private final RestTemplate restTemplate;
+
+        public RestTemplateHolder() {
+            skipSslValidationTemplate = new RestTemplate(createRequestFactory(true));
+            restTemplate = new RestTemplate(createRequestFactory(false));
+        }
+
+        public RestTemplate getRestTemplate(boolean skipSslValidation) {
+            return skipSslValidation ? skipSslValidationTemplate : restTemplate;
+        }
+    }
+
+    private ThreadLocal<RestTemplateHolder> restTemplateHolder = new ThreadLocal<RestTemplateHolder>() {
+        @Override
+        protected RestTemplateHolder initialValue() {return new RestTemplateHolder();
+        }
+    };
+
     public RestTemplate getRestTemplate(AbstractXOAuthIdentityProviderDefinition config) {
         return restTemplateFactory.getRestTemplate(config.isSkipSslValidation());
     }
@@ -422,7 +454,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                               new ParameterizedTypeReference<Map<String, String>>() {
                               }
                     );
+
             logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
+            //TODO how to reincorporate
+//            if (config.isSkipSslValidation()) {
+//                restTemplate.setRequestFactory(createRequestFactory(true));
+//            }
             return responseEntity.getBody().get(ID_TOKEN);
         } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;
@@ -433,7 +470,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         return "Basic " + clientAuth;
     }
-
+    
     protected static class AuthenticationData {
 
         private Map<String, Object> claims;

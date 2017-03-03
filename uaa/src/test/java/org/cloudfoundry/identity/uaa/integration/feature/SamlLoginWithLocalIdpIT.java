@@ -353,7 +353,8 @@ public class SamlLoginWithLocalIdpIT {
     @Test
     public void testLocalSamlIdpLogin() throws Exception {
         ScimUser user = IntegrationTestUtils.createRandomUser(this.baseUrl);
-        testLocalSamlIdpLogin("/login", "Where to?", user.getPrimaryEmail(), "secr3T");
+        //This is modified for branding login.yml changes...
+        testLocalSamlIdpLogin("/login", "You should not see this page. Set up your redirect URI.", user.getPrimaryEmail(), "secr3T");
     }
 
     private void testLocalSamlIdpLogin(String firstUrl, String lookfor, String username, String password)
@@ -370,7 +371,8 @@ public class SamlLoginWithLocalIdpIT {
         assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
         webDriver.get(baseUrl + firstUrl);
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        //This is modified for branding login.yml changes...
+        Assert.assertEquals("Predix", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
         webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome!')]"));
         webDriver.findElement(By.name("username")).clear();
@@ -455,7 +457,8 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("username")).sendKeys(zoneUserEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        //This is modified for branding login.yml changes...
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("You should not see this page. Set up your redirect URI."));
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(testZone1Url + "/logout.do");
@@ -565,7 +568,9 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("username")).sendKeys(idpZoneUserEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+
+        //This is modified for branding login.yml changes...
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("You should not see this page. Set up your redirect URI."));
         Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
         assertNotNull(afterLogin);
         assertNotNull(afterLogin.getValue());

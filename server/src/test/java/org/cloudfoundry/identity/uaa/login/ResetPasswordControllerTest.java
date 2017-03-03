@@ -168,7 +168,8 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             String emailContent = captor.getValue();
             assertThat(emailContent, containsString(String.format("A request has been made to reset your %s account password for %s", companyName, "user@example.com")));
             assertThat(emailContent, containsString("Your account credentials for " + domain + " are managed by an external service. Please contact your administrator for password recovery requests."));
-            assertThat(emailContent, containsString("Thank you,<br />\n    " + companyName));
+            assertThat(emailContent, containsString("Thank you"));
+            assertThat(emailContent, containsString(companyName));
         } finally {
             IdentityZoneHolder.get().setConfig(defaultConfig);
         }

@@ -55,11 +55,9 @@ dependencies {
 
   compile group: 'org.hibernate', name: 'hibernate-validator', version: parent.hibernateValidatorVersion
   compile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
-  compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: parent.mariaDBClientVersion
-  compile(group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion) {
-    exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
-  }
   compile group: 'org.hsqldb', name: 'hsqldb', version: parent.hsqldbVersion
+  compile group: 'org.springframework.cloud', name: 'spring-cloud-spring-service-connector', version:'1.2.1.RELEASE'
+  compile group: 'org.springframework.cloud', name: 'spring-cloud-cloudfoundry-connector', version:'1.2.1.RELEASE'
 
   compile group: 'org.yaml', name: 'snakeyaml', version: parent.snakeYamlVersion
 
@@ -96,6 +94,16 @@ processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-server') : line }
+}
+
+def proxyHost  = System.getenv('PROXY_HOST')
+def proxyPort  = System.getenv('PROXY_PORT')
+def nonProxyHosts = 'localhost|*.localhost'
+
+tasks.withType(Test) {
+  systemProperties = System.properties
+  systemProperty "mock.suite.test", "true"
+  systemProperties['user.dir'] = workingDir
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any

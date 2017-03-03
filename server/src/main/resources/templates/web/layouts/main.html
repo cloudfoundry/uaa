@@ -4,9 +4,9 @@
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
                 branding=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).resolveBranding()},
-                companyName=${branding.getCompanyName() ?: 'Cloud Foundry'},
-                copyrightCompanyName=${branding.getCompanyName() ?: 'CloudFoundry.org Foundation, Inc. '},
-                copyrightFallback=${'Copyright &#169; ' + copyrightCompanyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.'},
+                companyName=${branding.getCompanyName() ?: @environment.getProperty('login.branding.companyName', 'Predix')},
+                copyrightCompanyName=${branding.getCompanyName() ?: 'General Electric Company'},
+                copyrightFallback=${'Copyright &#169; ' + #dates.year(#dates.createNow()) + ' ' + copyrightCompanyName + '. All Rights Reserved.'},
                 copyright=${branding.getFooterLegalText() ?: copyrightFallback}" >
 <head>
     <title th:text="${isUaa ? companyName : zoneName}" th:inline="text"></title>
@@ -17,55 +17,50 @@
     <meta name='robots' content='all' />
     <meta name='Description' content=""/>
     <meta name='keywords' content=""/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
-    <style th:with="logo=${branding.getProductLogo()}" th:text="'.header-image {' + (|background-image: url(@{${logo != null ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : isUaa ? assetBaseUrl+'/images/product-logo.png' : null }});|) + '}'">
-        .header-image {
-            background-image: url(/resources/oss/images/product-logo.png);
-        }
-    </style>
+    <link th:href="@{${assetBaseUrl}+'/stylesheets/predix-styles.css'}" rel="stylesheet"/>
 </head>
-<body>
-<div class="content">
-    <div class="header">
+<body class="predix-uaa">
+  <div class="predix-uaa__wrap">
+    <div class="predix-uaa__header">
+      <div id="logo-header" class="header">
         <div layout:fragment="page-nav"></div>
-        <div class="header-image"></div>
+      </div>
     </div>
+    <div class="predix-uaa__content" layout:fragment="page-content"></div>
+  </div>
+  <div class="footer">
+      <div class="copyright"
+           th:with="links=${branding.getFooterLinks() ?: @environment.getProperty('login.branding.footerLinks', Class.forName('java.util.Map'))}"
+           th:inline="text"
+           th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
+           [[${copyright}]]
+           <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
+      </div>
+  </div>
 
-    <div layout:fragment="page-content"></div>
-    <div class="footer-spacer"></div>
-</div>
-<div class="footer">
-    <div class="copyright"
-         th:with="links=${branding.getFooterLinks()}"
-         th:inline="text"
-         th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
-         [[${copyright}]]
-         <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
-    </div>
-</div>
-
-<th:block th:with="code=${@environment.getProperty('analytics.code')},domain=${@environment.getProperty('analytics.domain')}">
-    <th:block th:if="${code} and ${domain}">
-        <script>
-            (function(i, s, o, g, r, a, m) {
-                i['GoogleAnalyticsObject'] = r;
-                i[r] = i[r] || function() {
-                    (i[r].q = i[r].q || []).push(arguments)
-                }, i[r].l = 1 * new Date();
-                a = s.createElement(o), m = s.getElementsByTagName(o)[0];
-                a.async = 1;
-                a.src = g;
-                m.parentNode.insertBefore(a, m)
-            })(window, document, 'script',
-                    '//www.google-analytics.com/analytics.js', 'ga');
-        </script>
-        <script th:utext="|ga('create', '${code}','${domain}');|"></script>
-        <script>
-            ga('send', 'pageview');
-        </script>
-    </th:block>
-</th:block>
+  <th:block th:with="code=${@environment.getProperty('analytics.code')},domain=${@environment.getProperty('analytics.domain')}">
+      <th:block th:if="${code} and ${domain}">
+          <script>
+              (function(i, s, o, g, r, a, m) {
+                  i['GoogleAnalyticsObject'] = r;
+                  i[r] = i[r] || function() {
+                      (i[r].q = i[r].q || []).push(arguments)
+                  }, i[r].l = 1 * new Date();
+                  a = s.createElement(o), m = s.getElementsByTagName(o)[0];
+                  a.async = 1;
+                  a.src = g;
+                  m.parentNode.insertBefore(a, m)
+              })(window, document, 'script',
+                      '//www.google-analytics.com/analytics.js', 'ga');
+          </script>
+          <script th:utext="|ga('create', '${code}','${domain}');|"></script>
+          <script>
+              ga('send', 'pageview');
+          </script>
+      </th:block>
+  </th:block>
 </body>
 </html>

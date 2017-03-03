@@ -1,0 +1,856 @@
+@font-face {
+  font-family: 'GE Inspira';
+  font-weight: normal;
+  font-style: normal;
+  src: url("../fonts/GEInspMd.eot");
+  src: url("../fonts/GEInspMd.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspMd.woff") format("woff"), url("../fonts/GEInspMd.ttf") format("truetype"), url("../fonts/GEInspMd.svg#GE Inspira") format("svg"); }
+@font-face {
+  font-family: 'GE Inspira';
+  font-weight: normal;
+  font-style: italic;
+  src: url("../fonts/GEInspMdIt.eot");
+  src: url("../fonts/GEInspMdIt.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspMdIt.woff") format("woff"), url("../fonts/GEInspMdIt.ttf") format("truetype"), url("../fonts/GEInspMdIt.svg#GE Inspira") format("svg"); }
+@font-face {
+  font-family: 'GE Inspira';
+  font-weight: bold;
+  font-style: normal;
+  src: url("../fonts/GEInspBd.eot");
+  src: url("../fonts/GEInspBd.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspBd.woff") format("woff"), url("../fonts/GEInspBd.ttf") format("truetype"), url("../fonts/GEInspBd.svg#GE Inspira") format("svg"); }
+@font-face {
+  font-family: 'GE Inspira';
+  font-weight: bold;
+  font-style: italic;
+  src: url("../fonts/GEInspBI.eot");
+  src: url("../fonts/GEInspBI.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspBI.woff") format("woff"), url("../fonts/GEInspBI.ttf") format("truetype"), url("../fonts/GEInspBI.svg#GE Inspira") format("svg"); }
+@font-face {
+  font-family: 'GE Inspira Sans';
+  font-weight: normal;
+  font-style: normal;
+  src: url("../fonts/GEInspiraSans-Regular-v01.eot");
+  src: url("../fonts/GEInspiraSans-Regular-v01.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspiraSans-Regular-v01.woff") format("woff"), url("../fonts/GEInspiraSans-Regular-v01.ttf") format("truetype"), url("../fonts/GEInspiraSans-Regular-v01.svg#GE Inspira Sans") format("svg"); }
+@font-face {
+  font-family: 'GE Inspira Sans';
+  font-weight: normal;
+  font-style: italic;
+  src: url("../fonts/GEInspiraSans-Italic-v01.eot");
+  src: url("../fonts/GEInspiraSans-Italic-v01.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspiraSans-Italic-v01.woff") format("woff"), url("../fonts/GEInspiraSans-Italic-v01.ttf") format("truetype"), url("../fonts/GEInspiraSans-Italic-v01.svg#GE Inspira Sans") format("svg"); }
+@font-face {
+  font-family: 'GE Inspira Sans';
+  font-weight: bold;
+  font-style: normal;
+  src: url("../fonts/GEInspiraSans-Bold-v01.eot");
+  src: url("../fonts/GEInspiraSans-Bold-v01.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspiraSans-Bold-v01.woff") format("woff"), url("../fonts/GEInspiraSans-Bold-v01.ttf") format("truetype"), url("../fonts/GEInspiraSans-Bold-v01.svg#GE Inspira Sans") format("svg"); }
+@font-face {
+  font-family: 'GE Inspira Sans';
+  font-weight: bold;
+  font-style: italic;
+  src: url("../fonts/GEInspiraSans-BoldItalic-v01.eot");
+  src: url("../fonts/GEInspiraSans-BoldItalic-v01.eot?#iefix") format("embedded-opentype"), url("../fonts/GEInspiraSans-BoldItalic-v01.woff") format("woff"), url("../fonts/GEInspiraSans-BoldItalic-v01.ttf") format("truetype"), url("../fonts/GEInspiraSans-BoldItalic-v01.svg#GE Inspira Sans") format("svg"); }
+html {
+  font-family: 'GE Inspira Sans', sans-serif; }
+
+html {
+  background: #333;
+  font-size: 16px;
+  overflow: hidden;
+  max-width: none !important;
+  height: 100%;
+  width: 100%;
+  min-height: auto !important; }
+  @media (max-width: 51.13333rem) {
+    html {
+      overflow: auto; } }
+
+hr {
+  margin-top: 5rem; }
+
+body {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  font-size: 1rem;
+  max-width: none !important;
+  position: relative;
+  min-height: auto !important; }
+
+.brand {
+  display: block;
+  min-width: 200px;
+  background-size: 130px !important;
+  background: url("../images/predix-word.svg") no-repeat center;
+  background-size: contain;
+  text-indent: -99999px; }
+
+.top-header {
+  display: flex;
+  position: absolute; }
+
+.box {
+  position: relative; }
+
+.box--has-header {
+  padding-top: 65px; }
+
+.content {
+  max-width: 80em;
+  margin: 1rem auto; }
+
+.link-lowlight {
+  flex: 1; }
+
+.link-lowlight:hover,
+a:active,
+a:hover {
+  outline: 0;
+  color: #3ab4d4; }
+
+.link-lowlight,
+a,
+a:link,
+a:visited {
+  outline: 0;
+  color: #2886af;
+  text-decoration: none; }
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  margin: 0;
+  padding: 0; }
+
+.alpha {
+  font-size: 5rem;
+  line-height: 1.06667; }
+
+.beta {
+  font-size: 4rem;
+  line-height: 1; }
+
+.gamma {
+  font-size: 3rem;
+  line-height: 1.33333; }
+
+.delta {
+  font-size: 2rem;
+  line-height: 1.33333; }
+
+.epsilon {
+  font-size: 1.33333rem;
+  line-height: 1; }
+
+.zeta {
+  font-size: 0.8rem;
+  line-height: 1.66667; }
+
+h1 {
+  display: block;
+  text-align: center;
+  font-size: 1.5rem; }
+  @media only screen and (max-width: 320px) {
+    h1 {
+      font-size: 1rem; } }
+
+.predix-uaa {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-height: auto !important; }
+  @media (max-width: 31.93333rem) {
+    .predix-uaa {
+      justify-content: initial; } }
+  .predix-uaa__header h1 {
+    margin-bottom: 1rem; }
+  .predix-uaa__wrap {
+    max-width: 80em;
+    margin: 1rem;
+    min-width: 330px; }
+    @media (max-width: 51.13333rem) {
+      .predix-uaa__wrap {
+        min-width: 300px;
+        width: 300px; } }
+  .predix-uaa__content {
+    display: flex;
+    flex-direction: column; }
+    .predix-uaa__content .island-title,
+    .predix-uaa__content h1 {
+      margin-bottom: 1rem; }
+  .predix-uaa__footer {
+    height: auto;
+    background: transparent; }
+
+.header {
+  margin: 0 auto 1rem;
+  height: 60px;
+  background: url("../images/predix-word.svg") no-repeat center;
+  background-size: contain; }
+  @media (max-width: 51.13333rem) {
+    .header {
+      background-size: 150px; } }
+  @media only screen and (min-width: 321px) and (max-width: 1024px) {
+    .header {
+      background-size: 300px; } }
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem; }
+  .nav ul {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-self: center;
+    justify-content: center;
+    list-style-type: none; }
+
+.predix-layout .island-content {
+  display: flex;
+  flex-direction: column;
+  padding: 0; }
+
+.island .island-content .left,
+.island .island-content .right {
+  display: block !important; }
+
+.island-content {
+  padding: 0; }
+
+.island-title {
+  margin-bottom: 1rem; }
+
+.island {
+  border-radius: 0;
+  color: #fff;
+  transition: all 0.5 ease;
+  max-width: 290px;
+  background-color: transparent;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 330px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; }
+  @media only screen and (min-width: 1024px) {
+    .island {
+      max-width: 400px; } }
+  .island h1 {
+    margin: 1rem 0; }
+  .island-button,
+  .island .forgot-password-button,
+  .island form button,
+  .island input[type=submit] {
+    padding: 0.5rem 1rem;
+    font-size: 1.2rem;
+    border-radius: 4px !important;
+    border: 1px solid #2886af;
+    background-color: #2886af;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    appearance: none;
+    outline: none;
+    user-select: none;
+    min-height: 48px;
+    transition: all 0.5s;
+    margin-top: 1rem; }
+    .island-button:hover,
+    .island .forgot-password-button:hover,
+    .island form button:hover,
+    .island input[type=submit]:hover {
+      border: 1px solid #3ab4d4;
+      background-color: #3ab4d4;
+      color: #fff;
+      box-shadow: none; }
+    .island-button:active, .island-button:focus,
+    .island .forgot-password-button:active,
+    .island .forgot-password-button:focus,
+    .island form button:active,
+    .island form button:focus,
+    .island input[type=submit]:active,
+    .island input[type=submit]:focus {
+      opacity: 0.8; }
+  .island-button--alt {
+    border-color: #00659e;
+    background-color: transparent;
+    color: #5184ad; }
+  .island-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0;
+    display: none !important;
+    opacity: 0; }
+  .island .left,
+  .island .right {
+    display: none; }
+  .island .left {
+    float: left;
+    text-align: left; }
+  .island .right {
+    float: right;
+    text-align: right; }
+
+.alert-error p:before {
+  content: ''; }
+
+form {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  /* Inputs */ }
+  form input[type=email],
+  form input[type=password],
+  form input[type=text] {
+    box-sizing: border-box;
+    appearance: none;
+    flex: 1;
+    display: block;
+    border: 1px solid #D8D8D8;
+    width: 100%;
+    line-height: 28px;
+    margin-bottom: 0.8rem;
+    padding: 0.5rem;
+    min-height: 3rem; }
+    form input[type=email]:active, form input[type=email]:focus,
+    form input[type=password]:active,
+    form input[type=password]:focus,
+    form input[type=text]:active,
+    form input[type=text]:focus {
+      border: 1px solid rgba(40, 134, 175, 0.8);
+      box-shadow: inset 0 0 3px 1px rgba(40, 134, 175, 0.8);
+      outline: none; }
+    form input[type=email]::-webkit-input-placeholder,
+    form input[type=password]::-webkit-input-placeholder,
+    form input[type=text]::-webkit-input-placeholder {
+      font-style: normal; }
+    form input[type=email]::-moz-placeholder,
+    form input[type=password]::-moz-placeholder,
+    form input[type=text]::-moz-placeholder {
+      font-style: normal; }
+    form input[type=email]:-ms-input-placeholder,
+    form input[type=password]:-ms-input-placeholder,
+    form input[type=text]:-ms-input-placeholder {
+      font-style: normal; }
+    form input[type=email]::placeholder,
+    form input[type=password]::placeholder,
+    form input[type=text]::placeholder {
+      font-style: normal; }
+
+.alert,
+.alert-error,
+.error-message {
+  padding: 0;
+  margin-bottom: 1.5rem; }
+  @media only screen and (max-width: 320px) {
+    .alert,
+    .alert-error,
+    .error-message {
+      font-size: 0.9rem; } }
+
+.alert-error,
+.error-message {
+  background-color: transparent;
+  border: none;
+  font-size: 16px;
+  line-height: 1.66667;
+  color: #dd2432;
+  font-weight: 700; }
+
+.saml-login {
+  color: #eee;
+  font-size: 0.9rem;
+  padding: 0.5rem 0; }
+  .saml-login:empty {
+    display: none; }
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: #888;
+  display: flex;
+  height: auto !important;
+  background: transparent !important; }
+  .footer .copyright {
+    flex: 1;
+    display: flex;
+    align-self: center;
+    justify-content: center;
+    padding: 1rem;
+    font-size: 10px; }
+    @media only screen and (max-width: 320px) {
+      .footer .copyright {
+        font-size: 0.7rem;
+        font-size: 3vw; } }
+    .footer .copyright a {
+      padding: 0 1rem; }
+
+.panel {
+  width: 100%;
+  margin: 1rem auto;
+  padding: 1rem; }
+  .panel h1,
+  .panel h2 {
+    color: #333 !important; }
+  .panel .actions {
+    display: flex;
+    justify-content: space-around; }
+    .panel .actions button {
+      flex: 1;
+      height: auto;
+      line-height: auto; }
+
+/**
+     * Margin helper classes.
+     *
+     * Add margins.
+     */
+.u-m {
+  margin: 1rem !important; }
+
+.u-mt {
+  margin-top: 1rem !important; }
+
+.u-mr {
+  margin-right: 1rem !important; }
+
+.u-mb {
+  margin-bottom: 1rem !important; }
+
+.u-ml {
+  margin-left: 1rem !important; }
+
+.u-mh {
+  margin-right: 1rem !important;
+  margin-left: 1rem !important; }
+
+.u-mv {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important; }
+
+/**
+     * Add tiny margins.
+     */
+.u-m-- {
+  margin: 0.33333rem !important; }
+
+.u-mt-- {
+  margin-top: 0.33333rem !important; }
+
+.u-mr-- {
+  margin-right: 0.33333rem !important; }
+
+.u-mb-- {
+  margin-bottom: 0.33333rem !important; }
+
+.u-ml-- {
+  margin-left: 0.33333rem !important; }
+
+.u-mh-- {
+  margin-right: 0.33333rem !important;
+  margin-left: 0.33333rem !important; }
+
+.u-mv-- {
+  margin-top: 0.33333rem !important;
+  margin-bottom: 0.33333rem !important; }
+
+/**
+     * Add small margins.
+     */
+.u-m- {
+  margin: 0.66667rem !important; }
+
+.u-mt- {
+  margin-top: 0.66667rem !important; }
+
+.u-mr- {
+  margin-right: 0.66667rem !important; }
+
+.u-mb- {
+  margin-bottom: 0.66667rem !important; }
+
+.u-ml- {
+  margin-left: 0.66667rem !important; }
+
+.u-mh- {
+  margin-right: 0.66667rem !important;
+  margin-left: 0.66667rem !important; }
+
+.u-mv- {
+  margin-top: 0.66667rem !important;
+  margin-bottom: 0.66667rem !important; }
+
+/**
+     * Add large margins.
+     */
+.u-m\00002b {
+  margin: 1.33333rem !important; }
+
+.u-mt\00002b {
+  margin-top: 1.33333rem !important; }
+
+.u-mr\00002b {
+  margin-right: 1.33333rem !important; }
+
+.u-mb\00002b {
+  margin-bottom: 1.33333rem !important; }
+
+.u-ml\00002b {
+  margin-left: 1.33333rem !important; }
+
+.u-mh\00002b {
+  margin-right: 1.33333rem !important;
+  margin-left: 1.33333rem !important; }
+
+.u-mv\00002b {
+  margin-top: 1.33333rem !important;
+  margin-bottom: 1.33333rem !important; }
+
+/**
+     * Add huge margins.
+     */
+.u-m\00002b\00002b {
+  margin: 2rem !important; }
+
+.u-mt\00002b\00002b {
+  margin-top: 2rem !important; }
+
+.u-mr\00002b\00002b {
+  margin-right: 2rem !important; }
+
+.u-mb\00002b\00002b {
+  margin-bottom: 2rem !important; }
+
+.u-ml\00002b\00002b {
+  margin-left: 2rem !important; }
+
+.u-mh\00002b\00002b {
+  margin-right: 2rem !important;
+  margin-left: 2rem !important; }
+
+.u-mv\00002b\00002b {
+  margin-top: 2rem !important;
+  margin-bottom: 2rem !important; }
+
+/**
+     * Remove margins.
+     */
+.u-m0 {
+  margin: 0 !important; }
+
+.u-mt0 {
+  margin-top: 0 !important; }
+
+.u-mr0 {
+  margin-right: 0 !important; }
+
+.u-mb0 {
+  margin-bottom: 0 !important; }
+
+.u-ml0 {
+  margin-left: 0 !important; }
+
+.u-mh0 {
+  margin-right: 0 !important;
+  margin-left: 0 !important; }
+
+.u-mv0 {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important; }
+
+/**
+     * Negative margins.
+     */
+.u--m {
+  margin: -1rem !important; }
+
+.u--mt {
+  margin-top: -1rem !important; }
+
+.u--mr {
+  margin-right: -1rem !important; }
+
+.u--mb {
+  margin-bottom: -1rem !important; }
+
+.u--ml {
+  margin-left: -1rem !important; }
+
+.u--mh {
+  margin-right: -1rem !important;
+  margin-left: -1rem !important; }
+
+.u--mv {
+  margin-top: -1rem !important;
+  margin-bottom: -1rem !important; }
+
+/**
+     * Tiny negative margins.
+     */
+.u--m-- {
+  margin: -0.33333rem !important; }
+
+.u--mt-- {
+  margin-top: -0.33333rem !important; }
+
+.u--mr-- {
+  margin-right: -0.33333rem !important; }
+
+.u--mb-- {
+  margin-bottom: -0.33333rem !important; }
+
+.u--ml-- {
+  margin-left: -0.33333rem !important; }
+
+.u--mh-- {
+  margin-right: -0.33333rem !important;
+  margin-left: -0.33333rem !important; }
+
+.u--mv-- {
+  margin-top: -0.33333rem !important;
+  margin-bottom: -0.33333rem !important; }
+
+/**
+     * Small negative margins.
+     */
+.u--m- {
+  margin: -0.66667rem !important; }
+
+.u--mt- {
+  margin-top: -0.66667rem !important; }
+
+.u--mr- {
+  margin-right: -0.66667rem !important; }
+
+.u--mb- {
+  margin-bottom: -0.66667rem !important; }
+
+.u--ml- {
+  margin-left: -0.66667rem !important; }
+
+.u--mh- {
+  margin-right: -0.66667rem !important;
+  margin-left: -0.66667rem !important; }
+
+.u--mv- {
+  margin-top: -0.66667rem !important;
+  margin-bottom: -0.66667rem !important; }
+
+/**
+     * Large negative margins.
+     */
+.u--m\00002b {
+  margin: -1.33333rem !important; }
+
+.u--mt\00002b {
+  margin-top: -1.33333rem !important; }
+
+.u--mr\00002b {
+  margin-right: -1.33333rem !important; }
+
+.u--mb\00002b {
+  margin-bottom: -1.33333rem !important; }
+
+.u--ml\00002b {
+  margin-left: -1.33333rem !important; }
+
+.u--mh\00002b {
+  margin-right: -1.33333rem !important;
+  margin-left: -1.33333rem !important; }
+
+.u--mv\00002b {
+  margin-top: -1.33333rem !important;
+  margin-bottom: -1.33333rem !important; }
+
+/**
+     * Huge negative margins.
+     */
+.u--m\00002b\00002b {
+  margin: -2rem !important; }
+
+.u--mt\00002b\00002b {
+  margin-top: -2rem !important; }
+
+.u--mr\00002b\00002b {
+  margin-right: -2rem !important; }
+
+.u--mb\00002b\00002b {
+  margin-bottom: -2rem !important; }
+
+.u--ml\00002b\00002b {
+  margin-left: -2rem !important; }
+
+.u--mh\00002b\00002b {
+  margin-right: -2rem !important;
+  margin-left: -2rem !important; }
+
+.u--mv\00002b\00002b {
+  margin-top: -2rem !important;
+  margin-bottom: -2rem !important; }
+
+/**
+     * Padding helper classes.
+     *
+     * Add paddings.
+     */
+.u-p {
+  padding: 1rem !important; }
+
+.u-pt {
+  padding-top: 1rem !important; }
+
+.u-pr {
+  padding-right: 1rem !important; }
+
+.u-pb {
+  padding-bottom: 1rem !important; }
+
+.u-pl {
+  padding-left: 1rem !important; }
+
+.u-ph {
+  padding-right: 1rem !important;
+  padding-left: 1rem !important; }
+
+.u-pv {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important; }
+
+/**
+     * Add tiny paddings.
+     */
+.u-p-- {
+  padding: 0.33333rem !important; }
+
+.u-pt-- {
+  padding-top: 0.33333rem !important; }
+
+.u-pr-- {
+  padding-right: 0.33333rem !important; }
+
+.u-pb-- {
+  padding-bottom: 0.33333rem !important; }
+
+.u-pl-- {
+  padding-left: 0.33333rem !important; }
+
+.u-ph-- {
+  padding-right: 0.33333rem !important;
+  padding-left: 0.33333rem !important; }
+
+.u-pv-- {
+  padding-top: 0.33333rem !important;
+  padding-bottom: 0.33333rem !important; }
+
+/**
+     * Add small paddings.
+     */
+.u-p- {
+  padding: 0.66667rem !important; }
+
+.u-pt- {
+  padding-top: 0.66667rem !important; }
+
+.u-pr- {
+  padding-right: 0.66667rem !important; }
+
+.u-pb- {
+  padding-bottom: 0.66667rem !important; }
+
+.u-pl- {
+  padding-left: 0.66667rem !important; }
+
+.u-ph- {
+  padding-right: 0.66667rem !important;
+  padding-left: 0.66667rem !important; }
+
+.u-pv- {
+  padding-top: 0.66667rem !important;
+  padding-bottom: 0.66667rem !important; }
+
+/**
+     * Add large paddings.
+     */
+.u-p\00002b {
+  padding: 1.33333rem !important; }
+
+.u-pt\00002b {
+  padding-top: 1.33333rem !important; }
+
+.u-pr\00002b {
+  padding-right: 1.33333rem !important; }
+
+.u-pb\00002b {
+  padding-bottom: 1.33333rem !important; }
+
+.u-pl\00002b {
+  padding-left: 1.33333rem !important; }
+
+.u-ph\00002b {
+  padding-right: 1.33333rem !important;
+  padding-left: 1.33333rem !important; }
+
+.u-pv\00002b {
+  padding-top: 1.33333rem !important;
+  padding-bottom: 1.33333rem !important; }
+
+/**
+     * Add huge paddings.
+     */
+.u-p\00002b\00002b {
+  padding: 2rem !important; }
+
+.u-pt\00002b\00002b {
+  padding-top: 2rem !important; }
+
+.u-pr\00002b\00002b {
+  padding-right: 2rem !important; }
+
+.u-pb\00002b\00002b {
+  padding-bottom: 2rem !important; }
+
+.u-pl\00002b\00002b {
+  padding-left: 2rem !important; }
+
+.u-ph\00002b\00002b {
+  padding-right: 2rem !important;
+  padding-left: 2rem !important; }
+
+.u-pv\00002b\00002b {
+  padding-top: 2rem !important;
+  padding-bottom: 2rem !important; }
+
+/**
+     * Remove paddings.
+     */
+.u-p0 {
+  padding: 0 !important; }
+
+.u-pt0 {
+  padding-top: 0 !important; }
+
+.u-pr0 {
+  padding-right: 0 !important; }
+
+.u-pb0 {
+  padding-bottom: 0 !important; }
+
+.u-pl0 {
+  padding-left: 0 !important; }
+
+.u-ph0 {
+  padding-right: 0 !important;
+  padding-left: 0 !important; }
+
+.u-pv0 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important; }

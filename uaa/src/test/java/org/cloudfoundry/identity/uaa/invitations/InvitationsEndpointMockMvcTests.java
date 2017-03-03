@@ -283,8 +283,8 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
     @Test
     public void accept_Invitation_Email_With_Default_CompanyName() throws Exception {
         getMockMvc().perform(get(getAcceptInvitationLink(null)))
-                .andExpect(content().string(containsString("Create your account")))
-                .andExpect(content().string(containsString("Create account")));
+                .andExpect(content().string(containsString("Create your Predix account")))
+                .andExpect(content().string(containsString("Create Predix account")));
     }
 
     @Test

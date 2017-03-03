@@ -22,11 +22,15 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
 
+
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="expiringTimeMillis" value="600000"/>
         <constructor-arg name="maxEntries" value="10000"/>
         <constructor-arg name="ticker" ref="timeService"/>
     </bean>
+
+    <import resource="spring/spring-metering-filter.xml"/>
+
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
@@ -191,6 +195,20 @@
     <bean id="sessionFixationProtectionStrategy"
           class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
 
+    <bean id="logFilter" class="com.ge.predix.log.filter.LogFilter">
+        <constructor-arg>
+            <set value-type="java.lang.String">
+                <value>${METER_BASE_DOMAIN:localhost}</value>
+            </set>
+        </constructor-arg>
+        <constructor-arg>
+            <set value-type="java.lang.String">
+                <value>X-Identity-Zone-Id</value>
+            </set>
+        </constructor-arg>
+        <constructor-arg value="uaa" />
+    </bean>
+
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
         <property name="dumpRequests" value="${dump_requests:false}" />
@@ -225,6 +243,10 @@
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
+                <entry value-ref="logFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}" />
+                <entry value-ref="meteringFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}" />
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -478,5 +500,6 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
+    <import resource="classpath:META-INF/spring/tasks.xml"/>
 
 </beans>
