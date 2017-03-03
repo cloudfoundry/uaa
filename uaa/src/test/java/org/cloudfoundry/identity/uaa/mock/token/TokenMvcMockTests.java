@@ -93,7 +93,10 @@ import java.util.*;
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
+import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
@@ -110,6 +113,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -207,6 +211,150 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void refresh_grant_fails_because_missing_required_groups() throws Exception {
+        String username = "testuser" + generator.generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "password,refresh_token", "uaa.resource", null);
+        clientDetails.setClientSecret(SECRET);
+        clientDetailsService.addClientDetails(clientDetails);
+        MvcResult result = doPasswordGrant(username, SECRET, clientId, SECRET, status().isOk());
+
+        Map<String,Object> tokenResponse = JsonUtils.readValue(
+            result.getResponse().getContentAsString(),
+            new TypeReference<Map<String, Object>>() {}
+        );
+
+        String refreshToken = (String) tokenResponse.get(REFRESH_TOKEN);
+        assertNotNull(refreshToken);
+
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
+        clientDetailsService.updateClientDetails(clientDetails);
+
+        result = doRefreshGrant(refreshToken, clientId, SECRET, status().isUnauthorized());
+        assertThat(result.getResponse().getContentAsString(), containsString("User does not meet the client's required group criteria."));
+    }
+
+    @Test
+    public void authorization_code_missing_required_scopes() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code", "uaa.resource", "http://localhost");
+        clientDetails.setClientSecret(SECRET);
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String location = getMockMvc().perform(
+            get("/oauth/authorize")
+                .param(RESPONSE_TYPE, "code")
+                .param(CLIENT_ID, clientId)
+                .session(getAuthenticatedSession(user))
+                .accept(MediaType.TEXT_HTML))
+            .andExpect(status().isFound())
+            .andReturn().getResponse().getHeader("Location");
+        assertThat(location, containsString("http://localhost"));
+        MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUri(new URI(location)).build().getQueryParams();
+        assertNotNull(queryParams);
+        assertNotNull(queryParams.getFirst("error"));
+        assertNotNull(queryParams.getFirst("error_description"));
+        assertThat(
+            queryParams.getFirst("error_description"),
+            containsString(UriUtils.encodeQueryParam("User does not meet the client's required group criteria.", "ISO-8859-1"))
+        );
+    }
+
+    @Test
+    public void authorization_code_missing_required_scopes_during_token_fetch() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.resource", "http://localhost");
+        clientDetails.setAutoApproveScopes(Arrays.asList("true"));
+        clientDetails.setClientSecret(SECRET);
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String location = getMockMvc().perform(
+            get("/oauth/authorize")
+                .param(RESPONSE_TYPE, "code")
+                .param(CLIENT_ID, clientId)
+                .param(SCOPE, "openid")
+                .session(getAuthenticatedSession(user))
+                .accept(MediaType.TEXT_HTML))
+            .andExpect(status().isFound())
+            .andReturn().getResponse().getHeader("Location");
+        assertThat(location, containsString("http://localhost"));
+        MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUri(new URI(location)).build().getQueryParams();
+        assertNotNull(queryParams);
+        String code = queryParams.getFirst("code");
+        assertNotNull(code);
+
+        //adding required user groups
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
+        clientDetailsService.updateClientDetails(clientDetails);
+
+        MvcResult result = getMockMvc().perform(
+            post("/oauth/token")
+                .param("code", code)
+                .param("client_id", clientId)
+                .param("client_secret", SECRET)
+                .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+
+        Map<String,Object> errorResponse = JsonUtils.readValue(
+            result.getResponse().getContentAsString(),
+            new TypeReference<Map<String, Object>>() {}
+        );
+
+        assertThat((String)errorResponse.get("error_description"), containsString("User does not meet the client's required group criteria."));
+    }
+
+    @Test
+    public void token_grant_missing_required_groups() throws Exception {
+        String username = "testuser" + generator.generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "password", "uaa.resource", null);
+        clientDetails.setClientSecret(SECRET);
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
+        clientDetailsService.addClientDetails(clientDetails);
+        MvcResult result = doPasswordGrant(username, SECRET, clientId, SECRET, status().isUnauthorized());
+        Map<String,Object> errorResponse = JsonUtils.readValue(
+            result.getResponse().getContentAsString(),
+            new TypeReference<Map<String, Object>>() {}
+        );
+
+        assertThat((String)errorResponse.get("error_description"), containsString("User does not meet the client's required group criteria."));
+    }
+
+    @Test
+    public void token_grant_required_groups_are_present() throws Exception {
+        String username = "testuser" + generator.generate();
+        String userScopes = "uaa.user,required.scope.1,required.scope.2";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope,required.scope.1,required.scope.2", "password", "uaa.resource", null);
+        clientDetails.setClientSecret(SECRET);
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("required.scope.1","required.scope.2"));
+        clientDetailsService.addClientDetails(clientDetails);
+        doPasswordGrant(username, SECRET, clientId, SECRET, status().isOk());
+    }
+
+
+    @Test
     public void test_logon_timestamps_with_password_grant() throws Exception {
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
@@ -216,13 +364,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
 
-        doPasswordGrant(username);
+        doPasswordGrant(username, SECRET, "cf", "", status().isOk());
         scimUser = provisioning.retrieve(user.getId());
         assertNotNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
 
         long lastLogonTime = scimUser.getLastLogonTime();
-        doPasswordGrant(username);
+        doPasswordGrant(username, SECRET, "cf", "", status().isOk());
         scimUser = provisioning.retrieve(user.getId());
         assertNotNull(scimUser.getLastLogonTime());
         assertNotNull(scimUser.getPreviousLogonTime());
@@ -231,17 +379,38 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     }
 
-    public void doPasswordGrant(String username) throws Exception {
-        getMockMvc().perform(
+    public MvcResult doPasswordGrant(String username,
+                                     String password,
+                                     String clientId,
+                                     String clientSecret,
+                                     ResultMatcher resultMatcher) throws Exception {
+        return getMockMvc().perform(
             post("/oauth/token")
-                .param("client_id", "cf")
-                .param("client_secret", "")
+                .param("client_id", clientId)
+                .param("client_secret", clientSecret)
                 .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
                 .param("username", username)
-                .param("password", SECRET)
+                .param("password", password)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))
-            .andExpect(status().isOk());
+            .andExpect(resultMatcher)
+            .andReturn();
+    }
+
+    public MvcResult doRefreshGrant(String refreshToken,
+                                    String clientId,
+                                    String clientSecret,
+                                    ResultMatcher resultMatcher) throws Exception {
+        return getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", clientId)
+                .param("client_secret", clientSecret)
+                .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                .param("refresh_token", refreshToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(resultMatcher)
+            .andReturn();
     }
 
     @Test
@@ -316,11 +485,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("client_id", new String(new char[]{'\u0000'}))
                 .session(getAuthenticatedSession(user))
                 .accept(MediaType.TEXT_HTML))
-            .andDo(print())
             .andExpect(status().isBadRequest())
             .andExpect(request().attribute("error_message_code", "request.invalid_parameter"));
-
-
     }
 
     @Test

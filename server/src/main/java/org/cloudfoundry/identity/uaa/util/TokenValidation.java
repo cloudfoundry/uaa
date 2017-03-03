@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
@@ -48,6 +49,9 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptySet;
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
@@ -261,20 +265,32 @@ public class TokenValidation {
                     return client;
                 });
         if (isUserToken(claims)) {
-            return validation.checkUser(uid -> {
-                if (user == null) {
-                    throw new InvalidTokenException("Unable to validate user, no user found.");
-                } else {
-                    if (!equals(uid, user.getId())) {
-                        throw new InvalidTokenException("Token does not have expected user ID.");
+            return validation
+                .checkUser(uid -> {
+                    if (user == null) {
+                        throw new InvalidTokenException("Unable to validate user, no user found.");
+                    } else {
+                        if (!equals(uid, user.getId())) {
+                            throw new InvalidTokenException("Token does not have expected user ID.");
+                        }
+                        return user;
                     }
-                    return user;
-                }
-            });
+                })
+                .checkRequiredUserGroups(
+                    ofNullable((Collection<String>) client.getAdditionalInformation().get(REQUIRED_USER_GROUPS)).orElse(emptySet()),
+                    AuthorityUtils.authorityListToSet(user.getAuthorities())
+                );
+
         } else {
             return validation;
         }
+    }
 
+    protected TokenValidation checkRequiredUserGroups(Collection<String> requiredGroups, Collection<String> userGroups) {
+        if (!UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups)) {
+            addError("User does not meet the client's required group criteria.");
+        }
+        return this;
     }
 
     protected TokenValidation checkClient(Function<String, ClientDetails> getClient) {
@@ -302,7 +318,7 @@ public class TokenValidation {
             Collection<String> clientScopes;
             if (null == claims.get(USER_ID)) {
                 // for client credentials tokens, we want to validate the client scopes
-                clientScopes = Optional.ofNullable(client.getAuthorities())
+                clientScopes = ofNullable(client.getAuthorities())
                     .map(a -> a.stream()
                         .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.toList()))

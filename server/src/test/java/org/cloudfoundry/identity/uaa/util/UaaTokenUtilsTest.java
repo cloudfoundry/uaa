@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.junit.Test;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
 
@@ -23,8 +25,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.hasRequiredUserAuthorities;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -81,9 +85,54 @@ public class UaaTokenUtilsTest {
         claims.put(SUB, "someClientId");
         claims.put(CID, "someClientId");
         assertFalse(isUserToken(claims));
+   }
 
-
-
-
+    @Test
+    public void required_user_groups_null_args_are_ok() throws Exception {
+        assertTrue(hasRequiredUserAuthorities(null, null));
+        assertTrue(hasRequiredUserAuthorities(emptySet(), null));
+        assertTrue(hasRequiredUserAuthorities(null, emptySet()));
+        assertTrue(hasRequiredUserAuthorities(emptySet(), emptySet()));
     }
+
+    @Test
+    public void test_required_user_authorities_invalid() throws Exception {
+        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3","scope4");
+        List<GrantedAuthority> userGroups = Arrays.asList(
+            new SimpleGrantedAuthority("scope1"),
+            new SimpleGrantedAuthority("scope2"),
+            new SimpleGrantedAuthority("scope3"),
+            new SimpleGrantedAuthority("scope5")
+        );
+
+        assertFalse(UaaTokenUtils.hasRequiredUserAuthorities(requiredGroups, userGroups));
+    }
+
+    @Test
+    public void test_required_user_authorities_valid() throws Exception {
+        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3");
+        List<GrantedAuthority> userGroups = Arrays.asList(
+            new SimpleGrantedAuthority("scope1"),
+            new SimpleGrantedAuthority("scope2"),
+            new SimpleGrantedAuthority("scope3"),
+            new SimpleGrantedAuthority("scope4")
+        );
+        assertTrue(UaaTokenUtils.hasRequiredUserAuthorities(requiredGroups, userGroups));
+    }
+
+
+    @Test
+    public void test_required_user_groups_invalid() throws Exception {
+        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3", "scope5");
+        List<String> userGroups = Arrays.asList("scope1","scope2","scope3","scope4");
+        assertFalse(UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups));
+    }
+
+    @Test
+    public void test_required_user_groups_valid() throws Exception {
+        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3");
+        List<String> userGroups = Arrays.asList("scope1","scope2","scope3","scope4");
+        assertTrue(UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups));
+    }
+
 }

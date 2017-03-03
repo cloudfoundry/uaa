@@ -100,6 +100,7 @@ import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
@@ -759,8 +760,26 @@ public class UaaTokenServicesTests {
         tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME, ClaimConstants.EMAIL)));
         accessToken = tokenServices.createAccessToken(authentication);
         assertNotNull(tokenServices.loadAuthentication(accessToken.getValue()).getUserAuthentication());
-
     }
+
+    @Test
+    public void test_missing_required_user_groups() {
+
+        defaultClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, PASSWORD);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+
+        expectedEx.expect(InvalidTokenException.class);
+        expectedEx.expectMessage("User does not meet the client's required group criteria.");
+        tokenServices.createAccessToken(authentication);
+    }
+
 
 
     @Test
@@ -1943,6 +1962,13 @@ public class UaaTokenServicesTests {
         expectedEx.expect(InvalidTokenException.class);
         expectedEx.expectMessage("Token bears a non-existent user ID: " + userId);
         test_validateToken_method(ignore -> userDatabase.clear());
+    }
+
+    @Test
+    public void validate_token_client_gone() throws Exception {
+        expectedEx.expect(InvalidTokenException.class);
+        expectedEx.expectMessage("Invalid client ID "+defaultClient.getClientId());
+        test_validateToken_method(ignore -> clientDetailsService.setClientDetailsStore(emptyMap()));
     }
 
     @Test

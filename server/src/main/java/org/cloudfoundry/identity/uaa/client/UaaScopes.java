@@ -62,11 +62,4 @@ public class UaaScopes {
         return isUaaScope(authority.getAuthority());
     }
 
-    public boolean hasMandatoryScopes(Collection<String> mandatoryScopes, Collection<String> requestedScopes) {
-        if (mandatoryScopes==null || requestedScopes==null) {
-            throw new NullPointerException();
-        }
-        return requestedScopes.containsAll(mandatoryScopes);
-    }
-
 }

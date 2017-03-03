@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -80,30 +81,5 @@ public class UaaScopesTests {
         }
     }
 
-    @Test
-    public void test_mandatory_scopes_valid() throws Exception {
-        List<String> mandatoryScopes = Arrays.asList("scope1","scope2","scope3");
-        List<String> requestedScopes = Arrays.asList("scope1","scope2","scope3","scope4");
-        assertTrue(uaaScopes.hasMandatoryScopes(mandatoryScopes, requestedScopes));
-    }
 
-    @Test
-    public void test_mandatory_scopes_invalid() throws Exception {
-        List<String> mandatoryScopes = Arrays.asList("scope1","scope2","scope3", "scope5");
-        List<String> requestedScopes = Arrays.asList("scope1","scope2","scope3","scope4");
-        assertFalse(uaaScopes.hasMandatoryScopes(mandatoryScopes, requestedScopes));
-    }
-
-
-    @Test(expected = NullPointerException.class)
-    public void test_mandatory_scopes_npe_arg1() throws Exception {
-        List<String> oneSet = Arrays.asList("scope1","scope2","scope3", "scope5");
-        uaaScopes.hasMandatoryScopes(null, oneSet);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void test_mandatory_scopes_npe_arg2() throws Exception {
-        List<String> oneSet = Arrays.asList("scope1","scope2","scope3", "scope5");
-        uaaScopes.hasMandatoryScopes(oneSet, null);
-    }
 }
