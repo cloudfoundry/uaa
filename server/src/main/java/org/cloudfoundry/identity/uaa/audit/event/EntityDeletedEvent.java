@@ -36,6 +36,7 @@ public class EntityDeletedEvent<T> extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
+        
         return createAuditRecord(
             getAuthentication().getName(),
             AuditEventType.EntityDeletedEvent,

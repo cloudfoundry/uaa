@@ -181,6 +181,13 @@ subprojects {
     maven { url "http://objectstyle.org/maven2/" }
     maven { url "http://repo.springsource.org/ext-release-local" }
     maven { url "http://repo.maven.apache.org/maven2" }
+    maven {
+     credentials {
+       username geArtifactoryReader
+       password geArtifactoryReaderPassword
+      }
+      url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+    }
   }
 
   install {
