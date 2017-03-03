@@ -37,6 +37,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Cookie;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
@@ -62,6 +63,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -472,8 +474,11 @@ public class SamlLoginWithLocalIdpIT {
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");
-        webDriver.get(spZoneUrl + "/login");
+        webDriver.get(spZoneUrl + "/home");
         Assert.assertEquals(spZone.getName(), webDriver.getTitle());
+        Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(beforeLogin);
+        assertNotNull(beforeLogin.getValue());
 
         List<WebElement> elements = webDriver
                 .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
@@ -489,6 +494,10 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(afterLogin);
+        assertNotNull(afterLogin.getValue());
+        assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");

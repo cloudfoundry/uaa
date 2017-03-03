@@ -207,6 +207,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
             <property name="contextProvider" ref="basicContextProvider" />
             <property name="SAMLProcessor" ref="processor" />
+            <property name="sessionAuthenticationStrategy" ref="sessionFixationProtectionStrategy"/>
         </bean>
 
         <!-- Logout handler terminating local session -->
