@@ -18,6 +18,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -166,6 +167,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         } catch (InvalidScopeException ex) {
             String message = ex.getMessage();
             response.sendError(UNAUTHORIZED.value(), message);
+            authenticationEntryPoint.commence(request, response, new InsufficientAuthenticationException(message, ex));
             return;
         }
 

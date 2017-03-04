@@ -60,7 +60,6 @@ import org.springframework.security.oauth2.common.exceptions.InsufficientScopeEx
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -91,6 +90,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Collections.emptySet;
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
@@ -614,12 +616,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Date userAuthenticationTime = null;
         UaaUser user = null;
         boolean wasIdTokenRequestedThroughAuthCodeScopeParameter = false;
-        Collection<GrantedAuthority> clientScopes = null;
+
         Set<String> authenticationMethods = null;
         Set<String> authNContextClassRef = null;
+
+        ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getOAuth2Request().getClientId());
+        Collection<GrantedAuthority> clientScopes = null;
+
         // Clients should really by different kinds of users
         if (authentication.isClientOnly()) {
-            ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getName());
             clientScopes = client.getAuthorities();
         } else {
             userId = getUserId(authentication);
@@ -629,9 +634,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authenticationMethods = ((UaaAuthentication) authentication.getUserAuthentication()).getAuthenticationMethods();
                 authNContextClassRef = ((UaaAuthentication) authentication.getUserAuthentication()).getAuthContextClassRef();
             }
+            validateRequiredUserGroups(user, client);
         }
 
-        ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getOAuth2Request().getClientId());
+
         String clientSecretForHash = client.getClientSecret();
         if(clientSecretForHash != null && clientSecretForHash.split(" ").length > 1){
             clientSecretForHash = clientSecretForHash.split(" ")[1];
@@ -714,6 +720,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authNContextClassRef);
 
         return persistRevocableToken(tokenId, refreshTokenId, accessToken, refreshToken, clientId, userId, opaque, accessTokenRevocable);
+    }
+
+    public static void validateRequiredUserGroups(UaaUser user, ClientDetails client) {
+        Collection<String> requiredUserGroups = ofNullable((Collection<String>) client.getAdditionalInformation().get(REQUIRED_USER_GROUPS)).orElse(emptySet());
+        if (!UaaTokenUtils.hasRequiredUserAuthorities(requiredUserGroups, user.getAuthorities())) {
+            throw new InvalidTokenException("User does not meet the client's required group criteria.");
+        }
     }
 
     public CompositeAccessToken persistRevocableToken(String tokenId,
@@ -1165,25 +1178,23 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String clientId = (String) claims.get(CID);
         String userId = (String) claims.get(USER_ID);
-        UaaUser user = null;
+
         ClientDetails client;
         try {
             client = clientDetailsService.loadClientByClientId(clientId);
         } catch (NoSuchClientException x) {
             //happens if the client is deleted and token exist
-            throw new UnauthorizedClientException("Invalid client ID "+clientId);
+            throw new InvalidTokenException("Invalid client ID "+clientId);
         }
-        tokenValidation.checkClient(client).throwIfInvalid();
-
+        UaaUser user = null;
         if( UaaTokenUtils.isUserToken(claims)) {
             try {
                 user = userDatabase.retrieveUserById(userId);
-                tokenValidation.checkUser(user).throwIfInvalid();
-            } catch (UsernameNotFoundException x) {
+            } catch (UsernameNotFoundException e) {
+                throw new InvalidTokenException("Token bears a non-existent user ID: " + userId);
             }
         }
-
-        tokenValidation.checkRevocableTokenStore(tokenProvisioning).throwIfInvalid();
+        tokenValidation.checkClientAndUser(client, user).throwIfInvalid();
 
         List<String> clientSecrets = new ArrayList<>();
         List<String> revocationSignatureList = new ArrayList<>();

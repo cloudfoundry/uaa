@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.hamcrest.Matchers;
@@ -27,16 +28,23 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -54,9 +62,9 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     private EmbeddedDatabase db;
 
-    private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, lastmodified from oauth_client_details where client_id=?";
+    private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, lastmodified, required_user_groups from oauth_client_details where client_id=?";
 
-    private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified, required_user_groups) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
 
     private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
 
@@ -66,6 +74,9 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
+
+    private String dbRequestedUserGroups = "uaa.user,uaa.something";
+    private BaseClientDetails clientDetails;
 
     @Before
     public void setUp() throws Exception {
@@ -87,6 +98,11 @@ public class MultitenantJdbcClientDetailsServiceTests {
         otherIdentityZone.setId("testzone");
         otherIdentityZone.setName("testzone");
         otherIdentityZone.setSubdomain("testzone");
+
+        clientDetails = new BaseClientDetails();
+        String clientId = "client-with-id-" + new RandomValueStringGenerator(36).generate();
+        clientDetails.setClientId(clientId);
+
     }
 
     @After
@@ -145,8 +161,13 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     @Test
     public void testLoadingClientIdWithNoDetails() {
-        int rowsInserted = jdbcTemplate.update(INSERT_SQL, "clientIdWithNoDetails", null, null,
-                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId(), new Timestamp(System.currentTimeMillis()));
+        int rowsInserted = jdbcTemplate.update(INSERT_SQL,
+                                               "clientIdWithNoDetails", null, null,
+                                               null, null, null, null, null, null, null,
+                                               IdentityZoneHolder.get().getId(),
+                                               new Timestamp(System.currentTimeMillis()),
+                                               dbRequestedUserGroups
+        );
 
         assertEquals(1, rowsInserted);
 
@@ -170,8 +191,11 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
         Timestamp lastModifiedDate = new Timestamp(System.currentTimeMillis());
 
-        jdbcTemplate.update(INSERT_SQL, "clientIdWithAddInfo", null, null,
-            null, null, null, null, null, null, null, IdentityZoneHolder.get().getId(), lastModifiedDate);
+        jdbcTemplate.update(INSERT_SQL,
+                            "clientIdWithAddInfo", null, null,
+                            null, null, null, null, null, null, null,
+                            IdentityZoneHolder.get().getId(), lastModifiedDate,
+                            dbRequestedUserGroups);
         jdbcTemplate
                 .update("update oauth_client_details set additional_information=? where client_id=?",
                     "{\"foo\":\"bar\"}", "clientIdWithAddInfo");
@@ -184,6 +208,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         Map<String, Object> additionalInfoMap = new HashMap<>();
         additionalInfoMap.put("foo", "bar");
         additionalInfoMap.put("lastModified", lastModifiedDate);
+        additionalInfoMap.put(REQUIRED_USER_GROUPS, StringUtils.commaDelimitedListToSet(dbRequestedUserGroups));
 
         assertEquals(additionalInfoMap, clientDetails.getAdditionalInformation());
         assertEquals(lastModifiedDate, clientDetails.getAdditionalInformation().get("lastModified"));
@@ -195,7 +220,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
         String clientId = "client-with-autoapprove";
         jdbcTemplate.update(INSERT_SQL, clientId, null, null,
-          null, null, null, null, null, null, "foo.read", IdentityZoneHolder.get().getId(), lastModifiedDate);
+          null, null, null, null, null, null, "foo.read", IdentityZoneHolder.get().getId(), lastModifiedDate, dbRequestedUserGroups);
         jdbcTemplate
           .update("update oauth_client_details set additional_information=? where client_id=?",
             "{\"autoapprove\":[\"bar.read\"]}", clientId);
@@ -217,9 +242,17 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     @Test
     public void testLoadingClientIdWithSingleDetails() {
-        jdbcTemplate.update(INSERT_SQL, "clientIdWithSingleDetails",
-                "mySecret", "myResource", "myScope", "myAuthorizedGrantType",
-                "myRedirectUri", "myAuthority", 100, 200, "true", IdentityZoneHolder.get().getId(), new Timestamp(System.currentTimeMillis()));
+        jdbcTemplate.update(INSERT_SQL,
+                            "clientIdWithSingleDetails",
+                            "mySecret",
+                            "myResource",
+                            "myScope",
+                            "myAuthorizedGrantType",
+                            "myRedirectUri",
+                            "myAuthority", 100, 200, "true",
+                            IdentityZoneHolder.get().getId(),
+                            new Timestamp(System.currentTimeMillis()),
+                            dbRequestedUserGroups);
 
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithSingleDetails");
@@ -248,15 +281,95 @@ public class MultitenantJdbcClientDetailsServiceTests {
     }
 
     @Test
+    public void load_groups_generates_empty_collection() {
+        for (String s : Arrays.asList(null, "")) {
+            String clientId = "clientId-" + new RandomValueStringGenerator().generate();
+            jdbcTemplate.update(INSERT_SQL,
+                                clientId,
+                                "mySecret",
+                                "myResource",
+                                "myScope",
+                                "myAuthorizedGrantType",
+                                "myRedirectUri",
+                                "myAuthority",
+                                100,
+                                200,
+                                "true",
+                                IdentityZoneHolder.get().getId(),
+                                new Timestamp(System.currentTimeMillis()),
+                                s);
+            ClientDetails updatedClient = service.loadClientByClientId(clientId);
+            Object userGroups = updatedClient.getAdditionalInformation().get(REQUIRED_USER_GROUPS);
+            assertNotNull(userGroups);
+            assertTrue(userGroups instanceof Collection);
+            assertEquals(0, ((Collection)userGroups).size());
+        }
+    }
+
+    @Test
+    public void additional_information_does_not_override_user_group_column() throws Exception {
+        String[] groups = {"group1", "group2"};
+        List<String> requiredGroups = Arrays.asList(groups);
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, requiredGroups);
+        service.addClientDetails(clientDetails);
+        assertEquals(1,jdbcTemplate.update("UPDATE oauth_client_details SET additional_information = ? WHERE client_id = ?", JsonUtils.writeValueAsString(clientDetails.getAdditionalInformation()), clientDetails.getClientId()));
+        assertEquals(1,jdbcTemplate.update("UPDATE oauth_client_details SET required_user_groups = ? WHERE client_id = ?", "group1,group2,group3", clientDetails.getClientId()));
+        ClientDetails updateClient = service.loadClientByClientId(clientDetails.getClientId());
+        assertThat((Collection<String>)updateClient.getAdditionalInformation().get(REQUIRED_USER_GROUPS), containsInAnyOrder("group1", "group2", "group3"));
+    }
+
+    @Test
+    public void create_sets_required_user_groups() {
+        String[] groups = {"group1", "group2"};
+        List<String> requiredGroups = Arrays.asList(groups);
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, requiredGroups);
+        service.addClientDetails(clientDetails);
+        validateRequiredGroups(clientDetails.getClientId(), groups);
+
+        groups = new String[] {"group1", "group2", "group3"};
+        requiredGroups = Arrays.asList(groups);
+        clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, requiredGroups);
+        service.updateClientDetails(clientDetails);
+        validateRequiredGroups(clientDetails.getClientId(), groups);
+    }
+
+    public void validateRequiredGroups(String clientId, String... expectedGroups) {
+        String requiredUserGroups = jdbcTemplate.queryForObject("select required_user_groups from oauth_client_details where client_id = ?", String.class, clientId);
+        assertNotNull(requiredUserGroups);
+        Collection<String> savedGroups = StringUtils.commaDelimitedListToSet(requiredUserGroups);
+        assertThat(savedGroups, containsInAnyOrder(expectedGroups));
+        String additionalInformation = jdbcTemplate.queryForObject("select additional_information from oauth_client_details where client_id = ?", String.class, clientId);
+        for (String s : expectedGroups) {
+            assertThat(additionalInformation, not(containsString(s)));
+        }
+    }
+
+
+    @Test
     public void testLoadingClientIdWithMultipleDetails() {
-        jdbcTemplate.update(INSERT_SQL, "clientIdWithMultipleDetails",
-                "mySecret", "myResource1,myResource2", "myScope1,myScope2",
-                "myAuthorizedGrantType1,myAuthorizedGrantType2",
-                "myRedirectUri1,myRedirectUri2", "myAuthority1,myAuthority2",
-                100, 200, "read,write", IdentityZoneHolder.get().getId(), new Timestamp(System.currentTimeMillis()));
+        jdbcTemplate.update(INSERT_SQL,
+                            "clientIdWithMultipleDetails",
+                            "mySecret",
+                            "myResource1,myResource2",
+                            "myScope1,myScope2",
+                            "myAuthorizedGrantType1,myAuthorizedGrantType2",
+                            "myRedirectUri1,myRedirectUri2",
+                            "myAuthority1,myAuthority2",
+                            100,
+                            200,
+                            "read,write",
+                            IdentityZoneHolder.get().getId(),
+                            new Timestamp(System.currentTimeMillis()),
+                            dbRequestedUserGroups);
 
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithMultipleDetails");
+
+        assertNotNull(clientDetails.getAdditionalInformation());
+        Object requiredUserGroups = clientDetails.getAdditionalInformation().get(REQUIRED_USER_GROUPS);
+        assertNotNull(requiredUserGroups);
+        assertTrue(requiredUserGroups instanceof Collection);
+        assertThat((Collection<String>)requiredUserGroups, containsInAnyOrder("uaa.user","uaa.something"));
 
         assertEquals("clientIdWithMultipleDetails", clientDetails.getClientId());
         assertTrue(clientDetails.isSecretRequired());

@@ -94,11 +94,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
@@ -758,8 +760,26 @@ public class UaaTokenServicesTests {
         tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME, ClaimConstants.EMAIL)));
         accessToken = tokenServices.createAccessToken(authentication);
         assertNotNull(tokenServices.loadAuthentication(accessToken.getValue()).getUserAuthentication());
-
     }
+
+    @Test
+    public void test_missing_required_user_groups() {
+
+        defaultClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, PASSWORD);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+
+        expectedEx.expect(InvalidTokenException.class);
+        expectedEx.expectMessage("User does not meet the client's required group criteria.");
+        tokenServices.createAccessToken(authentication);
+    }
+
 
 
     @Test
@@ -1933,7 +1953,40 @@ public class UaaTokenServicesTests {
     }
 
     @Test
+    public void validate_token_happy_path() throws Exception {
+        test_validateToken_method(ignore -> {});
+    }
+
+    @Test
+    public void validate_token_user_gone() throws Exception {
+        expectedEx.expect(InvalidTokenException.class);
+        expectedEx.expectMessage("Token bears a non-existent user ID: " + userId);
+        test_validateToken_method(ignore -> userDatabase.clear());
+    }
+
+    @Test
+    public void validate_token_client_gone() throws Exception {
+        expectedEx.expect(InvalidTokenException.class);
+        expectedEx.expectMessage("Invalid client ID "+defaultClient.getClientId());
+        test_validateToken_method(ignore -> clientDetailsService.setClientDetailsStore(emptyMap()));
+    }
+
+    @Test
     public void opaque_tokens_validate_signature() throws Exception {
+        expectedEx.expect(InvalidTokenException.class);
+        expectedEx.expectMessage("Invalid key ID: testKey");
+
+        Consumer<Void> setup = (ignore) -> {
+            Map < String, String > keys = new HashMap<>();
+            keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
+            tokenPolicy.setKeys(keys);
+            tokenPolicy.setActiveKeyId("otherKey");
+            IdentityZoneHolder.get().getConfig().setTokenPolicy(tokenPolicy);
+        };
+
+        test_validateToken_method(setup);
+    }
+    public void test_validateToken_method(Consumer<Void> setup) throws Exception {
         defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeAccessToken.ID_TOKEN, "token")));
@@ -1953,14 +2006,7 @@ public class UaaTokenServicesTests {
         assertThat("Opaque access token must be shorter than 37 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
-        Map<String, String> keys = new HashMap<>();
-        keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
-        tokenPolicy.setKeys(keys);
-        tokenPolicy.setActiveKeyId("otherKey");
-        IdentityZoneHolder.get().getConfig().setTokenPolicy(tokenPolicy);
-
-        expectedEx.expect(InvalidTokenException.class);
-        expectedEx.expectMessage("Invalid key ID: testKey");
+        setup.accept(null);
         tokenServices.validateToken(accessToken.getValue());
     }
 

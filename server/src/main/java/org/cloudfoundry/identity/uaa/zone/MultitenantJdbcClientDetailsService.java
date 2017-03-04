@@ -44,7 +44,18 @@ import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.Collections.emptySet;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
+import static org.springframework.util.StringUtils.collectionToCommaDelimitedString;
+import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 
 /**
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
@@ -57,7 +68,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     private static final String GET_CREATED_BY_SQL = "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
     private static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
             + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
-            + "refresh_token_validity, additional_information, autoapprove, lastmodified";
+            + "refresh_token_validity, additional_information, autoapprove, lastmodified, required_user_groups";
 
     private static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
 
@@ -69,7 +80,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
-            + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
@@ -165,34 +176,51 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         Object[] fieldsForUpdate = getFieldsForUpdate(clientDetails);
         Object[] clientDetailFieldsForUpdate = new Object[fieldsForUpdate.length + 2];
         System.arraycopy(fieldsForUpdate, 0, clientDetailFieldsForUpdate, 1, fieldsForUpdate.length);
-        clientDetailFieldsForUpdate[0] = clientDetails.getClientSecret() != null ? passwordEncoder.encode(clientDetails.getClientSecret())
-                : null;
+        clientDetailFieldsForUpdate[0] =
+            clientDetails.getClientSecret() != null ?
+                passwordEncoder.encode(clientDetails.getClientSecret()) :
+                null;
         clientDetailFieldsForUpdate[clientDetailFieldsForUpdate.length - 1] = getUserId();
         return clientDetailFieldsForUpdate;
     }
 
     private Object[] getFieldsForUpdate(ClientDetails clientDetails) {
-        String json = null;
+
+        Map<String, Object> additionalInformation = new HashMap(clientDetails.getAdditionalInformation());
+        Collection<String> requiredGroups = (Collection<String>) additionalInformation.remove(REQUIRED_USER_GROUPS);
+
+        String json;
         try {
-            json = JsonUtils.writeValueAsString(clientDetails.getAdditionalInformation());
+
+            json = JsonUtils.writeValueAsString(additionalInformation);
         } catch (Exception e) {
             logger.warn("Could not serialize additional information: " + clientDetails, e);
             throw new InvalidDataAccessResourceUsageException("Could not serialize additional information:"+clientDetails.getClientId(), e);
         }
+
         return new Object[] {
-                clientDetails.getResourceIds() != null ? StringUtils.collectionToCommaDelimitedString(clientDetails
-                        .getResourceIds()) : null,
-                clientDetails.getScope() != null ? StringUtils.collectionToCommaDelimitedString(clientDetails
-                        .getScope()) : null,
-                clientDetails.getAuthorizedGrantTypes() != null ? StringUtils
-                        .collectionToCommaDelimitedString(clientDetails.getAuthorizedGrantTypes()) : null,
-                clientDetails.getRegisteredRedirectUri() != null ? StringUtils
-                        .collectionToCommaDelimitedString(clientDetails.getRegisteredRedirectUri()) : null,
-                clientDetails.getAuthorities() != null ? StringUtils.collectionToCommaDelimitedString(clientDetails
-                        .getAuthorities()) : null, clientDetails.getAccessTokenValiditySeconds(),
-                clientDetails.getRefreshTokenValiditySeconds(), json, getAutoApproveScopes(clientDetails),
-                new Timestamp(System.currentTimeMillis()),
-                clientDetails.getClientId(), IdentityZoneHolder.get().getId()};
+            collectionToString(clientDetails.getResourceIds()),
+            collectionToString(clientDetails.getScope()),
+            collectionToString(clientDetails.getAuthorizedGrantTypes()),
+            collectionToString(clientDetails.getRegisteredRedirectUri()),
+            collectionToString(clientDetails.getAuthorities()),
+            clientDetails.getAccessTokenValiditySeconds(),
+            clientDetails.getRefreshTokenValiditySeconds(),
+            json,
+            getAutoApproveScopes(clientDetails),
+            new Timestamp(System.currentTimeMillis()),
+            collectionToString(requiredGroups),
+            clientDetails.getClientId(),
+            IdentityZoneHolder.get().getId()
+        };
+    }
+
+    private String collectionToString(Collection<?> collection) {
+        if (collection==null || collection.isEmpty()) {
+            return null;
+        } else {
+            return collectionToCommaDelimitedString(collection);
+        }
     }
 
     private String getAutoApproveScopes(ClientDetails clientDetails) {
@@ -205,7 +233,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
                 scopes.add(scope);
             }
         }
-        return StringUtils.collectionToCommaDelimitedString(scopes);
+        return collectionToCommaDelimitedString(scopes);
     }
 
     public void setSelectClientDetailsSql(String selectClientDetailsSql) {
@@ -294,8 +322,14 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
      */
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
-            BaseClientDetails details = new BaseClientDetails(rs.getString(1), rs.getString(3), rs.getString(4),
-                    rs.getString(5), rs.getString(7), rs.getString(6));
+            BaseClientDetails details = new BaseClientDetails(
+                rs.getString(1),
+                rs.getString(3),
+                rs.getString(4),
+                rs.getString(5),
+                rs.getString(7),
+                rs.getString(6)
+            );
             details.setClientSecret(rs.getString(2));
             if (rs.getObject(8) != null) {
                 details.setAccessTokenValiditySeconds(rs.getInt(8));
@@ -303,14 +337,11 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
             if (rs.getObject(9) != null) {
                 details.setRefreshTokenValiditySeconds(rs.getInt(9));
             }
-
-
             String json = rs.getString(10);
-
             String scopes = rs.getString(11);
             Set<String> autoApproveScopes = new HashSet<>();
             if (scopes != null) {
-                autoApproveScopes = StringUtils.commaDelimitedListToSet(scopes);
+                autoApproveScopes = commaDelimitedListToSet(scopes);
             }
             if (json != null) {
                 try {
@@ -339,6 +370,14 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
             // lastModified
             if (rs.getObject(12) != null) {
                 details.addAdditionalInformation("lastModified", rs.getTimestamp(12));
+            }
+
+            //required_user_groups
+            String requiredUserGroups = rs.getString(13);
+            if (StringUtils.isEmpty(requiredUserGroups)) {
+                details.addAdditionalInformation(REQUIRED_USER_GROUPS, emptySet());
+            } else {
+                details.addAdditionalInformation(REQUIRED_USER_GROUPS, commaDelimitedListToSet(requiredUserGroups));
             }
 
             return details;
