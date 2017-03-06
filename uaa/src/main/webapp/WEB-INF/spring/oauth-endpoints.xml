@@ -255,11 +255,12 @@
     </bean>
 
     <bean id="clientLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
-        <constructor-arg ref="jdbcAuditService"/>
-        <constructor-arg ref="clientLockoutPolicyRetriever"/>
-        <constructor-arg type="AuditEventType" value="ClientAuthenticationSuccess"/>
-        <constructor-arg type="AuditEventType" value="ClientAuthenticationFailure"/>
-        <constructor-arg type="TimeService" ref="timeService" />
+        <constructor-arg index="0" ref="jdbcAuditService"/>
+        <constructor-arg index="1" ref="clientLockoutPolicyRetriever"/>
+        <constructor-arg index="2" value="ClientAuthenticationSuccess"/>
+        <constructor-arg index="3" value="ClientAuthenticationFailure"/>
+        <constructor-arg index="4" ref="timeService" />
+        <constructor-arg index="5" value="${authentication.policy.client.lockoutEnabled:false}" />
     </bean>
 
     <bean id="clientLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.ClientLockoutPolicyRetriever">
@@ -601,11 +602,12 @@
     </bean>
 
     <bean id="globalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
-        <constructor-arg ref="jdbcAuditService"/>
-        <constructor-arg ref="globalUserLockoutPolicyRetriever"/>
-        <constructor-arg type="AuditEventType" value="UserAuthenticationSuccess"/>
-        <constructor-arg type="AuditEventType" value="UserAuthenticationFailure"/>
-        <constructor-arg type="TimeService" ref="timeService" />
+        <constructor-arg index="0" ref="jdbcAuditService"/>
+        <constructor-arg index="1" ref="globalUserLockoutPolicyRetriever"/>
+        <constructor-arg index="2" value="UserAuthenticationSuccess"/>
+        <constructor-arg index="3" value="UserAuthenticationFailure"/>
+        <constructor-arg index="4" ref="timeService" />
+        <constructor-arg index="5" value="true"/>
     </bean>
 
     <bean id="uaaUserDatabaseAuthenticationManager"
