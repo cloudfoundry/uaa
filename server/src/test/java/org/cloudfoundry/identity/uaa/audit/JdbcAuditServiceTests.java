@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,17 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.sql.Timestamp;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PrincipalAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.junit.Assert.assertEquals;
-
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.junit.Before;
-import org.junit.Test;
 public class JdbcAuditServiceTests extends JdbcTestBase {
 
     private JdbcAuditService auditService;
@@ -31,7 +31,7 @@ public class JdbcAuditServiceTests extends JdbcTestBase {
 
     @Before
     public void createService() throws Exception {
-        auditService = new JdbcAuditService(dataSource);
+        auditService = new JdbcAuditService(jdbcTemplate);
         jdbcTemplate.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
         authDetails = "1.1.1.1";
     }
