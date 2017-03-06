@@ -41,7 +41,7 @@ public class PredixAuditService implements UaaAuditService {
         try{
             UUID.fromString(zoneId);
         } catch (Exception e){
-            logger.info("non-request based event, setting zone Id to ridiculous base placeholder");
+            logger.info("base zone event, setting zone Id to base zone placeholder");
             zoneId = BASE_ZONE_ID;
         }
         
@@ -233,7 +233,7 @@ public class PredixAuditService implements UaaAuditService {
         }
         
         AuditEventV2 predixEvent = AuditEventV2.builder()
-                .payload(auditEvent.getData())
+                .payload(auditEvent.getType().toString() + ": " + auditEvent.getData())
                 .classifier(status)
                 .publisherType(AuditEnums.PublisherType.APP_SERVICE)
                 .categoryType(category)
