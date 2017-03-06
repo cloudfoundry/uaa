@@ -63,7 +63,7 @@ public class PeriodLockoutPolicyTests {
         lockoutPolicy.setLockoutPeriodSeconds(ONE_HOUR);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(new IdentityProvider());
         policyRetriever = new UserLockoutPolicyRetriever(providerProvisioning);
-        innerPolicy = new CommonLoginPolicy(as, policyRetriever, AuditEventType.UserAuthenticationSuccess, AuditEventType.UserAuthenticationFailure);
+        innerPolicy = new CommonLoginPolicy(as, policyRetriever, AuditEventType.UserAuthenticationSuccess, AuditEventType.UserAuthenticationFailure, true);
         policyRetriever.setDefaultLockoutPolicy(lockoutPolicy);
         policy = new PeriodLockoutPolicy(innerPolicy);
     }

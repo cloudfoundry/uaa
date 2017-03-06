@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
+import org.cloudfoundry.identity.uaa.audit.JdbcFailedLoginCountingAuditService;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -184,6 +185,9 @@ public class BootstrapTests {
 
         context = getServletContext(profiles +",default", false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        JdbcFailedLoginCountingAuditService auditService = context.getBean(JdbcFailedLoginCountingAuditService.class);
+        assertFalse(auditService.isClientEnabled());
+
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         if (profiles != null && profiles.contains("mysql")) {
             assertTrue(userDatabase.isCaseInsensitive());
@@ -333,6 +337,10 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml", "test/bootstrap/bootstrap-test.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        JdbcFailedLoginCountingAuditService auditService = context.getBean(JdbcFailedLoginCountingAuditService.class);
+        assertTrue(auditService.isClientEnabled());
+
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         assertTrue(userDatabase.isCaseInsensitive());

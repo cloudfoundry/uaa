@@ -164,6 +164,8 @@ authentication:
       lockoutAfterFailures: 1
       countFailuresWithinSeconds: 2222
       lockoutPeriodSeconds: 152
+    client:
+      lockoutEnabled: true
 
 jwt:
   token:

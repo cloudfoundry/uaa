@@ -16,6 +16,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 public class CommonLoginPolicyTest {
@@ -32,7 +34,17 @@ public class CommonLoginPolicyTest {
         successEventType = AuditEventType.UserAuthenticationSuccess;
         failureEventType = AuditEventType.UserAuthenticationFailure;
 
-        commonLoginPolicy = new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType);
+        commonLoginPolicy = new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType, true);
+    }
+
+    @Test
+    public void test_is_disabled() throws Exception {
+        commonLoginPolicy = spy(new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType, false));
+        LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
+        assertTrue(result.isAllowed());
+        assertEquals(0, result.getFailureCount());
+        verifyZeroInteractions(lockoutPolicyRetriever);
+        verifyZeroInteractions(auditService);
     }
 
     @Test
