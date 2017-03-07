@@ -16,22 +16,18 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 
-/**
- *
- * @author Luke Taylor
- */
+
 public class JdbcAuditService implements UaaAuditService {
 
     private final JdbcTemplate template;
 
-    public JdbcAuditService(DataSource dataSource) {
-        this.template = new JdbcTemplate(dataSource);
+    public JdbcAuditService(JdbcTemplate template) {
+        this.template = template;
     }
 
     protected JdbcTemplate getJdbcTemplate() {
