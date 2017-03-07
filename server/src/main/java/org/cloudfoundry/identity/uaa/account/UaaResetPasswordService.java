@@ -83,6 +83,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         if (scimUserProvisioning.checkPasswordMatches(userId, password)) {
             throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
         }
+        passwordValidator.validate(password);
         ScimUser user = scimUserProvisioning.retrieve(userId);
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);

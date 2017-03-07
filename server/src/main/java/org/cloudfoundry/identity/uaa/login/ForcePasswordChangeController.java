@@ -94,7 +94,7 @@ public class ForcePasswordChangeController {
         try {
             resetPasswordService.resetUserPassword(principal.getId(), password);
         } catch(InvalidPasswordException exception) {
-            return handleUnprocessableEntity(model, response, email, "same_as_old");
+            return handleUnprocessableEntity(model, response, email, exception.getMessagesAsOneString());
         }
         SavedRequest savedRequest = (SavedRequest) request.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
 
@@ -124,8 +124,8 @@ public class ForcePasswordChangeController {
         this.resetPasswordService = resetPasswordService;
     }
 
-    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email, String messageCode) {
-        model.addAttribute("message_code", messageCode);
+    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email, String message) {
+        model.addAttribute("message", message);
         model.addAttribute("email",  email);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "force_password_change";

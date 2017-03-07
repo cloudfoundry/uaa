@@ -31,7 +31,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
@@ -85,6 +87,9 @@ public class UaaResetPasswordServiceTests {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void forgotPassword_ResetCodeIsReturnedSuccessfully() throws Exception {
@@ -276,6 +281,19 @@ public class UaaResetPasswordServiceTests {
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         uaaResetPasswordService.resetUserPassword(userId, "password");
 
+    }
+
+    @Test
+    public void resetPassword_forcedChange_must_verify_password_policy() {
+        String userId = "user-id";
+        ScimUser user = new ScimUser(userId, "username", "firstname", "lastname");
+        user.setMeta(new ScimMeta(new Date(), new Date(), 0));
+        user.setPrimaryEmail("foo@example.com");
+        when(scimUserProvisioning.retrieve(userId)).thenReturn(user);
+        doThrow(new InvalidPasswordException("Password cannot contain whitespace characters.")).when(passwordValidator).validate("new password");
+        expectedException.expect(InvalidPasswordException.class);
+        expectedException.expectMessage("Password cannot contain whitespace characters.");
+        uaaResetPasswordService.resetUserPassword(userId, "new password");
     }
 
     @Test

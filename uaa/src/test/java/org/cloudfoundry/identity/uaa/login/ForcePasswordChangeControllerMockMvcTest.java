@@ -77,10 +77,50 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
     }
 
     @Test
+    public void testHandleChangePasswordForUserWithInvalidPassword() throws Exception {
+        forcePasswordChangeForUser();
+        MockHttpSession session = new MockHttpSession();
+        Cookie cookie = new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1");
+
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        UaaIdentityProviderDefinition currentConfig = ((UaaIdentityProviderDefinition) identityProvider.getConfig());
+        PasswordPolicy passwordPolicy = new PasswordPolicy(15,20,1,1,1,0,0);
+        passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
+        try {
+            identityProviderProvisioning.update(identityProvider);
+
+            MockHttpServletRequestBuilder invalidPost = post("/login.do")
+                .param("username", user.getUserName())
+                .param("password", "secret")
+                .session(session)
+                .cookie(cookie)
+                .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1");
+            getMockMvc().perform(invalidPost)
+                .andExpect(status().isFound());
+
+            MockHttpServletRequestBuilder validPost = post("/force_password_change")
+                .param("password", "test")
+                .param("password_confirmation", "test")
+                .session(session)
+                .cookie(cookie);
+            validPost.with(csrf());
+            getMockMvc().perform(validPost)
+//                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(("/")))
+                .andExpect(currentUserCookie(user.getId()));
+        } finally {
+            identityProvider.setConfig(currentConfig);
+            identityProviderProvisioning.update(identityProvider);
+        }
+
+    }
+
+    @Test
     public void testHandleChangePasswordForSystemWideChange() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition currentConfig = ((UaaIdentityProviderDefinition) identityProvider.getConfig());
-        PasswordPolicy passwordPolicy = new PasswordPolicy(6,20,1,1,1,0,0);
+        PasswordPolicy passwordPolicy = new PasswordPolicy(4,20,0,0,0,0,0);
         passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
         identityProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
 
