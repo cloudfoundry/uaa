@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.ge.predix.audit.sdk.AuditClient;
 import com.ge.predix.audit.sdk.message.AuditEnums;
 import com.ge.predix.audit.sdk.message.AuditEventV2;
+import com.ge.predix.audit.sdk.message.AuditEventV2.AuditEventV2Builder;
 
 public class PredixAuditService implements UaaAuditService {
 
@@ -36,13 +37,14 @@ public class PredixAuditService implements UaaAuditService {
             UUID.fromString(correlationId);
         } catch (Exception e){
             logger.info("non-request based event, setting correlation Id to all zeros");
-            correlationId = NON_REQUEST_CORRELATION_ID;
+            correlationId = null;
         }
         try{
             UUID.fromString(zoneId);
         } catch (Exception e){
+            //TODO deal with non-uuid identity zone id
             logger.info("base zone event, setting zone Id to base zone placeholder");
-            zoneId = BASE_ZONE_ID;
+            zoneId = null;
         }
         
         AuditEventV2 predixEvent = constructPredixAuditEvent(auditEvent, correlationId, zoneId);
@@ -231,16 +233,20 @@ public class PredixAuditService implements UaaAuditService {
             default:
                 return null;
         }
-        
-        AuditEventV2 predixEvent = AuditEventV2.builder()
+
+        AuditEventV2Builder predixEventBuilder = AuditEventV2.builder()
                 .payload(auditEvent.getType().toString() + ": " + auditEvent.getData())
                 .classifier(status)
                 .publisherType(AuditEnums.PublisherType.APP_SERVICE)
                 .categoryType(category)
-                .eventType(type)
-                .tenantUuid(zoneId)
-                .correlationId(correlationId)
-                .build();
+                .eventType(type);
+        if(zoneId != null) {
+            predixEventBuilder.tenantUuid(zoneId)
+        }
+        if(correlationId != null) {
+            predixEventBuilder.correlationId(correlationId);
+        }
+        AuditEventV2 predixEvent = predixEventBuilder.build();
         return predixEvent;
     }
 }
