@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -71,6 +72,7 @@ public class UaaResetPasswordServiceTests {
     private ScimUserProvisioning scimUserProvisioning;
     private PasswordValidator passwordValidator;
     private ClientDetailsService clientDetailsService;
+    private ResourcePropertySource resourcePropertySource;
 
     @Before
     public void setUp() throws Exception {
@@ -79,7 +81,8 @@ public class UaaResetPasswordServiceTests {
         codeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
         clientDetailsService = mock(ClientDetailsService.class);
-        uaaResetPasswordService = new UaaResetPasswordService(scimUserProvisioning, codeStore, passwordValidator, clientDetailsService);
+        resourcePropertySource = mock(ResourcePropertySource.class);
+        uaaResetPasswordService = new UaaResetPasswordService(scimUserProvisioning, codeStore, passwordValidator, clientDetailsService, resourcePropertySource);
     }
 
     @After

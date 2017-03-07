@@ -278,6 +278,7 @@
     </bean>
 
     <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
+        <property name="resourcePropertySource" ref="messagePropertiesSource"/>
     </bean>
 
     <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
@@ -613,11 +614,16 @@
         <constructor-arg ref="changePasswordService"/>
     </bean>
 
+    <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource" >
+        <constructor-arg value="messages.properties"/>
+    </bean>
+
     <bean id="resetPasswordService" class="org.cloudfoundry.identity.uaa.account.UaaResetPasswordService">
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="uaaPasswordValidator"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="messagePropertiesSource"/>
     </bean>
 
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
