@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -75,6 +76,7 @@ public class LogoutIT {
         identityZone.setSubdomain(subdomain);
         identityZone.setName("The Twiglet Zone[" + id + "]");
         identityZone.setDescription("Like the Twilight Zone but tastier[" + id + "].");
+        identityZone.getConfig().getLinks().getLogout().setWhitelist(Arrays.asList(new String[] {baseUrl + "/login"}));
         return identityZone;
     }
     

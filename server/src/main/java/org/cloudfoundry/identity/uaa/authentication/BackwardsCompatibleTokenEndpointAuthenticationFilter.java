@@ -228,7 +228,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
             }
         }
-        if (debug && authResult != null && authResult.isAuthenticated()) {
+        if (authResult != null && authResult.isAuthenticated()) {
             logger.debug("Authentication success: " + authResult.getName());
             return authResult;
         }
