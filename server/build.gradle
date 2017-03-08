@@ -6,9 +6,10 @@ dependencies {
 
   compile(identityModel)
 
+  //Audit service dependency
+  compile group: 'com.ge.predix.audit', name: 'audit-sdk', version:'0.0.4-SNAPSHOT'
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
-
   compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
 
   compile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion

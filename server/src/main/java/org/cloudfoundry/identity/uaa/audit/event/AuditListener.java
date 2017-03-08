@@ -40,6 +40,7 @@ public class AuditListener implements ApplicationListener<AbstractUaaEvent> {
     @Override
     public void onApplicationEvent(AbstractUaaEvent event) {
         event.process(uaaAuditService);
+        
     }
 
 }

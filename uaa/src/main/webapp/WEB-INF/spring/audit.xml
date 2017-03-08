@@ -12,9 +12,18 @@
     subcomponent's license, as noted in the LICENSE file.
 
 -->
-<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
-
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans" 
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+     http://www.springframework.org/schema/util
+     http://www.springframework.org/schema/util/spring-util-4.3.xsd
+     http://www.springframework.org/schema/context 
+     http://www.springframework.org/schema/context/spring-context.xsd">
+     
+    <context:annotation-config />
+    
     <bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
         <constructor-arg ref="loggingAuditService" />
     </bean>
@@ -25,6 +34,7 @@
         <constructor-arg ref="jdbcAuditService" />
     </bean>
 
+
     <bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcFailedLoginCountingAuditService">
         <constructor-arg ref="dataSource" />
     </bean>
@@ -32,4 +42,15 @@
     <!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
     <bean id="loggingAuditService" class="org.cloudfoundry.identity.uaa.audit.LoggingAuditService" />
 
+        <bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
+            <constructor-arg ref="predixAuditService" />
+        </bean>
+        <bean id="predixAuditService" class="org.cloudfoundry.identity.uaa.audit.PredixAuditService" />
+    <beans profile="predixaudit">
+        <bean class="org.cloudfoundry.identity.uaa.audit.PredixAuditConfig"></bean>
+    </beans>
+<!-- Commented out because event hub does not work with proxies locally. If this gets fixed we can uncomment -->
+    <!-- <beans profile="!cloud">
+        <bean class="org.cloudfoundry.identity.uaa.audit.LocalPredixAuditConfig"></bean>
+    </beans> -->
 </beans>
