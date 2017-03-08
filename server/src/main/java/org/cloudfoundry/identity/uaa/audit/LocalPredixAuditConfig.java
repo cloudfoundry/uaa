@@ -22,7 +22,7 @@ import com.ge.predix.audit.sdk.validator.ValidatorReport;
 import com.ge.predix.eventhub.EventHubClientException;
 
 @Configuration
-@Profile({ "!cloud" })
+@Profile({ "!predixaudit" })
 public class LocalPredixAuditConfig {
     private static final Logger log = LoggerFactory.getLogger(PredixAuditConfig.class);
 

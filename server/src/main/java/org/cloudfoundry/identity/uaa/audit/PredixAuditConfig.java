@@ -20,7 +20,7 @@ import com.ge.predix.audit.sdk.validator.ValidatorReport;
 import com.ge.predix.eventhub.EventHubClientException;
 
 @Configuration
-@Profile({ "cloud" })
+@Profile({ "predixaudit" })
 public class PredixAuditConfig {
     private VcapLoaderServiceImpl vcapLoaderService = new VcapLoaderServiceImpl();
     private static final Logger log = LoggerFactory.getLogger(PredixAuditConfig.class);
@@ -38,7 +38,7 @@ public class PredixAuditConfig {
         try {
             return vcapLoaderService.getConfigFromVcap();
         } catch (VcapLoadException e) {
-            e.printStackTrace();
+            log.error("Failed to load audit info from VCAP. " + e.getMessage());
         }
         return null;
     }

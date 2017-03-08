@@ -46,7 +46,7 @@
             <constructor-arg ref="predixAuditService" />
         </bean>
         <bean id="predixAuditService" class="org.cloudfoundry.identity.uaa.audit.PredixAuditService" />
-    <beans profile="cloud">
+    <beans profile="predixaudit">
         <bean class="org.cloudfoundry.identity.uaa.audit.PredixAuditConfig"></bean>
     </beans>
 <!-- Commented out because event hub does not work with proxies locally. If this gets fixed we can uncomment -->

@@ -15,8 +15,6 @@ import com.ge.predix.audit.sdk.message.AuditEventV2.AuditEventV2Builder;
 
 public class PredixAuditService implements UaaAuditService {
 
-    private static final String NON_REQUEST_CORRELATION_ID = "00000000-0000-0000-0000-000000000000";
-    private static final String BASE_ZONE_ID = "00000000-base-uaa0-0000-000000000000";
     private static final String LOG_CORRELATION_ID = "Correlation-Id";
     private final Log logger = LogFactory.getLog("Predix.UAA.Audit");
 
@@ -42,7 +40,6 @@ public class PredixAuditService implements UaaAuditService {
         try{
             UUID.fromString(zoneId);
         } catch (Exception e){
-            //TODO deal with non-uuid identity zone id
             logger.info("base zone event, setting zone Id to base zone placeholder");
             zoneId = null;
         }
@@ -234,14 +231,18 @@ public class PredixAuditService implements UaaAuditService {
                 return null;
         }
 
+        //Add zone id to the payload if it is not a uuid
+        String basePayload = auditEvent.getType().toString() + ": " + auditEvent.getData();
+        String payload = (zoneId == null ? "Z: " + auditEvent.getIdentityZoneId() + " " + basePayload : basePayload);
+
         AuditEventV2Builder predixEventBuilder = AuditEventV2.builder()
-                .payload(auditEvent.getType().toString() + ": " + auditEvent.getData())
+                .payload(payload)
                 .classifier(status)
                 .publisherType(AuditEnums.PublisherType.APP_SERVICE)
                 .categoryType(category)
                 .eventType(type);
         if(zoneId != null) {
-            predixEventBuilder.tenantUuid(zoneId)
+            predixEventBuilder.tenantUuid(zoneId);
         }
         if(correlationId != null) {
             predixEventBuilder.correlationId(correlationId);
