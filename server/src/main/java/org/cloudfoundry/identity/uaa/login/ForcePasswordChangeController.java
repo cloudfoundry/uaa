@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.SavedRequest;
@@ -43,6 +44,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
 public class ForcePasswordChangeController {
+
+    private ResourcePropertySource resourcePropertySource;
 
     public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
     private Log logger = LogFactory.getLog(getClass());
@@ -88,13 +91,13 @@ public class ForcePasswordChangeController {
         PasswordConfirmationValidation validation =
             new PasswordConfirmationValidation(email, password, passwordConfirmation);
         if(!validation.valid()) {
-            return handleUnprocessableEntity(model, response, email, "form_error");
+            return handleUnprocessableEntity(model, response, email, resourcePropertySource.getProperty("force_password_change.form_error").toString());
         }
         logger.debug("Processing handleForcePasswordChange for user: "+ email);
         try {
             resetPasswordService.resetUserPassword(principal.getId(), password);
         } catch(InvalidPasswordException exception) {
-            return handleUnprocessableEntity(model, response, email, "same_as_old");
+            return handleUnprocessableEntity(model, response, email, exception.getMessagesAsOneString());
         }
         SavedRequest savedRequest = (SavedRequest) request.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
 
@@ -124,10 +127,14 @@ public class ForcePasswordChangeController {
         this.resetPasswordService = resetPasswordService;
     }
 
-    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email, String messageCode) {
-        model.addAttribute("message_code", messageCode);
+    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email, String message) {
+        model.addAttribute("message", message);
         model.addAttribute("email",  email);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "force_password_change";
+    }
+
+    public void setResourcePropertySource(ResourcePropertySource resourcePropertySource) {
+        this.resourcePropertySource = resourcePropertySource;
     }
 }
