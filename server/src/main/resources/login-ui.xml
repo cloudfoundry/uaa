@@ -480,8 +480,9 @@
         </entry>
     </util:map>
 
-    <mvc:annotation-driven content-negotiation-manager="contentNegotiationManager">
-        <mvc:message-converters>
+    <!--<mvc:annotation-driven content-negotiation-manager="contentNegotiationManager">-->
+    <mvc:annotation-driven>
+    <mvc:message-converters>
             <bean class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinRequestConverter"/>
         </mvc:message-converters>
         <mvc:path-matching registered-suffixes-only="true"/>
