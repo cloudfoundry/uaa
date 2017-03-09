@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -34,7 +35,9 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
@@ -60,6 +63,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,6 +79,9 @@ public class AuthzAuthenticationManagerTests {
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private String loginServerUserName="loginServerUser".toLowerCase();
     private IdentityProviderProvisioning providerProvisioning;
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -100,6 +107,7 @@ public class AuthzAuthenticationManagerTests {
             .withOrigin(OriginKeys.UAA)
             .withZoneId(IdentityZoneHolder.get().getId())
             .withExternalId(id)
+            .withPasswordLastModified(new Date(System.currentTimeMillis()))
             .withVerified(true);
     }
 
@@ -117,7 +125,7 @@ public class AuthzAuthenticationManagerTests {
     public void unsuccessfulPasswordExpired() throws Exception {
         IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
 
-        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6,128,1,1,1,1,6), null);
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6, 128, 1, 1, 1, 1, 6), null);
         provider.setConfig(idpDefinition);
 
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
@@ -149,6 +157,7 @@ public class AuthzAuthenticationManagerTests {
     public void unsuccessfulLoginServerUserAuthentication() throws Exception {
         when(db.retrieveUserByName(loginServerUserName, OriginKeys.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, ""));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test(expected = BadCredentialsException.class)
@@ -179,6 +188,7 @@ public class AuthzAuthenticationManagerTests {
         }
 
         verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test(expected = AuthenticationPolicyRejectionException.class)
@@ -188,6 +198,7 @@ public class AuthzAuthenticationManagerTests {
         when(lp.isAllowed(any(UaaUser.class), any(Authentication.class))).thenReturn(false);
         mgr.setAccountLoginPolicy(lp);
         mgr.authenticate(createAuthRequest("auser", "password"));
+        verify(db, times(0)).updateLastLogonTime(anyString());
     }
 
     @Test
@@ -244,6 +255,16 @@ public class AuthzAuthenticationManagerTests {
     }
 
     @Test
+    public void authenticationWhenUserPasswordChangeRequired() throws Exception {
+        exception.expectMessage("User password needs to be changed");
+        exception.expect(PasswordChangeRequiredException.class);
+        mgr.setAllowUnverifiedUsers(false);
+        user.setPasswordChangeRequired(true);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
+    }
+
+    @Test
     public void unverifiedAuthenticationFailsWhenNotAllowed() throws Exception {
         mgr.setAllowUnverifiedUsers(false);
         user.setVerified(false);
@@ -254,6 +275,33 @@ public class AuthzAuthenticationManagerTests {
         } catch(AccountNotVerifiedException e) {
             verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
         }
+    }
+
+    @Test (expected = PasswordChangeRequiredException.class)
+    public void testSystemWidePasswordExpiry() {
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
+        UaaIdentityProviderDefinition idpDefinition = mock(UaaIdentityProviderDefinition.class);
+        provider.setConfig(idpDefinition);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        PasswordPolicy policy = new PasswordPolicy();
+        policy.setPasswordNewerThan(new Date(System.currentTimeMillis() + 1000));
+        when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
+        when(db.retrieveUserByName("auser",OriginKeys.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
+    }
+
+    @Test
+    public void testSystemWidePasswordExpiryWithPastDate() {
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
+        UaaIdentityProviderDefinition idpDefinition = mock(UaaIdentityProviderDefinition.class);
+        provider.setConfig(idpDefinition);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        PasswordPolicy policy = new PasswordPolicy();
+        Date past = new Date(System.currentTimeMillis() - 10000000);
+        policy.setPasswordNewerThan(past);
+        when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
+        when(db.retrieveUserByName("auser",OriginKeys.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
     @Test

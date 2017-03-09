@@ -48,6 +48,7 @@ public class PasswordEndpointsDocs extends InjectedMockContextTest {
         loginToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), clientId, "loginsecret", "oauth.login");
         String adminToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null);
         user = new ScimUser(null, new RandomValueStringGenerator().generate(), "given", "last");
+        user.setPassword("password");
         user.setPrimaryEmail(user.getUserName()+"@test.org");
         user = MockMvcUtils.createUser(getMockMvc(), adminToken, user);
     }

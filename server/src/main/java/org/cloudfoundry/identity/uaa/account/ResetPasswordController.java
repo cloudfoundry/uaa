@@ -162,22 +162,22 @@ public class ResetPasswordController {
                                     HttpServletResponse response,
                                     @RequestParam("code") String code) {
 
-        ExpiringCode expiringCode = validateUserAndClient(codeStore.retrieveCode(code));
+        ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code));
         if (expiringCode==null) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
-            PasswordChange change = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
-            UaaUser user = userDatabase.retrieveUserById(change.getUserId());
-            String email = user.getEmail();
-            Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
-            model.addAttribute("code", codeStore.generateCode(expiringCode.getData(), fiveMinutes, null).getCode());
-            model.addAttribute("email", email);
+            PasswordChange passwordChange = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
+            String userId = passwordChange.getUserId();
+            UaaUser uaaUser = userDatabase.retrieveUserById(userId);
+            String newCode = codeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
+            model.addAttribute("code", newCode);
+            model.addAttribute("email", uaaUser.getEmail());
             model.addAttribute("passwordPolicy", resetPasswordService.getPasswordPolicy());
             return "reset_password";
         }
     }
 
-    public ExpiringCode validateUserAndClient(ExpiringCode code) {
+    public ExpiringCode checkIfUserExists(ExpiringCode code) {
         if (code==null) {
             logger.debug("reset_password ExpiringCode object is null. Aborting.");
             return null;

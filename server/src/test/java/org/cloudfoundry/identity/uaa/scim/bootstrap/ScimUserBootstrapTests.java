@@ -14,8 +14,8 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -80,7 +80,7 @@ public class ScimUserBootstrapTests {
         flyway.setDataSource(database);
         flyway.migrate();
         jdbcTemplate = new JdbcTemplate(database);
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
         db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
         gdb = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mdb = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);

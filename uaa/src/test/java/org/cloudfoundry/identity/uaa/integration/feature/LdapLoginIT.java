@@ -25,10 +25,13 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 @RunWith(LoginServerClassRunner.class)
@@ -55,6 +58,7 @@ public class LdapLoginIT {
     TestClient testClient;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
+    private String zoneAdminToken;
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
@@ -66,8 +70,12 @@ public class LdapLoginIT {
     }
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
+        Long beforeTest = System.currentTimeMillis();
         performLdapLogin("testzone2", "ldap://52.87.212.253:389/", true, true);
+        Long afterTest = System.currentTimeMillis();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa4");
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost","testzone2.localhost"), webDriver);
     }
 
@@ -98,7 +106,7 @@ public class LdapLoginIT {
         IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
 
         //get the zone admin token
-        String zoneAdminToken =
+        zoneAdminToken =
           IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
             UaaTestAccounts.standard(serverRunning),
             "identity",
@@ -126,10 +134,10 @@ public class LdapLoginIT {
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(OriginKeys.LDAP);
+        provider.setType(LDAP);
         provider.setActive(true);
         provider.setConfig(ldapIdentityProviderDefinition);
-        provider.setOriginKey(OriginKeys.LDAP);
+        provider.setOriginKey(LDAP);
         provider.setName("simplesamlphp for uaa");
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
 

@@ -70,7 +70,7 @@ public class IdentityZoneHolder {
     public static void clear() {
         THREADLOCAL.remove();
     }
-    
+
     public static boolean isUaa() {
         return THREADLOCAL.get().getZone().getId().equals(IdentityZone.getUaa().getId());
     }
@@ -78,6 +78,10 @@ public class IdentityZoneHolder {
     public static class Initializer {
         public Initializer(IdentityZoneProvisioning provisioning) {
             IdentityZoneHolder.setProvisioning(provisioning);
+        }
+
+        public void reset() {
+            IdentityZoneHolder.setProvisioning(null);
         }
     }
 

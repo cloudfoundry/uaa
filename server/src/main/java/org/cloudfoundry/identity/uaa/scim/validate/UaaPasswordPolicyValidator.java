@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.scim.validate;
 
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.passay.DigitCharacterRule;
 import org.passay.LengthRule;
 import org.passay.LowercaseCharacterRule;
@@ -65,7 +65,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     @Override
     public void validate(String password) throws InvalidPasswordException {
         if (password == null) {
-            throw new IllegalArgumentException("Password cannot be null");
+            password = "";
         }
 
         PasswordPolicy policy = getPasswordPolicy();
@@ -88,9 +88,12 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     public org.passay.PasswordValidator getPasswordValidator(PasswordPolicy policy) {
         List<Rule> rules = new ArrayList<>();
-        if (policy.getMinLength()>=0 && policy.getMaxLength()>0) {
-            rules.add(new LengthRule(policy.getMinLength(), policy.getMaxLength()));
-        }
+
+        //length is always a rule. We do not allow blank password
+        int minLength = Math.max(1, policy.getMinLength());
+        int maxLength = policy.getMaxLength()>0 ? policy.getMaxLength() : Integer.MAX_VALUE;
+        rules.add(new LengthRule(minLength, maxLength));
+
         if (policy.getRequireUpperCaseCharacter()>0) {
             rules.add(new UppercaseCharacterRule(policy.getRequireUpperCaseCharacter()));
         }

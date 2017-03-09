@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -47,6 +48,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Locale;
 
 /**
@@ -114,15 +116,8 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                     throw new AccountNotVerifiedException("Account not verified");
                 }
 
-                int expiringPassword = getPasswordExpiresInMonths();
-                if (expiringPassword>0) {
-                    Calendar cal = Calendar.getInstance();
-                    cal.setTimeInMillis(user.getPasswordLastModified().getTime());
-                    cal.add(Calendar.MONTH, expiringPassword);
-                    if (cal.getTimeInMillis() < System.currentTimeMillis()) {
-                        throw new PasswordExpiredException("Your current password has expired. Please reset your password.");
-                    }
-                }
+
+                checkPasswordExpired(user.getPasswordLastModified());
 
                 UaaAuthentication success = new UaaAuthentication(
                         new UaaPrincipal(user),
@@ -130,7 +125,18 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                         (UaaAuthenticationDetails) req.getDetails());
 
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
-
+                Date passwordNewerThan = getPasswordNewerThan();
+                if(passwordNewerThan != null) {
+                    if(user.getPasswordLastModified() == null || (passwordNewerThan.getTime() > user.getPasswordLastModified().getTime())) {
+                        logger.info("Password change required for user: "+user.getEmail());
+                        throw new PasswordChangeRequiredException(success, "User password needs to be changed");
+                    }
+                }
+                
+                if(user.isPasswordChangeRequired()){
+                    logger.info("Password change required for user: "+user.getEmail());
+                    throw new PasswordChangeRequiredException(success, "User password needs to be changed");
+                }
                 publish(new UserAuthenticationSuccessEvent(user, success));
 
                 return success;
@@ -151,6 +157,18 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 if (null!=idpDefinition.getPasswordPolicy()) {
                     return idpDefinition.getPasswordPolicy().getExpirePasswordInMonths();
                 }
+            }
+        }
+        return result;
+    }
+
+    protected Date getPasswordNewerThan() {
+        Date result = null;
+        IdentityProvider provider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        if(provider != null) {
+            UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
+            if(idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
+                return idpDefinition.getPasswordPolicy().getPasswordNewerThan();
             }
         }
         return result;
@@ -196,5 +214,17 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     public void setAllowUnverifiedUsers(boolean allowUnverifiedUsers) {
         this.allowUnverifiedUsers = allowUnverifiedUsers;
+    }
+
+    private void checkPasswordExpired(Date passwordLastModified) {
+        int expiringPassword = getPasswordExpiresInMonths();
+        if (expiringPassword>0) {
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(passwordLastModified.getTime());
+            cal.add(Calendar.MONTH, expiringPassword);
+            if (cal.getTimeInMillis() < System.currentTimeMillis()) {
+                throw new PasswordExpiredException("Your current password has expired. Please reset your password.");
+            }
+        }
     }
 }

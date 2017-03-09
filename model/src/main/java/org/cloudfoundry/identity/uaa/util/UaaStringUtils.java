@@ -30,7 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author Dave Syer
@@ -92,6 +94,29 @@ public class UaaStringUtils {
     }
 
     /**
+     * Hide the values in a config map (e.g. for logging).
+     *
+     * @param map a map with String keys (e.g. Properties) and String or nested
+     *            map values
+     * @return new properties with no plaintext passwords and secrets
+     */
+    public static Map<String, ?> redactValues(Map<String, ?> map) {
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        result.putAll(map);
+        for (String key : map.keySet()) {
+            Object value = map.get(key);
+            if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, ?> bare = (Map<String, ?>) value;
+                result.put(key, redactValues(bare));
+            } else if (value instanceof String) {
+                    result.put(key, "<redacted>");
+            }
+        }
+        return result;
+    }
+
+    /**
      * @param properties the properties with potential password values
      * @return new properties with no plaintext passwords
      */
@@ -104,6 +129,11 @@ public class UaaStringUtils {
             }
         }
         return result;
+    }
+
+    public static Set<String> retainAllMatches(Collection<String> values, Collection<String> whitelist) {
+        Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(whitelist), UaaStringUtils::constructSimpleWildcardPatternWithAnyCharDelimiter);
+        return values.stream().filter(s -> matches(regExPatterns, s)).collect(Collectors.toSet());
     }
 
     public static boolean containsWildcard(String s) {
@@ -152,10 +182,20 @@ public class UaaStringUtils {
         return result.replace("\\*", "[^\\\\.]+");
     }
 
+    public static String constructSimpleWildcardPatternWithAnyCharDelimiter(String s) {
+        String result = escapeRegExCharacters(s);
+        return result.replace("\\*", ".*");
+    }
+
+
     public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings) {
+        return constructWildcards(wildcardStrings, UaaStringUtils::constructSimpleWildcardPattern);
+    }
+
+    public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings, Function<String, String> replace) {
         Set<Pattern> wildcards = new HashSet<>();
         for (String wildcard : wildcardStrings) {
-            String pattern = UaaStringUtils.constructSimpleWildcardPattern(wildcard);
+            String pattern = replace.apply(wildcard);
             wildcards.add(Pattern.compile(pattern));
         }
         return wildcards;
@@ -200,7 +240,13 @@ public class UaaStringUtils {
     }
 
     private static boolean isPassword(String key) {
-        return key.endsWith("password") || key.endsWith("secret") || key.endsWith("signing-key");
+        key = key.toLowerCase();
+        return
+            key.endsWith("password") ||
+            key.endsWith("secret") ||
+            key.endsWith("signing-key") ||
+            key.contains("serviceproviderkey")
+            ;
     }
 
     public static Set<String> getStringsFromAuthorities(Collection<? extends GrantedAuthority> authorities) {

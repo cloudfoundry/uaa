@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,34 +12,53 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
-import java.sql.Timestamp;
-import java.util.List;
-
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.SecretChangeSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationFailure;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.List;
+
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.SecretChangeSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verifyZeroInteractions;
+
+@RunWith(Parameterized.class)
 public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
 
     private JdbcFailedLoginCountingAuditService auditService;
 
     private String authDetails;
+    private boolean clientEnabled;
+    private JdbcTemplate template;
+
+    @Parameterized.Parameters
+    public static Object[][] getParameters() {
+        return new Object[][]{{true}, {false}};
+    }
+
+    public JdbcFailedLoginCountingAuditServiceTests(boolean clientEnabled) {
+        this.clientEnabled = clientEnabled;
+    }
+
 
     @Before
     public void createService() throws Exception {
-        auditService = new JdbcFailedLoginCountingAuditService(dataSource);
+        template = spy(jdbcTemplate);
+        auditService = new JdbcFailedLoginCountingAuditService(template, this.clientEnabled);
         jdbcTemplate.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
         authDetails = "1.1.1.1";
     }
@@ -98,46 +117,59 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
         List<AuditEvent> userEvents = auditService.find("1", now - 120 * 1000);
         List<AuditEvent> clientEvents = auditService.find("client", now - 120 * 1000);
         assertEquals(1, userEvents.size());
-        assertEquals(1, clientEvents.size());
+        assertEquals(clientEnabled ? 1 : 0, clientEvents.size());
     }
-    
+
     @Test
     public void clientAuthenticationFailureAuditSucceeds() throws Exception {
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
         Thread.sleep(100);
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
-        List<AuditEvent> events = auditService.find("client", 0);
-        assertEquals(2, events.size());
-        assertEquals("client", events.get(0).getPrincipalId());
-        assertEquals("testman", events.get(0).getData());
-        assertEquals("1.1.1.1", events.get(0).getOrigin());
+        List<AuditEvent> events = clientEnabled ? auditService.find("client", 0) : Collections.emptyList();
+        assertEquals(clientEnabled ? 2 : 0, events.size());
+        if (clientEnabled) {
+            assertEquals("client", events.get(0).getPrincipalId());
+            assertEquals("testman", events.get(0).getData());
+            assertEquals("1.1.1.1", events.get(0).getOrigin());
+        } else {
+            verifyZeroInteractions(template);
+        }
     }
 
     @Test
     public void clientAuthenticationFailureDeletesOldData() throws Exception {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(clientEnabled ? 1 : 0));
         // Set the created column to 25 hours past
         jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 25 * 3600 * 1000));
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(clientEnabled ? 1 : 0));
+        if (!clientEnabled) {
+            verifyZeroInteractions(template);
+        }
     }
 
     @Test
     public void clientAuthenticationSuccessResetsData() throws Exception {
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(clientEnabled ? 1 : 0));
         auditService.log(getAuditEvent(ClientAuthenticationSuccess, "client", "testman"));
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
+        if (!clientEnabled) {
+            verifyZeroInteractions(template);
+        }
     }
 
     @Test
     public void clientSecretChangeSuccessResetsData() throws Exception {
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(clientEnabled ? 1 : 0));
         auditService.log(getAuditEvent(SecretChangeSuccess, "client", "testman"));
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
+        if (!clientEnabled) {
+            verifyZeroInteractions(template);
+        }
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {

@@ -32,14 +32,25 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 
 public class ClientAdminEndpointsValidator implements InitializingBean, ClientDetailsValidator {
 
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    private static final Set<String> VALID_GRANTS = new HashSet<>(Arrays.asList("implicit", "password",
-                                                                                "client_credentials", "authorization_code", "refresh_token", GRANT_TYPE_USER_TOKEN));
+    public static final Set<String> VALID_GRANTS =
+        new HashSet<>(
+            Arrays.asList(
+                "implicit",
+                "password",
+                "client_credentials",
+                "authorization_code",
+                "refresh_token",
+                GRANT_TYPE_USER_TOKEN,
+                GRANT_TYPE_SAML2_BEARER
+            )
+        );
 
     private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Arrays.asList("password"));
 
@@ -101,12 +112,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
                             + VALID_GRANTS.toString());
         }
-        for (String grant : requestedGrantTypes) {
-            if (!VALID_GRANTS.contains(grant)) {
-                throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
-                                + VALID_GRANTS.toString());
-            }
-        }
+        checkRequestedGrantTypes(requestedGrantTypes);
 
         if ((requestedGrantTypes.contains("authorization_code") || requestedGrantTypes.contains("password"))
                         && !requestedGrantTypes.contains("refresh_token")) {
@@ -220,6 +226,15 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         return client;
 
+    }
+
+    public static void checkRequestedGrantTypes(Set<String> requestedGrantTypes) {
+        for (String grant : requestedGrantTypes) {
+            if (!VALID_GRANTS.contains(grant)) {
+                throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
+                                + VALID_GRANTS.toString());
+            }
+        }
     }
 
 

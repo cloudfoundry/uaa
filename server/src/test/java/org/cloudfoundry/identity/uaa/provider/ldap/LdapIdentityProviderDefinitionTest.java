@@ -65,6 +65,18 @@ public class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
+    public void testEquals() {
+        LdapIdentityProviderDefinition ldapIdentityProviderDefinition1 = new LdapIdentityProviderDefinition();
+        ldapIdentityProviderDefinition1.setAddShadowUserOnLogin(true);
+        LdapIdentityProviderDefinition ldapIdentityProviderDefinition2 = new LdapIdentityProviderDefinition();
+        ldapIdentityProviderDefinition2.setAddShadowUserOnLogin(false);
+        assertNotEquals(ldapIdentityProviderDefinition1,ldapIdentityProviderDefinition2);
+
+        ldapIdentityProviderDefinition2.setAddShadowUserOnLogin(true);
+        assertEquals(ldapIdentityProviderDefinition1,ldapIdentityProviderDefinition2);
+    }
+
+    @Test
     public void test_tls_options() {
         ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition();
         ldapIdentityProviderDefinition.setTlsConfiguration(LDAP_TLS_NONE);

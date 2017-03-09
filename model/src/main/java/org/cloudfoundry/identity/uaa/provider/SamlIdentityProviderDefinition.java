@@ -81,6 +81,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setGroupMappingMode(getGroupMappingMode());
         def.setSocketFactoryClassName(getSocketFactoryClassName());
         def.setSkipSslValidation(isSkipSslValidation());
+        def.setStoreCustomAttributes(isStoreCustomAttributes());
         return def;
     }
 
@@ -230,6 +231,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
 
         SamlIdentityProviderDefinition that = (SamlIdentityProviderDefinition) o;
 

@@ -25,6 +25,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -109,6 +110,11 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
+    public void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired) throws ScimResourceNotFoundException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException,
                     InvalidScimResourceException {
         HttpHeaders headers = new HttpHeaders();
@@ -120,6 +126,16 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     @Override
     public boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean checkPasswordChangeIndividuallyRequired(String id) throws ScimResourceNotFoundException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateLastLogonTime(String id) {
+
     }
 
     @Override

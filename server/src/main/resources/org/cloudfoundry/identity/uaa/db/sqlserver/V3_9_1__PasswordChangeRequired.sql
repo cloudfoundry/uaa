@@ -1,0 +1,1 @@
+ALTER TABLE users ADD passwd_change_required BIT DEFAULT 0 NOT NULL;

@@ -182,19 +182,13 @@ public class UaaContextFactory {
             case AUTHORIZATION_CODE: return authenticateAuthCode(request);
             case AUTHORIZATION_CODE_WITH_TOKEN: return authenticateAuthCodeWithToken(request);
             case FETCH_TOKEN_FROM_CODE: return fetchTokenFromCode(request);
+            case SAML2_BEARER: return authenticateSaml2BearerAssertion(request);
             default: throw new UnsupportedGrantTypeException("Not implemented:"+request.getGrantType());
         }
     }
 
     protected UaaContext fetchTokenFromCode(final TokenRequest request) {
-        String clientBasicAuth = null;
-        try {
-            byte[] autbytes = Base64.encode(format("%s:%s", request.getClientId(),request.getClientSecret()).getBytes("UTF-8"));
-            String base64 = new String(autbytes);
-            clientBasicAuth = format("Basic %s", base64);
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(e);
-        }
+        String clientBasicAuth = getClientBasicAuthHeader(request);
 
         RestTemplate template = new RestTemplate();
         if (request.isSkipSslValidation()) {
@@ -279,6 +273,33 @@ public class UaaContextFactory {
         return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
     }
 
+    protected UaaContext authenticateSaml2BearerAssertion(final TokenRequest request) {
+        RestTemplate template = new RestTemplate();
+        if (request.isSkipSslValidation()) {
+            template.setRequestFactory(getNoValidatingClientHttpRequestFactory());
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        MultiValueMap<String,String> form = new LinkedMultiValueMap<>();
+        form.add(OAuth2Utils.CLIENT_ID, request.getClientId());
+        form.add("client_secret", request.getClientSecret());
+        form.add(OAuth2Utils.GRANT_TYPE, "urn:ietf:params:oauth:grant-type:saml2-bearer");
+        form.add("assertion", request.getAuthCodeAPIToken());
+
+        ResponseEntity<CompositeAccessToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeAccessToken.class);
+        return new UaaContextImpl(request, null, token.getBody());
+    }
+
+    protected String getClientBasicAuthHeader(TokenRequest request) {
+        try {
+            byte[] autbytes = Base64.encode(format("%s:%s", request.getClientId(), request.getClientSecret()).getBytes("UTF-8"));
+            String base64 = new String(autbytes);
+            return format("Basic %s", base64);
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 
     /**
      * Performs a {@link org.cloudfoundry.identity.client.token.GrantType#PASSWORD authentication}

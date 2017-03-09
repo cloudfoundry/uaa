@@ -16,8 +16,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
@@ -99,7 +100,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     public  void initScimGroupEndpointsTests() throws Exception {
         TestUtils.deleteFrom(dataSource, "users", "groups", "group_membership");
         JdbcTemplate template = jdbcTemplate;
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, new DefaultLimitSqlAdapter());
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, LimitSqlAdapterFactory.getLimitSqlAdapter());
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
         mm = new JdbcScimGroupMembershipManager(template, pagingListFactory);
@@ -116,6 +117,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         userEndpoints = new ScimUserEndpoints();
         userEndpoints.setScimUserProvisioning(udao);
         userEndpoints.setScimGroupMembershipManager(mm);
+        userEndpoints.setPasswordValidator(mock(PasswordValidator.class));
 
         groupIds = new ArrayList<String>();
         userIds = new ArrayList<String>();

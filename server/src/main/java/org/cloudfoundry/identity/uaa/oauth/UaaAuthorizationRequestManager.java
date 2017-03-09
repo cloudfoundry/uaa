@@ -56,7 +56,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
  * rules to an authorization request,
  * validating it and setting the default values for requested scopes and resource ids.
  *
- * @author Dave Syer
  *
  */
 public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
@@ -224,9 +223,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             Set<String> scopes = OAuth2Utils.parseParameterList(parameters.get("scope"));
             for (String scope : scopes) {
                 if (!matches(validWildcards, scope)) {
-                    throw new InvalidScopeException("Invalid scope: " + scope
-                                    + ". Did you know that you can get default requested scopes by simply sending no value?",
-                                    validScope);
+                    throw new InvalidScopeException(scope + " is invalid. Please use a valid scope name in the request");
                 }
             }
         }
@@ -274,10 +271,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
         // Check that a token with empty scope is not going to be granted
         if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
-            throw new InvalidScopeException(
-                "Invalid scope (empty) - this user is not allowed any of the requested scopes: " + requestedScopes
-                + " (either you requested a scope that was not allowed or client '"
-                + clientDetails.getClientId() + "' is not allowed to act on behalf of this user)", allowed);
+            throw new InvalidScopeException(requestedScopes + " is invalid. This user is not allowed any of the requested scopes");
         }
 
         return result;

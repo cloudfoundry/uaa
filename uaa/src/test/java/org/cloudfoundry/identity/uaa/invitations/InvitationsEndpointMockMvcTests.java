@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
@@ -81,20 +81,20 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         clientDetails = utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities);
         scimInviteToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), clientId, clientSecret, "scim.read scim.invite", null);
         domain = generator.generate().toLowerCase()+".com";
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         if (uaaProvider.getConfig()==null) {
             uaaProvider.setConfig(new UaaIdentityProviderDefinition(null,null));
         }
         uaaProvider.getConfig().setEmailDomain(Arrays.asList(domain, "example.com"));
-        getWebApplicationContext().getBean(IdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
         codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
     }
 
     @After
     public void cleanUpDomainList() throws Exception {
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         uaaProvider.getConfig().setEmailDomain(null);
-        getWebApplicationContext().getBean(IdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
     }
 
     @Test
@@ -247,10 +247,12 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         ScimUser user1 = new ScimUser(null, username1, "givenName", "familyName");
         user1.setPrimaryEmail(email);
         user1.setOrigin(UAA);
+        user1.setPassword("password");
         utils().createUser(getMockMvc(), clientAdminToken, user1);
         ScimUser user2 = new ScimUser(null, username2, "givenName", "familyName");
         user2.setPrimaryEmail(email);
         user2.setOrigin(UAA);
+        user2.setPassword("password");
         utils().createUser(getMockMvc(), clientAdminToken, user2);
 
         String userToken = utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret, null);

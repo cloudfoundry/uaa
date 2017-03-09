@@ -415,7 +415,7 @@ public class ScimGroupEndpoints {
             membershipManager.removeMembersByMemberId(groupId);
             dao.delete(groupId, getVersion(groupId, etag));
         } catch (IncorrectResultSizeDataAccessException ex) {
-            logger.error("error deleting group, restoring system to previous state");
+            logger.debug("error deleting group", ex);
             throw new ScimException("error deleting group: " + groupId, ex, HttpStatus.CONFLICT);
         }
         return group;

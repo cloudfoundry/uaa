@@ -409,6 +409,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
     private ScimUser newScimUser() throws Exception {
         String userName = generator.generate();
         ScimUser member = new ScimUser(null, userName, "cool-name", "cool-familyName");
+        member.setPassword("password");
         member.setPrimaryEmail("cool@chill.com");
         member = MockMvcUtils.utils().createUser(getMockMvc(), scimWriteToken, member);
         return member;

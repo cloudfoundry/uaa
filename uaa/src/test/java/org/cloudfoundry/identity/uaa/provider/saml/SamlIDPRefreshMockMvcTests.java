@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.IdpMetadataGenerator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
@@ -33,6 +34,7 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensaml.saml2.core.NameIDType;
 import org.opensaml.saml2.metadata.NameIDFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +43,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-import org.opensaml.saml2.core.NameIDType;
 
 import java.util.Arrays;
 import java.util.List;
@@ -132,13 +133,11 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         SecurityContextHolder.clearContext();
         testAccounts = UaaTestAccounts.standard(null);
         jdbcTemplate = getWebApplicationContext().getBean(JdbcTemplate.class);
-        providerProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        providerProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         providerEndpoints = getWebApplicationContext().getBean(IdentityProviderEndpoints.class);
         zoneAwareMetadataManager = getWebApplicationContext().getBean(NonSnarlMetadataManager.class);
         zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         configurator = getWebApplicationContext().getBean(SamlIdentityProviderConfigurator.class);
-        //ensure that we don't fire the listener, we want to test the DB refresh
-        getWebApplicationContext().getBean(ProviderChangedListener.class).setMetadataManager(null);
         cleanSamlProviders();
 
     }

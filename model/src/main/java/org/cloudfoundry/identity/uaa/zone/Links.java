@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.List;
+import java.util.Optional;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -57,7 +58,7 @@ public class Links {
     public static class Logout {
         private String redirectUrl = "/login";
         private String redirectParameterName = "redirect";
-        private boolean disableRedirectParameter = true;
+        private boolean disableRedirectParameter = false;
         private List<String> whitelist = null;
 
         public boolean isDisableRedirectParameter() {
@@ -79,7 +80,7 @@ public class Links {
         }
 
         public String getRedirectUrl() {
-            return redirectUrl;
+            return Optional.ofNullable(redirectUrl).orElse("/login");
         }
 
         public Logout setRedirectUrl(String redirectUrl) {

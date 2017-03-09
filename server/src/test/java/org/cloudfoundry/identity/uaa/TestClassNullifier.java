@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.util.NullifyFields;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 public class TestClassNullifier {
 
@@ -40,4 +41,10 @@ public class TestClassNullifier {
         System.gc();
     }
 
+    public InternalResourceViewResolver getResolver() {
+        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
+        viewResolver.setPrefix("/WEB-INF/jsp");
+        viewResolver.setSuffix(".jsp");
+        return viewResolver;
+    }
 }

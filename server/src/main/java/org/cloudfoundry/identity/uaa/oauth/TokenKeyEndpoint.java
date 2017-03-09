@@ -28,16 +28,16 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 import java.security.interfaces.RSAPublicKey;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
+
 /**
  * OAuth2 token services that produces JWT encoded token values.
  *
- * @author Dave Syer
- * @author Luke Taylor
- * @author Joel D'sa
  */
 @Controller
 public class TokenKeyEndpoint {
@@ -63,23 +63,25 @@ public class TokenKeyEndpoint {
     }
 
     public static VerificationKeyResponse getVerificationKeyResponse(KeyInfo key) {
-        VerificationKeyResponse result = new VerificationKeyResponse();
-        result.setAlgorithm(key.getSigner().algorithm());
-        result.setKey(key.getVerifierKey());
+        Map<String, Object> result = new HashMap<>();
+        result.put("alg", key.getSigner().algorithm());
+        result.put("value", key.getVerifierKey());
         //new values per OpenID and JWK spec
-        result.setType(key.getType());
-        result.setUse("sig");
-        result.setId(key.getKeyId());
+        result.put("use", sig.name());
+        result.put("kid",key.getKeyId());
+        result.put("kty", key.getType());
+
         if (key.isAssymetricKey() && "RSA".equals(key.getType())) {
-                RSAPublicKey rsaKey = key.getRsaPublicKey();
-                if (rsaKey != null) {
-                    String n = Base64Utils.encodeToUrlSafeString(rsaKey.getModulus().toByteArray());
-                    String e = Base64Utils.encodeToUrlSafeString(rsaKey.getPublicExponent().toByteArray());
-                    result.setModulus(n);
-                    result.setExponent(e);
+
+            RSAPublicKey rsaKey = key.getRsaPublicKey();
+            if (rsaKey != null) {
+                String n = Base64Utils.encodeToUrlSafeString(rsaKey.getModulus().toByteArray());
+                String e = Base64Utils.encodeToUrlSafeString(rsaKey.getPublicExponent().toByteArray());
+                result.put("n", n);
+                result.put("e", e);
             }
         }
-        return result;
+        return new VerificationKeyResponse(result);
     }
 
     /**
@@ -95,15 +97,12 @@ public class TokenKeyEndpoint {
     @ResponseBody
     public VerificationKeysListResponse getKeys(Principal principal) {
         boolean includeSymmetric = includeSymmetricalKeys(principal);
-
-        VerificationKeysListResponse result = new VerificationKeysListResponse();
         Map<String, KeyInfo> keys = KeyInfo.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
                 .filter(k -> includeSymmetric || k.isAssymetricKey())
                 .map(TokenKeyEndpoint::getVerificationKeyResponse)
                 .collect(Collectors.toList());
-        result.setKeys(keyResponses);
-        return result;
+        return new VerificationKeysListResponse(keyResponses);
     }
 
     protected boolean includeSymmetricalKeys(Principal principal) {

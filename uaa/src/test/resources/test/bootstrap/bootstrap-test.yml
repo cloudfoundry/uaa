@@ -114,7 +114,7 @@ logout:
   redirect:
     url: /configured_login
     parameter:
-      disable: false
+      disable: true
       whitelist:
         - https://url1.domain1.com/logout-success
         - https://url2.domain2.com/logout-success
@@ -164,6 +164,8 @@ authentication:
       lockoutAfterFailures: 1
       countFailuresWithinSeconds: 2222
       lockoutPeriodSeconds: 152
+    client:
+      lockoutEnabled: true
 
 jwt:
   token:
@@ -176,6 +178,9 @@ jwt:
       refreshTokenValiditySeconds: 9600
     refresh:
       restrict_grant: true
+      unique: true
+      format: opaque
+
 
 servlet:
   session-cookie:
