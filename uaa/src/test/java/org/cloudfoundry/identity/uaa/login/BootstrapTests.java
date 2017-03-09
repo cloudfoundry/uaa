@@ -106,7 +106,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItemInArray;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -126,12 +125,10 @@ public class BootstrapTests {
 
     private static String systemConfiguredProfiles;
     private String profiles;
-    private static volatile boolean initialized;
 
     @BeforeClass
     public static void saveProfiles() {
         systemConfiguredProfiles = System.getProperty("spring.profiles.active");
-        initialized = false;
     }
 
     @AfterClass
@@ -148,10 +145,6 @@ public class BootstrapTests {
         System.clearProperty("spring.profiles.active");
         IdentityZoneHolder.clear();
         profiles = systemConfiguredProfiles==null ? "default,hsqldb" : (systemConfiguredProfiles != null && systemConfiguredProfiles.contains("default")) ? systemConfiguredProfiles : systemConfiguredProfiles+",default";
-        if (!initialized) {
-            getServletContext(profiles +",default", false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, true, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-            initialized = true;
-        }
     }
 
     @After
@@ -181,12 +174,13 @@ public class BootstrapTests {
         String originalSmtpHost = System.getProperty("smtp.host");
         System.setProperty("smtp.host","");
 
-        context = getServletContext(null, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
-        String[] springProfiles = context.getEnvironment().getActiveProfiles();
-        assertThat("'default' profile should not be loaded", springProfiles, not(hasItemInArray("default")));
-        springProfiles = context.getEnvironment().getDefaultProfiles();
-        assertThat("'default' profile should not be default", springProfiles, not(hasItemInArray("default")));
+        for (String expectedProfile : StringUtils.commaDelimitedListToSet(profiles)) {
+            String[] springProfiles = context.getEnvironment().getActiveProfiles();
+            assertThat("expecting configured profiles to be set", springProfiles, hasItemInArray(expectedProfile));
+        }
+
 
         IdentityZoneConfigurationBootstrap zoneConfigurationBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);
         assertFalse(zoneConfigurationBootstrap.isIdpDiscoveryEnabled());
