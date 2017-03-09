@@ -21,6 +21,7 @@ dependencies {
   compile group: 'org.springframework', name: 'spring-context-support', version:springVersion
   compile group: 'org.springframework.security', name: 'spring-security-core', version: parent.springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-jwt', version: parent.springSecurityJwtVersion
+  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
   compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
