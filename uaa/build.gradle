@@ -88,20 +88,11 @@ ext {
   snippetsDir = file('build/generated-snippets')
 }
 
-def proxyHost  = System.getenv('PROXY_HOST')
-def proxyPort  = System.getenv('PROXY_PORT')
-def nonProxyHosts = 'localhost|*.localhost'
-
 test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
+  systemProperty 'java.io.tmpdir', '/tmp'
   systemProperty "mock.suite.test", "true"
-  systemProperty "java.io.tmpdir", "/tmp"
-  systemProperty "http.proxyHost", proxyHost
-  systemProperty "http.proxyPort", proxyPort
-  systemProperty "https.proxyHost", proxyHost
-  systemProperty "https.proxyPort", proxyPort
-  systemProperty "http.nonProxyHosts", nonProxyHosts
 }
 task docsTestRestDocs(type: Test) {
   include '**/DefaultDocsTestSuite.class'
@@ -119,14 +110,6 @@ task(slate, type: Exec) {
 }
 generateDocs {
   dependsOn slate
-}
-
-tasks.withType(Test) {
-  systemProperties = System.properties
-  //override the following
-  systemProperty 'java.io.tmpdir', '/tmp'
-  systemProperty "mock.suite.test", "true"
-  systemProperties['user.dir'] = workingDir
 }
 
 integrationTest {

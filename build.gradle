@@ -72,10 +72,6 @@ allprojects {
     mavenCentral()
   }
 
-  tasks.withType(Test) {
-    systemProperties = System.properties
-    systemProperties['user.dir'] = workingDir
-  }
 }
 
 //apply plugin: 'com.bmuschko.cargo-base'
@@ -188,6 +184,11 @@ subprojects {
       }
       url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
     }
+  }
+
+  tasks.withType(Test) {
+    systemProperties = System.properties
+    systemProperties['user.dir'] = workingDir
   }
 
   install {

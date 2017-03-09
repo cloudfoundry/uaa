@@ -97,16 +97,6 @@ processResources {
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-server') : line }
 }
 
-def proxyHost  = System.getenv('PROXY_HOST')
-def proxyPort  = System.getenv('PROXY_PORT')
-def nonProxyHosts = 'localhost|*.localhost'
-
-tasks.withType(Test) {
-  systemProperties = System.properties
-  systemProperty "mock.suite.test", "true"
-  systemProperties['user.dir'] = workingDir
-}
-
 integrationTest {}.onlyIf { //disable since we don't have any
   true == false
 }
