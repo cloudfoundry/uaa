@@ -5,7 +5,7 @@
 
 <div class="island-landscape predix-layout predix-layout--email-sent" layout:fragment="page-content">
     <div class="island-title">
-        <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
+        <h1>Create your <th:block th:text="${isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
     </div>
     <div class="island-content">
         <!--<i class="fa fa-envelope-o"></i>-->

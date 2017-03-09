@@ -47,7 +47,7 @@ assetBaseUrl: /resources/predix
 
 login:
   # Enable create account and forgot password links on the Login Server (enabled by default)
-  #selfServiceLinksEnabled: true
+  selfServiceLinksEnabled: true
   #base URL that the login server can be reached at
 #  oauth:
 #    providers:

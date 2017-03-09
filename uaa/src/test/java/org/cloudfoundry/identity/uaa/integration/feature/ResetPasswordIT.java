@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -103,7 +104,6 @@ public class ResetPasswordIT {
     }
 
     @Test
-    @Ignore
     public void resettingAPassword() throws Exception {
 
         // Go to Forgot Password page
@@ -119,22 +119,19 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
 
         // Log out and back in with new password
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
+        tearDown();
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
 
-        // Attempt to use same code again
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
-
+        // Attempt to use same code again        
+        tearDown();
         webDriver.get(link);
 
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Sorry, your reset password link is no longer valid. You can request another one below."));
@@ -142,7 +139,7 @@ public class ResetPasswordIT {
 
     @Test
     public void resetPassword_with_clientRedirect() throws Exception {
-        webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://example.redirect.com");
+        webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=https://www.google.com");
         Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
@@ -169,15 +166,15 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-
-        assertEquals("http://example.redirect.com/", webDriver.getCurrentUrl());
+        webDriver.manage().timeouts().implicitlyWait(50, TimeUnit.SECONDS);
+        
+        assertEquals("https://www.google.com/", webDriver.getCurrentUrl());
     }
 
     @Test
-    @Ignore
     public void resettingAPasswordForANonExistentUser() throws Exception {
         webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        Assert.assertEquals("Predix", webDriver.getTitle());
 
         webDriver.findElement(By.linkText("Reset password")).click();
 
@@ -194,7 +191,6 @@ public class ResetPasswordIT {
     }
 
     @Test
-    @Ignore
     public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() throws Exception {
         String newPassword = new RandomValueStringGenerator(260).generate();
         beginResetPassword();
@@ -205,7 +201,6 @@ public class ResetPasswordIT {
     }
 
     @Test
-    @Ignore
     public void resetPassword_displaysErrorMessage_NewPasswordSameAsOld() throws Exception {
         beginResetPassword();
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
@@ -223,7 +218,7 @@ public class ResetPasswordIT {
 
     private String beginResetPassword() {
         webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        Assert.assertEquals("Predix", webDriver.getTitle());
         webDriver.findElement(By.linkText("Reset password")).click();
         Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 

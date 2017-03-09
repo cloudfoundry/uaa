@@ -60,6 +60,9 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
+    private static final String ACCOUNT_CREATE_MESSAGE = "Create your Predix account";
+    private static final String ACCOUNT_OTHER_ZONE_CREATE_MESSAGE = "Create your account";
+    private static final String UAA_AUTHOR = "Predix";
     private static SimpleSmtpServer mailServer;
     private String userEmail;
     private MockMvcTestClient mockMvcTestClient;
@@ -112,11 +115,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         }
     }
 
-    @Ignore //self registration is disabled
     @Test
     public void testCreateActivationEmailPage() throws Exception {
         getMockMvc().perform(get("/create_account"))
-                .andExpect(content().string(containsString("Create your account")));
+                .andExpect(content().string(containsString(ACCOUNT_CREATE_MESSAGE)));
     }
 
     @Test
@@ -126,19 +128,17 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-            .andExpect(content().string(containsString("Create your account")));
+            .andExpect(content().string(containsString(ACCOUNT_OTHER_ZONE_CREATE_MESSAGE)));
     }
 
-    @Ignore //email activation is not used
     @Test
     public void testActivationEmailSentPage() throws Exception {
         getMockMvc().perform(get("/accounts/email_sent"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Create your account")))
+                .andExpect(content().string(containsString(ACCOUNT_CREATE_MESSAGE)))
                 .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
     }
 
-    @Ignore //email activation is not used
     @Test
     public void testActivationEmailSentPageWithinZone() throws Exception {
         String subdomain = generator.generate();
@@ -147,9 +147,9 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/accounts/email_sent")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("Create your account")))
+            .andExpect(content().string(containsString(ACCOUNT_OTHER_ZONE_CREATE_MESSAGE)))
             .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
-            .andExpect(content().string(containsString("Cloud Foundry")));
+            .andExpect(content().string(containsString(UAA_AUTHOR)));
     }
 
     @Test
@@ -248,19 +248,16 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
-    @Ignore //account creation is disabled
     @Test
     public void testCreatingAnAccountWithClientRedirect() throws Exception {
         createAccount("http://client.redirect.uri", "http://client.redirect.uri");
     }
 
-    @Ignore //account creation is disabled
     @Test
     public void testCreatingAnAccountWithFallbackClientRedirect() throws Exception {
         createAccount("http://fallback.redirect.uri", null);
     }
 
-    @Ignore //account creation is disabled
     @Test
     public void testCreatingAnAccountWithNoClientRedirect() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
@@ -276,8 +273,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         Iterator receivedEmail = mailServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        assertTrue(message.getBody().contains("Cloud Foundry"));
-        assertTrue(message.getHeaderValue("From").contains("Cloud Foundry"));
+        assertTrue(message.getBody().contains(UAA_AUTHOR));
+        assertTrue(message.getHeaderValue("From").contains(UAA_AUTHOR));
 
         MvcResult mvcResult = getMockMvc().perform(get("/verify_user")
             .param("code", "test" + generator.counter.get()))
@@ -325,7 +322,6 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         String link = mockMvcTestClient.extractLink(message.getBody());
         assertTrue(message.getBody().contains(subdomain+"zone"));
         assertTrue(message.getHeaderValue("From").contains(subdomain+"zone"));
-        assertFalse(message.getBody().contains("Cloud Foundry"));
         assertFalse(message.getBody().contains("Pivotal"));
         assertFalse(isEmpty(link));
         assertTrue(link.contains(subdomain+".localhost"));
@@ -477,8 +473,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         Iterator receivedEmail = mailServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        assertTrue(message.getBody().contains("Cloud Foundry"));
-        assertTrue(message.getHeaderValue("From").contains("Cloud Foundry"));
+        assertTrue(message.getBody().contains(UAA_AUTHOR));
+        assertTrue(message.getHeaderValue("From").contains(UAA_AUTHOR));
 
         MvcResult mvcResult = getMockMvc().perform(get("/verify_user")
                 .param("code", "test" + generator.counter.get()))

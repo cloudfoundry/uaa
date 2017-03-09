@@ -339,9 +339,7 @@ h1 {
     -webkit-box-pack: justify;
         -ms-flex-pack: justify;
             justify-content: space-between;
-    padding: 1rem 0;
-    display: none !important;
-    opacity: 0; }
+    padding: 1rem 0; }
   .island .left,
   .island .right {
     display: none; }
