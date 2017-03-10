@@ -270,10 +270,8 @@ cargo {
   }
 
   local {
-    //jacoco agent jar is causing startup to fail. see defect DE30159
-    jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
     //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-    jvmArgs = ""
+    jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData} -DLOGIN_CONFIG_URL=file://"+new File(".").absolutePath+"/uaa/src/main/resources/required_configuration.yml"
     outputFile = file('uaa/build/reports/tests/uaa-server.log')
     configFile {
       file = file('scripts/travis/tomcat-conf/context.xml')
