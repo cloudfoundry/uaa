@@ -55,6 +55,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -216,6 +217,15 @@ public class LoginIT {
             String.class);
         assertEquals(HttpStatus.FORBIDDEN, loginResponse.getStatusCode());
         assertTrue("CSRF message should be shown", loginResponse.getBody().contains("Invalid login attempt, request does not meet our security standards, please try again."));
+    }
+
+    @Test
+    public void testCsrfIsResetDuringLoginPageReload() {
+        webDriver.get(baseUrl + "/login");
+        String csrf1 = webDriver.manage().getCookieNamed(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME).getValue();
+        webDriver.get(baseUrl + "/login");
+        String csrf2 = webDriver.manage().getCookieNamed(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME).getValue();
+        assertNotEquals(csrf1, csrf2);
     }
 
     @Test
