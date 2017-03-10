@@ -286,7 +286,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     }
 
     local {
-//      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+//      jvmArgs = jvmArgs + " -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
       systemProperties {
           //property 'uaa.allowUnverifiedUsers', 'false'
