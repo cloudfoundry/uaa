@@ -82,7 +82,7 @@ public class TestClient {
                         "\"client_secret\":\"scimsecret\"," +
                         "\"resource_ids\":[\"oauth\"]," +
                         "\"authorized_grant_types\":[\"client_credentials\"]," +
-                        "\"redirect_uri\":[\"http://example.redirect.com\"]," +
+                        "\"redirect_uri\":[\"http://example.redirect.com\", \"https://www.google.com\"]," +
                         "\"authorities\":[\"password.write\",\"scim.write\",\"scim.read\",\"oauth.approvals\"]" +
                         "}",
                 uaaUrl + "/oauth/clients"
