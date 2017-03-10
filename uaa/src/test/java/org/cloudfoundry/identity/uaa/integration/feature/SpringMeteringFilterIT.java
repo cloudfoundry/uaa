@@ -72,7 +72,7 @@ public class SpringMeteringFilterIT {
 
     ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private final String zoneId = "test-zone-uaa";
+    private final String zoneId = "int-test-zone-uaa";
 
     private RestTemplate adminClient;
     private RestTemplate identityClient;
