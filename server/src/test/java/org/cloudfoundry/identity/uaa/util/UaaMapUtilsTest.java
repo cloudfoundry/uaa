@@ -14,29 +14,45 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.prettyPrintYaml;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.redactValues;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.sortByKeys;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 
 
 public class UaaMapUtilsTest {
 
-    @Test
-    public void testFlatten() {
-        Map<String, Object> top = new HashMap<>();
-        Map<String, Object> secondA = new HashMap<>();
-        Map<String, Object> secondB = new HashMap<>();
-        Map<String, Object> thirdA = new HashMap<>();
-        Map<String, Object> thirdB = new HashMap<>();
-        Map<String, Object> thirdC = new HashMap<>();
-        Map<String, Object> value = new HashMap<>();
+    private Map<String, Object> top;
+    private Map<String, Object> secondA;
+    private Map<String, Object> secondB;
+    private Map<String, Object> thirdA;
+    private Map<String, Object> thirdB;
+    private Map<String, Object> thirdC;
+    private Map<String, Object> emptyMap;
 
-        top.put("secondA", secondA);
+    @Before
+    public void setup() {
+        top = new HashMap<>();
+        secondA = new HashMap<>();
+        secondB = new HashMap<>();
+        thirdA = new HashMap<>();
+        thirdB = new HashMap<>();
+        thirdC = new HashMap<>();
+        emptyMap = new HashMap<>();
+
         top.put("secondB", secondB);
+        top.put("secondA", secondA);
 
         secondA.put("thirdA", thirdA);
         secondA.put("thirdB", thirdB);
@@ -44,16 +60,107 @@ public class UaaMapUtilsTest {
         secondB.put("thirdC", thirdC);
         secondB.put("thirdB", thirdB);
 
-        thirdA.put("keyA", "valueA");
-        thirdB.put("keyB", "valueB");
         thirdC.put("keyC", "valueC");
-        thirdC.put("value", value);
+        thirdB.put("keyB", "valueB");
+        thirdA.put("keyA", "valueA");
+        thirdC.put("emptyMap", emptyMap);
+        thirdC.put("emptyString", "");
+        thirdC.put("nullValue", null);
+    }
 
+    @Test
+    public void testFlatten() {
         Map<String,Object> flat = UaaMapUtils.flatten(top);
-        assertSame(value, flat.get("secondB.thirdC.value"));
+        assertSame(emptyMap, flat.get("secondB.thirdC.emptyMap"));
         assertSame(secondA, flat.get("secondA"));
         assertEquals("valueC", flat.get("secondB.thirdC.keyC"));
-
-
     }
+
+    public void internal_visit_all_keys(Map<String, Object> map, List<String> keys) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            keys.add(entry.getKey());
+            if (entry.getValue() instanceof Map) {
+                internal_visit_all_keys((Map<String, Object>) entry.getValue(), keys);
+            }
+        }
+    }
+
+    public List<String> visit_all_keys(Map<String, Object> map) {
+        List<String> result = new LinkedList<>();
+        internal_visit_all_keys(map, result);
+        return result;
+    }
+
+    @Test
+    public void sort_nested_map() throws Exception {
+        List<String> expectedOrder = Arrays.asList(
+            "secondA",
+            "thirdA",
+            "keyA",
+            "thirdB",
+            "keyB",
+            "secondB",
+            "thirdB",
+            "keyB",
+            "thirdC",
+            "emptyMap",
+            "emptyString",
+            "keyC",
+            "nullValue"
+        );
+        assertNotEquals(expectedOrder, visit_all_keys(top));
+        assertEquals(expectedOrder, visit_all_keys(sortByKeys(top)));
+    }
+
+    @Test
+    public void print_sorted_yaml() throws Exception {
+        String expected = "---\n" +
+            "secondA:\n" +
+            "  thirdA:\n" +
+            "    keyA: valueA\n" +
+            "  thirdB:\n" +
+            "    keyB: valueB\n" +
+            "secondB:\n" +
+            "  thirdB:\n" +
+            "    keyB: valueB\n" +
+            "  thirdC:\n" +
+            "    emptyMap: {\n" +
+            "      }\n" +
+            "    emptyString: ''\n" +
+            "    keyC: valueC\n" +
+            "    nullValue: null\n";
+        assertEquals(expected, prettyPrintYaml(top));
+    }
+
+    @Test
+    public void testHideConfigValues() throws Exception {
+        String expected = "---\n" +
+            "secondA:\n" +
+            "  thirdA:\n" +
+            "    keyA: <redacted>\n" +
+            "  thirdB:\n" +
+            "    keyB: <redacted>\n" +
+            "secondB:\n" +
+            "  thirdB:\n" +
+            "    keyB: <redacted>\n" +
+            "  thirdC:\n" +
+            "    emptyMap: {\n" +
+            "      }\n" +
+            "    emptyString: ''\n" +
+            "    keyC: <redacted>\n" +
+            "    nullValue: null\n";
+        assertEquals(expected, prettyPrintYaml(redactValues(top)));
+    }
+
+    private void checkRedacted(Map<String,?> map) {
+        for (String key : map.keySet()) {
+            Object value = map.get(key);
+            if (value instanceof Map) {
+                checkRedacted((Map)value);
+            } else  {
+                assertEquals("<redacted>", value);
+            }
+        }
+    }
+
 }
