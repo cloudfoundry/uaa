@@ -102,7 +102,18 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (result.size()==0) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
-        return result.get(0);
+        return removeKeys(result.get(0));
+    }
+
+    private IdentityZone removeKeys(IdentityZone identityZone) {
+        if(identityZone.getConfig() != null && identityZone.getConfig().getTokenPolicy() != null) {
+            identityZone.getConfig().getTokenPolicy().setKeys(null);
+        }
+        if(identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
+            identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(null);
+            identityZone.getConfig().getSamlConfig().setPrivateKey(null);
+        }
+        return identityZone;
     }
 
     @RequestMapping(method = GET)
@@ -111,14 +122,18 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
     protected List<IdentityZone> filterForCurrentZone(List<IdentityZone> zones) {
+        List<IdentityZone> result = new LinkedList<>();
         if (IdentityZoneHolder.isUaa()) {
-            return zones;
+            for (IdentityZone zone : zones) {
+                    result.add(removeKeys(zone));
+                }
+            return result;
         }
         String currentId = IdentityZoneHolder.get().getId();
-        List<IdentityZone> result = new LinkedList<>();
+
         for (IdentityZone zone : zones) {
             if (currentId.equals(zone.getId())) {
-                result.add(filterForZonesDotRead(zone));
+                result.add(removeKeys(filterForZonesDotRead(zone)));
                 break;
             }
         }
@@ -187,7 +202,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             defaultIdp.setConfig(idpDefinition);
             idpDao.create(defaultIdp);
             logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
-            return new ResponseEntity<>(created, CREATED);
+            return new ResponseEntity<>(removeKeys(created), CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
         }
@@ -211,6 +226,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             throw new AccessDeniedException("Zone admins can only update their own zone.");
         }
 
+        // make sure it exists
+        IdentityZone existingZone = zoneDao.retrieve(id);
+        restoreSecretProperties(existingZone, body);
+
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
         } catch(InvalidIdentityZoneDetailsException ex) {
@@ -220,16 +239,32 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - updating id["+id+"] subdomain["+body.getSubdomain()+"]");
-            // make sure it exists
-            zoneDao.retrieve(id);
             // ignore the id in the body, the id in the path is the only one that matters
             body.setId(id);
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated); //what???
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
-            return new ResponseEntity<>(updated, OK);
+            return new ResponseEntity<>(removeKeys(updated), OK);
         } finally {
             IdentityZoneHolder.set(previous);
+        }
+    }
+
+    private void restoreSecretProperties(IdentityZone existingZone, IdentityZone newZone) {
+        if(newZone.getConfig() != null) {
+            if (newZone.getConfig().getTokenPolicy() != null) {
+                if (newZone.getConfig().getTokenPolicy().getKeys() == null || newZone.getConfig().getTokenPolicy().getKeys().isEmpty()) {
+                    newZone.getConfig().getTokenPolicy().setKeys(existingZone.getConfig().getTokenPolicy().getKeys());
+                }
+            }
+            if(newZone.getConfig().getSamlConfig() != null) {
+                SamlConfig config = newZone.getConfig().getSamlConfig();
+                SamlConfig oldConfig = existingZone.getConfig().getSamlConfig();
+                if(config.getPrivateKey() == null && config.getPrivateKeyPassword() == null && oldConfig.getCertificate() != null && oldConfig.getCertificate().equals(config.getCertificate())) {
+                    config.setPrivateKey(oldConfig.getPrivateKey());
+                    config.setPrivateKeyPassword(oldConfig.getPrivateKeyPassword());
+                }
+            }
         }
     }
 
@@ -252,7 +287,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             if (publisher!=null && zone!=null) {
                 publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
-                return new ResponseEntity<>(zone, OK);
+                return new ResponseEntity<>(removeKeys(zone), OK);
             } else {
                 return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
             }

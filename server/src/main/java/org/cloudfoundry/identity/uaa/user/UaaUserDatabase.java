@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -23,4 +23,10 @@ public interface UaaUserDatabase {
     UaaUser retrieveUserById(String id) throws UsernameNotFoundException;
 
     UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException;
+
+    UserInfo getUserInfo(String id);
+
+    UserInfo storeUserInfo(String id, UserInfo info);
+
+    void updateLastLogonTime(String id);
 }

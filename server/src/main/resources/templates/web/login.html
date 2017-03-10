@@ -32,9 +32,9 @@
             <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
                 <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
             </div>
-            <div th:each="oauthIdp : ${oauthDefinitions}" th:if="${oauthIdp.value.showLinkText}">
+            <div th:each="oauthLink : ${oauthLinks}" >
                 <div>
-                    <a href="" th:href="@{${oauthIdp.value.getCompleteAuthorizationURI(T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getBaseURL(#httpServletRequest), oauthIdp.key)}}" th:text="${oauthIdp.value.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                    <a href="" th:href="${oauthLink.key}" th:text="${oauthLink.value}" class="saml-login-link">Use your corporate credentials</a>
                 </div>
             </div>
         </div>

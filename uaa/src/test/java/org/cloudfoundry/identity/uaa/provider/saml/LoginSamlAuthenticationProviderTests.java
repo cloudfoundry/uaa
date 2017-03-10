@@ -35,6 +35,8 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -91,6 +93,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -129,6 +132,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     private ScimGroup uaaSamlUser;
     private ScimGroup uaaSamlAdmin;
     private ScimGroup uaaSamlTest;
+    private TimeService timeService;
 
     public List<Attribute> getAttributes(Map<String,Object> values) {
         List<Attribute> result = new LinkedList<>();
@@ -226,7 +230,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
 
-        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate);
+        timeService = mock(TimeService.class);
+        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService);
         userDatabase.setDefaultAuthorities(new HashSet<>(Arrays.asList(UaaAuthority.UAA_USER.getAuthority())));
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
@@ -441,6 +446,16 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
+    public void add_external_groups_to_authentication_with_wildcard_whitelist() throws Exception {
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        providerDefinition.addWhiteListedGroup("saml*");
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider);
+        UaaAuthentication authentication = getAuthentication();
+        assertThat(authentication.getExternalGroups(), containsInAnyOrder(SAML_USER, SAML_ADMIN, SAML_NOT_MAPPED));
+    }
+
+    @Test
     public void update_invitedUser_whose_username_is_notEmail() throws Exception {
         ScimUser scimUser = getInvitedUser();
 
@@ -541,6 +556,44 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertEquals("Bloggs", user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
         assertEquals("1234567890", user.getPhoneNumber());
+    }
+
+    @Test
+    public void custom_user_attributes_stored_if_configured() throws Exception {
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "firstName");
+        attributeMappings.put("family_name", "lastName");
+        attributeMappings.put("email", "emailAddress");
+        attributeMappings.put("phone_number", "phone");
+        attributeMappings.put(USER_ATTRIBUTE_PREFIX+"secondary_email","emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        provider = providerProvisioning.update(provider);
+
+        UaaAuthentication authentication = getAuthentication();
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        assertEquals("Marissa", user.getGivenName());
+        assertEquals("Bloggs", user.getFamilyName());
+        assertEquals("marissa.bloggs@test.com", user.getEmail());
+        assertEquals("1234567890", user.getPhoneNumber());
+        assertEquals("marissa.bloggs@test.com", authentication.getUserAttributes().getFirst("secondary_email"));
+
+        UserInfo userInfo = userDatabase.getUserInfo(user.getId());
+        assertNull(userInfo);
+
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        providerDefinition.addWhiteListedGroup(SAML_ADMIN);
+        providerDefinition.setStoreCustomAttributes(true);
+        provider.setConfig(providerDefinition);
+        provider = providerProvisioning.update(provider);
+        authentication = getAuthentication();
+        assertEquals("marissa.bloggs@test.com", authentication.getUserAttributes().getFirst("secondary_email"));
+        userInfo = userDatabase.getUserInfo(user.getId());
+        assertNotNull(userInfo);
+        assertEquals("marissa.bloggs@test.com", userInfo.getUserAttributes().getFirst("secondary_email"));
+        assertNotNull(userInfo.getRoles());
+        assertEquals(1, userInfo.getRoles().size());
+        assertEquals(SAML_ADMIN, userInfo.getRoles().get(0));
     }
 
     @Test

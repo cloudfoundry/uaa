@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -69,6 +70,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
             + " from service_provider " + "where entity_id=? and identity_zone_id=? ";
 
     protected final JdbcTemplate jdbcTemplate;
+
 
     private final RowMapper<SamlServiceProvider> mapper = new SamlServiceProviderRowMapper();
 

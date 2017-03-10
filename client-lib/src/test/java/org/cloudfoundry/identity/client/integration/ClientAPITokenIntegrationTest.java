@@ -25,6 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -37,6 +38,7 @@ import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_COD
 import static org.cloudfoundry.identity.client.token.GrantType.FETCH_TOKEN_FROM_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD_WITH_PASSCODE;
+import static org.cloudfoundry.identity.client.token.GrantType.SAML2_BEARER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -265,4 +267,19 @@ public class ClientAPITokenIntegrationTest {
         assertTrue(context.getToken().getScope().contains("openid"));
     }
 
+    @Test
+    public void test_saml2_bearer_using_api() throws Exception {
+        UaaContext passwordContext = retrievePasswordToken(Arrays.asList("uaa.user"));
+        assertTrue(passwordContext.getToken().getScope().contains("uaa.user"));
+        TokenRequest saml2Code = factory.tokenRequest()
+            .setGrantType(SAML2_BEARER)
+            .setRedirectUri(new URI("http://localhost:8080/app/"))
+            .setClientId("app")
+            .setClientSecret("appclientsecret")
+            .setScopes(Arrays.asList("openid"))
+            .setAuthCodeAPIToken(passwordContext.getToken().getValue());
+        try {
+           factory.authenticate(saml2Code);
+        } catch(HttpClientErrorException he) {}
+    }
 }

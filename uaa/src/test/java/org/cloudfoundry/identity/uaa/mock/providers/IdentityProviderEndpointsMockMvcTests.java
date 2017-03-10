@@ -21,10 +21,12 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
@@ -48,6 +50,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +63,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -92,7 +96,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
                 "adminsecret",
                 "scim.read");
 
-        identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         eventListener.clearEvents();
     }
 
@@ -106,6 +110,30 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     public void testCreateAndUpdateIdentityProvider() throws Exception {
         String accessToken = setUpAccessToken();
         createAndUpdateIdentityProvider(accessToken, null);
+    }
+
+    @Test
+    public void testCreateAndUpdateIdentityProviderWithMissingConfig() throws Exception {
+        String accessToken = setUpAccessToken();
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testnoconfig", IdentityZone.getUaa().getId());
+        Map<String, Object> identityProviderFields = JsonUtils.convertValue(identityProvider, HashMap.class);
+
+        identityProviderFields.remove("config");
+
+        MvcResult create = getMockMvc().perform(post("/identity-providers/")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityProviderFields)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        identityProvider = JsonUtils.readValue(create.getResponse().getContentAsString(), IdentityProvider.class);
+
+        getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityProviderFields)))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -276,6 +304,19 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         long expireMonths = System.nanoTime() % 100L;
         PasswordPolicy newConfig = new PasswordPolicy(6,20,1,1,1,0,(int)expireMonths);
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(newConfig, null));
+        String accessToken = setUpAccessToken();
+        updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
+        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        assertEquals(newConfig, ((UaaIdentityProviderDefinition)modifiedIdentityProvider.getConfig()).getPasswordPolicy());
+    }
+
+    @Test
+    public void testUpdateUaaIdentityProviderDoesUpdateOfPasswordPolicyWithPasswordNewerThan() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        long expireMonths = System.nanoTime() % 100L;
+        PasswordPolicy newConfig = new PasswordPolicy(6,20,1,1,1,0,(int)expireMonths);
+        newConfig.setPasswordNewerThan(new Date());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(newConfig, null));
         String accessToken = setUpAccessToken();
         updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
@@ -557,6 +598,24 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
                 .content(JsonUtils.writeValueAsString(identityProvider))
                 .contentType(APPLICATION_JSON)
         ).andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    public void testUpdatePasswordPolicyWithPasswordNewerThan() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
+        identityProviderProvisioning.update(identityProvider);
+        IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
+        identityProviderStatus.setRequirePasswordChange(true);
+        String accessToken = setUpAccessToken();
+        MvcResult mvcResult = getMockMvc().perform(patch("/identity-providers/"+ identityProvider.getId() + "/status")
+            .header("Authorization", "Bearer " + accessToken)
+            .content(JsonUtils.writeValueAsString(identityProviderStatus))
+            .contentType(APPLICATION_JSON)
+        ).andExpect(status().isOk()).andReturn();
+
+        IdentityProviderStatus updatedStatus = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), IdentityProviderStatus.class);
+        assertEquals(identityProviderStatus.getRequirePasswordChange(), updatedStatus.getRequirePasswordChange());
     }
 
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getOAuthProviderConfig() throws MalformedURLException {

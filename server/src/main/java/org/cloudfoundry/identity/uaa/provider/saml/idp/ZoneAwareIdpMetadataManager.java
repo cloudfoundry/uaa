@@ -108,7 +108,7 @@ public class ZoneAwareIdpMetadataManager extends IdpMetadataManager implements E
         timer.schedule(new RefreshTask(),refreshInterval , refreshInterval);
     }
 
-    protected void refreshAllProviders() throws MetadataProviderException {
+    public void refreshAllProviders() throws MetadataProviderException {
         refreshAllProviders(true);
     }
 

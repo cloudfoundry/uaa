@@ -39,6 +39,10 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsBoolean;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsDate;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsInt;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsString;
 
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
@@ -323,7 +327,9 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             //deserialize based on type
             String config;
             JsonNode configNode = node.get("config");
-            if (configNode.isTextual()) {
+            if (configNode == null) {
+                config = null;
+            } else if (configNode.isTextual()) {
                 config = configNode.textValue();
             } else {
                 config = configNode.toString();
@@ -367,30 +373,6 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             return result;
         }
 
-        protected String getNodeAsString(JsonNode node, String fieldName, String defaultValue) {
-            JsonNode typeNode = node.get(fieldName);
-            return typeNode == null ? defaultValue : typeNode.asText(defaultValue);
-        }
-
-        protected int getNodeAsInt(JsonNode node, String fieldName, int defaultValue) {
-            JsonNode typeNode = node.get(fieldName);
-            return typeNode == null ? defaultValue : typeNode.asInt(defaultValue);
-        }
-
-        protected boolean getNodeAsBoolean(JsonNode node, String fieldName, boolean defaultValue) {
-            JsonNode typeNode = node.get(fieldName);
-            return typeNode == null ? defaultValue : typeNode.asBoolean(defaultValue);
-        }
-
-        protected Date getNodeAsDate(JsonNode node, String fieldName) {
-            JsonNode typeNode = node.get(fieldName);
-            long date = typeNode == null ? -1 : typeNode.asLong(-1);
-            if (date==-1) {
-                return null;
-            } else {
-                return new Date(date);
-            }
-        }
 
     }
 

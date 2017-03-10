@@ -108,6 +108,7 @@ public class ScimUserEndpointsIntegrationTests {
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
+        user.setPassword("password");
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
 
@@ -117,6 +118,7 @@ public class ScimUserEndpointsIntegrationTests {
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
                     String email, boolean verified) {
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
@@ -201,6 +203,7 @@ public class ScimUserEndpointsIntegrationTests {
     @Test
     public void createUserWithNoEmailFails() throws Exception {
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName("dave");
         user.setName(new ScimUser.Name("Dave", "Syer"));
 
@@ -354,6 +357,7 @@ public class ScimUserEndpointsIntegrationTests {
     @Test
     public void createUserTwiceFails() throws Exception {
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName(JOEL);
         user.setName(new ScimUser.Name("Joel", "D'sa"));
         user.addEmail("joel@blah.com");
@@ -378,6 +382,7 @@ public class ScimUserEndpointsIntegrationTests {
         String userNameDifferenceCase = userName.toUpperCase();
 
         ScimUser user = new ScimUser();
+        user.setPassword("password");
         user.setUserName(userName);
         user.setName(new ScimUser.Name("Joel", "D'sa"));
         user.addEmail("joel@blah.com");
@@ -389,6 +394,7 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(JOEL, joel.get("userName"));
 
         ScimUser userDifferentCase = new ScimUser();
+        userDifferentCase.setPassword("password");
         userDifferentCase.setUserName(userNameDifferenceCase);
         userDifferentCase.setName(new ScimUser.Name("Joel", "D'sa"));
         userDifferentCase.addEmail("joel@blah.com");

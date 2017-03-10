@@ -305,7 +305,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals("uaa", map.get("identity_zone_id"));
         assertNull(user.getPasswordLastModified());
         assertNotNull(created.getPasswordLastModified());
-        assertEquals((created.getMeta().getCreated().getTime() / 1000l) * 1000l, created.getPasswordLastModified().getTime());
+        assertTrue(Math.abs(created.getMeta().getCreated().getTime() - created.getPasswordLastModified().getTime()) < 1001); //1 second at most given MySQL fractionless timestamp
     }
 
     @Test
@@ -315,13 +315,25 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser created = db.createUser(user, "j7hyqpassX");
         assertNull(user.getPasswordLastModified());
         assertNotNull(created.getPasswordLastModified());
-        assertEquals((created.getMeta().getCreated().getTime() / 1000l) * 1000l, created.getPasswordLastModified().getTime());
+        assertTrue(Math.abs(created.getMeta().getCreated().getTime() - created.getPasswordLastModified().getTime()) < 1001);
         Thread.sleep(10);
         db.changePassword(created.getId(), "j7hyqpassX", "j7hyqpassXXX");
 
         user = db.retrieve(created.getId());
         assertNotNull(user.getPasswordLastModified());
-        assertEquals((user.getMeta().getLastModified().getTime() / 1000l) * 1000l, user.getPasswordLastModified().getTime());
+        assertTrue(Math.abs(user.getMeta().getLastModified().getTime() - user.getPasswordLastModified().getTime()) < 1001);
+    }
+
+    @Test
+    public void testSetPasswordChangeRequired() {
+        ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
+        user.addEmail(user.getUserName());
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertFalse(db.checkPasswordChangeIndividuallyRequired(created.getId()));
+        db.updatePasswordChangeRequired(created.getId(), true);
+        assertTrue(db.checkPasswordChangeIndividuallyRequired(created.getId()));
+        db.updatePasswordChangeRequired(created.getId(), false);
+        assertFalse(db.checkPasswordChangeIndividuallyRequired(created.getId()));
     }
 
     @Test
@@ -1061,6 +1073,16 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void checkPasswordMatches_ReturnsFalse_newPasswordSameAsOld() {
         assertFalse(db.checkPasswordMatches(JOE_ID, "notjoepassword"));
+    }
+
+    @Test
+    public void updateLastLogonTime() {
+        ScimUser user = db.retrieve(JOE_ID);
+        Long timeStampBeforeUpdate = user.getLastLogonTime();
+        assertNull(timeStampBeforeUpdate);
+        db.updateLastLogonTime(JOE_ID);
+        user = db.retrieve(JOE_ID);
+        assertNotNull(user.getLastLogonTime());
     }
 
     private void assertJoe(ScimUser joe) {

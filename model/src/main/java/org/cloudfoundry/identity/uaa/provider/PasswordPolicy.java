@@ -15,6 +15,8 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 
+import java.util.Date;
+
 public class PasswordPolicy {
 
     public static final String PASSWORD_POLICY_FIELD = "passwordPolicy";
@@ -26,6 +28,7 @@ public class PasswordPolicy {
     private int requireDigit;
     private int requireSpecialCharacter;
     private int expirePasswordInMonths;
+    private Date passwordNewerThan;
 
     public PasswordPolicy() {
         minLength = maxLength = requireUpperCaseCharacter = requireLowerCaseCharacter = requireDigit = requireSpecialCharacter = expirePasswordInMonths = -1;
@@ -67,6 +70,10 @@ public class PasswordPolicy {
         return requireDigit;
     }
 
+    public Date getPasswordNewerThan() {
+        return passwordNewerThan;
+    }
+
     public PasswordPolicy setMaxLength(int maxLength) {
         this.maxLength = maxLength;
         return this;
@@ -90,6 +97,10 @@ public class PasswordPolicy {
     public PasswordPolicy setRequireUpperCaseCharacter(int requireUpperCaseCharacter) {
         this.requireUpperCaseCharacter = requireUpperCaseCharacter;
         return this;
+    }
+
+    public void setPasswordNewerThan(Date passwordNewerThan) {
+        this.passwordNewerThan = passwordNewerThan;
     }
 
     public int getRequireSpecialCharacter() {

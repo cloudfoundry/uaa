@@ -1,4 +1,7 @@
 #!/bin/sh
 
+# If `realpath` isn't installed on your Mac, install it with `brew install coreutils`.
 export LOGIN_CONFIG_URL=file://$(realpath uaa/src/main/resources/required_configuration.yml)
-./gradlew -Dspring.profiles.active=default jacocoRootReport
+./gradlew -Dspring.profiles.active=default jacocoRootReportIntegrationTest
+./gradlew -Dspring.profiles.active=default jacocoRootReportServerTest
+./gradlew -Dspring.profiles.active=default jacocoRootReportTest

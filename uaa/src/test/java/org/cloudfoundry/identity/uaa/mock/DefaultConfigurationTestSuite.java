@@ -55,7 +55,6 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         setUpContext();
     }
     public static XmlWebApplicationContext setUpContext() throws Exception {
-        //clearDatabase();
         webApplicationContext = new XmlWebApplicationContext();
         MockEnvironment mockEnvironment = getMockEnvironment();
         webApplicationContext.setEnvironment(mockEnvironment);

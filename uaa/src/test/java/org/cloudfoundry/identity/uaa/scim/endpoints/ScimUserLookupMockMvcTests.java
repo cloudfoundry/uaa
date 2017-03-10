@@ -307,6 +307,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
             String email = "joe"+id+"@" + generator.generate().toLowerCase() + ".com";
 
             ScimUser user = new ScimUser();
+            user.setPassword("password");
             user.setUserName(email);
             user.setName(new ScimUser.Name("Joe", "User"));
             user.addEmail(email);

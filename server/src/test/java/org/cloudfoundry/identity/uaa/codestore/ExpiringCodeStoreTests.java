@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,11 +33,15 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 @RunWith(Parameterized.class)
 public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     private ExpiringCodeStore expiringCodeStore;
     private Class expiringCodeStoreClass;
+    private TimeService timeService = mock(TimeServiceImpl.class);
 
     public ExpiringCodeStoreTests(Class expiringCodeStoreClass) {
         this.expiringCodeStoreClass = expiringCodeStoreClass;
@@ -53,13 +59,12 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         expiringCodeStore = (ExpiringCodeStore) expiringCodeStoreClass.newInstance();
 
         if (expiringCodeStore instanceof InMemoryExpiringCodeStore) {
-
+            ((InMemoryExpiringCodeStore) expiringCodeStore).setTimeService(timeService);
         } else {
             // confirm that everything is clean prior to test.
             TestUtils.deleteFrom(jdbcTemplate.getDataSource(), JdbcExpiringCodeStore.tableName);
-            if (expiringCodeStore instanceof JdbcExpiringCodeStore) {
-                ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
-            }
+            ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
+            ((JdbcExpiringCodeStore) expiringCodeStore).setTimeService(timeService);
         }
     }
 
@@ -95,14 +100,16 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGenerateCodeWithExpiresAtInThePast() throws Exception {
+        long now = 100000L;
+        when(timeService.getCurrentTimeMillis()).thenReturn(now);
         String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() - 60000);
+        Timestamp expiresAt = new Timestamp(now - 60000);
         expiringCodeStore.generateCode(data, expiresAt, null);
     }
 
     @Test(expected = DataIntegrityViolationException.class)
     public void testGenerateCodeWithDuplicateCode() throws Exception {
-        RandomValueStringGenerator generator = Mockito.mock(RandomValueStringGenerator.class);
+        RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         Mockito.when(generator.generate()).thenReturn("duplicate");
         expiringCodeStore.setGenerator(generator);
 
@@ -151,11 +158,14 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     @Test
     public void testExpiredCodeReturnsNull() throws Exception {
+        long generationTime = 100000L;
+        when(timeService.getCurrentTimeMillis()).thenReturn(generationTime);
         String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 1000);
+        Timestamp expiresAt = new Timestamp(generationTime);
         ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null);
-        Thread.currentThread();
-        Thread.sleep(1001);
+
+        long expirationTime = 200000L;
+        when(timeService.getCurrentTimeMillis()).thenReturn(expirationTime);
         ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode());
         Assert.assertNull(retrievedCode);
     }
@@ -174,7 +184,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     @Test
     public void testDatabaseDown() throws Exception {
         if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
-            javax.sql.DataSource ds = Mockito.mock(javax.sql.DataSource.class);
+            javax.sql.DataSource ds = mock(javax.sql.DataSource.class);
             Mockito.when(ds.getConnection()).thenThrow(new SQLException());
             ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(ds);
             try {
@@ -191,10 +201,11 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     @Test(expected = EmptyResultDataAccessException.class)
     public void testExpirationCleaner() throws Exception {
+        when(timeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
         if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
             jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null);
             ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
-            jdbcTemplate.queryForObject(JdbcExpiringCodeStore.select,
+            jdbcTemplate.queryForObject(JdbcExpiringCodeStore.selectAllFields,
                             new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test");
         } else {
             throw new EmptyResultDataAccessException(1);

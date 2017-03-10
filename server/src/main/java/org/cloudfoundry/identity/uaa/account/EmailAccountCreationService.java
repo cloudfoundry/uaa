@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
@@ -126,7 +127,7 @@ public class EmailAccountCreationService implements AccountCreationService {
                 Set<String> registeredRedirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                         clientDetails.getRegisteredRedirectUri();
                 String signupRedirectUrl = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
-                String matchingRedirectUri = findMatchingRedirectUri(registeredRedirectUris, redirectUri, signupRedirectUrl);
+                String matchingRedirectUri = findMatchingRedirectUri(registeredRedirectUris, redirectUri, Optional.ofNullable(signupRedirectUrl).orElse("home"));
 
                 if (matchingRedirectUri != null) {
                     return matchingRedirectUri;

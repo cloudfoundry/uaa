@@ -27,12 +27,14 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
     protected JdbcTemplate jdbcTemplate;
 
+    private final static String REFRESH_TOKEN_RESPONSE_TYPE = REFRESH_TOKEN.toString();
     protected final static String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
     protected static final String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',')+1, FIELDS.lastIndexOf(',')).replace(",","=?,") + "=?";
     protected final static String TABLE = "revocable_tokens";
@@ -43,6 +45,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected final static String INSERT_QUERY = "INSERT INTO " + TABLE + " ("+FIELDS+") VALUES (?,?,?,?,?,?,?,?,?,?)";
     protected final static String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
     protected final static String DELETE_EXPIRED_QUERY = "DELETE FROM " + TABLE + " WHERE expires_at < ?";
+    protected final static String DELETE_REFRESH_TOKEN_QUERY = "DELETE FROM " + TABLE + " WHERE user_id=? AND client_id=? AND response_type='" +REFRESH_TOKEN_RESPONSE_TYPE+ "' AND identity_zone_id=?";
     protected final static String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
 
 
@@ -80,6 +83,16 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     public RevocableToken retrieve(String id) {
         return retrieve(id, true);
     }
+
+
+    @Override
+    public int deleteRefreshTokensForClientAndUserId(String clientId, String userId) {
+        String zoneId = IdentityZoneHolder.get().getId();
+        int deleted_rows = template.update(DELETE_REFRESH_TOKEN_QUERY, userId, clientId, zoneId);
+        return deleted_rows;
+    }
+
+
 
     @Override
     public RevocableToken create(RevocableToken t) {
@@ -166,9 +179,10 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
 
     public void checkExpired() {
         long now = System.currentTimeMillis();
-        if ((now-lastExpiredCheck.getAndSet(now)) > getExpirationCheckInterval()) {
+        long lastCheck = lastExpiredCheck.get();
+        if ((now - lastCheck) > getExpirationCheckInterval() && lastExpiredCheck.compareAndSet(lastCheck, now)) {
             int removed = template.update(DELETE_EXPIRED_QUERY, now);
-            logger.debug("Removed "+removed+" expired revocable tokens.");
+            logger.info("Removed " + removed + " expired revocable tokens.");
         }
 
     }

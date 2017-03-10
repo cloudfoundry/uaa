@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,13 +14,17 @@ package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 
 public interface ResetPasswordService {
+    void resetUserPassword(String userId, String password);
+
     ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri);
 
-    ResetPasswordResponse resetPassword(String code, String password) throws InvalidPasswordException;
+    ResetPasswordResponse resetPassword(ExpiringCode code, String newPassword);
+
+    void updateLastLogonTime(String userId);
 
     PasswordPolicy getPasswordPolicy();
 

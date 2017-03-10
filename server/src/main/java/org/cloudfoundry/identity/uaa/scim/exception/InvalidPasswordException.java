@@ -54,4 +54,7 @@ public class InvalidPasswordException extends ScimException {
         Collections.sort(sortedMessages);
         return StringUtils.collectionToDelimitedString(sortedMessages, " ");
     }
+
+    @Override
+    public String getMessage() { return getMessagesAsOneString(); }
 }

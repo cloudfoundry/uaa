@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
+import org.cloudfoundry.identity.uaa.audit.JdbcFailedLoginCountingAuditService;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -25,14 +26,7 @@ import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
@@ -43,20 +37,9 @@ import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
-import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.zone.*;
+import org.flywaydb.core.Flyway;
+import org.junit.*;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.signature.SignatureConstants;
 import org.springframework.beans.BeansException;
@@ -82,39 +65,19 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.comparesEqualTo;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItemInArray;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.http.HttpHeaders.ACCEPT;
-import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpHeaders.CONTENT_LANGUAGE;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.junit.Assert.*;
+import static org.springframework.http.HttpHeaders.*;
 
 public class BootstrapTests {
 
@@ -122,10 +85,12 @@ public class BootstrapTests {
 
     private static String systemConfiguredProfiles;
     private String profiles;
+    private static volatile boolean initialized;
 
     @BeforeClass
     public static void saveProfiles() {
         systemConfiguredProfiles = System.getProperty("spring.profiles.active");
+        initialized = false;
     }
 
     @AfterClass
@@ -142,6 +107,10 @@ public class BootstrapTests {
         System.clearProperty("spring.profiles.active");
         IdentityZoneHolder.clear();
         profiles = systemConfiguredProfiles==null ? "default,hsqldb" : (systemConfiguredProfiles != null && systemConfiguredProfiles.contains("default")) ? systemConfiguredProfiles : systemConfiguredProfiles+",default";
+        if (!initialized) {
+            getServletContext(profiles +",default", false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, true, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+            initialized = true;
+        }
     }
 
     @After
@@ -181,6 +150,9 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles +",default", false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        JdbcFailedLoginCountingAuditService auditService = context.getBean(JdbcFailedLoginCountingAuditService.class);
+        assertFalse(auditService.isClientEnabled());
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         if (profiles != null && profiles.contains("mysql")) {
@@ -222,7 +194,7 @@ public class BootstrapTests {
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertNull(zoneConfiguration.getLinks().getLogout().getWhitelist());
-        assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
+        assertFalse(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
         assertFalse(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
         assertEquals(
             Arrays.asList(
@@ -332,6 +304,10 @@ public class BootstrapTests {
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml", "test/bootstrap/bootstrap-test.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        JdbcFailedLoginCountingAuditService auditService = context.getBean(JdbcFailedLoginCountingAuditService.class);
+        assertTrue(auditService.isClientEnabled());
+
+
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         assertTrue(userDatabase.isCaseInsensitive());
 
@@ -359,7 +335,7 @@ public class BootstrapTests {
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
-        assertFalse(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
+        assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
 
         assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), zoneConfiguration.getSamlConfig().getCertificate().trim());
         assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), zoneConfiguration.getSamlConfig().getPrivateKey().trim());
@@ -378,7 +354,7 @@ public class BootstrapTests {
             zoneConfiguration.getPrompts()
         );
 
-        IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning idpProvisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
         assertFalse(uaaIdp.isActive());
@@ -649,11 +625,21 @@ public class BootstrapTests {
         TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
         assertThat(uaaTokenPolicy, is(notNullValue()));
         assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(2));
+        assertEquals(false, uaaTokenPolicy.isRefreshTokenUnique());
+        assertEquals(JWT.getStringValue(), uaaTokenPolicy.getRefreshTokenFormat());
         Map<String, String> keys = uaaTokenPolicy.getKeys();
         assertTrue(keys.keySet().contains("key-id-1"));
         String signingKey = keys.get("key-id-1");
         assertThat(signingKey, containsString("test-signing-key"));
         assertThat(uaaTokenPolicy.getActiveKeyId(), is("key-id-2"));
+    }
+
+    @Test
+    public void test_bootstrap_of_token_policy() {
+        context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
+        assertEquals(true, uaaTokenPolicy.isRefreshTokenUnique());
+        assertEquals(OPAQUE.getStringValue(), uaaTokenPolicy.getRefreshTokenFormat());
     }
 
     @Test
@@ -799,17 +785,27 @@ public class BootstrapTests {
     }
 
     private ConfigurableApplicationContext getServletContext(String profiles, String loginYmlPath, String uaaYamlPath, String... resources) {
-        return getServletContext(profiles, false, new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath}, resources);
+        return getServletContext(profiles, false, new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath}, false, resources);
     }
     private ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String loginYmlPath, String uaaYamlPath, String... resources) {
         return getServletContext(
             profiles,
             mergeProfiles,
             new String[] {"required_configuration.yml", loginYmlPath, uaaYamlPath},
+            false,
             resources
         );
     }
     private ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String[] yamlFiles, String... resources) {
+        return getServletContext(
+            profiles,
+            mergeProfiles,
+            yamlFiles,
+            false,
+            resources
+        );
+    }
+    private static ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String[] yamlFiles, boolean cleandb, String... resources) {
         String[] resourcesToLoad = resources;
         if (!resources[0].endsWith(".xml")) {
             resourcesToLoad = new String[resources.length - 1];
@@ -876,6 +872,10 @@ public class BootstrapTests {
         }
 
         context.refresh();
+        if (cleandb) {
+            context.getBean(Flyway.class).clean();
+            context.getBean(Flyway.class).migrate();
+        }
 
         return context;
     }

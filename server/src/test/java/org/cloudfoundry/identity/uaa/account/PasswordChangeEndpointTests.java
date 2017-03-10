@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -66,7 +66,7 @@ public class PasswordChangeEndpointTests {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(jdbcTemplate,
-                        new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter()));
+                        new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()));
         dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 
         endpoints = new PasswordChangeEndpoint();

@@ -196,14 +196,17 @@ public class InvitationsIT {
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
         assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), containsString("Password must be no more than 255 characters in length."));
+        webDriver.findElement(By.name("password"));
+        webDriver.findElement(By.name("password_confirmation"));
     }
 
     @Test
     public void invitedOIDCUserVerified() throws Exception {
-        BaseClientDetails clientDetails = new BaseClientDetails("invite-client", null, null, "client_credentials", "scim.invite");
+        String clientId = "invite-client" + new RandomValueStringGenerator().generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "scim.invite");
         clientDetails.setClientSecret("invite-client-secret");
         testClient.createClient(scimToken, clientDetails);
-        String inviteToken = testClient.getOAuthAccessToken("invite-client", "invite-client-secret", "client_credentials", "scim.invite");
+        String inviteToken = testClient.getOAuthAccessToken(clientId, "invite-client-secret", "client_credentials", "scim.invite");
         IntegrationTestUtils.createOidcIdentityProvider("oidc-invite-provider", "puppy-invite", baseUrl);
 
         RestTemplate uaaTemplate = new RestTemplate();
@@ -248,6 +251,7 @@ public class InvitationsIT {
         headers.add("Authorization", "Bearer " + scimToken);
         RestTemplate uaaTemplate = new RestTemplate();
         ScimUser scimUser = new ScimUser();
+        scimUser.setPassword("password");
         scimUser.setUserName(username);
         scimUser.setPrimaryEmail(userEmail);
         scimUser.setOrigin(origin);

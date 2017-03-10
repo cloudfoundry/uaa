@@ -16,6 +16,7 @@ import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
+import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -47,6 +48,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
     private IdentityProviderProvisioning providerProvisioning;
+    private UrlContentCache contentCache;
 
     private Timer dummyTimer = new Timer() {
         @Override public void cancel() { super.cancel(); }
@@ -61,6 +63,15 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
 
     public SamlIdentityProviderConfigurator() {
         dummyTimer.cancel();
+    }
+
+    public UrlContentCache getContentCache() {
+        return contentCache;
+    }
+
+    public SamlIdentityProviderConfigurator setContentCache(UrlContentCache contentCache) {
+        this.contentCache = contentCache;
+        return this;
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
@@ -196,7 +207,8 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider =
             FixedHttpMetaDataProvider.buildProvider(dummyTimer, getClientParams(),
                                                     adjustURIForPort(def.getMetaDataLocation()),
-                                                    template);
+                                                    template,
+                                                    this.contentCache);
         return fixedHttpMetaDataProvider;
     }
 

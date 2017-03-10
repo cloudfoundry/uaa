@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -79,7 +80,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         defaultAuthorities = (Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities");
         identityZoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         jdbcScimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
-        identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         IdentityZoneHolder.clear();
 
         adminToken =

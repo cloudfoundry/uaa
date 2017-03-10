@@ -63,6 +63,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -130,6 +131,8 @@ public class InvitationsController {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
 
+        transferErrorParameters(model, request);
+
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         String origin = codeData.get(ORIGIN);
         try {
@@ -167,7 +170,7 @@ public class InvitationsController {
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), origin, null, IdentityZoneHolder.get().getId());
                 AnonymousAuthenticationToken token = new AnonymousAuthenticationToken("scim.invite",uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED));
                 SecurityContextHolder.getContext().setAuthentication(token);
-                model.addAttribute(provider.getType(), provider);
+                model.addAttribute("provider", provider.getType());
                 model.addAttribute("code", newCode);
                 model.addAttribute("email", codeData.get("email"));
                 model.addAttribute("passwordPolicy", invitationsService.getPasswordPolicy());
@@ -177,6 +180,14 @@ public class InvitationsController {
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        }
+    }
+
+    public void transferErrorParameters(Model model, HttpServletRequest request) {
+        for (String p : Arrays.asList("error_message_code", "error_code", "error_message")) {
+            if (hasText(request.getParameter(p))) {
+                model.addAttribute(p, request.getParameter(p));
+            }
         }
     }
 
@@ -241,14 +252,14 @@ public class InvitationsController {
         UaaPrincipal principal =  (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         if (!validation.valid()) {
-            model.addAttribute("email", principal.getEmail());
-            return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode(), "invitations/accept_invite");
+           return processErrorReload(code, model, principal.getEmail(), response, "error_message_code", validation.getMessageCode());
+//           return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode(), "invitations/accept_invite");
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
-            model.addAttribute("email", principal.getEmail());
-            return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
+            return processErrorReload(code, model, principal.getEmail(), response, "error_message", e.getMessagesAsOneString());
+//            return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
         AcceptedInvitation invitation;
         try {
@@ -267,6 +278,24 @@ public class InvitationsController {
         UaaAuthentication authentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         return "redirect:" + invitation.getRedirectUri();
+    }
+
+    private String processErrorReload(String code, Model model, String email, HttpServletResponse response, String errorCode, String error) {
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+        try {
+            String origin = codeData.get(ORIGIN);
+            IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
+            String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
+
+            model.addAttribute(errorCode, error);
+            model.addAttribute("code", newCode);
+            return "redirect:accept";
+            //return handleUnprocessableEntity(model, response, errorCode, error, "invitations/accept_invite");
+        } catch (EmptyResultDataAccessException noProviderFound) {
+            logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
+            return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        }
     }
 
     @RequestMapping(value = "/accept_enterprise.do", method = POST)
@@ -304,7 +333,7 @@ public class InvitationsController {
             ScimUser user = userProvisioning.retrieve(data.get("user_id"));
             if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
                 model.addAttribute("email", data.get("email"));
-                model.addAttribute(OriginKeys.LDAP, OriginKeys.LDAP);
+                model.addAttribute("provider", OriginKeys.LDAP);
                 model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), null).getCode());
                 return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
             }

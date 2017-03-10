@@ -61,7 +61,6 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
     private String loginToken;
     private ScimUser user;
-    private RandomValueStringGenerator originalGenerator;
     private String adminToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 

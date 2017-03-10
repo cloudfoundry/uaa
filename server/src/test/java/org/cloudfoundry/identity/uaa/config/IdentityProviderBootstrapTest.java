@@ -248,6 +248,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         setCommonProperties(oidcProvider);
         oidcProvider.setResponseType("code id_token");
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
         oauthProviderConfig.put(OAUTH20, oauthProvider);

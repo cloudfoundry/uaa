@@ -16,11 +16,7 @@ import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootst
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,10 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.junit.Assert.*;
 
 public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
@@ -59,7 +53,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     private IdentityZoneProvisioning provisioning;
     private IdentityZoneConfigurationBootstrap bootstrap;
     private Map<String, String> links = new HashMap<>();
-    ;
+
 
     @Before
     public void configureProvisioning() {
@@ -86,12 +80,17 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         keys.put(ID, PRIVATE_KEY);
         tokenPolicy.setKeys(keys);
         tokenPolicy.setAccessTokenValidity(3600);
+        tokenPolicy.setRefreshTokenFormat("jwt");
+        tokenPolicy.setRefreshTokenUnique(false);
         bootstrap.setTokenPolicy(tokenPolicy);
+
         bootstrap.afterPropertiesSet();
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
         IdentityZoneConfiguration definition = zone.getConfig();
         assertEquals(3600, definition.getTokenPolicy().getAccessTokenValidity());
+        assertEquals(false, definition.getTokenPolicy().isRefreshTokenUnique());
+        assertEquals(JWT.getStringValue(), definition.getTokenPolicy().getRefreshTokenFormat());
         assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID));
     }
 

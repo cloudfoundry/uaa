@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
 import java.sql.Timestamp;
 import java.util.Arrays;
 
@@ -21,11 +29,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 public class CodeStoreEndpointsTests extends JdbcTestBase {
 
@@ -33,10 +36,12 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
 
     private ExpiringCodeStore expiringCodeStore;
 
+    private TimeService timeService = new TimeServiceImpl();
+
     @Before
     public void initCodeStoreTests() throws Exception {
         codeStoreEndpoints = new CodeStoreEndpoints();
-        expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource());
+        expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource(), timeService);
         codeStoreEndpoints.setExpiringCodeStore(expiringCodeStore);
     }
 

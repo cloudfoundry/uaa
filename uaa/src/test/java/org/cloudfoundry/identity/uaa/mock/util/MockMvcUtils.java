@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -107,6 +108,7 @@ import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
+import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -156,6 +158,24 @@ public final class MockMvcUtils {
         // this is all static now
         // TODO: replace calls to this method with static references
         return null;
+    }
+
+    public static String getSPMetadata(MockMvc mockMvc, String subdomain) throws Exception {
+        return mockMvc.perform(
+            get("/saml/metadata")
+                .accept(MediaType.APPLICATION_XML)
+                .header(HOST, hasText(subdomain) ? subdomain + ".localhost" : "localhost")
+        ).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+    }
+
+    public static String getIDPMetaData(MockMvc mockMvc, String subdomain) throws Exception {
+        return mockMvc.perform(
+            get("/saml/idp/metadata")
+                .accept(MediaType.APPLICATION_XML)
+                .header(HOST, hasText(subdomain) ? subdomain + ".localhost" : "localhost")
+        ).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
     }
 
     public static MockHttpSession getSavedRequestSession() {
@@ -238,14 +258,14 @@ public final class MockMvcUtils {
     }
 
     public static void setDisableInternalAuth(ApplicationContext context, String zoneId, boolean disable) {
-        IdentityProviderProvisioning provisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning provisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
         uaaIdp.setActive(!disable);
         provisioning.update(uaaIdp);
     }
 
     public static void setDisableInternalUserManagement(ApplicationContext context, String zoneId, boolean disabled) {
-        IdentityProviderProvisioning provisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning provisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
         uaaIdp.getConfig().setDisableInternalUserManagement(disabled);
         provisioning.update(uaaIdp);
@@ -387,7 +407,7 @@ public final class MockMvcUtils {
     }
 
     public static void setDisableInternalUserManagement(boolean disableInternalUserManagement, ApplicationContext applicationContext) {
-        IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa");
         UaaIdentityProviderDefinition config = idp.getConfig();
         if (config == null) {
@@ -958,6 +978,7 @@ public final class MockMvcUtils {
             oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         }
         MvcResult result = mockMvc.perform(oauthTokenPost)
+            .andDo(print())
             .andExpect(status().isOk())
             .andReturn();
         InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), InjectedMockContextTest.OAuthToken.class);
