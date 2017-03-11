@@ -47,7 +47,7 @@
         <constructor-arg name="requireLowerCaseCharacter" value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
         <constructor-arg name="requireDigit" value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
         <constructor-arg name="requireSpecialCharacter" value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
-        <constructor-arg name="expirePasswordInMonths" value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpireInMonths()}}"/>
+        <constructor-arg name="expirePasswordInMonths" value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>

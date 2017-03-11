@@ -66,7 +66,7 @@ public class ClientBasicAuthenticationFilter extends BasicAuthenticationFilter {
             Timestamp lastModified = (Timestamp) clientDetailsService.loadClientByClientId(clientId).getAdditionalInformation().get(ClientConstants.LAST_MODIFIED);
 
             int expiringPassword = IdentityZoneHolder.get().getConfig().
-                        getClientSecretPolicy().getExpireInMonths();
+                        getClientSecretPolicy().getExpireSecretInMonths();
             if (expiringPassword>0) {
                 Calendar cal = Calendar.getInstance();
                 cal.setTimeInMillis(lastModified.getTime());

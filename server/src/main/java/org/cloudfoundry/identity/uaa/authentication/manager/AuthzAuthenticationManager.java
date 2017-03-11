@@ -155,7 +155,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
             if (idpDefinition!=null) {
                 if (null!=idpDefinition.getPasswordPolicy()) {
-                    return idpDefinition.getPasswordPolicy().getExpireInMonths();
+                    return idpDefinition.getPasswordPolicy().getExpirePasswordInMonths();
                 }
             }
         }

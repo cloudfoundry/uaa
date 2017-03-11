@@ -308,7 +308,7 @@
         <constructor-arg name="requireLowerCaseCharacter" value="${client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
         <constructor-arg name="requireDigit" value="${client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
         <constructor-arg name="requireSpecialCharacter" value="${client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
-        <constructor-arg name="expireSecretInMonths" value="${client.secret.policy.expireSecretInMonths:#{globalClientSecretPolicy.getExpireInMonths()}}"/>
+        <constructor-arg name="expireSecretInMonths" value="${client.secret.policy.expireSecretInMonths:#{globalClientSecretPolicy.getExpireSecretInMonths()}}"/>
     </bean>
 
 
