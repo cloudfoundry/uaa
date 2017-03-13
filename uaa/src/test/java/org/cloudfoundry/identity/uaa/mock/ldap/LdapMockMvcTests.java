@@ -74,7 +74,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import static java.util.Collections.EMPTY_LIST;
@@ -261,7 +260,7 @@ public class LdapMockMvcTests  {
             .andExpect(content().string(containsString("Email: " + email)))
             .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
             .andExpect(content().string(containsString("username")))
-            .andExpect(content().string(containsString("<input type=\"submit\" value=\"Sign in\" class=\"island-button\" />")))
+            .andExpect(content().string(containsString("<input type=\"submit\" value=\"Sign in\" class=\"island-button\"/>")))
             .andReturn();
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);

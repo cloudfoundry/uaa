@@ -60,6 +60,7 @@ public abstract class AdminClientCreator extends InjectedMockContextTest {
         additionalInformation.put("foo", "bar");
         additionalInformation.put("name", makeClientName(id));
         client.setAdditionalInformation(additionalInformation);
+        client.setRegisteredRedirectUri(Collections.singleton("http://some.redirect.url.com"));
         return client;
     }
 

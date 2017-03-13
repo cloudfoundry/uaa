@@ -1,81 +1,260 @@
-disableInternalUserManagement: true
+---
+authentication:
+  policy:
+    client:
+      lockoutEnabled: true
+    countFailuresWithinSeconds: 7200
+    global:
+      countFailuresWithinSeconds: 2222
+      lockoutAfterFailures: 1
+      lockoutPeriodSeconds: 152
+    lockoutAfterFailures: 10
+    lockoutPeriodSeconds: 600
+cors:
+  default:
+    allowed:
+      credentials: true
+      headers: &id001
+      - Accept
+      - Content-Type
+      methods: &id002
+      - GET
+      - POST
+      - PUT
+      origins: &id003
+      - ^example.com.*
+      - foo.com
+      uris: .*token$
+    max_age: 1999999
+  xhr:
+    allowed:
+      credentials: true
+      headers: *id001
+      methods: *id002
+      origins: *id003
+      uris: .*token$
+    max_age: 1999999
+database:
+  abandonedtimeout: 45
+  caseinsensitive: true
+  evictionintervalms: 30000
+  logabandoned: false
+  maxactive: 50
+  maxidle: 5
+  minidle: 3
+  removeabandoned: true
 disableInternalAuth: true
-
-oauth:
-  client:
-    encoder_expiry: 600
-    encoder_cache: false
-
-zones:
-  internal:
-    hostnames:
-      - host1.domain.com
-      - host2
-      - test3.localhost
-      - test4.localhost
-
+disableInternalUserManagement: true
+jwt:
+  token:
+    claims:
+      exclude:
+      - authorities
+    policy:
+      accessTokenValiditySeconds: 4800
+      activeKeyId: key-id-2
+      global:
+        accessTokenValiditySeconds: 3600
+        refreshTokenValiditySeconds: 7200
+      keys:
+        key-id-1:
+          signingKey: |
+            test-signing-key
+        key-id-2:
+          signingKey: |
+            test-signing-key-2
+      refreshTokenValiditySeconds: 9600
+    refresh:
+      format: opaque
+      restrict_grant: true
+      unique: true
+    revocable: true
+ldap:
+  addShadowUserOnLogin: false
+  base:
+    password: password
+    searchBase: ''
+    searchFilter: cn={0}
+    url: ldap://localhost:10389/
+    userDn: cn=admin,dc=test,dc=com
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  providerDescription: Test LDAP Provider Description
+links:
+  passwd: /configured_passwd
+  signup: /configured_signup
 login:
-  saml:
-    signatureAlgorithm: SHA256
-    wantAssertionSigned: false
   branding:
     companyName: test-company-branding-name
-    squareLogo: |
-      this is an invalid
-      base64 logo with
-      line feeds
     productLogo: |
       this is an invalid
       base64 logo with
       line feeds
+    squareLogo: |
+      this is an invalid
+      base64 logo with
+      line feeds
+  entityBaseURL: https://login.some.test.domain.com:555/uaa
+  homeRedirect: http://some.redirect.com/redirect
   idpDiscoveryEnabled: true
   oauth:
     providers:
       my-oauth-provider:
-        authUrl: http://my-auth.com
-        tokenUrl: http://my-token.com
-        issuer: http://issuer-my-token.com
-        tokenKey: my-token-key
-        tokenKeyUrl:
-        type: oauth2.0
-        emailDomain:
-          - example.com
-        linkText: My Oauth Provider
-        scopes:
-          - requested_scope
-        showLinkText: true
         addShadowUserOnLogin: false
+        attributeMappings:
+          family_name: last_name
+          given_name: first_name
+        authUrl: http://my-auth.com
+        emailDomain:
+        - example.com
+        issuer: http://issuer-my-token.com
+        linkText: My Oauth Provider
         relyingPartyId: uaa
         relyingPartySecret: secret
-        attributeMappings:
-          given_name: first_name
-          family_name: last_name
-      my-oidc-provider:
-        authUrl: http://my-auth.com
-        tokenUrl: http://my-token.com
-        userInfoUrl: http://my-token.com/userinfo
-        tokenKey: my-token-key
-        tokenKeyUrl:
-        type: oidc1.0
-        linkText: My Oauth Provider
         scopes:
-          - requested_scope
+        - requested_scope
         showLinkText: true
+        tokenKey: my-token-key
+        tokenKeyUrl: null
+        tokenUrl: http://my-token.com
+        type: oauth2.0
+      my-oidc-provider:
+        attributeMappings:
+          family_name: last_name
+          given_name: first_name
+        authUrl: http://my-auth.com
+        linkText: My Oauth Provider
         relyingPartyId: uaa
         relyingPartySecret: secret
         responseType: code id_token
-        attributeMappings:
-          given_name: first_name
-          family_name: last_name
+        scopes:
+        - requested_scope
+        showLinkText: true
+        tokenKey: my-token-key
+        tokenKeyUrl: null
+        tokenUrl: http://my-token.com
+        type: oidc1.0
+        userInfoUrl: http://my-token.com/userinfo
   prompt:
-    username:
-      text: Username
     password:
       text: Your Secret
-  url: https://login.some.test.domain.com:555/uaa
-  entityBaseURL: https://login.some.test.domain.com:555/uaa
+    username:
+      text: Username
+  saml:
+    maxAuthenticationAge: 3600
+    metadataTrustCheck: false
+    providers:
+      okta-local:
+        iconUrl: http://link.to/icon.jpg
+        idpMetadata: |
+          <?xml version="1.0" encoding="UTF-8"?><!--
+            ~ ******************************************************************************
+            ~      Cloud Foundry
+            ~      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+            ~      This product is licensed to you under the Apache License, Version 2.0 (the "License").
+            ~      You may not use this product except in compliance with the License.
+            ~
+            ~      This product includes a number of subcomponents with
+            ~      separate copyright notices and license terms. Your use of these
+            ~      subcomponents is subject to the terms and conditions of the
+            ~      subcomponent's license, as noted in the LICENSE file.Iden
+            ~ ******************************************************************************
+            -->
+          <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lvtem0VAJDMINKEYJW"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+            A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+            MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+            Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+            VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+            BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+            AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+            WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+            Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+            3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+            vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+            GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+        linkText: Okta Preview 1
+        providerDescription: Test Okta Preview 1 Description
+        saml:
+          assertionConsumerIndex: 0
+          metadataTrustCheck: true
+          nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+        showSamlLoginLink: true
+      okta-local-2:
+        assertionConsumerIndex: 0
+        groupMappingMode: AS_SCOPES
+        idpMetadata: |
+          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBTY1T"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBTY1T/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBTY1T/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+        linkText: Okta Preview 2
+        metadataTrustCheck: true
+        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+        showSamlLoginLink: true
+        skipSslValidation: false
+      openam-local:
+        assertionConsumerIndex: 0
+        idpMetadata: |
+          <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lvtem0VAJDMINKEYTT"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+            A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+            MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+            Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+            VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+            BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+            AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+            WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+            Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+            3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+            vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+            GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYTT/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYTT/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+        linkText: Log in with OpenAM
+        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+        showSamlLoginLink: true
+        signMetaData: false
+        signRequest: false
+      vsphere.local:
+        assertionConsumerIndex: 0
+        idpMetadata: |
+          <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+            A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+            MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+            Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+            VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+            BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+            AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+            WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+            Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+            3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+            vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+            GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+        linkText: Log in with vCenter SSO
+        nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+        showSamlLoginLink: true
+        skipSslValidation: true
+    signatureAlgorithm: SHA256
+    wantAssertionSigned: false
   selfServiceLinksEnabled: false
-  homeRedirect: http://some.redirect.com/redirect
+  serviceProviderCertificate: |
+    -----BEGIN CERTIFICATE-----
+    MIIB1TCCAT4CCQCpQCfJYT8ZJTANBgkqhkiG9w0BAQUFADAvMS0wKwYDVQQDFCRz
+    YW1sX2xvZ2luLE9VPXRlbXBlc3QsTz12bXdhcmUsTz1jb20wHhcNMTMwNzAyMDAw
+    MzM3WhcNMTQwNzAyMDAwMzM3WjAvMS0wKwYDVQQDFCRzYW1sX2xvZ2luLE9VPXRl
+    bXBlc3QsTz12bXdhcmUsTz1jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGB
+    ANK8mv+mUzhPH/8iTdMsZ6mY4r4At/GZIFS34L+/I0V2g6PkZ84VBgodqqV6Z6NY
+    OSk0lcjrzU650zbES7yn4MjuvP0N5T9LydlvjOEzfA+uRETiy8d+DsS3rThRY+Ja
+    dvmS0PswJ8cvHAksYmGNUWfTU+Roxcv0ZDqD+cUNi1+NAgMBAAEwDQYJKoZIhvcN
+    AQEFBQADgYEAy54UVlZifk1PPdTg9OJuumdxgzZk3QEWZGjdJYEc134MeKKsIX50
+    +6y5GDyXmxvJx33ySTZuRaaXClOuAtXRWpz0KlceujYuwboyUxhn46SUASD872nb
+    cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=
+    -----END CERTIFICATE-----
   serviceProviderKey: |
     -----BEGIN RSA PRIVATE KEY-----
     Proc-Type: 4,ENCRYPTED
@@ -96,101 +275,61 @@ login:
     dAwGgrjJkbbk1qLLScOqY4mA5WXa5+80LMkCYO44vVTp2VKmnxj8Mw==
     -----END RSA PRIVATE KEY-----
   serviceProviderKeyPassword: password
-  serviceProviderCertificate: |
-    -----BEGIN CERTIFICATE-----
-    MIIB1TCCAT4CCQCpQCfJYT8ZJTANBgkqhkiG9w0BAQUFADAvMS0wKwYDVQQDFCRz
-    YW1sX2xvZ2luLE9VPXRlbXBlc3QsTz12bXdhcmUsTz1jb20wHhcNMTMwNzAyMDAw
-    MzM3WhcNMTQwNzAyMDAwMzM3WjAvMS0wKwYDVQQDFCRzYW1sX2xvZ2luLE9VPXRl
-    bXBlc3QsTz12bXdhcmUsTz1jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGB
-    ANK8mv+mUzhPH/8iTdMsZ6mY4r4At/GZIFS34L+/I0V2g6PkZ84VBgodqqV6Z6NY
-    OSk0lcjrzU650zbES7yn4MjuvP0N5T9LydlvjOEzfA+uRETiy8d+DsS3rThRY+Ja
-    dvmS0PswJ8cvHAksYmGNUWfTU+Roxcv0ZDqD+cUNi1+NAgMBAAEwDQYJKoZIhvcN
-    AQEFBQADgYEAy54UVlZifk1PPdTg9OJuumdxgzZk3QEWZGjdJYEc134MeKKsIX50
-    +6y5GDyXmxvJx33ySTZuRaaXClOuAtXRWpz0KlceujYuwboyUxhn46SUASD872nb
-    cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=
-    -----END CERTIFICATE-----
-
+  url: https://login.some.test.domain.com:555/uaa
 logout:
   redirect:
-    url: /configured_login
     parameter:
       disable: true
       whitelist:
-        - https://url1.domain1.com/logout-success
-        - https://url2.domain2.com/logout-success
-
-links:
-  passwd: /configured_passwd
-  signup: /configured_signup
-
-
-uaa:
-  url: https://uaa.some.test.domain.com:555/uaa
-
-database:
-  maxactive: 50
-  minidle: 3
-  maxidle: 5
-  removeabandoned: true
-  logabandoned: false
-  abandonedtimeout: 45
-  evictionintervalms: 30000
-  caseinsensitive: true
-
+      - https://url1.domain1.com/logout-success
+      - https://url2.domain2.com/logout-success
+    url: /configured_login
+oauth:
+  client:
+    encoder_cache: false
+    encoder_expiry: 600
 password:
   policy:
-    minLength: 8
-    maxLength: 100
-    requireUpperCaseCharacter: 0
-    requireLowerCaseCharacter: 0
-    requireDigit: 0
-    requireSpecialCharacter: 1
     expirePasswordInMonths: 6
     global:
-      minLength: 8
-      maxLength: 100
-      requireUpperCaseCharacter: 0
-      requireLowerCaseCharacter: 0
-      requireDigit: 0
-      requireSpecialCharacter: 1
       expirePasswordInMonths: 6
-
-authentication:
-  policy:
-    lockoutAfterFailures: 10
-    countFailuresWithinSeconds: 7200
-    lockoutPeriodSeconds: 600
-    global:
-      lockoutAfterFailures: 1
-      countFailuresWithinSeconds: 2222
-      lockoutPeriodSeconds: 152
-
-jwt:
-  token:
-    revocable: true
-    policy:
-      global:
-        accessTokenValiditySeconds: 3600
-        refreshTokenValiditySeconds: 7200
-      accessTokenValiditySeconds: 4800
-      refreshTokenValiditySeconds: 9600
-    refresh:
-      restrict_grant: true
-
+      maxLength: 100
+      minLength: 8
+      requireDigit: 0
+      requireLowerCaseCharacter: 0
+      requireSpecialCharacter: 1
+      requireUpperCaseCharacter: 0
+    maxLength: 100
+    minLength: 8
+    requireDigit: 0
+    requireLowerCaseCharacter: 0
+    requireSpecialCharacter: 1
+    requireUpperCaseCharacter: 0
+scim:
+  groups:
+    cat: The cat
+    pony: The magic of friendship
 servlet:
   session-cookie:
-    secure: true
+    comment: C is for Cookie
+    domain: sesame.com
     http-only: false
     max-age: 30
     name: cookiemonster
-    comment: C is for Cookie
     path: /the/path/to/the/jar
-    domain: sesame.com
-
+    secure: true
 smtp:
+  auth: true
+  from_address: test@example.com
   host: some-host
   port: 9090
-  auth: true
   starttls: true
-  from_address: test@example.com
-
+uaa:
+  url: https://uaa.some.test.domain.com:555/uaa
+zones:
+  internal:
+    hostnames:
+    - host1.domain.com
+    - host2
+    - test3.localhost
+    - test4.localhost

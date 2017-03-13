@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,19 +13,31 @@
 package org.cloudfoundry.identity.app;
 
 import org.junit.Test;
-import org.springframework.context.support.GenericXmlApplicationContext;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.mock.web.MockRequestDispatcher;
+import org.springframework.mock.web.MockServletContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
-/**
- * @author Dave Syer
- * 
- */
+import javax.servlet.RequestDispatcher;
+
 public class BootstrapTests {
 
     @Test
     public void testRootContext() throws Exception {
-        GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource(
-                        "src/main/webapp/WEB-INF/spring-servlet.xml"));
+        MockServletContext servletContext = new MockServletContext() {
+            @Override
+            public RequestDispatcher getNamedDispatcher(String path) {
+                return new MockRequestDispatcher("/");
+            }
+
+            @Override
+            public String getVirtualServerName() {
+                return "localhost";
+            }
+        };
+        XmlWebApplicationContext context = new XmlWebApplicationContext();
+        context.setConfigLocation("file:src/main/webapp/WEB-INF/spring-servlet.xml");
+        context.setServletContext(servletContext);
+        context.refresh();
         context.close();
     }
 

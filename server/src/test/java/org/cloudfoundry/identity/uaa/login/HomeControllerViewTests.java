@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.home.HomeController;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -40,7 +39,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 

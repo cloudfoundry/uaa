@@ -13,19 +13,20 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -52,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -61,6 +63,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 public class UaaAuthorizationRequestManagerTests {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private UaaAuthorizationRequestManager factory;
 
@@ -75,6 +80,19 @@ public class UaaAuthorizationRequestManagerTests {
     private BaseClientDetails client = new BaseClientDetails();
 
     private UaaUser user = null;
+
+    SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+        @Override
+        public boolean isUser() {
+            return true;
+        }
+
+        @Override
+        public Collection<? extends GrantedAuthority> getAuthorities() {
+            return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
+        }
+    };
+
 
     @Rule
     public ExpectedException thrown= ExpectedException.none();
@@ -290,28 +308,25 @@ public class UaaAuthorizationRequestManagerTests {
 
     @Test
     public void testEmptyScopeFailsClientWithScopes() {
-        SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
-            @Override
-            public boolean isUser() {
-                return true;
-            }
-
-            @Override
-            public Collection<? extends GrantedAuthority> getAuthorities() {
-                return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
-            }
-        };
         factory.setSecurityContextAccessor(securityContextAccessor);
-        client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not
-                                                                         // empty
-        try {
-          factory.createAuthorizationRequest(parameters);
-          throw new AssertionError();
-        }
-        catch (InvalidScopeException ex) {
-          assertEquals("[one, two] is invalid. This user is not allowed any of the requested scopes", ex.getMessage());
-        }
+        client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not empty
+        expectedException.expect(InvalidScopeException.class);
+        expectedException.expectMessage("[one, two] is invalid. This user is not allowed any of the requested scopes");
+        factory.createAuthorizationRequest(parameters);
+        throw new AssertionError();
     }
+
+    @Test
+    @Ignore
+    public void missing_required_user_groups() {
+        expectedException.expect(InvalidScopeException.class);
+        expectedException.expectMessage("User does not meet the client's required group criteria.");
+        factory.setSecurityContextAccessor(securityContextAccessor);
+        client.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group.that.doesnt.exist"));
+        factory.createAuthorizationRequest(parameters);
+        throw new AssertionError();
+    }
+
 
     @Test
     public void testResourecIdsExtracted() {

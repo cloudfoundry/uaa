@@ -141,7 +141,6 @@ install:
 - ./scripts/travis/install-ldap-certs.sh
 - ./scripts/ldap/install-ldap.sh ssl
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh; fi
-- $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV
 - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests

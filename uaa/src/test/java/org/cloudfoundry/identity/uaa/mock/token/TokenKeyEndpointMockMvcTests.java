@@ -26,7 +26,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.util.Base64Utils;
 
 import java.util.Collections;
 import java.util.List;
@@ -286,7 +285,9 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     private void isUrlSafeBase64(String base64) {
-        assertEquals(base64, Base64Utils.encodeToUrlSafeString(Base64Utils.decodeFromUrlSafeString(base64)));
+        java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
+        java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+        assertEquals(base64, encoder.encodeToString(decoder.decode(base64)));
     }
 
 }

@@ -15,10 +15,12 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -78,4 +80,6 @@ public class UaaScopesTests {
             assertTrue(uaaScopes.isUaaScope(scope));
         }
     }
+
+
 }

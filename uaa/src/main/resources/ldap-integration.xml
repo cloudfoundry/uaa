@@ -19,7 +19,7 @@
        xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
               http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd">
+              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd">
 
     <context:annotation-config />
 

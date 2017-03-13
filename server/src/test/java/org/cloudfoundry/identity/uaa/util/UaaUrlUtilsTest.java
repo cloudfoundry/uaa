@@ -22,7 +22,10 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -32,6 +35,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 public class UaaUrlUtilsTest {
+
+    private List<String> invalidWildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
+    private List<String> invalidHttpWildCardUrls = Arrays.asList("http://*", "http://**", "http://*/**", "http://*/*", "http://**/*", "http://a*", "http://abc*.domain.com",
+        "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path");
+    private List<String> validUrls = Arrays.asList("http://valid.com","http://sub.valid.com","http://valid.com/with/path", "https://subsub.sub.valid.com/**",
+        "https://valid.com/path/*/path", "http://sub.valid.com/*/with/path**", "http*://sub.valid.com/*/with/path**");
 
     @Before
     public void setUp() throws Exception {
@@ -257,6 +266,31 @@ public class UaaUrlUtilsTest {
         String url = "http://sub.domain.com#frag";
         String component = "name=value";
         assertEquals("http://sub.domain.com#frag&name=value", UaaUrlUtils.addFragmentComponent(url, component));
+    }
+
+    @Test
+    public void test_validate_redirect_uri() {
+        validateRedirectUri(invalidWildCardUrls, false);
+        validateRedirectUri(invalidHttpWildCardUrls, false);
+        validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
+
+        validateRedirectUri(validUrls, true);
+        validateRedirectUri(convertToHttps(validUrls), true);
+    }
+
+    private void validateRedirectUri(List<String> urls, boolean result) {
+        urls.stream().forEach(url -> {
+            assertEquals("Assertion failed for:" + url, result, UaaUrlUtils.isValidRegisteredRedirectUrl(url));
+        });
+    }
+
+    private List<String> convertToHttps(List<String> urls) {
+        List<String> httpsUrls = new ArrayList<>(urls.size());
+        for(String url : urls) {
+            httpsUrls.add(url.replace("http:", "https:"));
+        }
+
+        return httpsUrls;
     }
 
     private void setIdentityZone(String subdomain) {

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -65,6 +66,7 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -81,6 +83,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -92,6 +95,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.EMPTY_LIST;
@@ -105,15 +110,20 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -139,8 +149,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class LoginMockMvcTests extends InjectedMockContextTest {
 
-    private static MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
-
     private MockEnvironment mockEnvironment;
 
     private MockPropertySource propertySource;
@@ -155,6 +163,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private XmlWebApplicationContext webApplicationContext;
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
+
 
     @Before
     public void setUpContext() throws Exception {
@@ -321,6 +330,35 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void test_previous_login_time_upon_authentication() throws Exception {
+        ScimUser user = createUser("", adminToken);
+        MockHttpSession session = new MockHttpSession();
+        long beforeAuthTime = System.currentTimeMillis();
+        getMockMvc().perform(post("/uaa/login.do")
+            .session(session)
+            .with(cookieCsrf())
+            .contextPath("/uaa")
+            .param("username", user.getUserName())
+            .param("password", user.getPassword()));
+        long afterAuthTime = System.currentTimeMillis();
+        SecurityContext securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        assertNull(((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime());
+        session = new MockHttpSession();
+
+        getMockMvc().perform(post("/uaa/login.do")
+            .session(session)
+            .with(cookieCsrf())
+            .contextPath("/uaa")
+            .param("username", user.getUserName())
+            .param("password", user.getPassword()));
+        securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+
+        Long lastLoginTime = ((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime();
+        assertThat(lastLoginTime, greaterThanOrEqualTo(beforeAuthTime));
+        assertThat(lastLoginTime, lessThanOrEqualTo(afterAuthTime));
+
+    }
+    @Test
     public void testLogin_Post_When_DisableInternalUserManagement_Is_True() throws Exception {
         ScimUser user = createUser("", adminToken);
         setDisableInternalAuth(true);
@@ -374,7 +412,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setZoneFavIconAndProductLogo("/sM4lL==", null);
 
         getMockMvc().perform(get("/login"))
-            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
+            .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4lL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))));
     }
 
     @Test
@@ -382,8 +420,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setZoneFavIconAndProductLogo("/sM4\n\nlL==", "/sM4\n\nlL==");
 
         getMockMvc().perform(get("/login"))
-            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))))
-            .andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
+            .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4\n\nlL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))))
+            .andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
     }
 
     private void setZoneFavIconAndProductLogo(String favIcon, String productLogo) throws Exception {
@@ -395,13 +433,14 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
 
-    private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
+    private static final String defaultCopyrightTemplate =  "Copyright "+"\u00a9"+" %s";
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
-
+    private static final String CF_LAST_LOGIN = "Last Login";
     @Test
     public void testDefaultFooter() throws Exception {
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(containsString(cfCopyrightText)));
+                .andExpect(content().string(containsString(cfCopyrightText)))
+                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
     @Test
@@ -413,7 +452,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setZoneConfiguration(identityZoneConfiguration);
 
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))));
+                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))))
+                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
     @Test
@@ -463,9 +503,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         identityZoneConfiguration.setBranding(branding);
         setZoneConfiguration(identityZoneConfiguration);
 
-        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
-                "          <a href=\"/privacy\">Privacy</a>\n" +
-                "          &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
     }
 
     @Test
@@ -2231,11 +2269,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
           .param("client_secret", "secret")
           .param("garbage", "this-should-be-preserved");
 
-        String expectedMessage = "THE APPLICATION does not support your identity provider. To log into an identity provider supported by the application, <a href=\"/logout.do?redirect=" + URLEncoder.encode("http://idp-not-allowed.localhost/oauth/authorize?client_id=different-provider-client&response_type=code&client_secret=secret&garbage=this-should-be-preserved", "UTF-8") + "\">click here</a>.";
-        getMockMvc().perform(authorize)
+        String expectedUrl = "http://idp-not-allowed.localhost/oauth/authorize?client_id=different-provider-client&response_type=code&client_secret=secret&garbage=this-should-be-preserved";
+        String html = getMockMvc().perform(authorize)
             .andDo(print())
             .andExpect(status().isUnauthorized())
-            .andExpect(content().string(containsString(expectedMessage)));
+            .andReturn().getResponse().getContentAsString();
+        String extractPattern = "logout.do\\?redirect\\=(.*?)\">click here<";
+        Pattern pattern = Pattern.compile(extractPattern);
+        Matcher matcher = pattern.matcher(html);
+        assertTrue(matcher.find());
+        String group = matcher.group(1);
+        assertEquals(expectedUrl, URLDecoder.decode(group, "UTF-8"));
     }
 
     private MockHttpSession setUpClientAndProviderForIdpDiscovery(String originKey, IdentityZone zone) throws Exception {

@@ -399,7 +399,7 @@ public class ScimGroupEndpointsIntegrationTests {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         HttpHeaders headers = getAuthenticatedHeaders(token);
         BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password",
-                        "scim.read,scim.write");
+                        "scim.read,scim.write","http://redirect.uri");
         client.setClientSecret(secret);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -471,7 +471,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
                         .queryParam("state", "mystateid").queryParam("client_id", clientId)
-                        .queryParam("redirect_uri", "http://anywhere.com").build();
+                        .queryParam("redirect_uri", "http://redirect.uri").build();
         ResponseEntity<Void> result = serverRunning.createRestTemplate().exchange(
             uri.toString(), HttpMethod.GET, new HttpEntity<>(null, headers),
             Void.class);
@@ -533,11 +533,11 @@ public class ScimGroupEndpointsIntegrationTests {
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = response.getHeaders().getLocation().toString();
         }
-        assertTrue("Wrong location: " + location, location.matches("http://anywhere.com" + ".*code=.+"));
+        assertTrue("Wrong location: " + location, location.matches("http://redirect.uri" + ".*code=.+"));
 
         formData.clear();
         formData.add("client_id", clientId);
-        formData.add("redirect_uri", "http://anywhere.com");
+        formData.add("redirect_uri", "http://redirect.uri");
         formData.add("grant_type", "authorization_code");
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();

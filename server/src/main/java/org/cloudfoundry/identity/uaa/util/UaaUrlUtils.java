@@ -32,9 +32,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
+import static org.springframework.util.StringUtils.hasText;
 
 public abstract class UaaUrlUtils {
 
@@ -71,6 +73,14 @@ public abstract class UaaUrlUtils {
         return builder;
     }
 
+    public static boolean isValidRegisteredRedirectUrl(String url) {
+        if (hasText(url)) {
+            final String permittedURLs = "http(\\*|s)?://[^\\*/]+(/.*|$)";
+            return Pattern.matches(permittedURLs, url);
+        }
+        return false;
+    }
+
     /**
      * Finds and returns a matching redirect URL according to the following logic:
      * <ul>
@@ -104,7 +114,7 @@ public abstract class UaaUrlUtils {
         //returns scheme, host and context path
         //for example http://localhost:8080/uaa or http://login.identity.cf-app.com
         String requestURL = request.getRequestURL().toString();
-        return StringUtils.hasText(request.getServletPath()) ?
+        return hasText(request.getServletPath()) ?
             requestURL.substring(0, requestURL.indexOf(request.getServletPath())) :
             requestURL;
     }
@@ -156,7 +166,7 @@ public abstract class UaaUrlUtils {
     public static String addFragmentComponent(String urlString, String component) {
         URI uri = URI.create(urlString);
         UriComponentsBuilder builder = UriComponentsBuilder.fromUri(uri);
-        builder.fragment(StringUtils.hasText(uri.getFragment()) ? uri.getFragment() + "&" + component : component);
+        builder.fragment(hasText(uri.getFragment()) ? uri.getFragment() + "&" + component : component);
         return builder.build().toUriString();
     }
 
@@ -171,7 +181,7 @@ public abstract class UaaUrlUtils {
 
     public static String getSubdomain() {
         String subdomain = IdentityZoneHolder.get().getSubdomain();
-        if (StringUtils.hasText(subdomain)) {
+        if (hasText(subdomain)) {
             subdomain += ".";
         }
         return subdomain.trim();

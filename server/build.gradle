@@ -21,6 +21,7 @@ dependencies {
   compile group: 'org.springframework', name: 'spring-context-support', version:springVersion
   compile group: 'org.springframework.security', name: 'spring-security-core', version: parent.springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-jwt', version: parent.springSecurityJwtVersion
+  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
   compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
@@ -44,7 +45,7 @@ dependencies {
 
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
   compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
-  compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity3', version: parent.thymeleafExtrasVersion
+  compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: parent.thymeleafExtrasVersion
 
   compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: parent.scimSDKVersion) {
     exclude(module: 'servlet-api')
@@ -82,7 +83,7 @@ dependencies {
   }
 
   testCompile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
-  testCompile group: 'postgresql', name: 'postgresql', version: parent.postgresqlVersion
+  testCompile group: 'org.postgresql', name: 'postgresql', version: parent.postgresqlVersion
   testCompile (group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion){
     exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
   }

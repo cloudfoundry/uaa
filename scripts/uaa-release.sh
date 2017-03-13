@@ -30,7 +30,7 @@ set -x
 git checkout $branch_to_release_from
 git checkout -b releases/$1
 ./scripts/set-version.sh $1
-git commit -am "Bump release version to $1"
+git commit --no-verify -am "Bump release version to $1"
 git push --set-upstream origin releases/$1
 
 set +x
@@ -55,7 +55,7 @@ git co $branch_to_release_from
 git merge releases/$1 --no-ff -m "Merge branch 'releases/$1' into $branch_to_release_from"
 git branch -d releases/$1
 ./scripts/set-version.sh $2
-git commit -am "Bump next $branch_to_release_from version"
+git commit --no-verify -am "Bump next $branch_to_release_from version"
 git --no-pager diff origin/$branch_to_release_from
 git push origin $branch_to_release_from
 

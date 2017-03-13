@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
@@ -25,9 +26,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
 
+import static java.util.Collections.singleton;
+import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
+import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -44,8 +50,42 @@ public class UaaTokenEndpoint extends TokenEndpoint {
 
     @RequestMapping(value = "**", method = POST)
     public ResponseEntity<OAuth2AccessToken> doDelegatePost(Principal principal,
-                                                            @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
+                                                            @RequestParam Map<String, String> parameters,
+                                                            HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
+        if (hasText(request.getQueryString())) {
+            logger.debug("Call to /oauth/token contains a query string. Aborting.");
+            throw new HttpRequestMethodNotSupportedException("POST");
+        }
         return super.postAccessToken(principal, parameters);
+    }
+
+    @RequestMapping(value = "**")
+    public void methodsNotAllowed(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
+        throw new HttpRequestMethodNotSupportedException(request.getMethod());
+    }
+
+    @Override
+    public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
+        super.setAllowedRequestMethods(singleton(HttpMethod.POST));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @Override
+    public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
+        ResponseEntity<OAuth2Exception> result =  super.handleHttpRequestMethodNotSupportedException(e);
+        if (HttpMethod.POST.matches(e.getMethod())) {
+            OAuth2Exception cause = new OAuth2Exception("Parameters must be passed in the body of the request", result.getBody().getCause()) {
+                public String getOAuth2ErrorCode() {
+                    return "query_string_not_allowed";
+                }
+
+                public int getHttpErrorCode() {
+                    return NOT_ACCEPTABLE.value();
+                }
+            };
+            result = new ResponseEntity<>(cause, result.getHeaders(), NOT_ACCEPTABLE);
+        }
+        return result;
     }
 
     @ExceptionHandler(Exception.class)
@@ -54,4 +94,6 @@ public class UaaTokenEndpoint extends TokenEndpoint {
         logger.error("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
         return getExceptionTranslator().translate(e);
     }
+
+
 }

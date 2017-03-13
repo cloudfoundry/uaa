@@ -198,6 +198,9 @@ public class ClientAdminBootstrap implements InitializingBean {
         for (Map.Entry<String, Map<String, Object>> entry : clients.entrySet()) {
             String clientId = entry.getKey();
             Map<String, Object> map = entry.getValue();
+            if(map.get("authorized-grant-types") == null) {
+                throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
+            }
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
                 (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                 (String) map.get("authorities"), getRedirectUris(map));
@@ -247,9 +250,20 @@ public class ClientAdminBootstrap implements InitializingBean {
                     logger.debug(e.getMessage());
                 }
             }
+
+            for (String s : Arrays.asList("authorization_code", "implicit")) {
+                if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
+                    throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL. ClientID: " + client.getClientId());
+                }
+            }
+
             ClientMetadata clientMetadata = buildClientMetadata(map, clientId);
             clientMetadataProvisioning.update(clientMetadata);
         }
+    }
+
+    private boolean isMissingRedirectUris(BaseClientDetails client) {
+        return client.getRegisteredRedirectUri() == null || client.getRegisteredRedirectUri().isEmpty();
     }
 
     private ClientMetadata buildClientMetadata(Map<String, Object> map, String clientId) {

@@ -17,7 +17,7 @@
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
@@ -188,6 +188,8 @@
                            @config['cors']['xhr']['max_age']}"/>
     </bean>
 
+    <bean id="sessionFixationProtectionStrategy"
+          class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
@@ -420,7 +422,7 @@
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
-        <property name="defaultLockoutPolicy" ref="lockoutPolicy"/>
+        <property name="defaultLockoutPolicy" ref="userLockoutPolicy"/>
         <property name="disableInternalUserManagement" value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>

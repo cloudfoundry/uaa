@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
@@ -48,12 +49,13 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
+import static org.junit.Assert.assertNull;
 import static org.springframework.util.StringUtils.hasText;
 
 public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest {
 
     public static final String SECRET = "secret";
-    public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
+    public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code,refresh_token";
     public static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
     protected ClientServicesExtension clientDetailsService;
@@ -92,6 +94,17 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
                 null
             );
         tokenProvisioning = (RevocableTokenProvisioning) getWebApplicationContext().getBean("revocableTokenProvisioning");
+    }
+
+    public String setUpUserForPasswordGrant() throws Exception {
+        String username = "testuser" + generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        ScimUser scimUser = provisioning.retrieve(user.getId());
+        assertNull(scimUser.getLastLogonTime());
+        assertNull(scimUser.getPreviousLogonTime());
+        return username;
     }
 
     protected IdentityZone setupIdentityZone(String subdomain) {

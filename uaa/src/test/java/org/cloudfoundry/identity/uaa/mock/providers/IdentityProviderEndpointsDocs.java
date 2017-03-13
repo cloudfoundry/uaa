@@ -158,7 +158,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");
     private final FieldDescriptor LDAP_ORIGIN_KEY = fieldWithPath("originKey").required().description("Origin key must be `ldap` for an LDAP provider");
     private final FieldDescriptor LDAP_PROFILE_FILE = fieldWithPath("config.ldapProfileFile").required().type(STRING).description("The file to be used for configuring the LDAP authentication. Options are: `ldap/ldap-simple-bind.xml`, `ldap/ldap-search-and-bind.xml`, `ldap/ldap-search-and-compare.xml`");
-    private final FieldDescriptor LDAP_GROUP_FILE = fieldWithPath("config.ldapGroupFile").required().type(STRING).description("The file to be used for group integration. Options are: `ldap/ldap-no-groups.xml`, `ldap/ldap-groups-as-scopes.xml`, `ldap/ldap-groups-map-to-scopes.xml`");
+    private final FieldDescriptor LDAP_GROUP_FILE = fieldWithPath("config.ldapGroupFile").required().type(STRING).description("The file to be used for group integration. Options are: `ldap/ldap-groups-null.xml`, `ldap/ldap-groups-as-scopes.xml`, `ldap/ldap-groups-map-to-scopes.xml`");
     private final FieldDescriptor LDAP_URL = fieldWithPath("config.baseUrl").required().type(STRING).description("The URL to the ldap server, must start with `ldap://` or `ldaps://`");
     private final FieldDescriptor LDAP_BIND_USER_DN = fieldWithPath("config.bindUserDn").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. A valid LDAP ID that has read permissions to perform a search of the LDAP tree for user information.");
     private final FieldDescriptor LDAP_BIND_PASSWORD = fieldWithPath("config.bindPassword").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Password for the LDAP ID that performs a search of the LDAP tree for user information.");
@@ -487,7 +487,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setName("UAA Provider");
         identityProvider.setOriginKey("my-oidc-provider-"+new RandomValueStringGenerator().generate().toLowerCase());
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-        definition.setDiscoveryUrl(new URL("https://login.identity.cf-app.com/.well-known/openid-configuration"));
+        definition.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
         definition.setSkipSslValidation(true);
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
@@ -641,7 +641,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             null,
             "",
             "client_credentials",
-            "uaa.admin"
+            "uaa.admin",
+             "http://redirect.url"
         );
         admin.setClientSecret("adminsecret");
 

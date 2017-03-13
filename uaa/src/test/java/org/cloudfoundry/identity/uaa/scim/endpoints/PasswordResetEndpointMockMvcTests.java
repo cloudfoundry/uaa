@@ -144,7 +144,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
         MvcResult result = getMockMvc().perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString(String.format("<input type=\"hidden\" name=\"email\" value=\"%s\" />", email))))
+            .andExpect(content().string(containsString(String.format("<input type=\"hidden\" name=\"email\" value=\"%s\"/>", email))))
             .andReturn();
 
         String resultingCodeString = getCodeFromPage(result);
@@ -171,7 +171,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
         MvcResult result = getMockMvc().perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString(String.format("<input type=\"hidden\" name=\"email\" value=\"%s\" />", email))))
+            .andExpect(content().string(containsString(String.format("<input type=\"hidden\" name=\"email\" value=\"%s\"/>", email))))
             .andReturn();
 
         String resultingCodeString = getCodeFromPage(result);
@@ -320,7 +320,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     private String getCodeFromPage(MvcResult result) throws UnsupportedEncodingException {
-        Pattern codePattern = Pattern.compile("<input type=\"hidden\" name=\"code\" value=\"([A-Za-z0-9]+)\" />");
+        Pattern codePattern = Pattern.compile("<input type=\"hidden\" name=\"code\" value=\"([A-Za-z0-9]+)\"/>");
         Matcher codeMatcher = codePattern.matcher(result.getResponse().getContentAsString());
 
         assertTrue(codeMatcher.find());

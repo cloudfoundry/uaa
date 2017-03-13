@@ -55,13 +55,13 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
 
     @Before
     public void createData() {
+        dao = new JdbcRevocableTokenProvisioning(jdbcTemplate);
         createData("test-token-id", "test-user-id", "test-client-id");
     }
 
     public void createData(String tokenId, String userId, String clientId) {
         value = new char[100*1024];
         Arrays.fill(value, 'X');
-        dao = new JdbcRevocableTokenProvisioning(jdbcTemplate);
         this.tokenId = tokenId;
         this.clientId = clientId;
         this.userId = userId;
@@ -244,6 +244,19 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             fail("Token should have been deleted");
         } catch (EmptyResultDataAccessException x) {}
 
+    }
+
+    @Test
+    public void testDeleteRefreshTokenForClientIdUserId() throws Exception {
+        expected.setResponseType(REFRESH_TOKEN);
+        insertToken();
+        createData(new RandomValueStringGenerator().generate(), userId, clientId);
+        expected.setResponseType(REFRESH_TOKEN);
+        insertToken();
+        assertEquals(2, dao.deleteRefreshTokensForClientAndUserId(clientId,userId));
+        assertEquals(0, dao.deleteRefreshTokensForClientAndUserId(clientId,userId));
+        List<RevocableToken> userTokens = dao.getUserTokens(userId, clientId);
+        assertEquals(0, userTokens.stream().filter(t -> t.getResponseType().equals(REFRESH_TOKEN)).count());
     }
 
     @Test

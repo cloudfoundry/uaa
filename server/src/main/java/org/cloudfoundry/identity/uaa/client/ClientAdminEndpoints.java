@@ -576,19 +576,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private void incrementErrorCounts(Exception e) {
         String series = UaaStringUtils.getErrorName(e);
-        AtomicInteger value = errorCounts.get(series);
-        if (value == null) {
-            synchronized (errorCounts) {
-                value = errorCounts.get(series);
-                if (value == null) {
-                    value = new AtomicInteger();
-                    errorCounts.put(series, value);
-                }
-            }
-        }
-        value.incrementAndGet();
+        errorCounts.computeIfAbsent(series, k -> new AtomicInteger()).incrementAndGet();
     }
-
 
 
     private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {

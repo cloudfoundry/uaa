@@ -1,18 +1,11 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -21,7 +14,11 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -43,6 +40,12 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -62,7 +65,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = ThymeleafConfig.class)
+@ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class EmailAccountCreationServiceTests {
 
     private EmailAccountCreationService emailAccountCreationService;

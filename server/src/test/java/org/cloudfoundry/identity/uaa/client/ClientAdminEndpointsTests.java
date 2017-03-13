@@ -14,7 +14,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -38,22 +37,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
@@ -95,6 +85,8 @@ public class ClientAdminEndpointsTests {
     private ApprovalStore approvalStore = null;
 
     private ClientAdminEndpointsValidator clientDetailsValidator = null;
+
+    private static final Set<String> SINGLE_REDIRECT_URL = Collections.singleton("http://redirect.url");
 
     @Rule
     public ExpectedException expected = ExpectedException.none();
@@ -154,6 +146,7 @@ public class ClientAdminEndpointsTests {
         input.setClientId("foo");
         input.setClientSecret("secret");
         input.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
+        input.setRegisteredRedirectUri(SINGLE_REDIRECT_URL);
 
         for (int i=0; i<inputs.length; i++) {
             inputs[i] = new ClientDetailsModification();
@@ -481,6 +474,7 @@ public class ClientAdminEndpointsTests {
         input.setScope(Arrays.asList("foo.write"));
         updated.setScope(input.getScope());
         updated.setClientSecret(null);
+        updated.setRegisteredRedirectUri(SINGLE_REDIRECT_URL);
         ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
         assertNull(result.getClientSecret());
         verify(clientRegistrationService).updateClientDetails(updated);

@@ -56,9 +56,11 @@ import java.net.Inet4Address;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -68,6 +70,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -198,23 +201,33 @@ public class OIDCLoginIT {
         }
     }
 
-    public void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
-        webDriver.get(zoneUrl + "/login");
-        webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
-
-        webDriver.findElement(By.name("username")).sendKeys(userName);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    private void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
+        login(zoneUrl, userName, password);
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
         IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver);
     }
 
+    private void login(String zoneUrl, String userName, String password) {
+        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get(zoneUrl + "/");
+        Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(beforeLogin);
+        assertNotNull(beforeLogin.getValue());
+        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
+
+        webDriver.findElement(By.name("username")).sendKeys(userName);
+        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(afterLogin);
+        assertNotNull(afterLogin.getValue());
+        assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
+    }
 
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
@@ -227,10 +240,20 @@ public class OIDCLoginIT {
     }
 
     @Test
+    public void successfulLoginWithOIDCProviderSetsLastLogin() throws Exception {
+        login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        SimpleDateFormat dateFormat =  new SimpleDateFormat("EEE MMM dd");
+        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
+        doLogout(zoneUrl);
+        login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString((expectedLastLoginTime)));
+    }
+
+    @Test
     public void successfulLoginWithOIDCProvider_MultiKeys() throws Exception {
         identityProvider.getConfig().setTokenKeyUrl(new URL(baseUrl+"/token_keys"));
         updateProvider();
-        validateSuccessfulOIDCLogin(zoneHost, testAccounts.getUserName(), testAccounts.getPassword());
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test

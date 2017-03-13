@@ -22,7 +22,7 @@
         xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
         xmlns:util="http://www.springframework.org/schema/util"
         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-    http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+    http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
     http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
@@ -278,6 +278,7 @@
     </bean>
 
     <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
+        <property name="resourcePropertySource" ref="messagePropertiesSource"/>
     </bean>
 
     <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
@@ -555,64 +556,9 @@
     <mvc:resources mapping="/resources/**" location="/resources/"/>
     <mvc:default-servlet-handler/>
 
-    <bean id="springResourceResourceResolver"
-          class="org.thymeleaf.spring4.resourceresolver.SpringResourceResourceResolver"/>
-
-    <bean id="webTemplateResolver" class="org.thymeleaf.templateresolver.TemplateResolver">
-        <property name="resourceResolver" ref="springResourceResourceResolver"/>
-        <property name="prefix" value="classpath:/templates/web/"/>
-        <property name="suffix" value=".html"/>
-        <property name="templateMode" value="HTML5"/>
-    </bean>
-
-    <bean id="mailTemplateResolver" class="org.thymeleaf.templateresolver.TemplateResolver">
-        <property name="resourceResolver" ref="springResourceResourceResolver"/>
-        <property name="prefix" value="classpath:/templates/mail/"/>
-        <property name="suffix" value=".html"/>
-        <property name="templateMode" value="HTML5"/>
-    </bean>
-
-    <bean id="webTemplateEngine" class="org.thymeleaf.spring4.SpringTemplateEngine">
-        <property name="templateResolver" ref="webTemplateResolver"/>
-        <property name="additionalDialects">
-            <set>
-                <bean class="nz.net.ultraq.thymeleaf.LayoutDialect"/>
-                <bean class="org.thymeleaf.extras.springsecurity3.dialect.SpringSecurityDialect"/>
-            </set>
-        </property>
-    </bean>
-
-    <bean id="mailTemplateEngine" class="org.thymeleaf.spring4.SpringTemplateEngine">
-        <property name="templateResolver" ref="mailTemplateResolver"/>
-    </bean>
-
-    <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-        <!--<property name="mediaTypes">-->
-        <!--<map>-->
-        <!--<entry key="json" value="application/json" />-->
-        <!--</map>-->
-        <!--</property>-->
-        <property name="viewResolvers">
-            <list>
-                <bean class="org.thymeleaf.spring4.view.ThymeleafViewResolver">
-                    <property name="templateEngine" ref="webTemplateEngine"/>
-                    <property name="characterEncoding"
-                              value="#{T(java.nio.charset.StandardCharsets).UTF_8.toString()}"/>
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
-                </bean>
-                <bean class="org.springframework.web.servlet.view.BeanNameViewResolver"/>
-            </list>
-        </property>
-        <property name="defaultViews">
-            <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
-                <property name="extractValueFromSingleKeyModel" value="true"/>
-            </bean>
-        </property>
-        <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
-    </bean>
-
     <bean id="buildInfo" class="org.cloudfoundry.identity.uaa.home.BuildInfo"/>
+
+    <bean id="thymeleafConfig" class="org.cloudfoundry.identity.uaa.login.ThymeleafConfig"/>
 
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0"
@@ -668,11 +614,16 @@
         <constructor-arg ref="changePasswordService"/>
     </bean>
 
+    <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource" >
+        <constructor-arg value="messages.properties"/>
+    </bean>
+
     <bean id="resetPasswordService" class="org.cloudfoundry.identity.uaa.account.UaaResetPasswordService">
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="uaaPasswordValidator"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="messagePropertiesSource"/>
     </bean>
 
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
