@@ -234,6 +234,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                     .cookie(csrf1))
             .andReturn();
         Cookie csrf2 = mvcResult.getResponse().getCookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME);
+        assertNotNull(csrf2);
         assertNotEquals(csrf1.getValue(), csrf2.getValue());
     }
 

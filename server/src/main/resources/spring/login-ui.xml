@@ -277,6 +277,10 @@
         <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
+    <bean id="csrfResetFilter" class = "org.cloudfoundry.identity.uaa.security.web.CsrfResetFilter">
+        <constructor-arg ref="loginCookieCsrfRepository"/>
+    </bean>
+
     <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
         <property name="resourcePropertySource" ref="messagePropertiesSource"/>
     </bean>
@@ -314,6 +318,7 @@
         <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
         <custom-filter ref="clientRedirectStateCache" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
+        <custom-filter ref="csrfResetFilter" after="CSRF_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
               token-repository-ref="loginCookieCsrfRepository"
