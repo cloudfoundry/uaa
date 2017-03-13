@@ -39,6 +39,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -102,7 +103,8 @@ public class BootstrapTests {
                             ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
                                             .toString());
             ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
-            assertTrue(users.retrieveAll().size() > 0);
+            assertNotNull(users.query("username eq \"paul\"").get(0));
+            assertNotNull(users.query("username eq \"stefan\"").get(0));
         } finally {
             System.clearProperty(configVariable);
         }
