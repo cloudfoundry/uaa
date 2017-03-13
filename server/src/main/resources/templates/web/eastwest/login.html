@@ -41,6 +41,21 @@
 
 
         <div class="js-full_login">
+
+        <div class="alert alert-danger">
+          <div class="panel-body">
+            <h4 class="h4-primary">
+              IMPORTANT: This hosting environment will be shut down this month.
+            </h4>
+            <p>
+              If you haven't already <a href="https://cloud.gov/docs/apps/govcloud/#migration" style="color: white; text-decoration: underline;">migrated your app(s)</a> to the new GovCloud hosting environment, please do so by March 15th.
+            </p>
+            <p>
+              Questions? Contact <a href="mailto:cloud-gov-support@gsa.gov" style="color: white; text-decoration: underline;">cloud-gov-support@gsa.gov</a>.
+            </p>      
+          </div>
+        </div>
+
         <th:block th:if="${fieldUsernameShow}">
           <div class="card saml-login">
               <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-primary">Select your organization and sign in with <span class="nobr">agency credentials</span></p>
