@@ -343,7 +343,7 @@
 
     <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
-    <import resource="classpath:login-ui.xml"/>
+    <import resource="classpath:spring/login-ui.xml"/>
     <import resource="spring/saml-idp.xml"/>
     <import resource="spring/saml-providers.xml"/>
 
