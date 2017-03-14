@@ -40,7 +40,6 @@ public class ProfileController {
     private final ApprovalsService approvalsService;
     private final ClientDetailsService clientDetailsService;
 
-    @Autowired
     public ProfileController(ApprovalsService approvalsService,
                              ClientDetailsService clientDetailsService) {
         this.approvalsService = approvalsService;

@@ -1229,6 +1229,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.issuer = issuer;
     }
 
+    public String getIssuer() {
+        return issuer;
+    }
+
     public String getTokenEndpoint() {
         try {
             return UaaTokenUtils.constructTokenEndpointUrl(issuer);

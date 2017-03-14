@@ -1,4 +1,8 @@
 ---
+analytics:
+  code: some-code
+  domain: test.com
+assetBaseUrl: /resources/pivotal
 authentication:
   policy:
     client:
@@ -43,8 +47,14 @@ database:
   maxidle: 5
   minidle: 3
   removeabandoned: true
+  #driverClassName: org.hsqldb.jdbcDriver
+  #url: jdbc:hsqldb:mem:uaadb
+  #username: sa
+  #password:
 disableInternalAuth: true
 disableInternalUserManagement: true
+issuer:
+  uri: https://localhost:8443/uaa/oauth/token
 jwt:
   token:
     claims:
@@ -77,6 +87,13 @@ ldap:
     searchFilter: cn={0}
     url: ldap://localhost:10389/
     userDn: cn=admin,dc=test,dc=com
+  groups:
+    autoAdd: true
+    file: ldap/ldap-groups-map-to-scopes.xml
+    groupSearchFilter: (member={0})
+    maxSearchDepth: 11
+    searchBase: ou=all-groups,dc=test,dc=com
+    searchSubtree: true
   profile:
     file: ldap/ldap-search-and-bind.xml
   providerDescription: Test LDAP Provider Description
@@ -84,6 +101,9 @@ links:
   passwd: /configured_passwd
   signup: /configured_signup
 login:
+  accountChooserEnabled: true
+  authorize:
+    url:
   branding:
     companyName: test-company-branding-name
     productLogo: |
