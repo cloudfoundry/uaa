@@ -448,7 +448,10 @@
 
     <bean id="approvalsService" class="org.cloudfoundry.identity.uaa.approval.LoginUaaApprovalsService"/>
 
-    <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.account.ProfileController"/>
+    <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.account.ProfileController">
+        <constructor-arg index="0" ref="approvalsService"/>
+        <constructor-arg index="1" ref="jdbcClientDetailsService"/>
+    </bean>
 
     <util:map id="notifications" key-type="org.cloudfoundry.identity.uaa.message.MessageType">
         <entry key="CREATE_ACCOUNT_CONFIRMATION">
