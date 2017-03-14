@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
@@ -45,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -225,43 +228,35 @@ public class AutologinIT {
         //here we must reset our state. we do that by following the logout flow.
         headers.clear();
 
-        headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        BasicCookieStore cookieStore = new BasicCookieStore();
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
                                                                  HttpMethod.GET,
-                                                                 new HttpEntity<>(null, headers),
+                                                                 new HttpEntity<>(null, getHeaders(cookieStore)),
                                                                  String.class);
 
-        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
-            }
-        }
+        setCookiesFromResponse(cookieStore, loginResponse);
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
         requestBody.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         loginResponse = restOperations.exchange(baseUrl + "/login.do",
                                                 HttpMethod.POST,
-                                                new HttpEntity<>(requestBody, headers),
+                                                new HttpEntity<>(requestBody, getHeaders(cookieStore)),
                                                 String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
         assertThat(cookies, hasItem(startsWith("Saved-Account-")));
         assertThat(cookies, hasItem(startsWith("Current-User")));
-        headers.clear();
-        for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-            if (!cookie.contains("1970")) { //deleted cookie
-                headers.add("Cookie", cookie);
-            }
-        }
+        cookieStore.clear();
+        setCookiesFromResponse(cookieStore, loginResponse);
         headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> profilePage =
             restOperations.exchange(baseUrl + "/profile",
                                     HttpMethod.GET,
-                                    new HttpEntity<>(null, headers), String.class);
+                                    new HttpEntity<>(null, getHeaders(cookieStore)), String.class);
 
-
+        setCookiesFromResponse(cookieStore, profilePage);
         String revokeApprovalsUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
             .path("/profile")
             .build().toUriString();
@@ -271,9 +266,18 @@ public class AutologinIT {
         requestBody.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(profilePage.getBody()));
         ResponseEntity<Void> revokeResponse = template.exchange(revokeApprovalsUrl,
                                                                 HttpMethod.POST,
-                                                                new HttpEntity<>(requestBody, headers),
+                                                                new HttpEntity<>(requestBody, getHeaders(cookieStore)),
                                                                 Void.class);
         assertEquals(HttpStatus.FOUND, revokeResponse.getStatusCode());
+    }
+
+    private void setCookiesFromResponse(BasicCookieStore cookieStore, ResponseEntity<String> loginResponse) {
+        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookieStore.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+            }
+        }
     }
 
     @Test

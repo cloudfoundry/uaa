@@ -15,16 +15,22 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.httpclient.Header;
 import org.apache.commons.io.FileUtils;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
+import org.apache.http.cookie.CookieSpec;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.impl.cookie.BestMatchSpec;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -1079,6 +1085,18 @@ public class IntegrationTestUtils {
                                             true);
     }
 
+    public static HttpHeaders getHeaders(CookieStore cookies) {
+        HttpHeaders headers = new HttpHeaders();
+
+        // TODO: should be able to handle just TEXT_HTML
+        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+
+        for( org.apache.http.cookie.Cookie cookie : cookies.getCookies()) {
+            headers.add("Cookie", cookie.getName() + "=" + cookie.getValue());
+        }
+        return headers;
+    }
+
     public static Map<String,String> getAuthorizationCodeTokenMap(ServerRunning serverRunning,
                                                                   UaaTestAccounts testAccounts,
                                                                   String clientId,
@@ -1089,13 +1107,11 @@ public class IntegrationTestUtils {
                                                                   String jSessionId,
                                                                   String redirectUri,
                                                                   boolean callCheckToken) throws Exception {
+        BasicCookieStore cookies = new BasicCookieStore();
         // TODO Fix to use json API rather than HTML
-        HttpHeaders headers = new HttpHeaders();
         if (StringUtils.hasText(jSessionId)) {
-            headers.add("Cookie", "JSESSIONID="+jSessionId);
+            cookies.addCookie(new BasicClientCookie("JSESSIONID", jSessionId));
         }
-        // TODO: should be able to handle just TEXT_HTML
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
         String mystateid = "mystateid";
         ServerRunning.UriBuilder builder = serverRunning.buildUri("/oauth/authorize")
@@ -1111,7 +1127,7 @@ public class IntegrationTestUtils {
             serverRunning.createRestTemplate().exchange(
                 uri.toString(),
                 HttpMethod.GET,
-                new HttpEntity<>(null,headers),
+                new HttpEntity<>(null, getHeaders(cookies)),
                 Void.class
             );
 
@@ -1119,17 +1135,18 @@ public class IntegrationTestUtils {
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-                headers.add("Cookie", cookie);
+            for (String header : result.getHeaders().get("Set-Cookie")) {
+                int nameLength = header.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(header.substring(0, nameLength), header.substring(nameLength+1)));
             }
         }
 
-        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
 
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
@@ -1146,22 +1163,28 @@ public class IntegrationTestUtils {
             formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
 
             // Should be redirected to the original URL, but now authenticated
-            result = serverRunning.postForResponse("/login.do", headers, formData);
+            result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
-            headers.remove("Cookie");
+            cookies.clear();
             if (result.getHeaders().containsKey("Set-Cookie")) {
                 for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                    headers.add("Cookie", cookie);
+                    int nameLength = cookie.indexOf('=');
+                    cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
                 }
             }
         }
 
         response = serverRunning.createRestTemplate().exchange(
-            result.getHeaders().getLocation().toString(),HttpMethod.GET, new HttpEntity<>(null,headers),
+            result.getHeaders().getLocation().toString(),HttpMethod.GET, new HttpEntity<>(null,getHeaders(cookies)),
             String.class);
 
-
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+            }
+        }
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
@@ -1169,7 +1192,7 @@ public class IntegrationTestUtils {
             formData.clear();
             formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
-            result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
+            result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();
         }
@@ -1203,6 +1226,7 @@ public class IntegrationTestUtils {
         Map<String, String> body = tokenResponse.getBody();
 
         formData = new LinkedMultiValueMap<>();
+        HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
         formData.add("token", accessToken.getValue());
 
