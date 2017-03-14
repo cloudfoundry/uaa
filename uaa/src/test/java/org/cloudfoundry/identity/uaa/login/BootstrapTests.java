@@ -42,6 +42,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
@@ -73,6 +74,8 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
@@ -93,6 +96,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -100,6 +104,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenForm
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -182,6 +187,9 @@ public class BootstrapTests {
             assertThat("expecting configured profiles to be set", springProfiles, hasItemInArray(expectedProfile));
         }
 
+        Object messageService = context.getBean("messageService");
+        assertNotNull(messageService);
+        assertEquals(EmailService.class, messageService.getClass());
 
         IdentityZoneConfigurationBootstrap zoneConfigurationBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);
         assertFalse(zoneConfigurationBootstrap.isIdpDiscoveryEnabled());
@@ -366,6 +374,9 @@ public class BootstrapTests {
         assertEquals("some-code", env.getProperty("analytics.code"));
         assertEquals("/resources/pivotal", env.getProperty("assetBaseUrl"));
 
+        Object messageService = context.getBean("messageService");
+        assertNotNull(messageService);
+        assertEquals(NotificationsService.class, messageService.getClass());
 
         IdentityZoneConfigurationBootstrap zoneConfigurationBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);
         assertTrue(zoneConfigurationBootstrap.isIdpDiscoveryEnabled());
@@ -397,6 +408,10 @@ public class BootstrapTests {
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         assertTrue(userDatabase.isCaseInsensitive());
+        UaaUser adminUser = userDatabase.retrieveUserByName("admin", OriginKeys.UAA);
+        assertNotNull(adminUser);
+        assertThat(adminUser.getAuthorities().stream().map(a -> a.getAuthority()).collect(Collectors.toList()), hasItems("uaa.admin", "foo.bar", "foo.foo"));
+
 
         assertEquals(600, context.getBean(CachingPasswordEncoder.class).getExpiryInSeconds());
         assertEquals(false, context.getBean(CachingPasswordEncoder.class).isEnabled());
@@ -612,6 +627,10 @@ public class BootstrapTests {
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider3 = providerProvisioning.retrieveByOrigin("vsphere.local", IdentityZone.getUaa().getId());
         assertTrue(samlProvider3.getConfig().isSkipSslValidation());
 
+        ClientDetailsService clients = context.getBean(ClientDetailsService.class);
+        ClientDetails ccSvcDashboard = clients.loadClientByClientId("cc-service-dashboards");
+        assertNotNull(ccSvcDashboard);
+
 
     }
 
@@ -735,26 +754,6 @@ public class BootstrapTests {
         assertNotNull(context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class));
         assertEquals("spalias", context.getBean("samlSPAlias", String.class));
         assertEquals("spalias", context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class).getAlias());
-    }
-
-    @Test
-    public void x_convert_to_regular_test() throws Exception {
-        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        Object messageService = context.getBean("messageService");
-        assertNotNull(messageService);
-        assertEquals(EmailService.class, messageService.getClass());
-
-        System.setProperty("notifications.url", "");
-        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        messageService = context.getBean("messageService");
-        assertNotNull(messageService);
-        assertEquals(EmailService.class, messageService.getClass());
-
-        System.setProperty("notifications.url", "example.com");
-        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        messageService = context.getBean("messageService");
-        assertNotNull(messageService);
-        assertEquals(NotificationsService.class, messageService.getClass());
     }
 
     private ConfigurableApplicationContext getServletContext(String profiles, String loginYmlPath, String uaaYamlPath, String... resources) {

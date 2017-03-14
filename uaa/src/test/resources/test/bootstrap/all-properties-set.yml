@@ -304,10 +304,73 @@ logout:
       - https://url1.domain1.com/logout-success
       - https://url2.domain2.com/logout-success
     url: /configured_login
+notifications:
+  url: https://notifications.identity.cf-app.com
 oauth:
   client:
     encoder_cache: false
     encoder_expiry: 600
+  clients:
+    cc-service-dashboards:
+      authorities: clients.read,clients.write,clients.admin
+      authorized-grant-types: authorization_code,client_credentials
+      scope: openid,cloud_controller_service_permissions.read
+      secret: cc-broker-secret
+      id: cc-service-dashboards
+      redirect-uri: http://service-dashboard.test.com
+    cc_routing:
+      authorities: routing.router_groups.read
+      authorized-grant-types: client_credentials
+      secret: cc-routing-secret
+      id: cc_routing
+    cf:
+      access-token-validity: 600
+      authorities: uaa.none
+      authorized-grant-types: password,refresh_token
+      override: true
+      refresh-token-validity: 604800
+      scope: cloud_controller.read,cloud_controller.write,openid,password.write,cloud_controller.admin,cloud_controller.admin_read_only,cloud_controller.global_auditor,scim.read,scim.write,doppler.firehose,uaa.user,routing.router_groups.read,routing.router_groups.write
+      id: cf
+    login:
+      authorities: oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write
+      authorized-grant-types: authorization_code,client_credentials,refresh_token
+      autoapprove: true
+      override: true
+      redirect-uri: https://login.bosh-lite.com
+      scope: openid,oauth.approvals
+      secret: login-secret
+      id: login
+    notifications:
+      authorities: cloud_controller.admin,scim.read
+      authorized-grant-types: client_credentials
+      secret: notifications-secret
+      id: notifications
+    admin:
+      authorized-grant-types: client_credentials
+      authorities: clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write
+      id: admin
+      secret: admin-secret
+  user:
+    authorities:
+    - openid
+    - scim.me
+    - cloud_controller.read
+    - cloud_controller.write
+    - cloud_controller_service_permissions.read
+    - password.write
+    - uaa.user
+    - approvals.me
+    - oauth.approvals
+    - notification_preferences.read
+    - notification_preferences.write
+    - profile
+    - roles
+    - user_attributes
+    - cloud_controller.user
+    - actuator.read
+    - foo.foo
+  authorize:
+    ssl: true
 password:
   policy:
     expirePasswordInMonths: 6
@@ -329,6 +392,12 @@ scim:
   groups:
     cat: The cat
     pony: The magic of friendship
+  userids_enabled: true
+  user:
+    override: true
+  users:
+  - admin|admin|admin|||foo.bar,uaa.admin|uaa
+require_https: true
 servlet:
   session-cookie:
     comment: C is for Cookie
