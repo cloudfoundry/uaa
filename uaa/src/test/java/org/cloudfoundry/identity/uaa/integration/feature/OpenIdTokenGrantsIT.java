@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -58,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -264,9 +267,7 @@ public class OpenIdTokenGrantsIT {
 
     private void doOpenIdHybridFlowIdTokenAndCode(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
 
-        HttpHeaders headers = new HttpHeaders();
-        // TODO: should be able to handle just TEXT_HTML
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+        BasicCookieStore cookies = new BasicCookieStore();
 
         StringBuilder responseType = new StringBuilder();
         Iterator<String> rTypes = responseTypes.iterator();
@@ -288,7 +289,7 @@ public class OpenIdTokenGrantsIT {
         ResponseEntity<Void> result = restOperations.exchange(
             uri,
             HttpMethod.GET,
-            new HttpEntity<>(null, headers),
+            new HttpEntity<>(null, getHeaders(cookies)),
             Void.class,
             responseType,
             state,
@@ -300,14 +301,15 @@ public class OpenIdTokenGrantsIT {
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
         ResponseEntity<String> response = restOperations.exchange(
             location,
             HttpMethod.GET,
-            new HttpEntity<>(null, headers),
+            new HttpEntity<>(null, getHeaders(cookies)),
             String.class);
         // should be directed to the login screen...
         assertTrue(response.getBody().contains("/login.do"));
@@ -317,7 +319,8 @@ public class OpenIdTokenGrantsIT {
 
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
@@ -327,13 +330,14 @@ public class OpenIdTokenGrantsIT {
         formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         // Should be redirected to the original URL, but now authenticated
-        result = restOperations.exchange(loginUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, headers), Void.class);
+        result = restOperations.exchange(loginUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
-        headers.remove("Cookie");
+        cookies.clear();
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
@@ -342,8 +346,14 @@ public class OpenIdTokenGrantsIT {
         response = restOperations.exchange(
             location,
             HttpMethod.GET,
-            new HttpEntity<>(null, headers),
+            new HttpEntity<>(null, getHeaders(cookies)),
             String.class);
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+            }
+        }
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("You can change your approval of permissions"));
@@ -351,7 +361,7 @@ public class OpenIdTokenGrantsIT {
             formData.clear();
             formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
-            result = restOperations.exchange(loginUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, headers), Void.class);
+            result = restOperations.exchange(loginUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         }
