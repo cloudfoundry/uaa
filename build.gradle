@@ -69,7 +69,15 @@ allprojects {
   apply plugin: 'eclipse-wtp'
 
   repositories {
+    mavenLocal()
     mavenCentral()
+    maven {
+      credentials {
+        username geArtifactoryReader
+        password geArtifactoryReaderPassword
+      }
+      url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+    }
   }
 
 }

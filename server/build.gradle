@@ -8,6 +8,8 @@ dependencies {
 
   //Audit service dependency
   compile group: 'com.ge.predix.audit', name: 'audit-sdk', version:'0.0.4-SNAPSHOT'
+  compile group: 'org.glassfish', name: 'javax.el', version: '3.0.1-b08'
+  
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
   compile group: 'com.sun.mail', name: 'smtp', version: '1.4.5'
