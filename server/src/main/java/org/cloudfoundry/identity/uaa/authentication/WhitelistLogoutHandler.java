@@ -2,9 +2,12 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.AntPathRedirectResolver;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.util.StringUtils;
 
@@ -24,9 +27,12 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
     private List<String> whitelist = null;
 
     private ClientDetailsService clientDetailsService;
+    
+    private RedirectResolver redirectResolver;
 
     public WhitelistLogoutHandler(List<String> whitelist) {
         this.whitelist = whitelist;
+        this.redirectResolver = new AntPathRedirectResolver();
     }
 
     @Override
@@ -46,19 +52,26 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
         this.clientDetailsService = clientDetailsService;
     }
 
-    private Set<String> getClientWhitelist(HttpServletRequest request) {
+    private Set<String> getClientWhitelist(ClientDetails client) {
+        if(client != null) {
+            return client.getRegisteredRedirectUri();
+        }
+        return null;
+    }
+    
+    private ClientDetails getClient(HttpServletRequest request) {
         String clientId = request.getParameter(CLIENT_ID);
-        Set<String> redirectUris = null;
-
+        ClientDetails client = null;
         if (StringUtils.hasText(clientId)) {
             try {
-                ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-                redirectUris = client.getRegisteredRedirectUri();
+                 client = clientDetailsService.loadClientByClientId(clientId);
             } catch (NoSuchClientException x) {
                 logger.debug(String.format("Unable to find client with ID:%s for logout redirect", clientId));
             }
         }
-        return redirectUris;
+        return client;
+
+
     }
 
     @Override
@@ -77,10 +90,15 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
         if (targetUrl.equals(defaultTargetUrl)) {
             return targetUrl;
         }
+        ClientDetails client = getClient(request);
+        String whiteListRedirect;
+        try{
+            whiteListRedirect = redirectResolver.resolveRedirect(targetUrl, client);
+        } catch (OAuth2Exception | NullPointerException e){
+            logger.info(e.getMessage());
+            whiteListRedirect = findMatchingRedirectUri(whitelist, targetUrl, defaultTargetUrl);
+        }
 
-        Set<String> clientWhitelist = getClientWhitelist(request);
-        Set<String> combinedWhitelist = combineSets(whitelist, clientWhitelist);
-        String whiteListRedirect = findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
 
         return whiteListRedirect;
     }
