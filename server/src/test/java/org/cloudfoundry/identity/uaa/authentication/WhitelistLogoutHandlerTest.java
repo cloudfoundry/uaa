@@ -94,6 +94,25 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
+    public void test_client_redirect_with_path() throws Exception {
+        handler.setAlwaysUseDefaultTargetUrl(false);
+        request.setParameter("redirect", "http://testing.com/path");
+        request.setParameter(CLIENT_ID, CLIENT_ID);
+        assertEquals("http://testing.com/path", handler.determineTargetUrl(request, response));
+    }
+ 
+    @Test
+    public void test_client_redirect_with_no_redirect_uri() throws Exception {
+        String clientId = "openRedirectClient";
+        BaseClientDetails clientWithOpenRedirect = new BaseClientDetails(clientId,"","","","", null);
+        when(clientDetailsService.loadClientByClientId(clientId)).thenReturn(clientWithOpenRedirect);
+        handler.setAlwaysUseDefaultTargetUrl(false);
+        request.setParameter("redirect", "http://randomRedirectUrl.net");
+        request.setParameter(CLIENT_ID, clientId);
+        assertEquals("http://randomRedirectUrl.net", handler.determineTargetUrl(request, response));
+    }
+
+    @Test
     public void test_client_redirect() throws Exception {
         handler.setWhitelist(Arrays.asList("http://somethingelse.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
@@ -101,6 +120,7 @@ public class WhitelistLogoutHandlerTest {
         request.setParameter(CLIENT_ID, CLIENT_ID);
         assertEquals("http://testing.com", handler.determineTargetUrl(request, response));
     }
+
 
     @Test
     public void client_not_found_exception() throws Exception {

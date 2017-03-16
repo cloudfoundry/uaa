@@ -689,7 +689,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         try {
             String clientId = generator.generate();
             String accessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
-            BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+            BaseClientDetails client = new BaseClientDetails(clientId, "", "", "authorization_code", "uaa.none", "http://*.wildcard.testing,http://testing.com");
             client.setClientSecret(clientId);
             MockMvcUtils.createClient(getMockMvc(), accessToken, client);
             getMockMvc().perform(
