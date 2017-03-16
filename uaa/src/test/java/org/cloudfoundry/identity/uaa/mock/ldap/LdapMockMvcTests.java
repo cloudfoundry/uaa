@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -93,6 +94,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -104,6 +108,7 @@ import static org.springframework.security.web.context.HttpSessionSecurityContex
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -779,6 +784,37 @@ public class LdapMockMvcTests  {
     public void printProfileType() throws Exception {
         assertEquals(ldapProfile, getBean("testLdapProfile"));
         assertEquals(ldapGroup, getBean("testLdapGroup"));
+    }
+
+    @Test
+    public void test_read_and_write_config_then_login() throws Exception {
+
+        String response = getMockMvc().perform(
+            get("/identity-providers/"+provider.getId())
+                .header(ACCEPT, APPLICATION_JSON)
+                .header(HOST, host)
+                .header(AUTHORIZATION, "Bearer " + zone.getAdminToken())
+        )
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        IdentityProvider<LdapIdentityProviderDefinition> provider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<LdapIdentityProviderDefinition>>() {});
+        assertNull(provider.getConfig().getBindPassword());
+
+        getMockMvc().perform(
+            put("/identity-providers/"+provider.getId())
+                .content(JsonUtils.writeValueAsString(provider))
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .header(ACCEPT, APPLICATION_JSON)
+                .header(HOST, host)
+                .header(AUTHORIZATION, "Bearer " + zone.getAdminToken())
+        )
+            .andExpect(status().isOk());
+
+        testSuccessfulLogin();
+
     }
 
     @Test

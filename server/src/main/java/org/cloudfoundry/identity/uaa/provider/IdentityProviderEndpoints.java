@@ -102,6 +102,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
+            logger.debug("IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"] - Configuration validation error.", e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         if (OriginKeys.SAML.equals(body.getType())) {
@@ -114,6 +115,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             IdentityProvider createdIdp = identityProviderProvisioning.create(body);
             createdIdp.setSerializeConfigRaw(rawConfig);
+            removeBindPassword(createdIdp);
             return new ResponseEntity<>(createdIdp, CREATED);
         } catch (IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
@@ -147,6 +149,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
+            logger.debug("IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"] - Configuration validation error for update.", e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         if (OriginKeys.SAML.equals(body.getType())) {
@@ -157,6 +160,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             samlConfigurator.addSamlIdentityProviderDefinition(definition);
             body.setConfig(definition);
         }
+        patchBindPassword(id, body);
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
         updatedIdp.setSerializeConfigRaw(rawConfig);
         return new ResponseEntity<>(updatedIdp, OK);
@@ -190,6 +194,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, IdentityZoneHolder.get().getId());
         for(IdentityProvider idp : identityProviderList) {
             idp.setSerializeConfigRaw(rawConfig);
+            removeBindPassword(idp);
         }
         return new ResponseEntity<>(identityProviderList, OK);
     }
@@ -198,6 +203,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     public ResponseEntity<IdentityProvider> retrieveIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieve(id);
         identityProvider.setSerializeConfigRaw(rawConfig);
+        removeBindPassword(identityProvider);
         return new ResponseEntity<>(identityProvider, OK);
     }
 
@@ -273,4 +279,32 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return request;
         }
     }
+
+    protected void patchBindPassword(String id, IdentityProvider provider) {
+        if (OriginKeys.LDAP.equals(provider.getType()) &&
+            provider.getConfig() != null &&
+            provider.getConfig() instanceof LdapIdentityProviderDefinition) {
+            LdapIdentityProviderDefinition definition = (LdapIdentityProviderDefinition)provider.getConfig();
+            if (definition.getBindPassword() == null) {
+                IdentityProvider existing = identityProviderProvisioning.retrieve(id);
+                if (existing!=null &&
+                    existing.getConfig()!=null &&
+                    existing.getConfig() instanceof LdapIdentityProviderDefinition) {
+                    LdapIdentityProviderDefinition existingDefinition = (LdapIdentityProviderDefinition)existing.getConfig();
+                    definition.setBindPassword(existingDefinition.getBindPassword());
+                }
+            }
+        }
+    }
+
+    protected void removeBindPassword(IdentityProvider provider) {
+        if (OriginKeys.LDAP.equals(provider.getType()) &&
+            provider.getConfig() != null &&
+            provider.getConfig() instanceof LdapIdentityProviderDefinition
+           ) {
+            LdapIdentityProviderDefinition definition = (LdapIdentityProviderDefinition)provider.getConfig();
+            definition.setBindPassword(null);
+        }
+    }
+
 }
