@@ -5,8 +5,6 @@ analytics:
 assetBaseUrl: /resources/pivotal
 authentication:
   policy:
-    client:
-      lockoutEnabled: true
     countFailuresWithinSeconds: 7200
     global:
       countFailuresWithinSeconds: 2222

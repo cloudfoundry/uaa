@@ -26,12 +26,9 @@ import java.sql.Timestamp;
 public class JdbcFailedLoginCountingAuditService extends JdbcAuditService {
 
     private int saveDataPeriodMillis = 24 * 3600 * 1000; // 24hr
-    private boolean clientEnabled = false;
 
-    public JdbcFailedLoginCountingAuditService(JdbcTemplate template,
-                                               boolean clientEnabled) {
+    public JdbcFailedLoginCountingAuditService(JdbcTemplate template) {
         super(template);
-        this.clientEnabled = clientEnabled;
     }
 
     /**
@@ -39,10 +36,6 @@ public class JdbcFailedLoginCountingAuditService extends JdbcAuditService {
      */
     public void setSaveDataPeriodMillis(int saveDataPeriodMillis) {
         this.saveDataPeriodMillis = saveDataPeriodMillis;
-    }
-
-    public boolean isClientEnabled() {
-        return clientEnabled;
     }
 
     @Override
@@ -59,20 +52,6 @@ public class JdbcFailedLoginCountingAuditService extends JdbcAuditService {
                                                 - saveDataPeriodMillis));
                 super.log(auditEvent);
                 break;
-            case ClientAuthenticationSuccess:
-            case SecretChangeSuccess:
-                if (clientEnabled) {
-                    getJdbcTemplate().update("delete from sec_audit where principal_id=?", auditEvent.getPrincipalId());
-                }
-                break;
-            case ClientAuthenticationFailure:
-                if (clientEnabled) {
-                    super.log(auditEvent);
-                    getJdbcTemplate().update("delete from sec_audit where created < ?",
-                                             new Timestamp(System.currentTimeMillis()
-                                                               - saveDataPeriodMillis));
-                    break;
-                }
             default:
                 break;
         }
