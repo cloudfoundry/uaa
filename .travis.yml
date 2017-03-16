@@ -144,7 +144,10 @@ install:
 - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
+- sudo apt-get -qy install lsof
 script:
+- sudo lsof -i :33389 || echo "Nothing listening on port 33389"
+- sudo lsof -i :33636 || echo "Nothing listening on port 33636"
 - echo "Test env $TESTENV"
 - echo "Test cmd $TEST_COMMAND"
 - ./gradlew "-Dspring.profiles.active=$TESTENV" "$TEST_COMMAND"
