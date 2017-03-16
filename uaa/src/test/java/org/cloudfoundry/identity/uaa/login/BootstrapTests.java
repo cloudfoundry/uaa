@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
-import org.cloudfoundry.identity.uaa.audit.JdbcFailedLoginCountingAuditService;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -209,9 +208,6 @@ public class BootstrapTests {
             assertFalse(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
         }
 
-        JdbcFailedLoginCountingAuditService auditService = context.getBean(JdbcFailedLoginCountingAuditService.class);
-        assertFalse(auditService.isClientEnabled());
-
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         if (profiles != null && profiles.contains("mysql")) {
             assertTrue(userDatabase.isCaseInsensitive());
@@ -400,11 +396,6 @@ public class BootstrapTests {
             assertThat(configuration.getAllowedOrigins(), containsInAnyOrder("^example.com.*", "foo.com"));
             assertThat(configuration.getAllowedMethods(), containsInAnyOrder("PUT", "POST", "GET"));
         }
-
-
-        JdbcFailedLoginCountingAuditService auditService = context.getBean(JdbcFailedLoginCountingAuditService.class);
-        assertTrue(auditService.isClientEnabled());
-
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
         assertTrue(userDatabase.isCaseInsensitive());

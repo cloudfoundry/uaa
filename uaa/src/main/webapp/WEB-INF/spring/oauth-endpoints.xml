@@ -245,27 +245,11 @@
         <constructor-arg ref="clientAuthenticationManager" />
         <constructor-arg ref="basicAuthenticationEntryPoint" />
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
-        <property name="loginPolicy" ref="clientLoginPolicy"/>
     </bean>
 
     <bean id="clientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
-        <property name="loginPolicy" ref="clientLoginPolicy"/>
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>
-    </bean>
-
-    <bean id="clientLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
-        <constructor-arg index="0" ref="jdbcAuditService"/>
-        <constructor-arg index="1" ref="clientLockoutPolicyRetriever"/>
-        <constructor-arg index="2" value="ClientAuthenticationSuccess"/>
-        <constructor-arg index="3" value="ClientAuthenticationFailure"/>
-        <constructor-arg index="4" ref="timeService" />
-        <constructor-arg index="5" value="${authentication.policy.client.lockoutEnabled:false}" />
-    </bean>
-
-    <bean id="clientLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.ClientLockoutPolicyRetriever">
-        <property name="enabled" value="${authentication.policy.client.lockoutEnabled:false}" />
-        <property name="defaultLockoutPolicy" ref="defaultClientLockoutPolicy" />
     </bean>
 
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
