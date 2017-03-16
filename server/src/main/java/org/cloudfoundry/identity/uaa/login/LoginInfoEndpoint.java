@@ -89,6 +89,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
@@ -246,8 +247,18 @@ public class LoginInfoEndpoint {
         return Arrays.asList(ofNullable(cookies).orElse(new Cookie[]{}))
                 .stream()
                 .filter(c -> c.getName().startsWith("Saved-Account"))
-                .map(c -> JsonUtils.readValue(c.getValue(), clazz))
+                .map(c -> JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz))
                 .collect(Collectors.toList());
+    }
+
+    private static String decodeCookieValue(String inValue) {
+        String out = null;
+        try {
+            out = URLDecoder.decode(inValue, UTF_8.name());
+        } catch (Exception e) {
+            return "";
+        }
+        return out;
     }
 
     @RequestMapping(value = {"/invalid_request"})
@@ -613,7 +624,7 @@ public class LoginInfoEndpoint {
         }
 
         String base64Credentials = auth.substring("Basic".length()).trim();
-        String credentials = new String(new Base64().decode(base64Credentials.getBytes()), Charset.forName("UTF-8"));
+        String credentials = new String(new Base64().decode(base64Credentials.getBytes()), UTF_8.name());
         // credentials = username:password
         final String[] values = credentials.split(":", 2);
         if (values == null || values.length == 0) {
@@ -797,7 +808,7 @@ public class LoginInfoEndpoint {
     protected String extractPath(HttpServletRequest request) {
         String query = request.getQueryString();
         try {
-            query = query == null ? "" : "?" + URLDecoder.decode(query, "UTF-8");
+            query = query == null ? "" : "?" + URLDecoder.decode(query, UTF_8.name());
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("Cannot decode query string: " + query);
         }
