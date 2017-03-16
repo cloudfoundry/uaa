@@ -9,7 +9,8 @@
  *     separate copyright notices and license terms. Your use of these
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/package org.cloudfoundry.identity.uaa.login;
+ *******************************************************************************/
+package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -60,8 +61,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         savedAccountOption.setOrigin(uaaPrincipal.getOrigin());
         savedAccountOption.setUserId(uaaPrincipal.getId());
         savedAccountOption.setUsername(uaaPrincipal.getName());
-        Cookie savedAccountCookie = new Cookie("Saved-Account-" + uaaPrincipal.getId(), JsonUtils.writeValueAsString(savedAccountOption));
-
+        Cookie savedAccountCookie = new Cookie("Saved-Account-" + uaaPrincipal.getId(), encodeCookieValue(JsonUtils.writeValueAsString(savedAccountOption)));
         savedAccountCookie.setPath(request.getContextPath() + "/login");
         savedAccountCookie.setHttpOnly(true);
         savedAccountCookie.setSecure(request.isSecure());
@@ -72,16 +72,21 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
 
         CurrentUserInformation currentUserInformation = new CurrentUserInformation();
         currentUserInformation.setUserId(uaaPrincipal.getId());
-        Cookie currentUserCookie;
-        try {
-            currentUserCookie = new Cookie("Current-User", URLEncoder.encode(JsonUtils.writeValueAsString(currentUserInformation), UTF_8.name()));
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(e);
-        }
+        Cookie currentUserCookie = new Cookie("Current-User", encodeCookieValue(JsonUtils.writeValueAsString(currentUserInformation)));
         currentUserCookie.setMaxAge(365*24*60*60);
         currentUserCookie.setHttpOnly(false);
         currentUserCookie.setPath(request.getContextPath());
 
         response.addCookie(currentUserCookie);
+    }
+
+    private static String encodeCookieValue(String inValue) throws IllegalArgumentException {
+        String out = null;
+        try {
+            out = URLEncoder.encode(inValue, UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalArgumentException(e);
+        }
+        return out;
     }
 }
