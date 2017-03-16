@@ -99,7 +99,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String userZoneIdDescription = "The zone this user belongs to. 'uaa' is the default zone.";
     private final String passwordLastModifiedDescription = "The timestamp this user's password was last changed.";
     private final String externalIdDescription = "External user ID if authenticated through external identity provider.";
-    private final String passwordDescription = "User's password.";
+    private final String passwordDescription = "User's password, required if origin is set to 'uaa'.";
     private final String phoneNumbersListDescription = "The user's phone numbers.";
     private final String phoneNumbersDescription = "The phone number.";
 
@@ -154,7 +154,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
 
     Snippet createFields = requestFields(
         fieldWithPath("userName").required().type(STRING).description(usernameDescription),
-        fieldWithPath("password").required().type(STRING).description(passwordDescription),
+        fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
         fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
         fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
         fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
