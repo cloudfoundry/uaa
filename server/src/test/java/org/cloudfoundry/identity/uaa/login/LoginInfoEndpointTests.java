@@ -295,7 +295,6 @@ public class LoginInfoEndpointTests {
         assertNull(links.get("createAccountLink"));
         assertEquals("http://someurl", links.get("login"));
         assertEquals("http://someurl", links.get("uaa"));
-        assertEquals("/create_account", links.get("register"));
         assertEquals("/forgot_password", links.get("passwd"));
     }
 

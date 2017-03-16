@@ -77,10 +77,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         if (selfServiceLinks!=null) {
             String signup = selfServiceLinks.get("signup");
             String passwd = selfServiceLinks.get("passwd");
-            if (hasText(signup)) {
+            if ((signup) != null) {
                 definition.getLinks().getSelfService().setSignup(signup);
             }
-            if (hasText(passwd)) {
+            if ((passwd) != null) {
                 definition.getLinks().getSelfService().setPasswd(passwd);
             }
         }

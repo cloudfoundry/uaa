@@ -100,7 +100,7 @@ public class Links {
 
     public static class SelfService {
         private boolean selfServiceLinksEnabled = true;
-        private String signup = "/create_account";
+        private String signup = "";
         private String passwd = "/forgot_password";
 
         public boolean isSelfServiceLinksEnabled() {

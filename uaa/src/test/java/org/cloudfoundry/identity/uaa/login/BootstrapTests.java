@@ -201,8 +201,6 @@ public class BootstrapTests {
             zoneConfiguration.getPrompts()
         );
 
-        Object links = context.getBean("links");
-        assertEquals(Collections.EMPTY_MAP, links);
 
         //check java mail sender
         EmailService emailService = context.getBean("emailService", EmailService.class);

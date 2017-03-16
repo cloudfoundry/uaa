@@ -27,12 +27,12 @@ assetBaseUrl: /resources/predix
 #    login-link: https://partners.gopivotal.com/login
 #    image: /resources/pivotal/images/partners-logo-gray.png
 
-#links:
+links:
   # Custom self service links (will only be displayed if selfServiceLinksEnabled is true)
   # If selfServiceLinksEnabled is true and these custom links are not provided then the Login Server
   # will use internal links.
-#  passwd: /forgot_password
-#  signup: /create_account
+  passwd: /forgot_password
+  signup: /create_account
 
 #notifications:
 #  url: http://localhost:3001
