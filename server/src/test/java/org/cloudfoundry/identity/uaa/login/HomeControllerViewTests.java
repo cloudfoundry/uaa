@@ -98,7 +98,7 @@ public class HomeControllerViewTests extends TestClassNullifier {
           .andExpect(xpath("//*[@id='tile-1'][text()[contains(.,'client-1')]]").exists())
           .andExpect(xpath("//*[@class='tile-1']/@href").string("http://app.launch/url"))
 
-          .andExpect(xpath("//head/style[2]").string(".tile-1 .tile-icon {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
+          .andExpect(xpath("//head/style[1]").string(".tile-1 .tile-icon {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
           .andExpect(xpath("//*[@id='tile-2'][text()[contains(.,'Client 2 Name')]]").exists())
           .andExpect(xpath("//*[@class='tile-2']/@href").string("http://second.url/"))
 

@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
@@ -29,6 +31,7 @@ import org.springframework.util.MultiValueMap;
 import java.net.URI;
 import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -117,22 +120,23 @@ public class ImplicitTokenGrantIntegrationTests {
     @Test
     public void authzWithIntermediateFormLoginSucceeds() throws Exception {
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
+        BasicCookieStore cookies = new BasicCookieStore();
 
-        ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl(), headers);
+        ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl(), getHeaders(cookies));
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
-        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
         if (response.getHeaders().containsKey("Set-Cookie")) {
-            for (String c : response.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", c);
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
         // should be directed to the login screen...
@@ -148,7 +152,7 @@ public class ImplicitTokenGrantIntegrationTests {
         formData.add("password", testAccounts.getPassword());
         formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
 
-        result = serverRunning.postForRedirect(location, headers, formData);
+        result = serverRunning.postForRedirect(location, getHeaders(cookies), formData);
 
         // System.err.println(result.getStatusCode());
         // System.err.println(result.getHeaders());
