@@ -49,6 +49,9 @@ import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -115,7 +118,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             IdentityProvider createdIdp = identityProviderProvisioning.create(body);
             createdIdp.setSerializeConfigRaw(rawConfig);
-            removeBindPassword(createdIdp);
+            redactSensitiveData(createdIdp);
             return new ResponseEntity<>(createdIdp, CREATED);
         } catch (IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
@@ -146,6 +149,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         String zoneId = IdentityZoneHolder.get().getId();
         body.setId(id);
         body.setIdentityZoneId(zoneId);
+        patchSensitiveData(id, body);
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
@@ -160,9 +164,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             samlConfigurator.addSamlIdentityProviderDefinition(definition);
             body.setConfig(definition);
         }
-        patchBindPassword(id, body);
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
         updatedIdp.setSerializeConfigRaw(rawConfig);
+        redactSensitiveData(updatedIdp);
         return new ResponseEntity<>(updatedIdp, OK);
     }
 
@@ -170,7 +174,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     public ResponseEntity<IdentityProviderStatus> updateIdentityProviderStatus(@PathVariable String id, @RequestBody IdentityProviderStatus body) {
         IdentityProvider existing = identityProviderProvisioning.retrieve(id);
         if(body.getRequirePasswordChange() == null || body.getRequirePasswordChange() != true) {
-            logger.debug("Invalid payload. The property requirePasswwordChangeRequired needs to be set");
+            logger.debug("Invalid payload. The property requirePasswordChangeRequired needs to be set");
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         if(!OriginKeys.UAA.equals(existing.getType())) {
@@ -194,7 +198,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, IdentityZoneHolder.get().getId());
         for(IdentityProvider idp : identityProviderList) {
             idp.setSerializeConfigRaw(rawConfig);
-            removeBindPassword(idp);
+            redactSensitiveData(idp);
         }
         return new ResponseEntity<>(identityProviderList, OK);
     }
@@ -203,7 +207,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     public ResponseEntity<IdentityProvider> retrieveIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieve(id);
         identityProvider.setSerializeConfigRaw(rawConfig);
-        removeBindPassword(identityProvider);
+        redactSensitiveData(identityProvider);
         return new ResponseEntity<>(identityProvider, OK);
     }
 
@@ -280,30 +284,73 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
     }
 
-    protected void patchBindPassword(String id, IdentityProvider provider) {
-        if (OriginKeys.LDAP.equals(provider.getType()) &&
-            provider.getConfig() != null &&
-            provider.getConfig() instanceof LdapIdentityProviderDefinition) {
-            LdapIdentityProviderDefinition definition = (LdapIdentityProviderDefinition)provider.getConfig();
-            if (definition.getBindPassword() == null) {
-                IdentityProvider existing = identityProviderProvisioning.retrieve(id);
-                if (existing!=null &&
-                    existing.getConfig()!=null &&
-                    existing.getConfig() instanceof LdapIdentityProviderDefinition) {
-                    LdapIdentityProviderDefinition existingDefinition = (LdapIdentityProviderDefinition)existing.getConfig();
-                    definition.setBindPassword(existingDefinition.getBindPassword());
+    protected void patchSensitiveData(String id, IdentityProvider provider) {
+        if (provider.getConfig() == null) {
+            return;
+        }
+        switch (provider.getType()) {
+            case LDAP: {
+                if (provider.getConfig() instanceof LdapIdentityProviderDefinition) {
+                    LdapIdentityProviderDefinition definition = (LdapIdentityProviderDefinition) provider.getConfig();
+                    if (definition.getBindPassword() == null) {
+                        IdentityProvider existing = identityProviderProvisioning.retrieve(id);
+                        if (existing!=null &&
+                            existing.getConfig()!=null &&
+                            existing.getConfig() instanceof LdapIdentityProviderDefinition) {
+                            LdapIdentityProviderDefinition existingDefinition = (LdapIdentityProviderDefinition)existing.getConfig();
+                            definition.setBindPassword(existingDefinition.getBindPassword());
+                        }
+                    }
                 }
+                break;
             }
+            case OAUTH20 :
+            case OIDC10 : {
+                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                    if (definition.getRelyingPartySecret() == null) {
+                        IdentityProvider existing = identityProviderProvisioning.retrieve(id);
+                        if (existing!=null &&
+                            existing.getConfig()!=null &&
+                            existing.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+                            AbstractXOAuthIdentityProviderDefinition existingDefinition = (AbstractXOAuthIdentityProviderDefinition)existing.getConfig();
+                            definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
+                        }
+                    }
+                }
+                break;
+            }
+            default:
+                break;
+
         }
     }
 
-    protected void removeBindPassword(IdentityProvider provider) {
-        if (OriginKeys.LDAP.equals(provider.getType()) &&
-            provider.getConfig() != null &&
-            provider.getConfig() instanceof LdapIdentityProviderDefinition
-           ) {
-            LdapIdentityProviderDefinition definition = (LdapIdentityProviderDefinition)provider.getConfig();
-            definition.setBindPassword(null);
+    protected void redactSensitiveData(IdentityProvider provider) {
+        if (provider.getConfig() == null) {
+            return;
+        }
+        switch (provider.getType()) {
+            case LDAP: {
+                if (provider.getConfig() instanceof LdapIdentityProviderDefinition) {
+                    logger.debug("Removing bind password from LDAP provider id:"+provider.getId());
+                    LdapIdentityProviderDefinition definition = (LdapIdentityProviderDefinition) provider.getConfig();
+                    definition.setBindPassword(null);
+                }
+                break;
+            }
+            case OAUTH20 :
+            case OIDC10 : {
+                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+                    logger.debug("Removing relying secret from OAuth/OIDC provider id:"+provider.getId());
+                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                    definition.setRelyingPartySecret(null);
+                }
+                break;
+            }
+            default:
+                break;
+
         }
     }
 
