@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -107,6 +109,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
  */
 @Controller
 public class LoginInfoEndpoint {
+
+    private static Log logger = LogFactory.getLog(LoginInfoEndpoint.class);
 
     public static final String NotANumber = OriginKeys.NotANumber;
     public static final String CREATE_ACCOUNT_LINK = "createAccountLink";
@@ -256,6 +260,7 @@ public class LoginInfoEndpoint {
         try {
             out = URLDecoder.decode(inValue, UTF_8.name());
         } catch (Exception e) {
+            logger.debug("URLDecoder.decode failed for " + inValue, e);
             return "";
         }
         return out;
