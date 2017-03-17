@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -189,6 +190,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .andExpect(savedAccountCookie(user));
     }
 
+    @SuppressWarnings("deprecation")
     private ResultMatcher savedAccountCookie(ScimUser user) {
         return result -> {
             SavedAccountOption savedAccountOption = new SavedAccountOption();
@@ -197,7 +199,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             savedAccountOption.setOrigin(user.getOrigin());
             savedAccountOption.setUserId(user.getId());
             String cookieName = "Saved-Account-" + user.getId();
-            cookie().value(cookieName, JsonUtils.writeValueAsString(savedAccountOption)).match(result);
+            cookie().value(cookieName, URLEncoder.encode(JsonUtils.writeValueAsString(savedAccountOption))).match(result);
             cookie().maxAge(cookieName, 365*24*60*60);
         };
     }

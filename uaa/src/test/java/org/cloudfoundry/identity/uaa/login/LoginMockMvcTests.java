@@ -2020,7 +2020,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         savedAccount.setUsername("test@example.org");
         getMockMvc().perform(get("/login")
             .session(session)
-            .cookie(new Cookie("Saved-Account-12345678", JsonUtils.writeValueAsString(savedAccount)))
+            .cookie(new Cookie("Saved-Account-12345678", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount))))
             .header("Accept", TEXT_HTML)
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())

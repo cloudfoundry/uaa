@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.SavedRequestAwareAuthenti
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -60,6 +61,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
 
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void whenSuccessfullyAuthenticated_accountGetsSavedViaCookie() throws IOException, ServletException {
         Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
@@ -104,7 +106,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         expectedCookieValue.setEmail(user.getEmail());
         expectedCookieValue.setOrigin(user.getOrigin());
 
-        assertEquals(JsonUtils.writeValueAsString(expectedCookieValue), cookieValue);
+        assertEquals(URLEncoder.encode(JsonUtils.writeValueAsString(expectedCookieValue)), cookieValue);
         assertEquals(true, accountOptionCookie.isHttpOnly());
         assertEquals(365*24*60*60, accountOptionCookie.getMaxAge());
         assertEquals("/login", accountOptionCookie.getPath());

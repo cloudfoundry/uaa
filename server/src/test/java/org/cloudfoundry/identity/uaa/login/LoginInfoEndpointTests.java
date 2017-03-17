@@ -56,6 +56,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,6 +67,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -172,13 +174,14 @@ public class LoginInfoEndpointTests {
         savedAccount.setEmail("bob@example.com");
         savedAccount.setUserId("xxxx");
         savedAccount.setOrigin("uaa");
-        Cookie cookie1 = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
+
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
         savedAccount.setUsername("tim");
         savedAccount.setEmail("tim@example.org");
         savedAccount.setUserId("zzzz");
         savedAccount.setOrigin("ldap");
-        Cookie cookie2 = new Cookie("Saved-Account-zzzz", JsonUtils.writeValueAsString(savedAccount));
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
         request.setCookies(cookie1, cookie2);
         endpoint.loginForHtml(model, null, request);
@@ -201,6 +204,68 @@ public class LoginInfoEndpointTests {
         assertEquals("tim@example.org", savedAccount1.getEmail());
         assertEquals("ldap", savedAccount1.getOrigin());
         assertEquals("zzzz", savedAccount1.getUserId());
+    }
+
+    @Test
+    public void testSavedAccountsEncodedAndUnEncoded() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        assertThat(model, not(hasKey("savedAccounts")));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bill");
+        savedAccount.setEmail("bill@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        // write Cookie1 without URLencode into value, situation before this correction
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
+
+        savedAccount.setUsername("bill");
+        savedAccount.setEmail("bill@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        // write Cookie2 with URLencode into value, situation after this correction
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        request.setCookies(cookie1, cookie2);
+        endpoint.loginForHtml(model, null, request);
+
+        assertThat(model, hasKey("savedAccounts"));
+        assertThat(model.get("savedAccounts"), instanceOf(List.class));
+        List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) model.get("savedAccounts");
+        assertThat(savedAccounts, hasSize(2));
+        // evaluate that both cookies can be parsed out has have same values
+        SavedAccountOption savedAccount0 = savedAccounts.get(0);
+        assertThat(savedAccount0, notNullValue());
+        assertEquals("bill", savedAccount0.getUsername());
+        assertEquals("bill@example.com", savedAccount0.getEmail());
+        assertEquals("uaa", savedAccount0.getOrigin());
+        assertEquals("xxxx", savedAccount0.getUserId());
+
+        SavedAccountOption savedAccount1 = savedAccounts.get(1);
+        assertThat(savedAccount1, notNullValue());
+        assertEquals("bill", savedAccount1.getUsername());
+        assertEquals("bill@example.com", savedAccount1.getEmail());
+        assertEquals("uaa", savedAccount1.getOrigin());
+        assertEquals("xxxx", savedAccount1.getUserId());
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void testSavedAccountsInvalidCookie() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        assertThat(model, not(hasKey("savedAccounts")));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", "%2");
+
+        request.setCookies(cookie1);
+        endpoint.loginForHtml(model, null, request);
     }
 
     @Test
