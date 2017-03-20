@@ -27,8 +27,9 @@ dependencies {
   compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
     exclude(module: 'opensaml')
   }
-  compile(group: 'org.opensaml', name: 'opensaml', version: '2.6.4') {
+  compile(group: 'org.opensaml', name: 'opensaml', version: '2.6.6') {
     exclude(module: 'bcprov-jdk15on')
+    exclude(group: 'org.slf4j', module: 'log4j-over-slf4j')
   }
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
