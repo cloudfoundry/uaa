@@ -13,10 +13,13 @@
 package org.cloudfoundry.identity.uaa.audit;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -30,7 +33,12 @@ import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticat
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
@@ -65,10 +73,47 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
+        ReflectionTestUtils.invokeMethod(ReflectionTestUtils.getField(auditService, "lastDelete"), "set", 0l);
         // Set the created column to 25 hours past
         jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 25 * 3600 * 1000));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
+    }
+
+    @Test
+    public void delete_happens_single_thread_on_intervals() throws Exception {
+        long now = System.currentTimeMillis();
+        auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
+        // Set the created column to 25 hours past
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 25 * 3600 * 1000));
+        int count = 5;
+        for (int i = 0; i< count; i++) {
+            auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
+        }
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(count+1));
+        ArgumentCaptor<String> queries = ArgumentCaptor.forClass(String.class);
+        verify(template, times(1)).update(queries.capture(), any(Timestamp.class));
+    }
+
+    @Test
+    public void periodic_delete_works() throws Exception {
+        for (int i=0; i<5; i++) {
+            auditService.periodicDelete();
+        }
+        verify(template, times(1)).update(anyString(), any(Timestamp.class));
+        // 30 seconds has passed
+        auditService.setTimeService(new TimeService() {
+            @Override
+            public long getCurrentTimeMillis() {
+                return System.currentTimeMillis() + (31 * 1000);
+            }
+        });
+        reset(template);
+        for (int i=0; i<5; i++) {
+            auditService.periodicDelete();
+        }
+        verify(template, times(1)).update(anyString(), any(Timestamp.class));
     }
 
     @Test
