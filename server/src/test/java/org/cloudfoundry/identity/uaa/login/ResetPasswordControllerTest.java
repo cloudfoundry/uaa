@@ -193,21 +193,21 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())
                 .build();
-        forgotPasswordSuccessful("http://localhost/reset_password?code=code1", "Cloud Foundry", null);
+        forgotPasswordSuccessful("http://localhost/reset_password?code=code1", "Cloud Foundry");
     }
 
     @Test
     public void forgotPassword_SuccessfulInOtherZone() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
         IdentityZoneHolder.set(zone);
-        forgotPasswordSuccessful("http://testsubdomain.localhost/reset_password?code=code1", "The Twiglet Zone", zone);
+        forgotPasswordSuccessful("http://testsubdomain.localhost/reset_password?code=code1", "The Twiglet Zone");
     }
 
     private void forgotPasswordSuccessful(String url) throws Exception {
-        forgotPasswordSuccessful(url, "Best Company", null);
+        forgotPasswordSuccessful(url, "Best Company");
     }
 
-    private void forgotPasswordSuccessful(String url, String companyName, IdentityZone zone) throws Exception {
+    private void forgotPasswordSuccessful(String url, String companyName) throws Exception {
         IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
         BrandingInformation branding = new BrandingInformation();
         branding.setCompanyName(companyName);
@@ -222,9 +222,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
               .param("client_id", "example")
               .param("redirect_uri", "redirect.example.com");
 
-            if (zone != null) {
+            if (!IdentityZoneHolder.isUaa()) {
                 post.with(request -> {
-                    request.setServerName(zone.getSubdomain() + ".localhost");
+                    request.setServerName(IdentityZoneHolder.get().getSubdomain() + ".localhost");
                     return request;
                 });
             }
