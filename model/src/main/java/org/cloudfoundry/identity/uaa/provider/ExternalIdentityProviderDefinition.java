@@ -1,16 +1,3 @@
-package org.cloudfoundry.identity.uaa.provider;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -23,6 +10,21 @@ import static java.util.Collections.emptyMap;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.provider;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ExternalIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
     public static final String GROUP_ATTRIBUTE_NAME = "external_groups"; //can be a string or a list of strings
     public static final String EMAIL_ATTRIBUTE_NAME = "email"; //can be a string

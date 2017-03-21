@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -24,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
     public static final String LDAP_TLS_NONE = "none";
     public static final String LDAP_TLS_SIMPLE = "simple";
@@ -236,6 +239,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return baseUrl;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getBindPassword() {
         return bindPassword;
     }
