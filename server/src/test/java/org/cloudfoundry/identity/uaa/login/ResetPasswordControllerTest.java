@@ -115,6 +115,20 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
+    public void testForgotPasswordWithSelfServiceDisabled() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        IdentityZoneHolder.set(zone);
+
+        mockMvc.perform(get("/forgot_password")
+                .param("client_id", "example")
+                .param("redirect_uri", "http://example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error"))
+                .andExpect(model().attribute("error_message_code", "self_service_disabled"));
+    }
+
+    @Test
     public void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtml() throws Exception {
         forgotPasswordWithConflict(null, companyName);
     }
@@ -193,21 +207,37 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())
                 .build();
-        forgotPasswordSuccessful("http://localhost/reset_password?code=code1", "Cloud Foundry", null);
+        forgotPasswordSuccessful("http://localhost/reset_password?code=code1", "Cloud Foundry");
     }
 
     @Test
     public void forgotPassword_SuccessfulInOtherZone() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
         IdentityZoneHolder.set(zone);
-        forgotPasswordSuccessful("http://testsubdomain.localhost/reset_password?code=code1", "The Twiglet Zone", zone);
+        forgotPasswordSuccessful("http://testsubdomain.localhost/reset_password?code=code1", "The Twiglet Zone");
+    }
+
+    @Test
+    public void forgotPasswordPostWithSelfServiceDisabled() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        IdentityZoneHolder.set(zone);
+
+        mockMvc.perform(post("/forgot_password.do")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("email", "user@example.com")
+                .param("client_id", "example")
+                .param("redirect_uri", "redirect.example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error"))
+                .andExpect(model().attribute("error_message_code", "self_service_disabled"));
     }
 
     private void forgotPasswordSuccessful(String url) throws Exception {
-        forgotPasswordSuccessful(url, "Best Company", null);
+        forgotPasswordSuccessful(url, "Best Company");
     }
 
-    private void forgotPasswordSuccessful(String url, String companyName, IdentityZone zone) throws Exception {
+    private void forgotPasswordSuccessful(String url, String companyName) throws Exception {
         IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
         BrandingInformation branding = new BrandingInformation();
         branding.setCompanyName(companyName);
@@ -222,9 +252,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
               .param("client_id", "example")
               .param("redirect_uri", "redirect.example.com");
 
-            if (zone != null) {
+            if (!IdentityZoneHolder.isUaa()) {
                 post.with(request -> {
-                    request.setServerName(zone.getSubdomain() + ".localhost");
+                    request.setServerName(IdentityZoneHolder.get().getSubdomain() + ".localhost");
                     return request;
                 });
             }

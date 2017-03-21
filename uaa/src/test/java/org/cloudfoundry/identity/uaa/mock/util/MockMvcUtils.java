@@ -454,12 +454,9 @@ public final class MockMvcUtils {
         }
     }
 
-    public static IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
-            ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
+    public static IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(MockMvc mockMvc, ApplicationContext webApplicationContext, ClientDetails bootstrapClient, IdentityZone identityZone) throws Exception {
         String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
                 "zones.write,scim.zones", null);
-
-        IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
 
         mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + identityToken)
@@ -488,14 +485,21 @@ public final class MockMvcUtils {
 
         if (bootstrapClient!=null) {
             mockMvc.perform(post("/oauth/clients")
-                .header("Authorization", "Bearer " + zoneAdminAuthcodeToken)
-                .header("X-Identity-Zone-Id", identityZone.getId())
-                .contentType(APPLICATION_JSON)
-                .accept(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(bootstrapClient)))
-                .andExpect(status().isCreated());
+                    .header("Authorization", "Bearer " + zoneAdminAuthcodeToken)
+                    .header("X-Identity-Zone-Id", identityZone.getId())
+                    .contentType(APPLICATION_JSON)
+                    .accept(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(bootstrapClient)))
+                    .andExpect(status().isCreated());
         }
         return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
+    }
+
+    public static IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
+            ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
+
+        IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        return createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, bootstrapClient, identityZone);
     }
 
     public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
