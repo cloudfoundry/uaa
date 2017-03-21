@@ -181,6 +181,24 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testDisableSelfServiceCreateAccountPost() throws Exception {
+        String subdomain = generator.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(getMockMvc(), getWebApplicationContext(), getBaseClientDetails() ,zone);
+
+        getMockMvc().perform(post("/create_account.do")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                .param("email", userEmail)
+                .param("password", "secr3T")
+                .param("password_confirmation", "secr3T"))
+                .andExpect(model().attribute("error_message_code", "self_service_disabled"))
+                .andExpect(view().name("error"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     public void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
