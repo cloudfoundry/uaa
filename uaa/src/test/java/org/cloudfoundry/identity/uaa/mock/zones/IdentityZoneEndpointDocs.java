@@ -29,7 +29,6 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -152,9 +151,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.getConfig().setSamlConfig(samlConfig);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
-        identityZone.getConfig().getClientLockoutPolicy().setLockoutAfterFailures(5);
-        identityZone.getConfig().getClientLockoutPolicy().setLockoutPeriodSeconds(300);
-        identityZone.getConfig().getClientLockoutPolicy().setCountFailuresWithin(3600);
 
         FieldDescriptor[] fieldDescriptors = {
             fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Optional")),
@@ -162,10 +158,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
-
-            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
 
             fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
@@ -302,11 +294,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("[].config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("[].config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("[].config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-
-
             fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
@@ -418,10 +405,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
-
-            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
@@ -565,10 +548,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
-
-            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
 
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
