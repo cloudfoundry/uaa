@@ -54,7 +54,13 @@ public class AccountsController {
     @RequestMapping(value = "/create_account", method = GET)
     public String activationEmail(Model model,
                                   @RequestParam(value = "client_id", required = false) String clientId,
-                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
+                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri,
+                                  HttpServletResponse response) {
+        if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+            model.addAttribute("error_message_code", "self_service_disabled");
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return "error";
+        }
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
         return "accounts/new_activation_email";
