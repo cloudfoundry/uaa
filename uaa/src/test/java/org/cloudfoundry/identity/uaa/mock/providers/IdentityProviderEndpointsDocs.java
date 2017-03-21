@@ -142,6 +142,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         STORE_CUSTOM_ATTRIBUTES
     };
 
+    FieldDescriptor relayingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
+
     private static ApacheDsSSLContainer apacheDS;
 
     @AfterClass
@@ -198,7 +200,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_GROUP_FILE,
         LDAP_URL,
         LDAP_BIND_USER_DN,
-        LDAP_BIND_PASSWORD,
+//        LDAP_BIND_PASSWORD,
         LDAP_USER_SEARCH_BASE,
         LDAP_USER_SEARCH_FILTER,
         LDAP_GROUP_SEARCH_BASE,
@@ -282,7 +284,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_PHONE,
 
         LDAP_BIND_USER_DN.ignored(),
-        LDAP_BIND_PASSWORD.ignored(),
         LDAP_USER_SEARCH_BASE.ignored(),
         LDAP_USER_SEARCH_FILTER.ignored(),
         LDAP_GROUP_SEARCH_BASE.ignored(),
@@ -437,7 +438,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
             fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
             fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
-            fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider"),
             fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
             fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
             fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
@@ -448,7 +448,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
             fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token.")
         });
-        Snippet requestFields = requestFields(idempotentFields);
+        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relayingPartySecret));
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
             VERSION,
@@ -506,7 +506,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
             fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
             fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
-            fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider"),
             fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
             fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
                                                                                       "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
@@ -519,7 +518,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
             fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token.")
         });
-        Snippet requestFields = requestFields(idempotentFields);
+        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relayingPartySecret));
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
             VERSION,
@@ -566,6 +565,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         providerDefinition.setUserDNPatternDelimiter(";");
         providerDefinition.setMailAttributeName("mail");
         identityProvider.setConfig(providerDefinition);
+        providerDefinition.setBindPassword(null);
         identityProvider.setSerializeConfigRaw(true);
 
         FieldDescriptor[] fields = ldapSimpleBindFields;
@@ -596,7 +596,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] fields = ldapSearchAndBind_GroupsToScopes;
+        FieldDescriptor[] fields = (FieldDescriptor[]) ArrayUtils.add(ldapSearchAndBind_GroupsToScopes, LDAP_BIND_PASSWORD);
         createLDAPProvider(identityProvider, fields, "create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider");
 
     }

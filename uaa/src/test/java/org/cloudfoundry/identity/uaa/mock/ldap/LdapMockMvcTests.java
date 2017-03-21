@@ -86,6 +86,7 @@ import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -800,6 +801,7 @@ public class LdapMockMvcTests  {
             .getResponse()
             .getContentAsString();
 
+        assertThat(response, not(containsString("bindPassword")));
         IdentityProvider<LdapIdentityProviderDefinition> provider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<LdapIdentityProviderDefinition>>() {});
         assertNull(provider.getConfig().getBindPassword());
 
