@@ -115,6 +115,20 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
+    public void testForgotPasswordWithSelfServiceDisabled() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        IdentityZoneHolder.set(zone);
+
+        mockMvc.perform(get("/forgot_password")
+                .param("client_id", "example")
+                .param("redirect_uri", "http://example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error"))
+                .andExpect(model().attribute("error_message_code", "self_service_disabled"));
+    }
+
+    @Test
     public void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtml() throws Exception {
         forgotPasswordWithConflict(null, companyName);
     }
@@ -201,6 +215,22 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
         IdentityZoneHolder.set(zone);
         forgotPasswordSuccessful("http://testsubdomain.localhost/reset_password?code=code1", "The Twiglet Zone");
+    }
+
+    @Test
+    public void forgotPasswordPostWithSelfServiceDisabled() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        IdentityZoneHolder.set(zone);
+
+        mockMvc.perform(post("/forgot_password.do")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("email", "user@example.com")
+                .param("client_id", "example")
+                .param("redirect_uri", "redirect.example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error"))
+                .andExpect(model().attribute("error_message_code", "self_service_disabled"));
     }
 
     private void forgotPasswordSuccessful(String url) throws Exception {
