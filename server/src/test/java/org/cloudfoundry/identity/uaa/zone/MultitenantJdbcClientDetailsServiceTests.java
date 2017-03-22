@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
@@ -69,7 +70,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
 
-    private static final String INSERT_BARE_BONE_USER = "insert into users (id, username, password, email, identity_zone_id) values (?,?,?,?,?)";
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
     private IdentityZone otherIdentityZone;
 
@@ -119,7 +120,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         String zoneId = IdentityZoneHolder.get().getId();
         String userId = zoneId + clientId;
         jdbcTemplate.update(INSERT_APPROVAL, clientId, userId, "uaa.user", "APPROVED", timestamp, timestamp);
-        jdbcTemplate.update(INSERT_BARE_BONE_USER, userId, userId, userId, userId+"@test.com", zoneId);
+        testAccounts.addRandomUser(jdbcTemplate, userId, zoneId);
     }
 
     @Test

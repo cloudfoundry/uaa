@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,15 +12,46 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
+import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
+
+import java.lang.reflect.Method;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
+import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.INSERT_BARE_BONE_USER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -29,33 +60,9 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
-import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
-
 public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     private UaaTestAccounts testAccounts = null;
-    
+
     private JdbcApprovalStore dao;
 
     private UaaUserDatabase userDao = null;
@@ -67,8 +74,10 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     @Before
     public void initApprovalsAdminEndpointsTests() {
         testAccounts = UaaTestAccounts.standard(null);
-        String userId = testAccounts.getUserWithRandomID().getId();
-        userDao = new MockUaaUserDatabase(u -> u.withId(userId).withUsername(testAccounts.getUserName()).withEmail("marissa@test.com").withGivenName("Marissa").withFamilyName("Bloggs"));
+        String userId = testAccounts.addRandomUser(jdbcTemplate);
+
+        userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl());
+
         jdbcTemplate = new JdbcTemplate(dataSource);
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);
@@ -88,6 +97,8 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
         endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getUsername(), marissa.getId()));
     }
+
+
 
     private void addApproval(String userName, String clientId, String scope, int expiresIn, ApprovalStatus status) {
         dao.addApproval(new Approval()
@@ -320,4 +331,66 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         assertEquals("ok", endpoints.revokeApprovals("c1").getStatus());
         assertEquals(0, endpoints.getApprovals("user_id pr", 1, 100).size());
     }
+
+    @Test
+    public void performance_is_acceptable() throws Exception {
+        doWithTiming("addUsers", 10000);
+    }
+
+
+    public double doWithTiming(String methodName, Object... args) throws Exception {
+        Method method = this.getClass().getMethod(methodName, Arrays.stream(args).map(a -> a.getClass()).collect(Collectors.toList()).toArray(new Class[0]));
+        double start = System.currentTimeMillis();
+        method.invoke(this, args);
+        double stop = System.currentTimeMillis();
+        double timing = (stop - start) / 1000d;
+        System.err.println(String.format("\nPerformed %s(%s) in %.4f seconds", methodName, Arrays.toString(args), timing));
+        return timing;
+    }
+
+
+
+    public void addUsers(final Integer size) throws Exception {
+        jdbcTemplate.batchUpdate(INSERT_BARE_BONE_USER, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                String userId = "user-"+i;
+                int pos = 1;
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId + "@test.com");
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return size;
+            }
+        });
+    }
+
+
+    public void addApprovals(final int minUserId, final int maxUserId, final int countPerUser) throws Exception {
+        jdbcTemplate.batchUpdate("insert into authz_approval (user_id, client_id, scope) values (?,?,?)", new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                int index = i / countPerUser;
+                String userId = "user-"+(i+index);
+                int pos = 1;
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId + "@test.com");
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return (maxUserId - minUserId) * countPerUser;
+            }
+        });
+    }
+
 }
