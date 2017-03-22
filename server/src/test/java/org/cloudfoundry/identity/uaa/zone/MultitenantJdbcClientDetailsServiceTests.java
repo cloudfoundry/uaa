@@ -52,6 +52,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 
@@ -67,6 +68,8 @@ public class MultitenantJdbcClientDetailsServiceTests {
     private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified, required_user_groups) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
 
     private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
+
+    private static final String INSERT_BARE_BONE_USER = "insert into users (id, username, password, email, identity_zone_id) values (?,?,?,?,?)";
 
     private IdentityZone otherIdentityZone;
 
@@ -93,7 +96,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         Authentication authentication = mock(Authentication.class);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         jdbcTemplate = new JdbcTemplate(db);
-        service = new MultitenantJdbcClientDetailsService(db);
+        service = spy(new MultitenantJdbcClientDetailsService(db));
         otherIdentityZone = new IdentityZone();
         otherIdentityZone.setId("testzone");
         otherIdentityZone.setName("testzone");
@@ -113,45 +116,60 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     protected void addApproval(String clientId) {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        jdbcTemplate.update(INSERT_APPROVAL, clientId, clientId, "uaa.user", "APPROVED", timestamp, timestamp);
+        String zoneId = IdentityZoneHolder.get().getId();
+        String userId = zoneId + clientId;
+        jdbcTemplate.update(INSERT_APPROVAL, clientId, userId, "uaa.user", "APPROVED", timestamp, timestamp);
+        jdbcTemplate.update(INSERT_BARE_BONE_USER, userId, userId, userId, userId+"@test.com", zoneId);
     }
 
     @Test
     public void test_can_delete_zone_clients() throws Exception {
         String id = generate.generate();
-        IdentityZone zone = MultitenancyFixture.identityZone(id,id);
-        IdentityZoneHolder.set(zone);
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId(id);
-        clientDetails.setClientSecret("secret");
-        service.addClientDetails(clientDetails);
-        clientDetails = (BaseClientDetails)service.loadClientByClientId(id);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(1));
-        addApproval(id);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=?", new Object[] {id}, Integer.class), is(1));
+        for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherIdentityZone)) {
+            IdentityZoneHolder.set(zone);
+            addClientToDb(id);
+            assertThat(countClientsInZone(IdentityZoneHolder.get().getId()), is(1));
+            addApproval(id);
 
-        service.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get(), null));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(0));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=?", new Object[] {id}, Integer.class), is(0));
+        }
+        assertThat(countClientApprovals(id), is(2));
+        service.onApplicationEvent(new EntityDeletedEvent<>(otherIdentityZone, null));
+        assertThat(countClientsInZone(otherIdentityZone.getId()), is(0));
+        assertThat(countClientApprovals(id), is(1));
+    }
+
+    public int countClientApprovals(String clientId) {
+        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=?", new Object[] {clientId}, Integer.class);
+    }
+
+    public int countClientsInZone(String zoneId) {
+        return jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[] {zoneId}, Integer.class);
+    }
+
+    public boolean clientExists(String clientId, String zoneId) {
+        return jdbcTemplate.queryForObject("select count(*) from oauth_client_details where client_id = ? and identity_zone_id=?", new Object[] {clientId, zoneId}, Integer.class) == 1;
     }
 
     @Test
     public void test_cannot_delete_uaa_zone_clients() throws Exception {
         String id = generate.generate();
+        addClientToDb(id);
+        assertThat(countClientsInZone(IdentityZoneHolder.get().getId()), is(1));
+        addApproval(id);
+        assertThat(countClientApprovals(id), is(1));
+
+        service.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get(), null));
+        assertThat(countClientsInZone(IdentityZoneHolder.get().getId()), is(1));
+        assertThat(countClientApprovals(id), is (1));
+    }
+
+    public ClientDetails addClientToDb(String id) {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId(id);
         clientDetails.setClientSecret("secret");
         service.addClientDetails(clientDetails);
-        clientDetails = (BaseClientDetails)service.loadClientByClientId(id);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(1));
-        addApproval(id);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=?", new Object[] {id}, Integer.class), is(1));
-
-        service.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get(), null));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(1));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=?", new Object[] {id}, Integer.class), is (1));
+        return service.loadClientByClientId(id);
     }
-
 
 
     @Test(expected = NoSuchClientException.class)
