@@ -16,7 +16,7 @@
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
     <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
-        <constructor-arg ref="dataSource" />
+        <constructor-arg ref="jdbcTemplate" />
         <property name="passwordEncoder" ref="cachingPasswordEncoder" />
     </bean>
 

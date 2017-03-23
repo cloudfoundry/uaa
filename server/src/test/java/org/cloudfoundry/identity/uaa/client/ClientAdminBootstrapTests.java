@@ -50,7 +50,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     public void setUpClientAdminTests() throws Exception {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         bootstrap = new ClientAdminBootstrap(encoder);
-        clientRegistrationService = new MultitenantJdbcClientDetailsService(dataSource);
+        clientRegistrationService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientRegistrationService,clientRegistrationService,jdbcTemplate);
         bootstrap.setClientRegistrationService(clientRegistrationService);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);

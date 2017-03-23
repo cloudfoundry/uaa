@@ -38,7 +38,7 @@ public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
     @Before
     public void setUpForClientTests() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(dataSource);
+        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
         jdbcClientDetailsService.setPasswordEncoder(encoder);
         ClientDetailsUserDetailsService clientDetailsService = new ClientDetailsUserDetailsService(jdbcClientDetailsService);
         client = createClient();

@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
+import org.mockito.ArgumentMatcher;
+import org.mockito.internal.matchers.VarargMatcher;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +24,7 @@ import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -38,6 +41,18 @@ public class TestUtils {
     private static Environment environment = TestProfileEnvironment.getEnvironment();
 
     private static String platform = environment.acceptsProfiles("postgresql") ? "postgresql" : "hsqldb";
+
+    public static class VarArgMatcher extends ArgumentMatcher<Object[]> implements VarargMatcher {
+        final Object[] args;
+        public VarArgMatcher(Object... args) {
+            this.args = args;
+        }
+        @Override
+        public boolean matches(Object varargArgument) {
+            Object[] actual = (Object[])varargArgument;
+            return Arrays.equals(actual, args);
+        }
+    }
 
     public static void runScript(DataSource dataSource, String stem) throws Exception {
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
