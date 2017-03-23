@@ -314,8 +314,12 @@ public class SamlLoginIT {
         login(provider);
         logout();
         login(provider);
-        SimpleDateFormat dateFormat =  new SimpleDateFormat("EEE MMM dd");
-        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
+        SimpleDateFormat dateFormat =  new SimpleDateFormat("MMMM dd, yyyy");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("h");
+        String expectedLastLoginTime = String.format("Last login %s at %s:",
+            dateFormat.format(new Date(System.currentTimeMillis())),
+            timeFormat.format(new Date(System.currentTimeMillis()))
+        );
         assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString((expectedLastLoginTime)));
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");

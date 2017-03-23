@@ -145,8 +145,12 @@ public class LoginIT {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd");
-        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("h");
+        String expectedLastLoginTime = String.format("Last login %s at %s:",
+            dateFormat.format(new Date(System.currentTimeMillis())),
+            timeFormat.format(new Date(System.currentTimeMillis()))
+            );
         attemptLogin(newUserEmail, "sec3Tas");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.not(Matchers.containsString((expectedLastLoginTime))));

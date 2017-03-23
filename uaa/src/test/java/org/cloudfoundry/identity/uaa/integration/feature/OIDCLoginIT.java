@@ -244,8 +244,12 @@ public class OIDCLoginIT {
     @Test
     public void successfulLoginWithOIDCProviderSetsLastLogin() throws Exception {
         login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
-        SimpleDateFormat dateFormat =  new SimpleDateFormat("EEE MMM dd");
-        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
+        SimpleDateFormat dateFormat =  new SimpleDateFormat("MMMM dd, yyyy");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("h");
+        String expectedLastLoginTime = String.format("Last login %s at %s:",
+            dateFormat.format(new Date(System.currentTimeMillis())),
+            timeFormat.format(new Date(System.currentTimeMillis()))
+        );
         doLogout(zoneUrl);
         login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString((expectedLastLoginTime)));
