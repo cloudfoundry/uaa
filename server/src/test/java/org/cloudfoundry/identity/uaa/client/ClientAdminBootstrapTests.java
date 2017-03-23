@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -73,6 +74,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     private ClientMetadataProvisioning clientMetadataProvisioning;
     @Rule
     public ExpectedException exception = ExpectedException.none();
+    private ApplicationEventPublisher publisher;
 
     @Before
     public void setUpClientAdminTests() throws Exception {
@@ -83,6 +85,8 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.setClientRegistrationService(clientRegistrationService);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
         clientRegistrationService.setPasswordEncoder(encoder);
+        publisher = mock(ApplicationEventPublisher.class);
+        bootstrap.setApplicationEventPublisher(publisher);
     }
 
     @Test
@@ -91,6 +95,13 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     public ClientDetails testSimpleAddClient(String clientId) throws Exception {
+        Map<String, Object> map = createClientMap(clientId);
+        ClientDetails created = doSimpleTest(map);
+        assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
+        return created;
+    }
+
+    public Map<String, Object> createClientMap(String clientId) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", clientId);
         map.put("secret", "bar");
@@ -98,16 +109,29 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
         map.put("redirect-uri", "http://localhost/callback");
-        ClientDetails created = doSimpleTest(map);
-        assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
-        return created;
+        return map;
+    }
+
+    @Test
+    public void client_slated_for_deletion_does_not_get_inserted() throws Exception {
+        String autoApproveId = "autoapprove-"+new RandomValueStringGenerator().generate().toLowerCase();
+        testSimpleAddClient(autoApproveId);
+        reset(clientRegistrationService);
+        bootstrap = spy(bootstrap);
+        String clientId = "client-"+new RandomValueStringGenerator().generate().toLowerCase();
+        Map<String, Map<String, Object>> clients = Collections.singletonMap(clientId, createClientMap(clientId));
+        bootstrap.setClients(clients);
+        bootstrap.setAutoApproveClients(singletonList(autoApproveId));
+        bootstrap.setClientsToDelete(Arrays.asList(clientId, autoApproveId));
+        bootstrap.afterPropertiesSet();
+        verify(clientRegistrationService, never()).addClientDetails(any());
+        verify(clientRegistrationService, never()).updateClientDetails(any());
+        verify(clientRegistrationService, never()).updateClientSecret(any(), any());
     }
 
     @Test
     public void test_delete_from_yaml_existing_client() throws Exception {
-        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
         bootstrap = spy(bootstrap);
-        bootstrap.setApplicationEventPublisher(publisher);
         String clientId = "client-"+new RandomValueStringGenerator().generate().toLowerCase();
         testSimpleAddClient(clientId);
         verify(bootstrap, never()).publish(any());
@@ -246,13 +270,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.setClientRegistrationService(clientRegistrationService);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", "foo");
-        map.put("secret", "bar");
-        map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
-        map.put("authorities", "uaa.none");
-        map.put("redirect-uri", "http://localhost/callback");
+        Map<String, Object> map = createClientMap("foo");
         BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
                         "uaa.none", "http://localhost/callback");
         output.setClientSecret("bar");
@@ -386,13 +404,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     @Test
     public void testChangePasswordDuringBootstrap() throws Exception {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", "foo");
-        map.put("secret", "bar");
-        map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
-        map.put("authorities", "uaa.none");
-        map.put("redirect-uri", "http://localhost/callback");
+        Map<String, Object> map = createClientMap("foo");
         ClientDetails created = doSimpleTest(map);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = clientRegistrationService.loadClientByClientId("foo");
@@ -407,13 +419,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     @Test
     public void testPasswordHashDidNotChangeDuringBootstrap() throws Exception {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", "foo");
-        map.put("secret", "bar");
-        map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
-        map.put("authorities", "uaa.none");
-        map.put("redirect-uri", "http://localhost/callback");
+        Map<String, Object> map = createClientMap("foo");
         ClientDetails created = doSimpleTest(map);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = clientRegistrationService.loadClientByClientId("foo");

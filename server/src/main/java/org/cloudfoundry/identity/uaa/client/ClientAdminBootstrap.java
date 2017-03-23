@@ -41,10 +41,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 
 public class ClientAdminBootstrap implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
@@ -143,29 +145,27 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
     public void afterPropertiesSet() throws Exception {
         addHttpsCallbacks();
         addNewClients();
-        updateAutoApprovClients();
+        updateAutoApproveClients();
     }
 
     /**
      * Explicitly override autoapprove in all clients that were provided in the
      * whitelist.
      */
-    private void updateAutoApprovClients() {
-
-        List<ClientDetails> clients = clientRegistrationService.listClientDetails();
-
-        for (ClientDetails client : clients) {
-            if (!autoApproveClients.contains(client.getClientId())) {
-                continue;
+    private void updateAutoApproveClients() {
+        List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
+        Collection<String> autoApproveList = new LinkedList(ofNullable(autoApproveClients).orElse(emptyList()));
+        autoApproveList.removeIf(s -> slatedForDeletion.contains(s));
+        for (String clientId : autoApproveList) {
+            try {
+                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId);
+                base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+                logger.debug("Adding autoapprove flag to client: " + clientId);
+                clientRegistrationService.updateClientDetails(base);
+            } catch (NoSuchClientException n) {
+                logger.debug("Client not found, unable to set autoapprove: " + clientId);
             }
-            BaseClientDetails base = new BaseClientDetails(client);
-            Map<String, Object> info = new HashMap<String, Object>(client.getAdditionalInformation());
-            info.put(ClientConstants.AUTO_APPROVE, true);
-            base.setAdditionalInformation(info);
-            logger.debug("Adding autoapprove flag: " + base);
-            clientRegistrationService.updateClientDetails(base);
         }
-
     }
 
     /**
@@ -213,8 +213,12 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
     }
 
     private void addNewClients() throws Exception {
-        for (Map.Entry<String, Map<String, Object>> entry : clients.entrySet()) {
+        List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
+        Set<Map.Entry<String, Map<String, Object>>> entries = clients.entrySet();
+        entries.removeIf(entry -> slatedForDeletion.contains(entry.getKey()));
+        for (Map.Entry<String, Map<String, Object>> entry : entries) {
             String clientId = entry.getKey();
+
             Map<String, Object> map = entry.getValue();
             if(map.get("authorized-grant-types") == null) {
                 throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
@@ -325,7 +329,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         Authentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
-        for (String clientId : ofNullable(clientsToDelete).orElse(Collections.emptyList())) {
+        for (String clientId : ofNullable(clientsToDelete).orElse(emptyList())) {
             try {
                 ClientDetails client = clientRegistrationService.loadClientByClientId(clientId);
                 logger.debug("Deleting client from manifest:"+clientId);
