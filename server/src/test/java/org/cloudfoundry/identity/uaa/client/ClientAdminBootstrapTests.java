@@ -379,30 +379,6 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testHttpsUrlIsAddedIfNotPresent() throws Exception {
-        ClientServicesExtension clientRegistrationService = mock(ClientServicesExtension.class);
-        bootstrap.setClientRegistrationService(clientRegistrationService);
-        bootstrap.setDomain("bar.com");
-        BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password",
-                        "client_credentials", "uaa.none", "http://foo.bar.com/spam");
-        when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
-        bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
-    }
-
-    @Test
-    public void testHttpsUrlIsNotAddedIfAlreadyPresent() throws Exception {
-        ClientServicesExtension clientRegistrationService = mock(ClientServicesExtension.class);
-        bootstrap.setClientRegistrationService(clientRegistrationService);
-        bootstrap.setDomain("bar.com");
-        BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password",
-                        "client_credentials", "uaa.none", "http://foo.bar.com,https://foo.bar.com");
-        when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
-        bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
-    }
-
-    @Test
     public void testChangePasswordDuringBootstrap() throws Exception {
         Map<String, Object> map = createClientMap("foo");
         ClientDetails created = doSimpleTest(map);

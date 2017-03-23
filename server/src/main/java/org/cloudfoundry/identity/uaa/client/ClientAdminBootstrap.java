@@ -63,8 +63,6 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
     private ClientMetadataProvisioning clientMetadataProvisioning;
 
-    private String domain = "cloudfoundry\\.com";
-
     private boolean defaultOverride = true;
 
     private final PasswordEncoder passwordEncoder;
@@ -87,19 +85,6 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
      */
     public void setDefaultOverride(boolean defaultOverride) {
         this.defaultOverride = defaultOverride;
-    }
-
-    /**
-     * The domain suffix (default "cloudfoundry.com") used to detect http
-     * redirects. If an http callback in this domain
-     * is found in a client registration and there is no corresponding value
-     * with https as well, then the https value
-     * will be added.
-     *
-     * @param domain the domain to set
-     */
-    public void setDomain(String domain) {
-        this.domain = domain.replace(".", "\\.");
     }
 
     public PasswordEncoder getPasswordEncoder() {
@@ -143,7 +128,6 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        addHttpsCallbacks();
         addNewClients();
         updateAutoApproveClients();
     }
@@ -165,36 +149,6 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             } catch (NoSuchClientException n) {
                 logger.debug("Client not found, unable to set autoapprove: " + clientId);
             }
-        }
-    }
-
-    /**
-     * Make sure all cloudfoundry.com callbacks are https
-     */
-    private void addHttpsCallbacks() {
-        List<ClientDetails> clients = clientRegistrationService.listClientDetails();
-
-        for (ClientDetails client : clients) {
-            Set<String> registeredRedirectUri = client.getRegisteredRedirectUri();
-            if (registeredRedirectUri == null || registeredRedirectUri.isEmpty()) {
-                continue;
-            }
-            Set<String> uris = new HashSet<String>(registeredRedirectUri);
-            boolean newItems = false;
-            for (String uri : registeredRedirectUri) {
-                if (uri.matches("^http://[^/]*\\." + domain + ".*")) {
-                    newItems = true;
-                    uris.remove(uri);
-                    uris.add("https" + uri.substring("http".length()));
-                }
-            }
-            if (!newItems) {
-                continue;
-            }
-            BaseClientDetails newClient = new BaseClientDetails(client);
-            newClient.setRegisteredRedirectUri(uris);
-            logger.debug("Adding https callback: " + newClient);
-            clientRegistrationService.updateClientDetails(newClient);
         }
     }
 
