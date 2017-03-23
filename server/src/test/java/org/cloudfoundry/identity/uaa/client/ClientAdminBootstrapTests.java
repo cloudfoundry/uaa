@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
@@ -56,6 +55,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -265,27 +266,25 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     @Test
     public void testSimpleAddClientWithAutoApprove() throws Exception {
-        ClientServicesExtension clientRegistrationService = mock(ClientServicesExtension.class);
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
-        bootstrap.setClientRegistrationService(clientRegistrationService);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
 
         Map<String, Object> map = createClientMap("foo");
-        BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
-                        "uaa.none", "http://localhost/callback");
+        BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
         output.setClientSecret("bar");
-        bootstrap.setAutoApproveClients(Arrays.asList("foo"));
+        bootstrap.setAutoApproveClients(Arrays.asList("foo", "non-existent-client"));
 
         when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
-        when(clientRegistrationService.listClientDetails()).thenReturn(Collections.<ClientDetails> emptyList())
-                        .thenReturn(Collections.<ClientDetails> singletonList(output));
-
+        doReturn(output).when(clientRegistrationService).loadClientByClientId(eq("foo"));
         bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
+
+        BaseClientDetails expectedAdd = new BaseClientDetails(output);
+
         bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService).addClientDetails(output);
-        BaseClientDetails updated = new BaseClientDetails(output);
-        updated.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
-        verify(clientRegistrationService).updateClientDetails(updated);
+        verify(clientRegistrationService).addClientDetails(expectedAdd);
+        BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
+        expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
+        verify(clientRegistrationService).updateClientDetails(expectedUpdate);
     }
 
     @Test
