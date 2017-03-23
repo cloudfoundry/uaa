@@ -91,8 +91,8 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     private static final String DEFAULT_DELETE_STATEMENT = "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
 
     private static final String DELETE_CLIENTS_BY_ZONE = "delete from oauth_client_details where identity_zone_id = ?";
-    private static final String DELETE_CLIENT_APPROVALS_BY_ZONE = "delete from authz_approvals where client_id in (select client_id from oauth_client_details where identity_zone_id = ?)";
-
+    private static final String DELETE_CLIENT_APPROVALS_BY_ZONE = "delete from authz_approvals where client_id in (select client_id from oauth_client_details where identity_zone_id = ?)"+
+        " and user_id in (select id from users where identity_zone_id = ?)";
     private RowMapper<ClientDetails> rowMapper = new ClientDetailsRowMapper();
 
     private String deleteClientDetailsSql = DEFAULT_DELETE_STATEMENT;
@@ -278,7 +278,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     @Override
     public int deleteByIdentityZone(String zoneId) {
-        jdbcTemplate.update(DELETE_CLIENT_APPROVALS_BY_ZONE, zoneId);
+        jdbcTemplate.update(DELETE_CLIENT_APPROVALS_BY_ZONE, zoneId, zoneId);
         return jdbcTemplate.update(DELETE_CLIENTS_BY_ZONE, zoneId);
     }
 

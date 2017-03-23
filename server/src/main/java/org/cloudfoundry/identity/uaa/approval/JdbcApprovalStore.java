@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,23 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
-import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -42,6 +33,17 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 
 public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublisherAware {
 
@@ -143,17 +145,17 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         logger.debug(String.format("Filtering approvals with filter: [%s]", where));
 
         String sql;
-        Map<String, Object> sqlParams;
+        Map<String, Object> sqlParams = new HashMap<>(where.getParams());
         if (handleRevocationsAsExpiry) {
             // just expire all approvals matching the filter
             sql = EXPIRE_AUTHZ_SQL + " where " + where.getSql();
-            sqlParams = where.getParams();
             sqlParams.put("expiry", new Timestamp(new Date().getTime() - 1));
         } else {
             // delete the records
             sql = DELETE_AUTHZ_SQL + " where " + where.getSql();
-            sqlParams = where.getParams();
         }
+        sqlParams.put("__identity_zone_id", IdentityZoneHolder.get().getId());
+        sql = sql + " and user_id in (select id from users where identity_zone_id = :__identity_zone_id)";
 
         try {
             int revoked = new NamedParameterJdbcTemplate(jdbcTemplate).update(sql, sqlParams);
@@ -185,8 +187,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         ProcessedFilter where = queryConverter.convert(filter, null, true);
         logger.debug(String.format("Filtering approvals with filter: [%s]", where));
         try {
-            return pagingListFactory.createJdbcPagingList(GET_AUTHZ_SQL + " where " +
-                            where.getSql(), where.getParams(), rowMapper, 200);
+            Map<String, Object> params = new HashMap(where.getParams());
+            params.put("__identity_zone_id", IdentityZoneHolder.get().getId());
+            return pagingListFactory.createJdbcPagingList(
+                GET_AUTHZ_SQL + " where " + where.getSql() + " and user_id in (select id from users where identity_zone_id = :__identity_zone_id)",
+                params,
+                rowMapper,
+                200
+            );
         } catch (DataAccessException e) {
             logger.error("Error filtering approvals with filter: " + where, e);
             throw new IllegalArgumentException("Invalid filter: " + filter);

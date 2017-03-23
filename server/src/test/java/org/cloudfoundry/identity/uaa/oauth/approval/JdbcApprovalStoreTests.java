@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,7 +12,29 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
+import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -23,32 +45,25 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
-import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
-import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.test.MockAuthentication;
-import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
-import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.springframework.security.core.context.SecurityContextHolder;
 @Ignore //we're having issues with these tests right now
 public class JdbcApprovalStoreTests extends JdbcTestBase {
+
+
     private JdbcApprovalStore dao;
 
     private TestApplicationEventPublisher<ApprovalModifiedEvent> eventPublisher;
 
+    private IdentityZone otherZone;
+
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+
     @Before
     public void initJdbcApprovalStoreTests() {
+        IdentityZoneHolder.clear();
+        otherZone = MultitenancyFixture.identityZone("other-zone", "other-domain");
+        for (String userId : Arrays.asList("u1", "u2", "u3")) {
+            testAccounts.addRandomUser(jdbcTemplate, userId);
+        }
 
         dao = new JdbcApprovalStore(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
                         new SimpleSearchQueryConverter());
@@ -61,11 +76,11 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         addApproval("u2", "c1", "openid", 6000, APPROVED);
     }
 
-    private void addApproval(String userName, String clientId, String scope, long expiresIn, ApprovalStatus status) {
+    private void addApproval(String userId, String clientId, String scope, long expiresIn, ApprovalStatus status) {
         Date expiresAt = new Timestamp(new Date().getTime() + expiresIn);
         Date lastUpdatedAt = new Date();
         Approval newApproval = new Approval()
-            .setUserId(userName)
+            .setUserId(userId)
             .setClientId(clientId)
             .setScope(scope)
             .setExpiresAt(expiresAt)
@@ -78,30 +93,32 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     public void cleanupDataSource() throws Exception {
         TestUtils.deleteFrom(dataSource, "authz_approvals");
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
+        IdentityZoneHolder.clear();
     }
 
     @Test
     public void testAddAndGetApproval() {
-        String userName = "user";
+        String userId = "user";
         String clientId = "client";
         String scope = "uaa.user";
         long expiresIn = 1000l;
         Date lastUpdatedAt = new Date();
         ApprovalStatus status = APPROVED;
+        testAccounts.addRandomUser(jdbcTemplate, userId);
 
         Date expiresAt = new Timestamp(new Date().getTime() + expiresIn);
         Approval newApproval = new Approval()
-            .setUserId(userName)
+            .setUserId(userId)
             .setClientId(clientId)
             .setScope(scope)
             .setExpiresAt(expiresAt)
             .setStatus(status)
             .setLastUpdatedAt(lastUpdatedAt);
         dao.addApproval(newApproval);
-        List<Approval> approvals = dao.getApprovals(userName, clientId);
+        List<Approval> approvals = dao.getApprovals(userId, clientId);
 
         assertEquals(clientId, approvals.get(0).getClientId());
-        assertEquals(userName, approvals.get(0).getUserId());
+        assertEquals(userId, approvals.get(0).getUserId());
         assertEquals(Math.round(expiresAt.getTime() / 1000), Math.round(approvals.get(0).getExpiresAt().getTime() / 1000));
         assertEquals(Math.round(lastUpdatedAt.getTime() / 1000),
                         Math.round(approvals.get(0).getLastUpdatedAt().getTime() / 1000));
@@ -131,6 +148,17 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         assertEquals("dash.user", app.getScope());
         assertTrue(app.getExpiresAt().after(new Date()));
         assertEquals(APPROVED, app.getStatus());
+    }
+
+    @Test
+    public void approvals_is_zone_aware() throws Exception {
+        String filter = "client_id eq \"c1\" or client_id eq \"c2\" or client_id eq \"c3\"";
+        assertEquals(3, dao.getApprovals(filter).size());
+        IdentityZoneHolder.set(otherZone);
+        assertEquals(0, dao.getApprovals(filter).size());
+        dao.revokeApprovals(filter);
+        IdentityZoneHolder.clear();
+        assertEquals(3, dao.getApprovals(filter).size());
     }
 
     @Test
