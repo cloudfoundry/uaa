@@ -14,15 +14,23 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 
@@ -37,15 +45,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ClientAdminBootstrap implements InitializingBean {
+import static java.util.Optional.ofNullable;
+
+public class ClientAdminBootstrap implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
 
     private static Log logger = LogFactory.getLog(ClientAdminBootstrap.class);
 
     private Map<String, Map<String, Object>> clients = new HashMap<String, Map<String, Object>>();
 
+    private List<String> clientsToDelete = null;
+
     private Collection<String> autoApproveClients = Collections.emptySet();
 
-    private ClientRegistrationService clientRegistrationService;
+    private ClientServicesExtension clientRegistrationService;
 
     private ClientMetadataProvisioning clientMetadataProvisioning;
 
@@ -54,6 +66,8 @@ public class ClientAdminBootstrap implements InitializingBean {
     private boolean defaultOverride = true;
 
     private final PasswordEncoder passwordEncoder;
+
+    private ApplicationEventPublisher publisher;
 
     public ClientAdminBootstrap(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
@@ -101,6 +115,10 @@ public class ClientAdminBootstrap implements InitializingBean {
         }
     }
 
+    public void setClientsToDelete(List<String> clientsToDelete) {
+        this.clientsToDelete = clientsToDelete;
+    }
+
     /**
      * A set of client ids that are unconditionally to be autoapproved
      * (independent of the settings in the client
@@ -117,7 +135,7 @@ public class ClientAdminBootstrap implements InitializingBean {
     /**
      * @param clientRegistrationService the clientRegistrationService to set
      */
-    public void setClientRegistrationService(ClientRegistrationService clientRegistrationService) {
+    public void setClientRegistrationService(ClientServicesExtension clientRegistrationService) {
         this.clientRegistrationService = clientRegistrationService;
     }
 
@@ -287,8 +305,8 @@ public class ClientAdminBootstrap implements InitializingBean {
     }
 
     protected boolean didPasswordChange(String clientId, String rawPassword) {
-        if (getPasswordEncoder()!=null && clientRegistrationService instanceof ClientDetailsService) {
-            ClientDetails existing = ((ClientDetailsService)clientRegistrationService).loadClientByClientId(clientId);
+        if (getPasswordEncoder()!=null) {
+            ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId);
             String existingPasswordHash = existing.getClientSecret();
             return !getPasswordEncoder().matches(rawPassword, existingPasswordHash);
         } else {
@@ -302,5 +320,31 @@ public class ClientAdminBootstrap implements InitializingBean {
 
     public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
         this.clientMetadataProvisioning = clientMetadataProvisioning;
+    }
+
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        Authentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
+        for (String clientId : ofNullable(clientsToDelete).orElse(Collections.emptyList())) {
+            try {
+                ClientDetails client = clientRegistrationService.loadClientByClientId(clientId);
+                logger.debug("Deleting client from manifest:"+clientId);
+                EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth);
+                publish(delete);
+            } catch (NoSuchClientException e) {
+                logger.debug("Ignoring delete for non existent client:"+clientId);
+            }
+        }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
+
+    public void publish(ApplicationEvent event) {
+        if (publisher!=null) {
+            publisher.publishEvent(event);
+        }
     }
 }

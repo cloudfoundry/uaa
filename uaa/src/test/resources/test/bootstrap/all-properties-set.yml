@@ -49,6 +49,15 @@ database:
   #url: jdbc:hsqldb:mem:uaadb
   #username: sa
   #password:
+
+delete:
+  clients:
+    - client-should-not-exist-1
+    - client-should-not-exist-2
+
+  users:
+    - delete-user-1
+    - delete-user-2
 disableInternalAuth: true
 disableInternalUserManagement: true
 issuer:
@@ -348,6 +357,16 @@ oauth:
       authorities: clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write
       id: admin
       secret: admin-secret
+    client-should-not-exist-1:
+      authorized-grant-types: client_credentials
+      authorities: clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write
+      id: admin
+      secret: admin-secret
+    client-should-not-exist-2:
+          authorized-grant-types: client_credentials
+          authorities: clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write
+          id: admin
+          secret: admin-secret
   user:
     authorities:
     - openid
@@ -395,6 +414,8 @@ scim:
     override: true
   users:
   - admin|admin|admin|||foo.bar,uaa.admin|uaa
+  - delete-user-1|admin|admin|||foo.bar,uaa.admin|uaa
+  - delete-user-2|admin|admin|||foo.bar,uaa.admin|uaa
 require_https: true
 servlet:
   session-cookie:
