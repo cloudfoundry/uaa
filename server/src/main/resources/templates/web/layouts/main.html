@@ -49,7 +49,10 @@
          <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
         <div th:if="${#authentication instanceof T(org.cloudfoundry.identity.uaa.authentication.UaaAuthentication)} ">
             <div th:if="${#authentication.lastLoginSuccessTime} != null">
-                Last login <span th:text="${#dates.format(#authentication.lastLoginSuccessTime, 'EEE MMM dd HH:mm:ss z yyyy')}"></span>
+                Last login <span id="last_login_time">some time ago</span>
+                <script type="text/javascript">
+                    document.getElementById("last_login_time").innerHTML = new Date([[${#authentication.lastLoginSuccessTime}]]).toLocaleString();
+                </script>
             </div>
         </div>
     </div>
