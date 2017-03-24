@@ -303,7 +303,8 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     @Override
     public int deleteByUser(String userId, String zoneId) {
-        throw new UnsupportedOperationException();
+        //no op
+        return 0;
     }
 
 

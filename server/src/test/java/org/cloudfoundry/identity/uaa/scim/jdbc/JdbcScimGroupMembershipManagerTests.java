@@ -23,6 +23,8 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -171,35 +173,6 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void zone_delete_clears_memberships() throws Exception {
-        for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
-            IdentityZoneHolder.set(zone);
-            addMembers(OriginKeys.LDAP);
-            validateCount(4);
-            IdentityZoneHolder.clear();
-            gdao.onApplicationEvent(new EntityDeletedEvent<>(zone, mock(Authentication.class)));
-            validateCount(Objects.equals(zone, IdentityZone.getUaa()) ? 4 : 0, "ZoneID: "+zone.getId());
-        }
-    }
-
-    @Test
-    public void provider_delete_clears_memberships() throws Exception {
-        for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
-            IdentityZoneHolder.set(zone);
-            addMembers(OriginKeys.LDAP);
-            validateCount(4, "ZoneID: "+zone.getId());
-            IdentityZoneHolder.clear();
-            IdentityProvider provider = new IdentityProvider()
-                .setId("ldap-id")
-                .setOriginKey(LDAP)
-                .setIdentityZoneId(zone.getId());
-            gdao.onApplicationEvent(new EntityDeletedEvent<>(provider, mock(Authentication.class)));
-            IdentityZoneHolder.set(zone);
-            validateCount(0, "ZoneID: "+zone.getId());
-        }
-    }
-
-    @Test
     public void canQuery_Filter_Has_ZoneIn_Effect() throws Exception {
         addMembers();
         validateCount(4);
@@ -294,6 +267,54 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
     private void addMembers() {
         addMembers(OriginKeys.UAA);
+    }
+
+    @Test
+    public void user_delete_clears_memberships() throws Exception {
+        UaaUserPrototype prototype = new UaaUserPrototype()
+            .withUsername("username")
+            .withEmail("test@test.com");
+
+        for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
+            String userId = this.zone.getId().equals(zone.getId()) ? zone.getId()+"-"+"m3" : "m3";
+            UaaUser user = new UaaUser(prototype.withId(userId).withZoneId(zone.getId()));
+            IdentityZoneHolder.set(zone);
+            addMembers(OriginKeys.LDAP);
+            validateCount(4);
+            IdentityZoneHolder.clear();
+            gdao.onApplicationEvent(new EntityDeletedEvent<>(user, mock(Authentication.class)));
+            IdentityZoneHolder.set(zone);
+            validateCount(2, "ZoneID: "+zone.getId());
+        }
+    }
+
+    @Test
+    public void zone_delete_clears_memberships() throws Exception {
+        for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
+            IdentityZoneHolder.set(zone);
+            addMembers(OriginKeys.LDAP);
+            validateCount(4);
+            IdentityZoneHolder.clear();
+            gdao.onApplicationEvent(new EntityDeletedEvent<>(zone, mock(Authentication.class)));
+            validateCount(Objects.equals(zone, IdentityZone.getUaa()) ? 4 : 0, "ZoneID: "+zone.getId());
+        }
+    }
+
+    @Test
+    public void provider_delete_clears_memberships() throws Exception {
+        for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
+            IdentityZoneHolder.set(zone);
+            addMembers(OriginKeys.LDAP);
+            validateCount(4, "ZoneID: "+zone.getId());
+            IdentityZoneHolder.clear();
+            IdentityProvider provider = new IdentityProvider()
+                .setId("ldap-id")
+                .setOriginKey(LDAP)
+                .setIdentityZoneId(zone.getId());
+            gdao.onApplicationEvent(new EntityDeletedEvent<>(provider, mock(Authentication.class)));
+            IdentityZoneHolder.set(zone);
+            validateCount(0, "ZoneID: "+zone.getId());
+        }
     }
 
     @Test

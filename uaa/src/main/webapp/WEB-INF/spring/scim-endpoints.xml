@@ -253,6 +253,7 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <constructor-arg ref="users" /> <!--Conversion happens with org.cloudfoundry.identity.uaa.user.UaaUserEditor -->
         <property name="override" value="${scim.user.override:false}" />
+        <property name="usersToDelete" value="#{@config['delete']==null ? null : @config['delete']['users']}" />
     </bean>
 
     <bean id="scimGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap">
