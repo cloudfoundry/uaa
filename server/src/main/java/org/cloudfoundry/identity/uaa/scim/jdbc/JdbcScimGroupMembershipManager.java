@@ -12,21 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
@@ -55,7 +43,21 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupMember> implements ScimGroupMembershipManager {
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupMember> implements
+    ScimGroupMembershipManager, SystemDeletable {
 
     private JdbcTemplate jdbcTemplate;
 
@@ -419,6 +421,35 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
         }
 
         return groups;
+    }
+
+    @Override
+    public int deleteByIdentityZone(String zoneId) {
+        //no op
+        return 0;
+    }
+
+    @Override
+    public int deleteByOrigin(String origin, String zoneId) {
+        //no op
+        return 0;
+    }
+
+    @Override
+    public int deleteByClient(String clientId, String zoneId) {
+        //no op
+        return 0;
+    }
+
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        //no op
+        return 0;
+    }
+
+    @Override
+    public Log getLogger() {
+        return logger;
     }
 
     @Override

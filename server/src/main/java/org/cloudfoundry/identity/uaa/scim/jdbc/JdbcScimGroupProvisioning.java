@@ -279,6 +279,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         return 0;
     }
 
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        throw new UnsupportedOperationException();
+    }
+
     protected void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {
         if (!StringUtils.hasText(group.getZoneId())) {
             throw new ScimResourceConstraintFailedException("zoneId is a required field");

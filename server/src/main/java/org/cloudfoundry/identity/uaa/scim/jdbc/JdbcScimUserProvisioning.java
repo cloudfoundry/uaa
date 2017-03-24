@@ -487,6 +487,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return 0;
     }
 
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        throw new UnsupportedOperationException();
+    }
+
+
     private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
         @Override
         public ScimUser mapRow(ResultSet rs, int rowNum) throws SQLException {

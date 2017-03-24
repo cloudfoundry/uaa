@@ -368,7 +368,7 @@ public class BootstrapTests {
 
         JdbcTemplate template = context.getBean(JdbcTemplate.class);
         assertEquals(0, (int)template.queryForObject("SELECT count(*) FROM oauth_client_details WHERE client_id IN (?,?) AND identity_zone_id = ?", Integer.class, "client-should-not-exist-1", "client-should-not-exist-2", IdentityZone.getUaa().getId()));
-//        assertEquals(0, (int)template.queryForObject("SELECT count(*) FROM users WHERE username IN (?,?) AND identity_zone_id = ?", Integer.class, "delete-user-1", "delete-user-2", IdentityZone.getUaa().getId()));
+        //assertEquals(0, (int)template.queryForObject("SELECT count(*) FROM users WHERE username IN (?,?) AND identity_zone_id = ?", Integer.class, "delete-user-1", "delete-user-2", IdentityZone.getUaa().getId()));
 
         Environment env = context.getEnvironment();
         assertEquals("test.com", env.getProperty("analytics.domain"));

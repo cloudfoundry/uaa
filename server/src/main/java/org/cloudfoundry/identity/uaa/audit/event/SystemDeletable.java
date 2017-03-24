@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.audit.event;
 import org.apache.commons.logging.Log;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationListener;
@@ -47,8 +49,18 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
         } else if (event.getDeleted() instanceof ClientDetails) {
             String clientId = ((ClientDetails) event.getDeleted()).getClientId();
             String zoneId = IdentityZoneHolder.get().getId();
-            getLogger().debug(String.format("Received provider deletion event for zone_id:%s and client:%s", clientId, zoneId));
+            getLogger().debug(String.format("Received client deletion event for zone_id:%s and client:%s", zoneId, clientId));
             deleteByClient(clientId, zoneId);
+        } else if (event.getDeleted() instanceof UaaUser) {
+            String userId = ((UaaUser) event.getDeleted()).getId();
+            String zoneId = ((UaaUser) event.getDeleted()).getZoneId();
+            getLogger().debug(String.format("Received UAA user deletion event for zone_id:%s and user:%s", zoneId, userId));
+            deleteByUser(userId, zoneId);
+        } else if (event.getDeleted() instanceof ScimUser) {
+            String userId = ((ScimUser) event.getDeleted()).getId();
+            String zoneId = ((ScimUser) event.getDeleted()).getZoneId();
+            getLogger().debug(String.format("Received SCIM user deletion event for zone_id:%s and user:%s", zoneId, userId));
+            deleteByUser(userId, zoneId);
         } else {
             getLogger().debug("Unsupported deleted event for deletion of object:"+event.getDeleted());
         }
@@ -70,7 +82,7 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
 
     int deleteByClient(String clientId, String zoneId);
 
-    //int deleteByUser(String userId, String zoneId);
+    int deleteByUser(String userId, String zoneId);
 
     Log getLogger();
 }
