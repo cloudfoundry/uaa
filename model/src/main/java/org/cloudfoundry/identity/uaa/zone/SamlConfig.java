@@ -25,6 +25,7 @@ public class SamlConfig {
     private String certificate;
     private String privateKey;
     private String privateKeyPassword;
+    private String entityID;
 
     public boolean isAssertionSigned() {
         return assertionSigned;
@@ -32,6 +33,16 @@ public class SamlConfig {
 
     public void setAssertionSigned(boolean assertionSigned) {
         this.assertionSigned = assertionSigned;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getEntityID() {
+        return entityID;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public void setEntityID(String entityID) {
+        this.entityID = entityID;
     }
 
     public boolean isRequestSigned() {
