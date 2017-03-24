@@ -74,10 +74,8 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -314,9 +312,8 @@ public class SamlLoginIT {
         login(provider);
         logout();
         login(provider);
-        SimpleDateFormat dateFormat =  new SimpleDateFormat("EEE MMM dd");
-        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
-        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString((expectedLastLoginTime)));
+
+        assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
