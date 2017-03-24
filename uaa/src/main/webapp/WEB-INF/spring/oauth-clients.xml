@@ -16,7 +16,7 @@
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
     <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
-        <constructor-arg ref="dataSource" />
+        <constructor-arg ref="jdbcTemplate" />
         <property name="passwordEncoder" ref="cachingPasswordEncoder" />
     </bean>
 
@@ -38,6 +38,7 @@
         <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
         <property name="defaultOverride" value="${oauth.client.override:true}" />
+        <property name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
         <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
         <property name="autoApproveClients"
             value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
@@ -48,6 +49,7 @@
             <constructor-arg ref="bcryptPasswordEncoder"/>
             <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
             <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
+            <property name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
             <property name="clients">
                 <map>
                     <entry key="admin">

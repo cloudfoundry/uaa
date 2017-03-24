@@ -481,6 +481,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return jdbcTemplate.update(HARD_DELETE_BY_PROVIDER, zoneId, origin);
     }
 
+    @Override
+    public int deleteByClient(String clientId, String zoneId) {
+        //no op - nothing to do here
+        return 0;
+    }
+
     private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
         @Override
         public ScimUser mapRow(ResultSet rs, int rowNum) throws SQLException {

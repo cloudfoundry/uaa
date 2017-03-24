@@ -40,7 +40,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -63,36 +62,43 @@ import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 public class MultitenantJdbcClientDetailsService implements ClientServicesExtension,
     ResourceMonitor<ClientDetails>, SystemDeletable {
 
-    private static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
+    protected static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
 
-    private static final String GET_CREATED_BY_SQL = "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
-    private static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
+    protected static final String GET_CREATED_BY_SQL = "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
+    protected static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
             + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
             + "refresh_token_validity, additional_information, autoapprove, lastmodified, required_user_groups";
 
-    private static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
+    protected static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
 
-    private static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
+    protected static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
             + " from oauth_client_details";
 
-    private static final String DEFAULT_FIND_STATEMENT = BASE_FIND_STATEMENT + " where identity_zone_id = :identityZoneId order by client_id";
+    protected static final String DEFAULT_FIND_STATEMENT = BASE_FIND_STATEMENT + " where identity_zone_id = :identityZoneId order by client_id";
 
-    private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
+    protected static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
-    private static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
+    protected static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
             + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    private static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
+    protected static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
 
-    private static final String DEFAULT_UPDATE_SECRET_STATEMENT = "update oauth_client_details "
+    protected static final String DEFAULT_UPDATE_SECRET_STATEMENT = "update oauth_client_details "
             + "set client_secret = ? where client_id = ? and identity_zone_id = ?";
 
-    private static final String DEFAULT_DELETE_STATEMENT = "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
+    protected static final String DEFAULT_DELETE_STATEMENT = "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
 
-    private static final String DELETE_CLIENTS_BY_ZONE = "delete from oauth_client_details where identity_zone_id = ?";
-    private static final String DELETE_CLIENT_APPROVALS_BY_ZONE = "delete from authz_approvals where client_id in (select client_id from oauth_client_details where identity_zone_id = ?)"+
+    protected static final String DELETE_CLIENTS_BY_ZONE = "delete from oauth_client_details where identity_zone_id = ?";
+
+    //TODO Move this to the JdbcApproval Store
+    protected static final String DELETE_CLIENT_APPROVALS_BY_ZONE = "delete from authz_approvals where client_id in (select client_id from oauth_client_details where identity_zone_id = ?)"+
         " and user_id in (select id from users where identity_zone_id = ?)";
+
+    //TODO Move this to the JdbcApproval Store
+    protected static final String DELETE_CLIENT_APPROVALS = "delete from authz_approvals where client_id = ?"+
+        " and user_id in (select id from users where identity_zone_id = ?)";
+
     private RowMapper<ClientDetails> rowMapper = new ClientDetailsRowMapper();
 
     private String deleteClientDetailsSql = DEFAULT_DELETE_STATEMENT;
@@ -113,9 +119,9 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     private JdbcListFactory listFactory;
 
-    public MultitenantJdbcClientDetailsService(DataSource dataSource) {
-        Assert.notNull(dataSource, "DataSource required");
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    public MultitenantJdbcClientDetailsService(JdbcTemplate jdbcTemplate) {
+        Assert.notNull(jdbcTemplate, "JDbcTemplate required");
+        this.jdbcTemplate = jdbcTemplate;
         this.listFactory = new DefaultJdbcListFactory(new NamedParameterJdbcTemplate(jdbcTemplate));
     }
 
@@ -162,14 +168,11 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     }
 
     public void removeClientDetails(String clientId) throws NoSuchClientException {
-        int count = jdbcTemplate.update(deleteClientDetailsSql, clientId, IdentityZoneHolder.get().getId());
-        if (count != 1) {
-            throw new NoSuchClientException("No client found with id = " + clientId);
-        }
+        deleteByClient(clientId, IdentityZoneHolder.get().getId());
     }
 
     public List<ClientDetails> listClientDetails() {
-        return listFactory.getList(findClientDetailsSql, Collections.<String, Object> singletonMap("identityZoneId",IdentityZoneHolder.get().getId()), rowMapper);
+        return listFactory.getList(findClientDetailsSql, Collections.singletonMap("identityZoneId",IdentityZoneHolder.get().getId()), rowMapper);
     }
 
     private Object[] getInsertClientDetailsFields(ClientDetails clientDetails) {
@@ -285,6 +288,17 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     @Override
     public int deleteByOrigin(String origin, String zoneId) {
         return 0;
+    }
+
+    @Override
+    public int deleteByClient(String clientId, String zoneId) {
+        int count = jdbcTemplate.update(DEFAULT_DELETE_STATEMENT, clientId, zoneId);
+        if (count == 0) {
+            throw new NoSuchClientException("No client found with id = " + clientId);
+        }
+        int approvalCount = jdbcTemplate.update(DELETE_CLIENT_APPROVALS, clientId, zoneId);
+        getLogger().debug(String.format("Deleted client '%s' and %s approvals", clientId, approvalCount));
+        return count;
     }
 
     @Override
