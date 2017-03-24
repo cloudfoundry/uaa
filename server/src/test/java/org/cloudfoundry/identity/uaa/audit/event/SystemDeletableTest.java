@@ -59,7 +59,26 @@ public class SystemDeletableTest {
         IdentityZoneHolder.clear();
     }
 
+    @Test
+    public void ignore_unknown_events() throws Exception {
+        AbstractUaaEvent event = mock(AbstractUaaEvent.class);
+        deletable.onApplicationEvent(event);
+        verify(deletable, never()).onApplicationEvent(any(EntityDeletedEvent.class));
+        verify(deletable, never()).deleteByIdentityZone(any());
+        verify(deletable, never()).deleteByOrigin(any(),any());
+        verify(deletable, never()).deleteByClient(any(),any());
+        verify(deletable, never()).deleteByUser(any(),any());
+    }
 
+    @Test
+    public void uaa_default_zone_is_ignored() throws Exception {
+        EntityDeletedEvent event = new EntityDeletedEvent(IdentityZone.getUaa(), authentication);
+        deletable.onApplicationEvent(event);
+        verify(deletable, never()).deleteByIdentityZone(any());
+        verify(deletable, never()).deleteByOrigin(any(),any());
+        verify(deletable, never()).deleteByClient(any(),any());
+        verify(deletable, never()).deleteByUser(any(),any());
+    }
 
     @Test
     public void zone_event_received() throws Exception {
@@ -129,6 +148,8 @@ public class SystemDeletableTest {
     public void resetDeletable() {
         reset(deletable);
         doCallRealMethod().when(deletable).onApplicationEvent(any(EntityDeletedEvent.class));
+        doCallRealMethod().when(deletable).onApplicationEvent(any(AbstractUaaEvent.class));
+        doCallRealMethod().when(deletable).isUaaZone(any());
         when(deletable.getLogger()).thenReturn(mock(Log.class));
     }
 

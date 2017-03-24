@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
@@ -57,7 +56,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupMember> implements
-    ScimGroupMembershipManager, SystemDeletable {
+    ScimGroupMembershipManager {
 
     private JdbcTemplate jdbcTemplate;
 
@@ -421,35 +420,6 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
         }
 
         return groups;
-    }
-
-    @Override
-    public int deleteByIdentityZone(String zoneId) {
-        //no op
-        return 0;
-    }
-
-    @Override
-    public int deleteByOrigin(String origin, String zoneId) {
-        //no op
-        return 0;
-    }
-
-    @Override
-    public int deleteByClient(String clientId, String zoneId) {
-        //no op
-        return 0;
-    }
-
-    @Override
-    public int deleteByUser(String userId, String zoneId) {
-        //no op
-        return 0;
-    }
-
-    @Override
-    public Log getLogger() {
-        return logger;
     }
 
     @Override
