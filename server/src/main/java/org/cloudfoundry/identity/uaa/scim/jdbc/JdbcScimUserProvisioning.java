@@ -381,7 +381,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public ScimUser delete(String id, int version) {
         ScimUser user = retrieve(id);
-        return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version);
+        return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version, IdentityZoneHolder.get().getId());
     }
 
     private ScimUser deactivateUser(ScimUser user, int version) {
@@ -429,22 +429,28 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return user;
     }
 
-    private ScimUser deleteUser(ScimUser user, int version) {
-        logger.debug("Deleting user: " + user.getId());
+    protected ScimUser deleteUser(ScimUser user, int version, String zoneId) {
+        int updated = deleteUser(user.getId(), version, zoneId);
+        if (updated == 0) {
+            throw new OptimisticLockingFailureException(String.format(
+                "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
+                version, version));
+        }
+        return user;
+    }
+
+    protected int deleteUser(String userId, int version, String zoneId) {
+        logger.debug("Deleting user: " + userId);
         int updated;
 
         if (version < 0) {
-            updated = jdbcTemplate.update(DELETE_USER_SQL, user.getId(), IdentityZoneHolder.get().getId());
+            updated = jdbcTemplate.update(DELETE_USER_SQL, userId, zoneId);
         }
         else {
-            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", user.getId(), IdentityZoneHolder.get().getId(), version);
+            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", userId, zoneId, version);
         }
-        if (updated == 0) {
-            throw new OptimisticLockingFailureException(String.format(
-                            "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
-                            user.getVersion(), version));
-        }
-        return user;
+        return updated;
+
     }
 
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
@@ -486,6 +492,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         //no op - nothing to do here
         return 0;
     }
+
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        deleteUser(userId, -1, zoneId);
+        return 1;
+    }
+
 
     private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
         @Override

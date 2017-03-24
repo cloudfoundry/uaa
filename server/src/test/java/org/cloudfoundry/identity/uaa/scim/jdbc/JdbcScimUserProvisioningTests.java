@@ -39,6 +39,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -65,6 +66,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -665,6 +667,16 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void deactivateWithWrongVersionIsError() {
         ScimUser joe = db.delete(JOE_ID, 1);
         assertJoe(joe);
+    }
+
+    @Test
+    public void canDeleteExistingUserThroughEvent() {
+        String tmpUserId = createUserForDelete();
+        ScimUser user = db.retrieve(tmpUserId);
+        db.setDeactivateOnDelete(false);
+        db.onApplicationEvent(new EntityDeletedEvent<Object>(user, mock(Authentication.class)));
+        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+        assertEquals(0, db.query("username eq \"" + tmpUserId + "\"").size());
     }
 
     @Test

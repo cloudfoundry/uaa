@@ -57,6 +57,7 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRE
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -104,7 +105,7 @@ public class UaaAuthorizationRequestManagerTests {
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
         when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
         user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaa().getId(), "testid", new Date());
-        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+        when(uaaUserDatabase.retrieveUserById(any())).thenReturn(user);
     }
 
     @After

@@ -16,6 +16,8 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -133,6 +135,26 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             countTokens(1);
             assertEquals(zone.getId(), dao.retrieve(tokenId).getZoneId());
             dao.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
+            countTokens(0);
+        }
+    }
+
+    @Test
+    public void revocable_tokens_deleted_when_user_is() throws Exception {
+        IdentityZone otherZone = MultitenancyFixture.identityZone("other","other");
+        for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherZone)) {
+            IdentityZoneHolder.set(zone);
+            UaaUser user = new UaaUser(
+                new UaaUserPrototype()
+                    .withId(userId)
+                    .withUsername("username")
+                    .withEmail("test@test.com")
+                    .withZoneId(zone.getId())
+            );
+            insertToken();
+            countTokens(1);
+            assertEquals(zone.getId(), dao.retrieve(tokenId).getZoneId());
+            dao.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class)));
             countTokens(0);
         }
     }

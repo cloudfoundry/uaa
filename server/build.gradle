@@ -79,7 +79,7 @@ dependencies {
     exclude(module: 'hamcrest-core')
   }
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
-  testCompile (group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion)  {
+  testCompile (group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion)  {
     exclude(module: 'hamcrest-core')
   }
 

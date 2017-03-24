@@ -62,7 +62,7 @@ dependencies {
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
   testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
-  testCompile group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion
+  testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
 }

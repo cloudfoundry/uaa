@@ -91,6 +91,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public static final String DELETE_GROUP_MEMBERSHIP_BY_PROVIDER = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?) and origin = ?", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
     public static final String DELETE_EXTERNAL_GROUP_BY_PROVIDER = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?) and origin = ?", EXTERNAL_GROUP_TABLE, GROUP_TABLE);
 
+    public static final String DELETE_MEMBER_SQL = String.format("delete from %s where member_id=? and member_id in (select id from users where id=? and identity_zone_id=?)",GROUP_MEMBERSHIP_TABLE);
+
     private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
     public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
@@ -277,6 +279,13 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public int deleteByClient(String clientId, String zoneId) {
         //no op - nothing to do here
         return 0;
+    }
+
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        int result = jdbcTemplate.update(DELETE_MEMBER_SQL, userId, userId, zoneId);
+
+        return result;
     }
 
     protected void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {

@@ -16,7 +16,7 @@ ext {
   jsonPathVersion = '2.2.0'
   junitVersion = '4.12'
   mariaDBClientVersion = '1.5.8'
-  mockitoVersion = '1.10.19'
+  mockitoVersion = '2.7.19'
   passayVersion = '1.2.0'
   postgresqlVersion = '42.0.0'
   mssqlVersion = '6.1.0.jre8'

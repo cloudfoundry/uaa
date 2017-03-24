@@ -176,6 +176,13 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     @Override
+    public int deleteByUser(String userId, String zoneId) {
+        //no op - nothing to do here
+        return 0;
+    }
+
+
+    @Override
     public Log getLogger() {
         return logger;
     }

@@ -302,6 +302,13 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     }
 
     @Override
+    public int deleteByUser(String userId, String zoneId) {
+        //no op
+        return 0;
+    }
+
+
+    @Override
     public Log getLogger() {
         return logger;
     }
