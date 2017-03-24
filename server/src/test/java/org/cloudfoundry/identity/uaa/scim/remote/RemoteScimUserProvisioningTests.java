@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,10 +12,6 @@
  *******************************************************************************/
 
 package org.cloudfoundry.identity.uaa.scim.remote;
-
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
 
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -32,9 +28,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestOperations;
 
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class RemoteScimUserProvisioningTests {
 
@@ -118,19 +118,17 @@ public class RemoteScimUserProvisioningTests {
         ScimUser user = service.verifyUser("1234", 123456789);
     }
 
-    private static class HttpHeadersMatcher extends ArgumentMatcher<HttpEntity<Void>> {
+    private static class HttpHeadersMatcher implements ArgumentMatcher<HttpEntity<Void>> {
 
         private String key = "If-Match";
 
         private String value = "123456789";
 
         @Override
-        public boolean matches(Object argument) {
-            @SuppressWarnings("unchecked")
-            String actual = ((HttpEntity<Void>) argument).getHeaders().getFirst(key);
+        public boolean matches(HttpEntity<Void> argument) {
+            String actual = argument.getHeaders().getFirst(key);
             return actual.equals(value);
         }
-
     }
 
 }

@@ -66,6 +66,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -142,7 +143,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(createCode(codeData));
         IdentityProvider provider = new IdentityProvider();
         provider.setType(OriginKeys.UAA);
-        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        when(providerProvisioning.retrieveByOrigin(any(), any())).thenReturn(provider);
 
         mockMvc.perform(get("/invitations/accept").param("code", "code"))
             .andExpect(status().isOk())

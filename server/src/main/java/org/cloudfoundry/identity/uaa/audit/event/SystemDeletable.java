@@ -70,5 +70,7 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
 
     int deleteByClient(String clientId, String zoneId);
 
+    //int deleteByUser(String userId, String zoneId);
+
     Log getLogger();
 }
