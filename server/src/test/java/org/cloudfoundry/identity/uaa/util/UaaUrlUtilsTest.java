@@ -69,6 +69,46 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
+    public void testGetBaseURL() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("login.domain");
+        request.setRequestURI("/something");
+        request.setServletPath("/something");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
+
+        assertEquals("http://login.domain", UaaUrlUtils.getBaseURL(request));
+    }
+
+    @Test
+    public void testGetBaseURLWhenPathMatchesHostname() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("login.domain");
+        request.setRequestURI("/login");
+        request.setServletPath("/login");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
+
+        assertEquals("http://login.domain", UaaUrlUtils.getBaseURL(request));
+    }
+
+    @Test
+    public void testGetBaseURLOnLocalhost() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        request.setRequestURI("/uaa/something");
+        request.setServletPath("/something");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
+
+        assertEquals("http://localhost:8080/uaa", UaaUrlUtils.getBaseURL(request));
+    }
+
+    @Test
     public void test_ZoneAware_UaaUrl() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("id","subdomain");
         IdentityZoneHolder.set(zone);
