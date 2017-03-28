@@ -152,6 +152,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         identityZone.getConfig().setSamlConfig(samlConfig);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
@@ -405,6 +406,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         updatedIdentityZone.getConfig().setSamlConfig(samlConfig);
         IdentityZoneConfiguration brandingConfig = setBranding(updatedIdentityZone.getConfig());
         updatedIdentityZone.setConfig(brandingConfig);
