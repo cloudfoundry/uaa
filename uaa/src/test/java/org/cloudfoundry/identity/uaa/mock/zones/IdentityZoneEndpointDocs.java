@@ -126,6 +126,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         "Hn+GmxZA\n" +
         "-----END CERTIFICATE-----\n";
 
+    private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
+
     @Before
     public void setUp() throws Exception {
     }
@@ -538,6 +540,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         identityZone.getConfig().setSamlConfig(samlConfig);
         identityZone.setId(id);
         identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
