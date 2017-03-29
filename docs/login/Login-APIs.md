@@ -1,3 +1,24 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Login Server APIs](#login-server-apis)
+  - [Overview](#overview)
+  - [Login Form: ``GET /login``](#login-form-get-login)
+  - [Form Login: `POST /login.do`](#form-login-post-logindo)
+  - [Logout: `GET /logout.do`](#logout-get-logoutdo)
+  - [OAuth2 Endpoints](#oauth2-endpoints)
+    - [Start Authorization: `GET /oauth/authorize`](#start-authorization-get-oauthauthorize)
+    - [Obtain Authorization Code: `POST /oauth/authorize`](#obtain-authorization-code-post-oauthauthorize)
+    - [Token Endpoint: `POST /oauth/token`](#token-endpoint-post-oauthtoken)
+  - [Login Info: `GET /login`](#login-info-get-login)
+  - [Healthz: `GET /healthz`](#healthz-get-healthz)
+  - [Varz: `GET /varz`](#varz-get-varz)
+  - [Autologin](#autologin)
+    - [Obtain Autologin Code: `POST /autologin`](#obtain-autologin-code-post-autologin)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 - [Login Server APIs](#login-server-apis)
 	- [Overview](#overview)
 	- [Login Form: ``GET /login``](#login-form-get-login)

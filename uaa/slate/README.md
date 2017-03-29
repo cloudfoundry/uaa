@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Slate](#slate)
+  - [Features](#features)
+  - [Getting Started with Slate](#getting-started-with-slate)
+    - [Prerequisites](#prerequisites)
+    - [Getting Set Up](#getting-set-up)
+  - [Examples of Slate in the Wild](#examples-of-slate-in-the-wild)
+  - [Need Help? Found a bug?](#need-help-found-a-bug)
+  - [Contributors](#contributors)
+  - [Special Thanks](#special-thanks)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 Slate
 ========
 
