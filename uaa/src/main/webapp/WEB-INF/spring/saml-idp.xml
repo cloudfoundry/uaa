@@ -48,12 +48,12 @@
     </bean>
 
     <bean id="idpMetadataManager"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager"
-        depends-on="spMetaDataProviders" destroy-method="destroy">
-        <constructor-arg name="providerDao" ref="serviceProviderProvisioning" />
-        <constructor-arg name="zoneDao" ref="identityZoneProvisioning" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.NonSnarlIdpMetadataManager"
+          depends-on="spMetaDataProviders" destroy-method="destroy">
         <constructor-arg name="configurator" ref="spMetaDataProviders" />
-        <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}" />
+        <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:0}" />
+        <property name="generator" ref="zoneAwareIdpMetadataGenerator"/>
+
     </bean>
 
     <bean id="idpWebSsoProfileImpl"
@@ -138,13 +138,8 @@
         <property name="clientParams" ref="httpClientParams" />
         <property name="parserPool" ref="parserPool"/>
         <property name="contentCache" ref="urlCache"/>
-    </bean>
+        <property name="providerProvisioning" ref="serviceProviderProvisioning" />
 
-    <bean id="serviceProviderChangedListener"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderChangedListener">
-        <constructor-arg name="configurator" ref="spMetaDataProviders"/>
-        <constructor-arg name="zoneProvisioning" ref="identityZoneProvisioning"/>
-        <property name="metadataManager" ref="idpMetadataManager" />
     </bean>
 
     <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
