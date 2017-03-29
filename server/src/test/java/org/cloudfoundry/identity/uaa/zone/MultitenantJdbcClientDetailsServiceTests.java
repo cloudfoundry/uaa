@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -103,11 +102,6 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         String clientId = "client-with-id-" + new RandomValueStringGenerator(36).generate();
         clientDetails.setClientId(clientId);
 
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        IdentityZoneHolder.clear();
     }
 
     protected void addApproval(String clientId) {

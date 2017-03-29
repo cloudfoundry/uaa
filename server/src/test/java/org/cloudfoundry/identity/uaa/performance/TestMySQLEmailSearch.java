@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -98,9 +99,13 @@ public class TestMySQLEmailSearch extends JdbcTestBase {
     }
 
     @Override
+    @After
     public void tearDown() throws Exception {
         if (HSQLDB_DEFAULT.equals(profile) || (!success)) {
-            super.tearDown();
+            tearDown(true);
+        } else {
+            //leaves data in place
+            tearDown(false);
         }
     }
 
