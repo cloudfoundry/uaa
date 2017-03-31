@@ -261,7 +261,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to retrieve")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
                 ),
                 getResponseFields()
             ));
