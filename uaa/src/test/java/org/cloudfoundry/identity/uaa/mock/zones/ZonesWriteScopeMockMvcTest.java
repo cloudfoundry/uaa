@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -20,7 +21,10 @@ import java.util.Collections;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ZonesWriteScopeMockMvcTest  extends InjectedMockContextTest {
@@ -45,7 +49,7 @@ public class ZonesWriteScopeMockMvcTest  extends InjectedMockContextTest {
 
     @Test
     public void testGetZoneByIdWithZonesWriteScope() throws Exception {
-
+        IdentityZone zone2 = createZoneWithClient(generator.generate().toLowerCase());
         createUserWithZonesWriteScope(zoneAdminToken);
 
         String zonesWriteToken = testClient.getUserOAuthAccessTokenForZone("admin", "admin-secret", "marissa", "koala", "zones.write", subdomain);
@@ -61,6 +65,19 @@ public class ZonesWriteScopeMockMvcTest  extends InjectedMockContextTest {
         String jsonResponse = result.getResponse().getContentAsString();
         JsonNode responseNode = JsonUtils.readTree(jsonResponse);
         assertEquals(zone.getId() ,responseNode.get("id").asText());
+
+        getMockMvc().perform(
+            get("/identity-zones/" +zone2.getId())
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .header("Host",subdomain + ".localhost")
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+
+        getMockMvc().perform(
+            get("/identity-zones/uaa")
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -85,6 +102,85 @@ public class ZonesWriteScopeMockMvcTest  extends InjectedMockContextTest {
         assertNull(responseNode.get(1));
     }
 
+    @Test
+    public void testPutZonesWithZonesWriteScope() throws Exception {
+        createZoneWithClient(generator.generate().toLowerCase());
+
+        createUserWithZonesWriteScope(zoneAdminToken);
+
+        String zonesWriteToken = testClient.getUserOAuthAccessTokenForZone("admin", "admin-secret", "marissa", "koala", "zones.write", subdomain);
+
+        getMockMvc().perform(
+            put("/identity-zones/" + zone.getId())
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .header("Host", subdomain + ".localhost")
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        getMockMvc().perform(
+            put("/identity-zones/uaa")
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .header("Host", subdomain + ".localhost")
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andExpect(status().isForbidden())
+            .andReturn();
+    }
+
+    @Test
+    public void testPostZonesWithZonesWriteScope_shouldFail() throws Exception {
+        IdentityZone zone2 = MultitenancyFixture.identityZone(subdomain, subdomain);
+
+        createUserWithZonesWriteScope(zoneAdminToken);
+
+        String zonesWriteToken = testClient.getUserOAuthAccessTokenForZone("admin", "admin-secret", "marissa", "koala", "zones.write", subdomain);
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone2)))
+            .andExpect(status().isUnauthorized());
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .header("Host", subdomain + ".localhost")
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone2)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void testDeleteZonesWithZonesWriteScope_shouldFail() throws Exception {
+        IdentityZone zone2 = createZoneWithClient(generator.generate().toLowerCase());
+
+        createUserWithZonesWriteScope(zoneAdminToken);
+
+        String zonesWriteToken = testClient.getUserOAuthAccessTokenForZone("admin", "admin-secret", "marissa", "koala", "zones.write", subdomain);
+
+        getMockMvc().perform(
+            delete("/identity-zones/" + zone2.getId())
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .contentType(APPLICATION_JSON))
+            .andExpect(status().isUnauthorized());
+
+        getMockMvc().perform(
+            delete("/identity-zones/" + zone2.getId())
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .header("Host", zone2.getSubdomain() + ".localhost")
+                .contentType(APPLICATION_JSON))
+            .andExpect(status().isUnauthorized());
+
+        getMockMvc().perform(
+            delete("/identity-zones/uaa" )
+                .header("Authorization", "Bearer " + zonesWriteToken)
+                .contentType(APPLICATION_JSON))
+            .andExpect(status().isUnauthorized());
+    }
+
     private IdentityZone createZoneWithClient(String subdomain) throws Exception {
         MockMvcUtils.IdentityZoneCreationResult izCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), adminClient);
         return izCreationResult.getIdentityZone();
@@ -103,30 +199,4 @@ public class ZonesWriteScopeMockMvcTest  extends InjectedMockContextTest {
         group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER))));
         MockMvcUtils.createGroup(getMockMvc(), zoneAdminToken, subdomain, group);
     }
-
-    /*
-    @Test
-    public void testGetZonesByIdWithZonesWrite() throws Exception {
-        String id = generator.generate();
-        createZone(id, HttpStatus.CREATED, identityClientZonesWriteToken);
-        createZone("forbidden", HttpStatus.CREATED, identityClientZonesWriteToken);
-
-        getMockMvc().perform(
-            get("/identity-zones/" + id)
-                .header("Authorization", "Bearer " + identityClientZonesWriteToken))
-            .andExpect(status().isOk());
-
-        getMockMvc().perform(
-            get("/identity-zones/forbidden")
-                .header("Authorization", "Bearer " + identityClientZonesWriteToken))
-            .andExpect(status().isForbidden());
-    }
-
-    @Test
-    public void testUpdateZoneWithZonesWrite() throws Exception {
-        String id = generator.generate();
-        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientZonesWriteToken);
-        updateZone(zone, HttpStatus.OK, identityClientZonesWriteToken);
-    }
-*/
 }

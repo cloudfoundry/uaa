@@ -100,7 +100,7 @@
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="POST"/>
         <intercept-url pattern="/**"
-                       access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')"
                        method="PUT"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
