@@ -74,19 +74,33 @@ test {
   exclude '**/*IT.class'
   systemProperty "mock.suite.test", "true"
 }
+task customizeSlate(type: Copy) {
+  from 'slate'
+  from 'slateCustomizations'
+  into 'build/slate'
+}
 task docsTestRestDocs(type: Test) {
   include '**/DefaultDocsTestSuite.class'
 }
 task(bundleInstall, type: Exec) {
-  workingDir file('slate')
+  dependsOn 'customizeSlate'
+  workingDir file('build/slate')
   executable 'bundle'
   args 'install'
 }
+
+task(deleteDefaultContent, type: Delete) {
+    delete 'build/slate/source/index.html.md'
+}
+
 task(slate, type: Exec) {
-  dependsOn 'bundleInstall', 'docsTestRestDocs'
-  workingDir file('slate')
+  dependsOn 'customizeSlate', 'deleteDefaultContent', 'bundleInstall', 'docsTestRestDocs'
+
+  workingDir file('build/slate')
   executable 'bundle'
-  args 'exec', 'middleman', 'build', '--verbose'
+  args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs'
+//  executable 'echo'
+//  args 'hello', 'world'
 }
 generateDocs {
   dependsOn slate
