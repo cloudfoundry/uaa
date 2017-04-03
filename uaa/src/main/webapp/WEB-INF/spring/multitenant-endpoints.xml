@@ -87,10 +87,10 @@
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/identity-zones"
-                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')"
                        method="GET"/>
         <intercept-url pattern="/identity-zones/*"
-                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.read')"
+                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.read') or #oauth2.hasScope('zones.write')"
                        method="GET"/>
         <intercept-url pattern="/identity-zones/*/clients" access="#oauth2.hasScopeInAuthZone('zones.write')"
                        method="POST"/>
@@ -100,7 +100,7 @@
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="POST"/>
         <intercept-url pattern="/**"
-                       access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')"
                        method="PUT"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
