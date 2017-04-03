@@ -145,7 +145,7 @@ public class TokenValidation {
         }
 
         if(!equals(issuer, claims.get(ISS))) {
-            addError("Invalid issuer (" + claims.get(ISS) + ") for token did not match expected: " + issuer);
+            addError("Invalid issuer: " + claims.get(ISS) + " is not in the configured list of trusted issuers");
         }
         return this;
     }
