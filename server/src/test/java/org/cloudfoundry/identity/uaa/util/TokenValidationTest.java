@@ -186,6 +186,9 @@ public class TokenValidationTest {
                 .checkIssuer("http://wrong.issuer/");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
+        for(RuntimeException e: validation.getValidationErrors()) {
+            assertTrue(!e.getMessage().contains("http://wrong.issuer/"));
+        }
     }
 
     @Test
