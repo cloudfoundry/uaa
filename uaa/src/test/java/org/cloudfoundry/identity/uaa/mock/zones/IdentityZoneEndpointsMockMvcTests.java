@@ -207,12 +207,12 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void readWith_Write_TokenShouldFail() throws Exception {
+    public void readWith_Write_TokenShouldNotFail() throws Exception {
         for (String url : BASE_URLS) {
             getMockMvc().perform(
                 get(url)
                     .header("Authorization", "Bearer " + identityClientZonesWriteToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
         }
     }
 
@@ -261,7 +261,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(
             get("/identity-zones/")
-                .header("Authorization", "Bearer " + identityClientZonesWriteToken))
+                .header("Authorization", "Bearer " + lowPriviledgeToken))
             .andExpect(status().isForbidden());
 
         MvcResult result = getMockMvc().perform(
