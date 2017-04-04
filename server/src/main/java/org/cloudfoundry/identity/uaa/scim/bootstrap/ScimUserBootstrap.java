@@ -249,14 +249,25 @@ public class ScimUserBootstrap implements
 
         if (event instanceof ExternalGroupAuthorizationEvent) {
             ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent)event;
+
             //delete previous membership relation ships
             String origin = exEvent.getUser().getOrigin();
+
+            // get the current group memberships for this user and sync with the external authorities
+            final Set<ScimGroup> groups = membershipManager.getGroupsWithMember(event.getUser().getId(), "origin eq \""+origin+"\"", false);
+
             if (!OriginKeys.UAA.equals(origin)) {//only delete non UAA relationships
-                membershipManager.delete("member_id eq \""+event.getUser().getId()+"\" and origin eq \""+origin+"\"");
+                // remove non-default existing group memberships not in the external authorities
+                groups.stream()
+                    .filter (p -> !containsGroup(exEvent.getExternalAuthorities(), p.getDisplayName()))
+                    .forEach(p -> membershipManager.removeMemberById(p.getId(), event.getUser().getId()));
             }
-            for (GrantedAuthority authority : exEvent.getExternalAuthorities()) {
-                addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
-            }
+
+            // add group memberships not in the existing group memberships
+            exEvent.getExternalAuthorities().stream()
+                .filter (p -> !containsGroup(groups, p.getAuthority()))
+                .forEach(p -> addToGroup(event.getUser().getId(), p.getAuthority(), event.getUser().getOrigin(), exEvent.isAddGroups()));
+
             //update the user itself
             if(event.isUserModified()) {
                 //update the user itself
@@ -270,6 +281,14 @@ public class ScimUserBootstrap implements
             addUser(event.getUser());
             return;
         }
+    }
+
+    private boolean containsGroup(Set<ScimGroup> groups, String name) {
+        return groups.stream().anyMatch(p -> name.equals(p.getDisplayName()));
+    }
+
+    private boolean containsGroup(Collection<? extends GrantedAuthority> authorities, String name) {
+        return authorities.stream().anyMatch(p -> name.equals(p.getAuthority()));
     }
 
     private void addToGroup(String scimUserId, String gName) {
