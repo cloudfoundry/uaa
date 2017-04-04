@@ -1,3 +1,10 @@
+Random.new_seed
+class CustomRender < Redcarpet::Render::HTML
+  def header(text, header_level)
+    return "<h#{header_level} id='#{text.parameterize}-#{Random.new.rand(100000).to_s}'>#{text}</h#{header_level}>"
+  end
+end
+
 # Markdown
 set :markdown_engine, :redcarpet
 set :markdown,
@@ -7,7 +14,8 @@ set :markdown,
     prettify: true,
     tables: true,
     with_toc_data: true,
-    no_intra_emphasis: true
+    no_intra_emphasis: true,
+    renderer: CustomRender
 
 # Assets
 set :css_dir, 'stylesheets'
