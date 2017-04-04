@@ -91,6 +91,7 @@ ext {
 test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
+  exclude '**/*AT.class'
   systemProperty 'java.io.tmpdir', '/tmp'
   systemProperty "mock.suite.test", "true"
 }
@@ -118,6 +119,11 @@ integrationTest {
     includeTestsMatching "*IT"
   }
 }
+
+task acceptanceTest(type: Test) {
+  include "org/cloudfoundry/identity/uaa/acceptance/*.class"
+}
+
 
 //asciidoctor {
 //  sourceDir 'src/asciidoc'
