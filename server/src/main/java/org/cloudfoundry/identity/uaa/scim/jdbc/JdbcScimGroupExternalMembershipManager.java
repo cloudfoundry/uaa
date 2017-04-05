@@ -61,8 +61,10 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
 
     public static final String JOIN_WHERE_ID = "g.id = gm.group_id and gm.origin = ?";
 
-    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,lower(?),?,?)",
-                    EXTERNAL_GROUP_MAPPING_TABLE, EXTERNAL_GROUP_MAPPING_FIELDS);
+    public static final String DELETE_FROM_TABLE_SQL ="DELETE FROM %s WHERE %s identity_zone_id='%s'";
+
+    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,lower(?),?,?,?)",
+                    EXTERNAL_GROUP_MAPPING_TABLE, EXTERNAL_GROUP_MAPPING_FIELDS + ",identity_zone_id");
 
     public static final String GET_EXTERNAL_GROUP_MAPPINGS_SQL =
         String.format("select %s from %s where gm.group_id=? and %s",
@@ -118,11 +120,11 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         SearchQueryConverter.ProcessedFilter where = getQueryConverter().convert(filter, null, false);
         logger.debug("Filtering groups with SQL: " + where);
         try {
-            String completeSql = "DELETE FROM "+getTableName()+" WHERE ";
+            String whereClause = "";
             if (StringUtils.hasText(where.getSql())) {
-                completeSql +=  where.getSql() + " AND ";
+                whereClause = where.getSql() + " AND ";
             }
-            completeSql += "group_id IN (SELECT id FROM groups WHERE identity_zone_id='"+ IdentityZoneHolder.get().getId()+"')";
+            String completeSql = String.format(DELETE_FROM_TABLE_SQL, getTableName(), whereClause, IdentityZoneHolder.get().getId());
             logger.debug("delete sql: " + completeSql + ", params: " + where.getParams());
             return new NamedParameterJdbcTemplate(jdbcTemplate).update(completeSql, where.getParams());
         } catch (DataAccessException e) {
@@ -158,6 +160,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                         ps.setString(2, externalGroup);
                         ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
                         ps.setString(4, origin);
+                        ps.setString(5, IdentityZoneHolder.get().getId());
 
                     }
                 });

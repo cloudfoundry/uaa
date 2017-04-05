@@ -69,9 +69,9 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     private static final String addGroupSqlFormat = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
 
-    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities, origin) values ('%s', '%s', '%s', '%s', '%s')";
+    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s', 'uaa')";
 
-    private static final String addExternalMapSql = "insert into external_group_mapping (group_id, external_group, added, origin) values (?, ?, ?, ?)";
+    private static final String addExternalMapSql = "insert into external_group_mapping (group_id, external_group, added, origin, identity_zone_id) values (?, ?, ?, ?, 'uaa')";
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
