@@ -52,6 +52,8 @@ public class JsonWebKey {
     }
 
     public enum KeyType {
+        EC,
+        oct,
         RSA,
         MAC
     }
