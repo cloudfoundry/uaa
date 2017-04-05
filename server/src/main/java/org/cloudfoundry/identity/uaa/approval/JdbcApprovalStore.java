@@ -61,8 +61,8 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     private static final String FIELDS = "user_id,client_id,scope,expiresAt,status,lastModifiedAt";
 
-    private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", TABLE_NAME,
-                    FIELDS);
+    private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?,?)", TABLE_NAME,
+                    FIELDS+",identity_zone_id");
 
     private static final String REFRESH_AUTHZ_SQL = String
                     .format("update %s set lastModifiedAt=?, expiresAt=?, status=? where user_id=? and client_Id=? and scope=?",
@@ -125,6 +125,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                     ps.setTimestamp(4, new Timestamp(approval.getExpiresAt().getTime()));
                     ps.setString(5, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
                     ps.setTimestamp(6, new Timestamp(approval.getLastUpdatedAt().getTime()));
+                    ps.setString(7, IdentityZoneHolder.get().getId());
                 }
             });
             if (count==0) throw new EmptyResultDataAccessException("Approval add failed", 1);
@@ -155,7 +156,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             sql = DELETE_AUTHZ_SQL + " where " + where.getSql();
         }
         sqlParams.put("__identity_zone_id", IdentityZoneHolder.get().getId());
-        sql = sql + " and user_id in (select id from users where identity_zone_id = :__identity_zone_id)";
+        sql = sql + " and identity_zone_id = :__identity_zone_id";
 
         try {
             int revoked = new NamedParameterJdbcTemplate(jdbcTemplate).update(sql, sqlParams);
@@ -190,7 +191,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             Map<String, Object> params = new HashMap(where.getParams());
             params.put("__identity_zone_id", IdentityZoneHolder.get().getId());
             return pagingListFactory.createJdbcPagingList(
-                GET_AUTHZ_SQL + " where " + where.getSql() + " and user_id in (select id from users where identity_zone_id = :__identity_zone_id)",
+                GET_AUTHZ_SQL + " where " + where.getSql() + " and identity_zone_id = :__identity_zone_id",
                 params,
                 rowMapper,
                 200
