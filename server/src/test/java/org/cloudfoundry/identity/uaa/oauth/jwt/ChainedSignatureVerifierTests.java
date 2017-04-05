@@ -29,16 +29,18 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.anyString;
 
 public class ChainedSignatureVerifierTests {
     private Signer signer;
@@ -136,11 +138,37 @@ public class ChainedSignatureVerifierTests {
         }
     }
 
+    @Test
+    public void unsupported_key_types_are_ignored() {
+        Map<String,Object> p = new HashMap<>();
+        p.put("kty","EC");
+        p.put("kid", "ecid");
+        p.put("x", "test-ec-key-x");
+        p.put("y", "test-ec-key-y");
+        p.put("use", "sig");
+        p.put("crv", "test-crv");
+        JsonWebKey ecKey = new JsonWebKey(p);
+        Map<String,Object> q = new HashMap<>();
+        q.put("kty","oct");
+        q.put("k", "octkeyvalue");
+        JsonWebKey octKey = new JsonWebKey(q);
+        verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(validKey, ecKey, octKey)));
+        List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
+        assertNotNull(delegates);
+        assertEquals(1, delegates.size());
+        int pos = 0;
+        for (SignatureVerifier v : delegates) {
+            assertTrue("Checking "+(pos++), v instanceof CommonSignatureVerifier);
+        }
+    }
 
     @Test
     public void test_multi_key_both_valid() {
-        JsonWebKey jsonWebKey = mock(JsonWebKey.class);
-        when(jsonWebKey.getValue()).thenReturn("mac-content");
+        Map<String,Object> p = new HashMap<>();
+        p.put("kty",MAC.name());
+        p.put("value", "mac-content");
+        JsonWebKey jsonWebKey = new JsonWebKey(p);
+
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(validKey, jsonWebKey)));
         signedValidContent.verifySignature(verifier);
         List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
