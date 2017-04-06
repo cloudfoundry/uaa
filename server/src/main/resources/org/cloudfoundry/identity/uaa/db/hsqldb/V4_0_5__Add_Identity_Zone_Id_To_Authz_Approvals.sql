@@ -11,5 +11,5 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 
-ALTER TABLE authz_approvals ADD COLUMN identity_zone_id VARCHAR(36) DEFAULT NULL;
+ALTER TABLE authz_approvals ADD COLUMN identity_zone_id VARCHAR(36) NULL;
 UPDATE authz_approvals SET identity_zone_id = (SELECT identity_zone_id from users WHERE authz_approvals.user_id = users.id);

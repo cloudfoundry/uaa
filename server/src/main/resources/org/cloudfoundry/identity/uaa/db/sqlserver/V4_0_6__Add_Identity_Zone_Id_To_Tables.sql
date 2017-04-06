@@ -11,14 +11,14 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 
-ALTER TABLE group_membership ADD identity_zone_id nvarchar(36) DEFAULT NULL;
+ALTER TABLE group_membership ADD identity_zone_id nvarchar(36) NULL;
 GO
 UPDATE group_membership SET identity_zone_id = (SELECT identity_zone_id from groups WHERE group_membership.group_id = groups.id);
 
-ALTER TABLE external_group_mapping ADD identity_zone_id nvarchar(36) DEFAULT NULL;
+ALTER TABLE external_group_mapping ADD identity_zone_id nvarchar(36) NULL;
 GO
 UPDATE external_group_mapping SET identity_zone_id = (SELECT identity_zone_id from groups WHERE external_group_mapping.group_id = groups.id);
 
-ALTER TABLE oauth_code ADD identity_zone_id nvarchar(36) DEFAULT NULL;
+ALTER TABLE oauth_code ADD identity_zone_id nvarchar(36) NULL;
 GO
 UPDATE oauth_code SET identity_zone_id = (SELECT identity_zone_id from users WHERE oauth_code.user_id = users.id);

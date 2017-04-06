@@ -10,6 +10,6 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
-ALTER TABLE authz_approvals ADD identity_zone_id nvarchar(36) DEFAULT NULL;
+ALTER TABLE authz_approvals ADD identity_zone_id nvarchar(36) NULL;
 GO
 UPDATE authz_approvals SET identity_zone_id = (SELECT identity_zone_id from users WHERE authz_approvals.user_id = users.id);

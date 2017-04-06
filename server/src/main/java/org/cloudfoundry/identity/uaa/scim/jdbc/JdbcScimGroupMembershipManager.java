@@ -84,7 +84,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
 
     public static final String DELETE_MEMBER_IN_GROUPS_SQL_USER = String.format("delete from %s where member_id=? and member_type='USER' and identity_zone_id=?",MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBER_IN_GROUPS_SQL_GROUP = String.format("delete from %s where group_id=? and member_type='GROUP' and identity_zone_id=?",MEMBERSHIP_TABLE);
+    public static final String DELETE_MEMBER_IN_GROUPS_SQL_GROUP = String.format("delete from %s where member_id=? and member_type='GROUP' and identity_zone_id=?",MEMBERSHIP_TABLE);
 
     private ScimUserProvisioning userProvisioning;
 
