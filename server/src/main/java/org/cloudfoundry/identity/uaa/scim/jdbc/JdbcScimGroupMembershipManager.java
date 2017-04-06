@@ -66,25 +66,25 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
 
     public static final String MEMBERSHIP_TABLE = "group_membership";
 
-    public static final String ADD_MEMBER_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", MEMBERSHIP_TABLE, MEMBERSHIP_FIELDS);
+    public static final String ADD_MEMBER_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?,?)", MEMBERSHIP_TABLE, MEMBERSHIP_FIELDS + ",identity_zone_id");
 
     public static final String UPDATE_MEMBER_SQL = String.format("update %s set authorities=? where group_id=? and member_id=?", MEMBERSHIP_TABLE);
 
-    public static final String GET_MEMBERS_FILTER_SQL = String.format("select %s from %s where group_id in (select id from groups where identity_zone_id=%s)", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE, "'%s'");
+    public static final String GET_MEMBERS_FILTER_SQL = String.format("select %s from %s where identity_zone_id='%%s'", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
-    public static final String GET_GROUPS_BY_MEMBER_SQL = String.format("select distinct(group_id) from %s where member_id=? and group_id in (select id from groups where identity_zone_id=?)", MEMBERSHIP_TABLE);
+    public static final String GET_GROUPS_BY_MEMBER_SQL = String.format("select distinct(group_id) from %s where member_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
     public static final String GET_MEMBERS_WITH_AUTHORITY_SQL = String.format("select %s from %s where group_id=? and lower(authorities) like ?", MEMBERSHIP_FIELDS,MEMBERSHIP_TABLE);
 
-    public static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id in (select id from groups where id=? and identity_zone_id=?)",MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
+    public static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id=? and identity_zone_id=?",MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBER_SQL = String.format("delete from %s where member_id=? and group_id in (select id from groups where id=? and identity_zone_id=?)",MEMBERSHIP_TABLE);
+    public static final String DELETE_MEMBER_SQL = String.format("delete from %s where member_id=? and group_id = ? and identity_zone_id=?",MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBERS_IN_GROUP_SQL = String.format("delete from %s where group_id in (select id from groups where id=? and identity_zone_id=?)",MEMBERSHIP_TABLE);
+    public static final String DELETE_MEMBERS_IN_GROUP_SQL = String.format("delete from %s where group_id=? and identity_zone_id=?",MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBER_IN_GROUPS_SQL_USER = String.format("delete from %s where member_id in (select id from users where id=? and identity_zone_id=?)",MEMBERSHIP_TABLE);
+    public static final String DELETE_MEMBER_IN_GROUPS_SQL_USER = String.format("delete from %s where member_id=? and member_type='USER' and identity_zone_id=?",MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBER_IN_GROUPS_SQL_GROUP = String.format("delete from %s where member_id in (select id from groups where id=? and identity_zone_id=?)",MEMBERSHIP_TABLE);
+    public static final String DELETE_MEMBER_IN_GROUPS_SQL_GROUP = String.format("delete from %s where member_id=? and member_type='GROUP' and identity_zone_id=?",MEMBERSHIP_TABLE);
 
     private ScimUserProvisioning userProvisioning;
 
@@ -192,6 +192,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                     ps.setString(4, authorities);
                     ps.setTimestamp(5, new Timestamp(new Date().getTime()));
                     ps.setString(6, member.getOrigin());
+                    ps.setString(7, IdentityZoneHolder.get().getId());
                 }
             });
         } catch (DuplicateKeyException e) {
