@@ -87,6 +87,9 @@ public class SamlLoginAT {
     @Value("${ACCEPTANCE_SUBDOMAIN:uaa-acceptance-zone}")
     String zoneSubdomain;
     
+    @Value("${ACCEPTANCE_ZONE_ID:uaa-acceptance-zone}")
+    String acceptanceZoneId;
+    
     @Value("${ARTIFACTORY_READER}")
     String GESSOUsername;
     
@@ -165,7 +168,7 @@ public class SamlLoginAT {
         SamlIdentityProviderDefinition geSSOIdentityProviderDefinition = createGESSOIDPDefinition(originKey);
         geSSOIdentityProviderDefinition.setAddShadowUserOnLogin(true);
         IdentityProvider provider = new IdentityProvider();
-        provider.setIdentityZoneId(zoneSubdomain);
+        provider.setIdentityZoneId(acceptanceZoneId);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(geSSOIdentityProviderDefinition);
@@ -256,7 +259,7 @@ public class SamlLoginAT {
         }
         
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setZoneId(zoneSubdomain);
+        def.setZoneId(acceptanceZoneId);
         def.setMetaDataLocation(metadata);
         //That's how ge sso rolls in the nameID department
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
