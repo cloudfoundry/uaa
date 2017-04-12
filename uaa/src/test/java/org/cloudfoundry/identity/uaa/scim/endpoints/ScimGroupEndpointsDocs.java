@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -37,25 +36,14 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
@@ -360,10 +348,15 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
                     IDENTITY_ZONE_ID_HEADER,
                     IDENTITY_ZONE_SUBDOMAIN_HEADER
-                ),
-                responseFields(
-                    subFields("[]", ArrayUtils.addAll(idempotentMembershipFields, fieldWithPath("entity").description("Present only if requested with `returnEntities`; user or group with membership in the group")))
                 )
+//                ,
+//                responseFields(
+//                    subFields("[]",
+//                        ArrayUtils.addAll(idempotentMembershipFields
+//                        ,fieldWithPath("entity.*").description("Present only if requested with `returnEntities`; user or group with membership in the group")
+//                        )
+//                    )
+//                )
             ));
 
         // Delete
