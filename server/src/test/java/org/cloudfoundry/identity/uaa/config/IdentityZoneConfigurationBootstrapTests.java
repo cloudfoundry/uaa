@@ -62,6 +62,34 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     }
 
     @Test
+    public void test_multiple_keys() throws InvalidIdentityZoneDetailsException {
+        bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
+        bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
+        bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        Map<String, Map<String, String>> keys = new HashMap<>();
+        Map<String, String> key1 = new HashMap<>();
+        key1.put("key", SamlTestUtils.PROVIDER_PRIVATE_KEY);
+        key1.put("passphrase", SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        key1.put("certificate", SamlTestUtils.PROVIDER_CERTIFICATE);
+        keys.put("key1", key1);
+        bootstrap.setActiveKeyId("key1");
+        bootstrap.setSamlKeys(keys);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        SamlConfig config = uaa.getConfig().getSamlConfig();
+        assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, config.getPrivateKey());
+        assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, config.getPrivateKeyPassword());
+        assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, config.getCertificate());
+
+        assertEquals("key1", config.getActiveKeyId());
+        assertEquals(2, config.getKeys().size());
+
+        assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, config.getKeys().get("key1").getKey());
+        assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, config.getKeys().get("key1").getPassphrase());
+        assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, config.getKeys().get("key1").getCertificate());
+    }
+
+    @Test
     public void testDefaultSamlKeys() throws Exception {
         bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
         bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);

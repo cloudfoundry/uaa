@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,10 @@ import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Optional.ofNullable;
 
 public final class SamlKeyManagerFactory {
 
@@ -34,30 +37,38 @@ public final class SamlKeyManagerFactory {
     private SamlKeyManagerFactory() {}
 
     public static KeyManager getKeyManager(SamlConfig config) {
-        return getKeyManager(config.getPrivateKey(), config.getPrivateKeyPassword(), config.getCertificate());
+        return getKeyManager(config.getKeys(), config.getActiveKeyId());
     }
 
-    public static KeyManager getKeyManager(String key, String password, String certificate) {
-        if(!StringUtils.hasText(key)) return null;
+    private static KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
+        SamlKey activeKey = keys.get(activeKeyId);
 
-        if (null == password) {
-            password = "";
+        if(activeKey == null || !StringUtils.hasText(activeKey.getKey())) {
+            return null;
         }
 
-        try {
-            KeyWithCert keyWithCert = new KeyWithCert(key, password, certificate);
-            X509Certificate cert = keyWithCert.getCert();
-            KeyPair pkey = keyWithCert.getPkey();
 
+        try {
             KeyStore keystore = KeyStore.getInstance("JKS");
             keystore.load(null);
-            String alias = "service-provider-cert-" + IdentityZoneHolder.get().getId();
-            keystore.setCertificateEntry(alias, cert);
-            keystore.setKeyEntry(alias, pkey.getPrivate(), password.toCharArray(),
-                    new Certificate[] { cert });
+            Map<String, String> aliasPasswordMap = new HashMap<>();
+            for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
 
-            JKSKeyManager keyManager = new JKSKeyManager(keystore, Collections.singletonMap(alias, password),
-                    alias);
+
+                String password = ofNullable(entry.getValue().getPassphrase()).orElse("");
+                KeyWithCert keyWithCert = new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
+                X509Certificate cert = keyWithCert.getCert();
+                KeyPair pkey = keyWithCert.getPkey();
+
+
+                String alias = entry.getKey();
+                keystore.setCertificateEntry(alias, cert);
+                keystore.setKeyEntry(alias, pkey.getPrivate(), password.toCharArray(), new Certificate[]{cert});
+                aliasPasswordMap.put(alias, password);
+            }
+
+
+            JKSKeyManager keyManager = new JKSKeyManager(keystore, aliasPasswordMap, activeKeyId);
 
             if (null == keyManager) {
                 throw new IllegalArgumentException(

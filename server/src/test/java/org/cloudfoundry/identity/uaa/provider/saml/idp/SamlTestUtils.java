@@ -10,18 +10,14 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLException;
 import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.NameID;
-import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.Subject;
+import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.core.impl.AssertionMarshaller;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
@@ -53,9 +49,7 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.UUID;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
 
 public class SamlTestUtils {
@@ -157,7 +151,11 @@ public class SamlTestUtils {
         context.setPeerEntityRoleMetadata(spDescriptor);
         context.setInboundSAMLMessage(authnRequest);
 
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
+        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+        config.setCertificate(PROVIDER_CERTIFICATE);
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
         context.setLocalSigningCredential(keyManager.getDefaultCredential());
         return context;
     }
@@ -215,7 +213,11 @@ public class SamlTestUtils {
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
         assertion.getConditions().setNotOnOrAfter(until);
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(privateKey, keyPassword, certificate);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(privateKey);
+        config.setPrivateKeyPassword(keyPassword);
+        config.setCertificate(certificate);
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
         SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
         Signature signature = signatureBuilder.buildObject();
         signature.setSigningCredential(keyManager.getDefaultCredential());

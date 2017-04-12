@@ -460,6 +460,11 @@
         <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
         <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword}" />
         <property name="samlSpCertificate" value="${login.serviceProviderCertificate}" />
+        <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
+        <property name="samlKeys"
+                  value="#{@config['login']==null ? null :
+                           @config['login']['saml']==null ? null :
+                           @config['login']['saml']['keys']}"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

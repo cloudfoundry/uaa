@@ -39,7 +39,7 @@ public class IdentityZoneEndpointsTests {
         zone.getConfig().getSamlConfig().setPrivateKey("private");
         zone.getConfig().getSamlConfig().setPrivateKeyPassword("passphrase");
         zone.getConfig().getSamlConfig().setCertificate("certificate");
-        zone.getConfig().getSamlConfig().addActiveKey("active", new SamlKey("private1","passphrase1","certificate1"));
+        zone.getConfig().getSamlConfig().addAndActivateKey("active", new SamlKey("private1","passphrase1","certificate1"));
 
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());

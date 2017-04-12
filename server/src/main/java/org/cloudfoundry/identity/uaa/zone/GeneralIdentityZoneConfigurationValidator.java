@@ -1,11 +1,3 @@
-package org.cloudfoundry.identity.uaa.zone;
-
-import org.cloudfoundry.identity.uaa.util.KeyWithCert;
-import org.springframework.util.StringUtils;
-
-import java.security.GeneralSecurityException;
-import java.util.Map;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -18,6 +10,15 @@ import java.util.Map;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.zone;
+
+import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.springframework.util.StringUtils;
+
+import java.security.GeneralSecurityException;
+import java.util.Map;
+
+
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, Mode mode) throws InvalidIdentityZoneConfigurationException {

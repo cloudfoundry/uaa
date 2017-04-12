@@ -14,14 +14,15 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -152,15 +153,15 @@ public class SamlConfig {
     }
 
     public Map<String, SamlKey> getKeys() {
-        return keys;
+        return Collections.unmodifiableMap(keys);
     }
 
     public void setKeys(Map<String, SamlKey> keys) {
-        this.keys = keys;
+        this.keys = new HashMap<>(keys);
     }
 
     @JsonIgnore
-    public void addActiveKey(String keyId, SamlKey key) {
+    public void addAndActivateKey(String keyId, SamlKey key) {
         addKey(keyId, key);
         this.activeKeyId = keyId;
     }

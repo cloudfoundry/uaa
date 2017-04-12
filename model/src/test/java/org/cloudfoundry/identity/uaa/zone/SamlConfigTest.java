@@ -17,23 +17,22 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.util.ReflectionUtils;
+import org.junit.rules.ExpectedException;
 
-import java.lang.reflect.Field;
 import java.security.cert.CertificateException;
 import java.util.Map;
 
+import static java.util.Collections.EMPTY_MAP;
 import static org.cloudfoundry.identity.uaa.zone.SamlConfig.LEGACY_KEY_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SamlConfigTest {
 
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     String oldJson =
         "{\n" +
@@ -117,7 +116,7 @@ public class SamlConfigTest {
     public void addActiveKey() {
         SamlKey key = new SamlKey(privateKey, passphrase, certificate);
         String keyId = "testKeyId";
-        config.addActiveKey(keyId, key);
+        config.addAndActivateKey(keyId, key);
         Map<String, SamlKey> keys = config.getKeys();
         assertNotNull(keys);
         assertEquals(1, keys.size());
@@ -187,6 +186,25 @@ public class SamlConfigTest {
         assertEquals(passphrase, config.getPrivateKeyPassword());
         assertEquals(certificate, config.getCertificate());
     }
+
+    @Test
+    public void keys_are_not_modifiable() {
+        read_json(oldJson);
+        exception.expect(UnsupportedOperationException.class);
+        config.getKeys().clear();
+    }
+
+    @Test
+    public void can_clear_keys() {
+        read_json(oldJson);
+        assertEquals(1, config.getKeys().size());
+        assertNotNull(config.getActiveKeyId());
+        config.setKeys(EMPTY_MAP);
+        assertEquals(0, config.getKeys().size());
+        assertNull(config.getActiveKeyId());
+    }
+
+
 
 
 }
