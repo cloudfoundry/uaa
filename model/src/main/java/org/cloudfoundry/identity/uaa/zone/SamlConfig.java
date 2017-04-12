@@ -14,17 +14,29 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
+
+import static org.springframework.util.StringUtils.hasText;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SamlConfig {
+    public static final String LEGACY_KEY_ID = "legacy-saml-key";
+
     private boolean assertionSigned = true;
     private boolean requestSigned = true;
     private boolean wantAssertionSigned = true;
     private boolean wantAuthnRequestSigned = false;
     private int assertionTimeToLiveSeconds = 600;
-    private String certificate;
-    private String privateKey;
-    private String privateKeyPassword;
+    private String activeKeyId;
+    private Map<String, SamlKey> keys = new HashMap<>();
 
     public boolean isAssertionSigned() {
         return assertionSigned;
@@ -50,12 +62,36 @@ public class SamlConfig {
         this.wantAssertionSigned = wantAssertionSigned;
     }
 
+    @JsonProperty("certificate")
     public void setCertificate(String certificate) {
-        this.certificate = certificate;
+        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
+        if (null == legacyKey) {
+            legacyKey = new SamlKey();
+        }
+        legacyKey.setCertificate(certificate);
+        keys.put(LEGACY_KEY_ID, legacyKey);
     }
 
+    @JsonProperty("privateKey")
     public void setPrivateKey(String privateKey) {
-        this.privateKey = privateKey;
+        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
+        if (null == legacyKey) {
+            legacyKey = new SamlKey();
+        }
+        legacyKey.setKey(privateKey);
+        keys.put(LEGACY_KEY_ID, legacyKey);
+
+    }
+
+    @JsonProperty("privateKeyPassword")
+    public void setPrivateKeyPassword(String privateKeyPassword) {
+        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
+        if (null == legacyKey) {
+            legacyKey = new SamlKey();
+        }
+        legacyKey.setPassphrase(privateKeyPassword);
+        keys.put(LEGACY_KEY_ID, legacyKey);
+
     }
 
     public boolean isWantAuthnRequestSigned() {
@@ -74,22 +110,62 @@ public class SamlConfig {
         this.assertionTimeToLiveSeconds = assertionTimeToLiveSeconds;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty("certificate")
     public String getCertificate() {
-        return certificate;
+        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
+        if (null != legacyKey) {
+            return legacyKey.getCertificate();
+        }
+        return null;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty
     public String getPrivateKey() {
-        return privateKey;
+        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
+        if (null != legacyKey) {
+            return legacyKey.getKey();
+        }
+        return null;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty
     public String getPrivateKeyPassword() {
-        return privateKeyPassword;
+        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
+        if (null != legacyKey) {
+            return legacyKey.getPassphrase();
+        }
+        return null;
     }
 
-    public void setPrivateKeyPassword(String privateKeyPassword) {
-        this.privateKeyPassword = privateKeyPassword;
+    public String getActiveKeyId() {
+        return hasText(activeKeyId) ? activeKeyId : hasLegacyKey() ? LEGACY_KEY_ID : null;
+    }
+
+    public void setActiveKeyId(String activeKeyId) {
+        this.activeKeyId = activeKeyId;
+    }
+
+    public Map<String, SamlKey> getKeys() {
+        return keys;
+    }
+
+    public void setKeys(Map<String, SamlKey> keys) {
+        this.keys = keys;
+    }
+
+    @JsonIgnore
+    public void addActiveKey(String keyId, SamlKey key) {
+        addKey(keyId, key);
+        this.activeKeyId = keyId;
+    }
+
+    @JsonIgnore
+    public void addKey(String keyId, SamlKey key) {
+        keys.put(keyId, key);
+    }
+
+    @JsonIgnore
+    protected boolean hasLegacyKey() {
+        return keys.get(LEGACY_KEY_ID) != null;
     }
 }
