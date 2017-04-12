@@ -65,33 +65,37 @@ public class SamlConfig {
     @JsonProperty("certificate")
     public void setCertificate(String certificate) {
         SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (null == legacyKey) {
+        if (hasText(certificate) && null == legacyKey) {
             legacyKey = new SamlKey();
         }
-        legacyKey.setCertificate(certificate);
-        keys.put(LEGACY_KEY_ID, legacyKey);
+        if (legacyKey != null) {
+            legacyKey.setCertificate(certificate);
+            keys.put(LEGACY_KEY_ID, legacyKey);
+        }
     }
 
     @JsonProperty("privateKey")
     public void setPrivateKey(String privateKey) {
         SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (null == legacyKey) {
+        if (hasText(privateKey) && null == legacyKey) {
             legacyKey = new SamlKey();
         }
-        legacyKey.setKey(privateKey);
-        keys.put(LEGACY_KEY_ID, legacyKey);
-
+        if (legacyKey != null) {
+            legacyKey.setKey(privateKey);
+            keys.put(LEGACY_KEY_ID, legacyKey);
+        }
     }
 
     @JsonProperty("privateKeyPassword")
     public void setPrivateKeyPassword(String privateKeyPassword) {
         SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (null == legacyKey) {
+        if (hasText(privateKeyPassword) && null == legacyKey) {
             legacyKey = new SamlKey();
         }
-        legacyKey.setPassphrase(privateKeyPassword);
-        keys.put(LEGACY_KEY_ID, legacyKey);
-
+        if (legacyKey != null) {
+            legacyKey.setPassphrase(privateKeyPassword);
+            keys.put(LEGACY_KEY_ID, legacyKey);
+        }
     }
 
     public boolean isWantAuthnRequestSigned() {
@@ -142,7 +146,9 @@ public class SamlConfig {
     }
 
     public void setActiveKeyId(String activeKeyId) {
-        this.activeKeyId = activeKeyId;
+        if (!LEGACY_KEY_ID.equals(activeKeyId)) {
+            this.activeKeyId = activeKeyId;
+        }
     }
 
     public Map<String, SamlKey> getKeys() {

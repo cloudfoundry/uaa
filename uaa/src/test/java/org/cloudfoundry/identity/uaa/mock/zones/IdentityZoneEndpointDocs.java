@@ -307,6 +307,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC),
 
             fieldWithPath("[].config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
+            fieldWithPath("[].config.samlConfig.keys").ignored().type(OBJECT).description(CERTIFICATE_DESC),
             fieldWithPath("[].config.samlConfig.keys.*").type(OBJECT).description(CERTIFICATE_DESC),
             fieldWithPath("[].config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC),
 
