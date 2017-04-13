@@ -52,7 +52,7 @@ dependencies {
   runtime group: 'com.github.fge', name: 'json-schema-validator', version:'2.2.6'
   
   // For dynamic log level configuration
-  runtime group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.0'
+  runtime group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.1'
 
 
   testCompile identityServer.configurations.testCompile.dependencies
