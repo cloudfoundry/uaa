@@ -121,7 +121,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         "2VguKv4SWjRFoRkIfIlHX0qVviMhSlNy2ioFLy7JcPZb+v3ftDGywUqcBiVDoea0\n" +
         "Hn+GmxZA\n" +
         "-----END CERTIFICATE-----\n";
-    public static final String SAML_ACTIVE_KEY_ID_DESC = "Key that should be used for signing metadata and assertions";
+
+    public static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
 
     @Before
     public void setUp() throws Exception {
@@ -173,13 +174,13 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `privateKey` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKey`")),
-            fieldWithPath("config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if a list of keys defined in `keys` map")),
+            fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.passphrase` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.passphrase`")),
 
 
 
@@ -304,7 +305,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
-            fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC),
+            fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
 
             fieldWithPath("[].config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.samlConfig.keys").ignored().type(OBJECT).description(CERTIFICATE_DESC),
@@ -421,13 +422,13 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `privateKey` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKey`")),
-            fieldWithPath("config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if a list of keys defined in `keys` map")),
+            fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.passphrase` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.passphrase`")),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
@@ -569,7 +570,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.activeKeyId").optional().type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
             fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC),
 
