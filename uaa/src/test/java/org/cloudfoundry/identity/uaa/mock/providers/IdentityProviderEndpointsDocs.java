@@ -45,6 +45,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -103,8 +104,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(false).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
-    private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(STRING).description("Map external attribute to UAA recognized mappings.");
-    private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).description("Whether users should be allowed to authenticate from LDAP without having a user pre-populated in the users database");
+    private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
+    private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).type(BOOLEAN).description("Whether users should be allowed to authenticate from LDAP without having a user pre-populated in the users database");
     private static final FieldDescriptor GIVEN_NAME = fieldWithPath("config.attributeMappings.given_name").optional(null).type(STRING).description(GIVEN_NAME_DESC);
     private static final FieldDescriptor FAMILY_NAME = fieldWithPath("config.attributeMappings.family_name").optional(null).type(STRING).description(FAMILY_NAME_DESC);
     private static final FieldDescriptor EMAIL = fieldWithPath("config.attributeMappings.email").optional(null).type(STRING).description("Map `email` to the attribute for email in the provider assertion.");
@@ -499,10 +500,10 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("type").required().description("`\""+OIDC10+"\"`"),
             fieldWithPath("originKey").required().description("A unique alias for the OIDC 1.0 provider"),
             fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with /.well-known/openid-configurationmit "),
-            fieldWithPath("config.authUrl").required().type(STRING).description("The OIDC 1.0 authorization endpoint URL. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
-            fieldWithPath("config.tokenUrl").required().type(STRING).description("The OIDC 1.0 token endpoint URL.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
-            fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
-            fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+            fieldWithPath("config.authUrl").optional().type(STRING).description("The OIDC 1.0 authorization endpoint URL. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+            fieldWithPath("config.tokenUrl").optional().type(STRING).description("The OIDC 1.0 token endpoint URL.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+            fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+            fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
             fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
             fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
             fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
@@ -717,7 +718,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         );
 
         getMockMvc().perform(get("/identity-providers")
-            .param("rawConfig", "true")
+            .param("rawConfig", "false")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -741,7 +742,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             .andReturn().getResponse().getContentAsString(), IdentityProvider.class);
 
         getMockMvc().perform(get("/identity-providers/{id}", identityProvider.getId())
-            .param("rawConfig", "true")
+            .param("rawConfig", "false")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -882,7 +883,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     private ResultActions deleteIdentityProviderHelper(String id) throws Exception {
         return getMockMvc().perform(delete("/identity-providers/{id}", id)
-            .param("rawConfig", "true")
+            .param("rawConfig", "false")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk());

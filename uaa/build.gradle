@@ -64,7 +64,7 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
-  testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
+  testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
 }
 ext {
   snippetsDir = file('build/generated-snippets')

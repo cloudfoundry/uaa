@@ -45,13 +45,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
-import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -247,6 +241,10 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+
+        assertEquals(SamlConfig.LEGACY_KEY_ID, zoneConfiguration.getSamlConfig().getActiveKeyId());
+        assertEquals(1, zoneConfiguration.getSamlConfig().getKeys().size());
+
         assertFalse(zoneConfiguration.isAccountChooserEnabled());
         assertTrue(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
         assertNull(zoneConfiguration.getLinks().getHomeRedirect());
@@ -424,6 +422,11 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+
+        assertEquals("key1", zoneConfiguration.getSamlConfig().getActiveKeyId());
+        assertEquals(3, zoneConfiguration.getSamlConfig().getKeys().size());
+
+
         assertTrue(zoneConfiguration.isAccountChooserEnabled());
         assertFalse(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
         assertEquals("http://some.redirect.com/redirect", zoneConfiguration.getLinks().getHomeRedirect());

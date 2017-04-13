@@ -42,15 +42,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.hamcrest.Matchers.containsString;
@@ -70,16 +64,9 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.STATE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
@@ -96,13 +83,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         fieldWithPath("[].zoneId").type(STRING).description("The zone ID for the token"),
         fieldWithPath("[].tokenId").type(STRING).description("The unique ID for the token"),
         fieldWithPath("[].clientId").type(STRING).description("Client ID for this token, will always match the client_id claim in the access token used for this call"),
-        fieldWithPath("[].userId").type(STRING).description("User ID for this token, will always match the user_id claim in the access token used for this call"),
+        fieldWithPath("[].userId").optional().type(STRING).description("User ID for this token, will always match the user_id claim in the access token used for this call"),
         fieldWithPath("[].format").type(STRING).description("What format was requested, OPAQUE or JWT"),
         fieldWithPath("[].expiresAt").type(NUMBER).description("Epoch time - token expiration date"),
         fieldWithPath("[].issuedAt").type(NUMBER).description("Epoch time - token issue date"),
         fieldWithPath("[].scope").type(STRING).description("Comma separated list of scopes this token holds, up to 1000 characters"),
         fieldWithPath("[].responseType").type(STRING).description("response type requested during the token request, possible values ID_TOKEN, ACCESS_TOKEN, REFRESH_TOKEN"),
-        fieldWithPath("[].value").type(STRING).description("Access token value will always be null")
+        fieldWithPath("[].value").optional().type(STRING).description("Access token value will always be null")
     );
 
 

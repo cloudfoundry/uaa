@@ -105,13 +105,19 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         return removeKeys(result.get(0));
     }
 
-    private IdentityZone removeKeys(IdentityZone identityZone) {
+    protected IdentityZone removeKeys(IdentityZone identityZone) {
         if(identityZone.getConfig() != null && identityZone.getConfig().getTokenPolicy() != null) {
             identityZone.getConfig().getTokenPolicy().setKeys(null);
         }
         if(identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
             identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(null);
             identityZone.getConfig().getSamlConfig().setPrivateKey(null);
+            identityZone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
+                entry -> {
+                    entry.getValue().setPassphrase(null);
+                    entry.getValue().setKey(null);
+                }
+            );
         }
         return identityZone;
     }
