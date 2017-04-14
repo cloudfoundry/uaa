@@ -30,25 +30,11 @@ public class IdentityZoneEndpointsTests {
         mock(IdentityProviderProvisioning.class),
         mock(IdentityZoneEndpointClientRegistrationService.class)
     );
+    private IdentityZone zone;
 
     @Test
     public void remove_keys_from_map() {
-        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
-        IdentityZoneConfiguration config = zone.getConfig();
-        assertNotNull(config);
-        zone.getConfig().getSamlConfig().setPrivateKey("private");
-        zone.getConfig().getSamlConfig().setPrivateKeyPassword("passphrase");
-        zone.getConfig().getSamlConfig().setCertificate("certificate");
-        zone.getConfig().getSamlConfig().addAndActivateKey("active", new SamlKey("private1","passphrase1","certificate1"));
-
-        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
-        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-            entry -> {
-                assertNotNull(entry.getValue().getKey());
-                assertNotNull(entry.getValue().getPassphrase());
-            }
-        );
+        zone = createZone();
 
         endpoints.removeKeys(zone);
 
@@ -60,5 +46,43 @@ public class IdentityZoneEndpointsTests {
                 assertNull(entry.getValue().getPassphrase());
             }
         );
+    }
+
+    private IdentityZone createZone() {
+        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+        IdentityZoneConfiguration config = zone.getConfig();
+        assertNotNull(config);
+        zone.getConfig().getSamlConfig().setPrivateKey("private");
+        zone.getConfig().getSamlConfig().setPrivateKeyPassword("passphrase");
+        zone.getConfig().getSamlConfig().setCertificate("certificate");
+        zone.getConfig().getSamlConfig().addAndActivateKey("active", new SamlKey("private1", "passphrase1", "certificate1"));
+
+        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
+        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
+        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
+            entry -> {
+                assertNotNull(entry.getValue().getKey());
+                assertNotNull(entry.getValue().getPassphrase());
+            }
+        );
+        return zone;
+    }
+
+    @Test
+    public void restore_keys() {
+        remove_keys_from_map();
+        IdentityZone original = createZone();
+        endpoints.restoreSecretProperties(original, zone);
+
+
+        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
+        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
+        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
+            entry -> {
+                assertNotNull(entry.getValue().getKey());
+                assertNotNull(entry.getValue().getPassphrase());
+            }
+        );
+
     }
 }
