@@ -58,16 +58,16 @@ public class SpringMeteringFilterIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-    @Value("${ORG_ID:ff85feb9-be02-4a73-9b13-9e1970abf09c}")
-    String orgId;
-
-    @Value("${PLAN_ID:pla_b77c-e9fd-434d-afad-c80e45f712fd}")
-    String planId;
+//    @Value("${ORG_ID:4aecd40c-eda0-4a9c-b506-cfe4cc09ea88}")
+//    String orgId;
+//
+//    @Value("${PLAN_ID:line_a9b-789d-4917-b2dd-eb9911f52de5}")
+//    String planId;
 
     @Value("${NUREGO_API_URL:https://am-staging.nurego.com}")
     String nuregoApiUrl;
 
-    @Value("${NUREGO_API_KEY:l4d7f4be-6812-44bd-b95e-9d415210fe14}")
+    @Value("${NUREGO_API_KEY:l694cdb1-59bb-49c5-ac5b-f74518f2dfc0}")
     String nuregoApiKey;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
@@ -157,6 +157,7 @@ public class SpringMeteringFilterIT {
 
     @Test
     public void testFilter() throws Exception {
+        
         Double beforeUsedAmountUsers = getEntitlementUsageByFeatureId(USERS_FEATURE_ID, this.zoneId);
         Double beforeUsedAmountTokens = getEntitlementUsageByFeatureId(TOKEN_FEATURE_ID, this.zoneId);
 
