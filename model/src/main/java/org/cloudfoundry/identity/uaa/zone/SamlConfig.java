@@ -175,4 +175,9 @@ public class SamlConfig {
     protected boolean hasLegacyKey() {
         return keys.get(LEGACY_KEY_ID) != null;
     }
+
+    @JsonIgnore
+    public SamlKey removeKey(String keyId) {
+        return keys.remove(keyId);
+    }
 }

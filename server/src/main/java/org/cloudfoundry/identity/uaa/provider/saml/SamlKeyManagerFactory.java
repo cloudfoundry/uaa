@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
-import org.springframework.util.StringUtils;
 
 import java.security.KeyPair;
 import java.security.KeyStore;
@@ -43,28 +42,30 @@ public final class SamlKeyManagerFactory {
     private static KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
         SamlKey activeKey = keys.get(activeKeyId);
 
-        if(activeKey == null || !StringUtils.hasText(activeKey.getKey())) {
+        if (activeKey == null) {
             return null;
         }
-
 
         try {
             KeyStore keystore = KeyStore.getInstance("JKS");
             keystore.load(null);
             Map<String, String> aliasPasswordMap = new HashMap<>();
             for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
-
-
                 String password = ofNullable(entry.getValue().getPassphrase()).orElse("");
-                KeyWithCert keyWithCert = new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
+                KeyWithCert keyWithCert = entry.getValue().getKey() == null ?
+                    new KeyWithCert(entry.getValue().getCertificate()) :
+                    new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
+
                 X509Certificate cert = keyWithCert.getCert();
-                KeyPair pkey = keyWithCert.getPkey();
 
 
                 String alias = entry.getKey();
                 keystore.setCertificateEntry(alias, cert);
-                keystore.setKeyEntry(alias, pkey.getPrivate(), password.toCharArray(), new Certificate[]{cert});
-                aliasPasswordMap.put(alias, password);
+                if (keyWithCert.getPkey()!=null) {
+                    KeyPair pkey = keyWithCert.getPkey();
+                    keystore.setKeyEntry(alias, pkey.getPrivate(), password.toCharArray(), new Certificate[]{cert});
+                    aliasPasswordMap.put(alias, password);
+                }
             }
 
 

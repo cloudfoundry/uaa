@@ -20,12 +20,9 @@ import static java.util.Collections.EMPTY_MAP;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.*;
 
-/**
- * Created by pivotal on 4/12/17.
- */
 public class SamlKeyManagerFactoryTests {
 
-    private String legacyKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+    public static final String legacyKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n" +
         "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n" +
         "fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB\n" +
@@ -40,8 +37,8 @@ public class SamlKeyManagerFactoryTests {
         "N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB\n" +
         "qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/\n" +
         "-----END RSA PRIVATE KEY-----";
-    private String legacyPassphrase = "password";
-    private String legacyCertificate = "-----BEGIN CERTIFICATE-----\n" +
+    public static final String legacyPassphrase = "password";
+    public static final String legacyCertificate = "-----BEGIN CERTIFICATE-----\n" +
         "MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO\n" +
         "MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO\n" +
         "MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h\n" +
@@ -62,7 +59,7 @@ public class SamlKeyManagerFactoryTests {
         "RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
         "-----END CERTIFICATE-----";
 
-    private String key1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+    public static final String key1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEogIBAAKCAQEArRkvkddLUoNyuvu0ktkcLL0CyGG8Drh9oPsaVOLVHJqB1Ebr\n" +
         "oNMTPbY0HPjuD5WBDZTi3ftNLp1mPn9wFy6FhMTvIYeQmTskH8m/kyVReXG/zfWq\n" +
         "a4+V6UW4nmUcvfF3YNrHvN5VPTWTJrc2KBzseWQ70OaBNfBi6z4XbdOF45dDfck2\n" +
@@ -89,8 +86,8 @@ public class SamlKeyManagerFactoryTests {
         "iNFhc0lnDcVeZlwg4i7M7MH8UFdWj3ZEylsXjrjIspuAJg7a/6qmP9s2ITVffqYk\n" +
         "2slwG2SIQchM5/0uOiP9W0YIjYEe7hgHUmL9Rh8xFuo9y72GH8c=\n" +
         "-----END RSA PRIVATE KEY-----";
-    private String passphrase1 = "password";
-    private String certificate1 = "-----BEGIN CERTIFICATE-----\n" +
+    public static final String passphrase1 = "password";
+    public static final String certificate1 = "-----BEGIN CERTIFICATE-----\n" +
         "MIID0DCCArgCCQDBRxU0ucjw6DANBgkqhkiG9w0BAQsFADCBqTELMAkGA1UEBhMC\n" +
         "VVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMR8wHQYDVQQK\n" +
         "ExZDbG91ZCBGb3VuZHJ5IElkZW50aXR5MQ4wDAYDVQQLEwVLZXkgMTEiMCAGA1UE\n" +
@@ -114,7 +111,7 @@ public class SamlKeyManagerFactoryTests {
         "ynuP3shhqhFvaaiUTZP4l5yF/GQ=\n" +
         "-----END CERTIFICATE-----";
 
-    private String key2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+    public static final String key2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEpAIBAAKCAQEAwt7buITRZhXX98apcgJbiHhrPkrgn5MCsCphRQ89oWPUHWjN\n" +
         "j9Kz2m9LaKgq9DnNLl22U4e6/LUQToBCLxkIqwaobZKjIUjNAmNomqbNO7AD2+K7\n" +
         "RCiQ2qijWUwXGu+5+fSmF/MOermNKUDiQnRJSSSAPObAHOI980zTWVsApKpcFVaV\n" +
@@ -141,8 +138,8 @@ public class SamlKeyManagerFactoryTests {
         "fUTMp4k+AQCm9UwJAiSf4VUwCbhXUZ3S+xB55vrH+Yc2OMtsIYhzr3OCkbgKBMDn\n" +
         "nBVKSGAomYD2kCUmSbg7bUrFfGntmvOLqTHtVfrCyE5i8qS63RbHlA==\n" +
         "-----END RSA PRIVATE KEY-----";
-    private String passphrase2 = "password";
-    private String certificate2 = "-----BEGIN CERTIFICATE-----\n" +
+    public static final String passphrase2 = "password";
+    public static final String certificate2 = "-----BEGIN CERTIFICATE-----\n" +
         "MIID0DCCArgCCQDqnPTUvA17+TANBgkqhkiG9w0BAQsFADCBqTELMAkGA1UEBhMC\n" +
         "VVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMR8wHQYDVQQK\n" +
         "ExZDbG91ZCBGb3VuZHJ5IElkZW50aXR5MQ4wDAYDVQQLEwVLZXkgMjEiMCAGA1UE\n" +
@@ -256,6 +253,15 @@ public class SamlKeyManagerFactoryTests {
 
         assertNotEquals(ks1.getCertificate(alias), ks2.getCertificate(alias));
         assertEquals(ks1.getCertificate(alias), ks1.getCertificate(alias));
+    }
+
+    @Test
+    public void test_add_certs_keys_only() throws Exception {
+        config.setKeys(EMPTY_MAP);
+        config.addAndActivateKey("cert-only", new SamlKey(null, null, certificate1));
+        JKSKeyManager manager1 = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
+        assertNotNull(manager1.getDefaultCredential().getPublicKey());
+        assertNull(manager1.getDefaultCredential().getPrivateKey());
     }
 
 }
