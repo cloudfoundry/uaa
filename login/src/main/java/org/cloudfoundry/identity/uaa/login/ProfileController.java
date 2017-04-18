@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
@@ -20,11 +22,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.View;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,6 +41,7 @@ import java.util.Map;
 @Controller
 public class ProfileController {
 
+    protected static Log logger = LogFactory.getLog(ProfileController.class);
     private final ApprovalsService approvalsService;
     private final ClientDetailsService clientDetailsService;
 
@@ -112,5 +119,11 @@ public class ProfileController {
             return Origin.UAA.equals(principal.getOrigin());
         }
         return false;
+    }
+
+    @ExceptionHandler
+    public View handleException(NoSuchClientException nsce) {
+        logger.debug("Unable to find client for approvals:" + nsce.getMessage());
+        return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
     }
 }

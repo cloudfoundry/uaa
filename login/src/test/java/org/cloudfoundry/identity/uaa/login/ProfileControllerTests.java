@@ -33,6 +33,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -108,6 +109,7 @@ public class ProfileControllerTests extends TestClassNullifier {
         approvalsByClientId.put("app", Arrays.asList(readApproval, writeApproval));
 
         Mockito.when(approvalsService.getCurrentApprovalsByClientId()).thenReturn(approvalsByClientId);
+        Mockito.doThrow(new NoSuchClientException("invalidId")).when(approvalsService).deleteApprovalsForClient("invalidId");
 
         BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
@@ -203,6 +205,18 @@ public class ProfileControllerTests extends TestClassNullifier {
         Assert.assertEquals("app", writeApproval.getClientId());
         Assert.assertEquals("thing.write", writeApproval.getScope());
         Assert.assertEquals(DENIED, writeApproval.getStatus());
+    }
+
+    @Test
+    public void validate_client_id_on_revoke() throws Exception {
+        MockHttpServletRequestBuilder post = post("/profile")
+            .param("checkedScopes", "app-resource.read")
+            .param("delete", "")
+            .param("clientId", "invalidId");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("profile?error_message_code=request.invalid_parameter"));
     }
 
     @Test

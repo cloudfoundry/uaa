@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -11,15 +11,6 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.approval;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,11 +31,27 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Controller
 public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsControllerService {
@@ -170,6 +177,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ResponseBody
     @Override
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
+        clientDetailsService.loadClientByClientId(clientId);
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
         approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
@@ -203,10 +211,17 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ResponseBody
     @Override
     public SimpleMessage revokeApprovals(@RequestParam(required = true) String clientId) {
+        clientDetailsService.loadClientByClientId(clientId);
         String username = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
         approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
         return new SimpleMessage("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
+    }
+
+    @ExceptionHandler
+    public View handleException(NoSuchClientException nsce) {
+        logger.debug("Client not found:" + nsce.getMessage());
+        return handleException(new UaaException(nsce.getMessage(), 404));
     }
 
     @ExceptionHandler
