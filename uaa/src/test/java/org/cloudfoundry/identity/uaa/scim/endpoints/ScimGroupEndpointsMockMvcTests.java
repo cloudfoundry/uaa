@@ -75,8 +75,11 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -122,7 +125,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 "clients.read clients.write clients.secret clients.admin");
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
-        String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
+        String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,other.scope";
         utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo","bar","scim.read"), Arrays.asList("client_credentials", "password"), authorities);
         scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read password.write");
         scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.write password.write");
@@ -1136,6 +1139,35 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .header("Authorization", "Bearer " + scimWriteToken)
             .header("Content-Type", APPLICATION_JSON_VALUE))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void patch_has_one_path() throws Exception {
+        getMockMvc().perform(
+            patch("/Group/groupId/members")
+                .header("Authorization", "Bearer " + scimWriteToken)
+                .header("Content-Type", APPLICATION_JSON_VALUE)
+        )
+            .andDo(print())
+            .andExpect(status().isFound()) //gets caught by the ui filter for unknown URIs
+            .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    public void add_member_bad_token() throws Exception {
+        ScimUser user = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.EMPTY_SET);
+        String groupId = getGroupId("scim.read");
+        String anyOldToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"other.scope");
+
+        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+
+        MockHttpServletRequestBuilder post = post("/Groups/" + groupId + "/members")
+            .header("Authorization", "Bearer " + anyOldToken)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .content(JsonUtils.writeValueAsString(scimGroupMember));
+        getMockMvc().perform(post)
+            .andExpect(status().isForbidden());
+
     }
 
     @Test
