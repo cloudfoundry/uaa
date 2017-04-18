@@ -41,11 +41,12 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-@Ignore //we're having issues with these tests right now
+
 public class JdbcApprovalStoreTests extends JdbcTestBase {
 
 
@@ -119,9 +120,9 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
         assertEquals(clientId, approvals.get(0).getClientId());
         assertEquals(userId, approvals.get(0).getUserId());
-        assertEquals(Math.round(expiresAt.getTime() / 1000), Math.round(approvals.get(0).getExpiresAt().getTime() / 1000));
-        assertEquals(Math.round(lastUpdatedAt.getTime() / 1000),
-                        Math.round(approvals.get(0).getLastUpdatedAt().getTime() / 1000));
+        //time comparison - we're satisfied if it is within 2 seconds
+        assertThat((int)Math.abs(expiresAt.getTime()/1000d - approvals.get(0).getExpiresAt().getTime()/1000d), lessThan(2));
+        assertThat((int)Math.abs(lastUpdatedAt.getTime()/1000d - approvals.get(0).getLastUpdatedAt().getTime()/1000d), lessThan(2));
         assertEquals(scope, approvals.get(0).getScope());
         assertEquals(status, approvals.get(0).getStatus());
     }
@@ -183,45 +184,51 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @Test
     public void addSameApprovalRepeatedlyUpdatesExpiry() {
+        Date timeFromNow = Approval.timeFromNow(6000);
         assertTrue(dao.addApproval(new Approval()
             .setUserId("u2")
             .setClientId("c2")
             .setScope("dash.user")
-            .setExpiresAt(Approval.timeFromNow(6000))
+            .setExpiresAt(timeFromNow)
             .setStatus(APPROVED)));
         Approval app = dao.getApprovals("u2", "c2").iterator().next();
-        assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
+        //time comparison - we're satisfied if it is within 2 seconds
+        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
 
+
+        timeFromNow = Approval.timeFromNow(8000);
         assertTrue(dao.addApproval(new Approval()
             .setUserId("u2")
             .setClientId("c2")
             .setScope("dash.user")
-            .setExpiresAt(Approval.timeFromNow(8000))
+            .setExpiresAt(timeFromNow)
             .setStatus(APPROVED)));
         app = dao.getApprovals("u2", "c2").iterator().next();
-        assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 8000) / 1000));
+        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
     }
 
     @Test
     @Ignore //this test has issues
     public void addSameApprovalDifferentStatusRepeatedlyOnlyUpdatesStatus() {
+        Date timeFromNow = Approval.timeFromNow(6000);
         assertTrue(dao.addApproval(new Approval()
             .setUserId("u2")
             .setClientId("c2")
             .setScope("dash.user")
-            .setExpiresAt(Approval.timeFromNow(6000))
+            .setExpiresAt(timeFromNow)
             .setStatus(APPROVED)));
         Approval app = dao.getApprovals("u2", "c2").iterator().next();
-        assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
+        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
 
+        timeFromNow = Approval.timeFromNow(8000);
         assertTrue(dao.addApproval(new Approval()
             .setUserId("u2")
             .setClientId("c2")
             .setScope("dash.user")
-            .setExpiresAt(Approval.timeFromNow(8000))
+            .setExpiresAt(timeFromNow)
             .setStatus(DENIED)));
         app = dao.getApprovals("u2", "c2").iterator().next();
-        assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
+        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
         assertEquals(DENIED, app.getStatus());
     }
 
@@ -237,7 +244,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setExpiresAt(now)
             .setStatus(APPROVED));
         app = dao.getApprovals("u1", "c1").iterator().next();
-        assertEquals(Math.round(now.getTime() / 1000), Math.round(app.getExpiresAt().getTime() / 1000));
+        assertThat((int)Math.abs(now.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
     }
 
     @Test
@@ -252,7 +259,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
         // On mysql, the expiry is rounded off to the nearest second so
         // the following assert could randomly fail.
-        Thread.sleep(500);
+        Thread.sleep(1500);
         dao.purgeExpiredApprovals();
         List<Approval> remainingApprovals = dao.getApprovals("user_id pr");
         assertEquals(3, remainingApprovals.size());

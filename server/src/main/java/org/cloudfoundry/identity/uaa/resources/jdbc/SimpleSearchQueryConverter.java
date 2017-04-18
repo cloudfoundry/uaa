@@ -13,13 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.apache.commons.logging.Log;
@@ -28,6 +21,13 @@ import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter.ORDER_BY;
 
@@ -130,7 +130,12 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         return null;
     }
 
-    protected String comparisonClause(SCIMFilter filter, String comparator, Map<String, Object> values, String valuePrefix, String valueSuffix, String paramPrefix) {
+    protected String comparisonClause(SCIMFilter filter,
+                                      String comparator,
+                                      Map<String, Object> values,
+                                      String valuePrefix,
+                                      String valueSuffix,
+                                      String paramPrefix) {
         String pName = getParamName(values, paramPrefix);
         String paramName = ":"+pName;
         if (filter.getFilterValue() == null) {
