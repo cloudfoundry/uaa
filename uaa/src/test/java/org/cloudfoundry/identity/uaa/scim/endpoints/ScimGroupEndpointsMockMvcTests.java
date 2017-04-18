@@ -63,6 +63,7 @@ import static junit.framework.Assert.assertNotNull;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -82,6 +83,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private List<String> defaultExternalMembers;
     private List<ScimGroupExternalMember> databaseExternalMembers;
+    private TestClient testClient;
 
     @Before
     public void setUp() throws Exception {
@@ -94,22 +96,35 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         ScimExternalGroupBootstrap bootstrap = getWebApplicationContext().getBean(ScimExternalGroupBootstrap.class);
         bootstrap.afterPropertiesSet();
 
-        TestClient testClient = new TestClient(getMockMvc());
+        testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
-                "clients.read clients.write clients.secret clients.admin");
+                                                                            "clients.read clients.write clients.secret clients.admin");
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
         utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singletonList("oauth"), Collections.singletonList("foo,bar"), Collections.singletonList("client_credentials"), authorities);
-        scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read password.write");
-        scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.write password.write");
+        scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.read password.write");
+        scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.write password.write");
 
         defaultExternalMembers = new LinkedList<>(originalDefaultExternalMembers);
         databaseExternalMembers = new LinkedList<>(originalDatabaseExternalMembers);
 
         scimUser = createUser(scimWriteToken, new HashSet(Arrays.asList("scim.read", "scim.write", "scim.me")));
-        scimReadUserToken = testClient.getUserOAuthAccessToken("cf","", scimUser.getUserName(), "password", "scim.read");
-        identityClientToken = testClient.getClientCredentialsOAuthAccessToken("identity","identitysecret","");
+        scimReadUserToken = testClient.getUserOAuthAccessToken("cf", "", scimUser.getUserName(), "password", "scim.read");
+        identityClientToken = testClient.getClientCredentialsOAuthAccessToken("identity", "identitysecret", "");
+    }
+
+    @Test
+    public void test_member_add() throws Exception {
+        String token = testClient.getUserOAuthAccessToken("cf","", scimUser.getUserName(), "password", "openid");
+        String groupId = getGroupId("scim.read");
+        ScimGroupMember scimGroupMember = new ScimGroupMember(scimUser.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        MockHttpServletRequestBuilder post = post("/Groups/" + groupId + "/members")
+            .header("Authorization", "Bearer " + token)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .content(JsonUtils.writeValueAsString(scimGroupMember));
+        getMockMvc().perform(post)
+            .andExpect(status().isForbidden());
     }
 
     @Test
