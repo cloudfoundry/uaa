@@ -385,8 +385,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Group/{groupId}", "/Groups/{groupId}" },
-    method = RequestMethod.PATCH)
+    @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.PATCH)
     @ResponseBody
     public ScimGroup patchGroup(@RequestBody ScimGroup patch, @PathVariable
                                 String groupId,
