@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,40 +12,44 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
-import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
+import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Controller
 public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsControllerService {
@@ -168,6 +172,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ResponseBody
     @Override
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
+        clientDetailsService.loadClientByClientId(clientId);
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
         approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
@@ -202,8 +207,15 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     public ActionResult revokeApprovals(@RequestParam(required = true) String clientId) {
         String username = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
+        clientDetailsService.loadClientByClientId(clientId);
         approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
         return new ActionResult("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
+    }
+
+    @ExceptionHandler
+    public View handleException(NoSuchClientException nsce) {
+        logger.debug("Client not found:"+nsce.getMessage());
+        return handleException(new UaaException(nsce.getMessage(), 404));
     }
 
     @ExceptionHandler
