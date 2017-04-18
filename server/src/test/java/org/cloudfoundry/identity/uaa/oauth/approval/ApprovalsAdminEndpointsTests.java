@@ -361,12 +361,28 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         assertThat(doWithTiming("revokeApprovalsCount", "client_id eq \"c2\""), lessThan(5d) );
     }
 
-    public void revokeApprovalsCount(String filter) {
-        assertTrue(dao.revokeApprovals(filter));
+    public void revokeApprovalsCountForUser(String userId) {
+        assertTrue(dao.revokeApprovalsForClient(userId));
     }
 
-    public int getApprovalsCount(String filter) {
-        return dao.getApprovals(filter).size();
+    public void revokeApprovalsCountForClient(String clientId) {
+        assertTrue(dao.revokeApprovalsForClient(clientId));
+    }
+
+    public void revokeApprovalsCountForClientAndUser(String clientId, String userId) {
+        assertTrue(dao.revokeApprovalsForClientAndUser(clientId, userId));
+    }
+
+    public int getApprovalsCountForUser(String userId) {
+        return dao.getApprovalsForUser(userId).size();
+    }
+
+    public int getApprovalsCountForClient(String clientId) {
+        return dao.getApprovalsForClient(clientId).size();
+    }
+
+    public int getApprovalsCount(String clientId, String userId) {
+        return dao.getApprovals(userId, clientId).size();
     }
 
     public void rebuildIndices() {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Iterables;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
@@ -1570,16 +1571,8 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
     }
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
-        String filter = "client_id eq \""+clientId+"\"";
-
-        MockHttpServletRequestBuilder get = get("/approvals")
-                        .header("Authorization", "Bearer " + token)
-                        .accept(APPLICATION_JSON)
-                        .param("filter", filter);
-        MvcResult result = getMockMvc().perform(get).andExpect(status().isOk()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        Approval[] approvals = (Approval[])arrayFromString(body, Approval[].class);
-        return approvals;
+        JdbcApprovalStore endpoint = getWebApplicationContext().getBean(JdbcApprovalStore.class);
+        return endpoint.getApprovalsForClient(clientId).toArray(new Approval[0]);
     }
 
 

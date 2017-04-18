@@ -41,6 +41,7 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -129,7 +130,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @Test
     public void canGetApprovals() {
-        assertEquals(3, dao.getApprovals("user_id pr").size());
+        assertEquals(2, dao.getApprovalsForClient("c1").size());
         assertEquals(1, dao.getApprovals("u2", "c1").size());
         assertEquals(0, dao.getApprovals("u2", "c2").size());
         assertEquals(1, dao.getApprovals("u1", "c1").size());
@@ -154,29 +155,42 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     @Test
     public void approvals_is_zone_aware() throws Exception {
         String filter = "client_id eq \"c1\" or client_id eq \"c2\" or client_id eq \"c3\"";
-        assertEquals(3, dao.getApprovals(filter).size());
+        assertThat(dao.getApprovalsForClient("c1").size(), equalTo(2));
+        assertThat(dao.getApprovalsForClient("c2").size(), equalTo(1));
+        assertThat(dao.getApprovalsForClient("c3").size(), equalTo(0));
+
         IdentityZoneHolder.set(otherZone);
-        assertEquals(0, dao.getApprovals(filter).size());
-        dao.revokeApprovals(filter);
+        assertThat(dao.getApprovalsForClient("c1").size(), equalTo(0));
+        assertThat(dao.getApprovalsForClient("c2").size(), equalTo(0));
+        assertThat(dao.getApprovalsForClient("c3").size(), equalTo(0));
+        dao.revokeApprovalsForClient("c1");
+        dao.revokeApprovalsForClient("c2");
+        dao.revokeApprovalsForClient("c3");
+        dao.revokeApprovalsForUser("u1");
+        dao.revokeApprovalsForUser("u2");
+        dao.revokeApprovalsForUser("u3");
+
         IdentityZoneHolder.clear();
-        assertEquals(3, dao.getApprovals(filter).size());
+        assertThat(dao.getApprovalsForClient("c1").size(), equalTo(2));
+        assertThat(dao.getApprovalsForClient("c2").size(), equalTo(1));
+        assertThat(dao.getApprovalsForClient("c3").size(), equalTo(0));
     }
 
     @Test
     public void canRevokeApprovals() {
-        assertEquals(2, dao.getApprovals("user_id eq \"u1\"").size());
-        assertTrue(dao.revokeApprovals("user_id eq \"u1\""));
-        assertEquals(0, dao.getApprovals("user_id eq \"u1\"").size());
+        assertEquals(2, dao.getApprovalsForUser("u1").size());
+        assertTrue(dao.revokeApprovalsForUser("u1"));
+        assertEquals(0, dao.getApprovalsForUser("u1").size());
     }
 
     @Test
     public void canRevokeSingleApproval() {
-        List<Approval> approvals = dao.getApprovals("user_id eq \"u1\"");
+        List<Approval> approvals = dao.getApprovalsForUser("u1");
         assertEquals(2, approvals.size());
 
         Approval toRevoke = approvals.get(0);
         assertTrue(dao.revokeApproval(toRevoke));
-        List<Approval> approvalsAfterRevoke = dao.getApprovals("user_id eq \"u1\"");
+        List<Approval> approvalsAfterRevoke = dao.getApprovalsForUser("u1");
 
         assertEquals(1, approvalsAfterRevoke.size());
         assertFalse(approvalsAfterRevoke.contains(toRevoke));
@@ -249,20 +263,24 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @Test
     public void canPurgeExpiredApprovals() throws InterruptedException {
-        List<Approval> approvals = dao.getApprovals("user_id pr");
-        assertEquals(3, approvals.size());
+        assertEquals(0, dao.getApprovalsForClient("c3").size());
+        assertEquals(0, dao.getApprovalsForUser("u3").size());
+        assertEquals(2, dao.getApprovalsForClient("c1").size());
+        assertEquals(2, dao.getApprovalsForUser("u1").size());
         addApproval("u3", "c3", "test1", 0, APPROVED);
         addApproval("u3", "c3", "test2", 0, DENIED);
         addApproval("u3", "c3", "test3", 0, APPROVED);
-        List<Approval> newApprovals = dao.getApprovals("user_id pr");
-        assertEquals(6, newApprovals.size());
+        assertEquals(3, dao.getApprovalsForClient("c3").size());
+        assertEquals(3, dao.getApprovalsForUser("u3").size());
 
         // On mysql, the expiry is rounded off to the nearest second so
         // the following assert could randomly fail.
         Thread.sleep(1500);
         dao.purgeExpiredApprovals();
-        List<Approval> remainingApprovals = dao.getApprovals("user_id pr");
-        assertEquals(3, remainingApprovals.size());
+        assertEquals(0, dao.getApprovalsForClient("c3").size());
+        assertEquals(0, dao.getApprovalsForUser("u3").size());
+        assertEquals(2, dao.getApprovalsForClient("c1").size());
+        assertEquals(2, dao.getApprovalsForUser("u1").size());
     }
 
     @Test

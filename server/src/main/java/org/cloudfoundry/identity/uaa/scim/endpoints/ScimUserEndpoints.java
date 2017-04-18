@@ -465,8 +465,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (user == null || approvalStore == null) {
             return user;
         }
-        Set<Approval> approvals = new HashSet<Approval>(
-            approvalStore.getApprovals(String.format(USER_APPROVALS_FILTER_TEMPLATE, user.getId())));
+        Set<Approval> approvals = new HashSet<Approval>(approvalStore.getApprovalsForUser(user.getId()));
         Set<Approval> active = new HashSet<Approval>(approvals);
         for (Approval approval : approvals) {
             if (!approval.isCurrentlyActive()) {
