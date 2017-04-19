@@ -7,7 +7,7 @@ dependencies {
   compile(identityModel)
 
   //Audit service dependency
-  compile group: 'com.ge.predix.audit', name: 'audit-sdk', version:'0.0.4-SNAPSHOT'
+  compile group: 'com.ge.predix.audit', name: 'audit-sdk', version:'0.0.6'
   compile group: 'org.glassfish', name: 'javax.el', version: '3.0.1-b08'
   
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
