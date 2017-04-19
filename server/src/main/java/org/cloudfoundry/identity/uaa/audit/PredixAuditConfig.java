@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 
 import com.ge.predix.audit.sdk.AuditCallback;
 import com.ge.predix.audit.sdk.AuditClient;
+import com.ge.predix.audit.sdk.AuditClientType;
 import com.ge.predix.audit.sdk.FailReport;
 import com.ge.predix.audit.sdk.config.AuditConfiguration;
 import com.ge.predix.audit.sdk.config.vcap.VcapLoaderServiceImpl;
@@ -29,8 +30,10 @@ public class PredixAuditConfig {
     @Bean
     public AuditClient auditClient() throws AuditException, EventHubClientException {
         AuditConfiguration sdkConfig = getConfig();
+        sdkConfig.setClientType(AuditClientType.ASYNC);
         AuditCallback auditCallback = auditCallback();
         log.info("Connecting to Audit Service.");
+        log.info("Auditing will be " + sdkConfig.getClientType());
         return new AuditClient(sdkConfig, auditCallback);
     }
 
