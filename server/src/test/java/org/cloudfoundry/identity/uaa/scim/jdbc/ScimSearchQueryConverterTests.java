@@ -58,8 +58,8 @@ public class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("username pr and emails.value co \".com\"", null, false),"(username IS NOT NULL AND LOWER(email) LIKE LOWER(:__value_0))", 1);
         validate(filterProcessor.convert("username eq \"joe\" or emails.value co \".com\"", null, false),"(LOWER(username) = LOWER(:__value_0) OR LOWER(email) LIKE LOWER(:__value_1))", 2);
         validate(filterProcessor.convert("active eq true", null, false),"active = :__value_0", 1, Boolean.class);
-        validate(filterProcessor.convert("test eq 1000000.45", null, false),"test = :__value_0", 1, Double.class);
-        validate(filterProcessor.convert("test eq 1000000", null, false),"test = :__value_0", 1, Double.class);
+        validate(filterProcessor.convert("Version eq 1000000.45", null, false),"Version = :__value_0", 1, Double.class);
+        validate(filterProcessor.convert("meta.VerSion eq 1000000", null, false),"VerSion = :__value_0", 1, Double.class);
     }
 
     @Test
@@ -84,8 +84,8 @@ public class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("username pr and emails.value co \".com\"", null, false),"(username IS NOT NULL AND email LIKE :__value_0)", 1);
         validate(filterProcessor.convert("username eq \"joe\" or emails.value co \".com\"", null, false),"(username = :__value_0 OR email LIKE :__value_1)", 2);
         validate(filterProcessor.convert("active eq true", null, false),"active = :__value_0", 1, Boolean.class);
-        validate(filterProcessor.convert("test eq 1000000.45", null, false),"test = :__value_0", 1, Double.class);
-        validate(filterProcessor.convert("test eq 1000000", null, false),"test = :__value_0", 1, Double.class);
+        validate(filterProcessor.convert("Version eq 1000000.45", null, false),"Version = :__value_0", 1, Double.class);
+        validate(filterProcessor.convert("meta.VerSion eq 1000000", null, false),"VerSion = :__value_0", 1, Double.class);
     }
 
     @Test
