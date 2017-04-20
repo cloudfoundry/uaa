@@ -31,38 +31,44 @@ public class CommonLoginPolicy implements LoginPolicy {
     private final AuditEventType successEventType;
     private final AuditEventType failureEventType;
     private final TimeService timeService;
-    
+    private final boolean enabled;
+
     public CommonLoginPolicy(UaaAuditService auditService,
                              LockoutPolicyRetriever lockoutPolicyRetriever,
                              AuditEventType successEventType,
                              AuditEventType failureEventType,
-                             TimeService timeService) {
+                             TimeService timeService,
+                             boolean enabled) {
         this.auditService = auditService;
         this.lockoutPolicyRetriever = lockoutPolicyRetriever;
         this.successEventType = successEventType;
         this.failureEventType = failureEventType;
         this.timeService = timeService;
+        this.enabled = enabled;
     }
 
     @Override
     public Result isAllowed(String principalId) {
-        LockoutPolicy lockoutPolicy = lockoutPolicyRetriever.getLockoutPolicy();
+        int failureCount = 0;
+        if (enabled) {
+            LockoutPolicy lockoutPolicy = lockoutPolicyRetriever.getLockoutPolicy();
 
-        long eventsAfter = timeService.getCurrentTimeMillis() - lockoutPolicy.getCountFailuresWithin() * 1000;
-        List<AuditEvent> events = auditService.find(principalId, eventsAfter);
+            long eventsAfter = timeService.getCurrentTimeMillis() - lockoutPolicy.getCountFailuresWithin() * 1000;
+            List<AuditEvent> events = auditService.find(principalId, eventsAfter);
 
-        final int failureCount = sequentialFailureCount(events);
+            failureCount = sequentialFailureCount(events);
 
-        if (failureCount >= lockoutPolicy.getLockoutAfterFailures()) {
-            // Check whether time of most recent failure is within the lockout period
-            AuditEvent lastFailure = mostRecentFailure(events);
-            if (lastFailure != null && lastFailure.getTime() > timeService.getCurrentTimeMillis() - lockoutPolicy.getLockoutPeriodSeconds() * 1000) {
-                return new Result(false, failureCount);
+            if (failureCount >= lockoutPolicy.getLockoutAfterFailures()) {
+                // Check whether time of most recent failure is within the lockout period
+                AuditEvent lastFailure = mostRecentFailure(events);
+                if (lastFailure != null && lastFailure.getTime() > timeService.getCurrentTimeMillis() - lockoutPolicy.getLockoutPeriodSeconds() * 1000) {
+                    return new Result(false, failureCount);
+                }
             }
         }
         return new Result(true, failureCount);
     }
-    
+
     /**
      * Counts the number of failures that occurred without an intervening
      * successful login.
@@ -80,7 +86,7 @@ public class CommonLoginPolicy implements LoginPolicy {
         }
         return failureCount;
     }
-    
+
     private AuditEvent mostRecentFailure(List<AuditEvent> events) {
         for (AuditEvent event : events) {
             if (event.getType() == failureEventType) {
@@ -89,7 +95,7 @@ public class CommonLoginPolicy implements LoginPolicy {
         }
         return null;
     }
-    
+
     public LockoutPolicyRetriever getLockoutPolicyRetriever() {
         return lockoutPolicyRetriever;
     }

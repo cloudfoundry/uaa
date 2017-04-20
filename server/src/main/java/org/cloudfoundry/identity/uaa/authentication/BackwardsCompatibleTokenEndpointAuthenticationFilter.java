@@ -62,8 +62,6 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private static final Log logger = LogFactory.getLog(BackwardsCompatibleTokenEndpointAuthenticationFilter.class);
 
-    private static final boolean debug = logger.isDebugEnabled();
-
     private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource = new WebAuthenticationDetailsSource();
 
     private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
@@ -149,17 +147,13 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             //happens when all went well, but the client is not authorized for the identity provider
             UnapprovedClientAuthenticationException ex = new UnapprovedClientAuthenticationException(failed.getMessage(), failed);
             SecurityContextHolder.clearContext();
-            if (debug) {
-                logger.debug("Authentication request for failed: " + failed);
-            }
+            logger.debug("Authentication request for failed: " + failed);
             onUnsuccessfulAuthentication(request, response, ex);
             authenticationEntryPoint.commence(request, response, ex);
             return;
         } catch (AuthenticationException failed) {
             SecurityContextHolder.clearContext();
-            if (debug) {
-                logger.debug("Authentication request for failed: " + failed);
-            }
+            logger.debug("Authentication request for failed: " + failed);
             onUnsuccessfulAuthentication(request, response, failed);
             authenticationEntryPoint.commence(request, response, failed);
             return;
@@ -211,15 +205,11 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         Authentication authResult = null;
         if ("password".equals(grantType)) {
             Authentication credentials = extractCredentials(request);
-            if (debug) {
-                logger.debug("Authentication credentials found password grant for '" + credentials.getName() + "'");
-            }
+            logger.debug("Authentication credentials found password grant for '" + credentials.getName() + "'");
             authResult = authenticationManager.authenticate(credentials);
             return authResult;
         } else if (GRANT_TYPE_SAML2_BEARER.equals(grantType)) {
-            if (debug) {
-                logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");
-            }
+            logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");
             String assertion = request.getParameter("assertion");
             if (assertion != null && samlAuthenticationFilter != null) {
                 logger.debug("Attempting SAML authentication for token endpoint.");

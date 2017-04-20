@@ -36,7 +36,8 @@
 
 
     <bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcFailedLoginCountingAuditService">
-        <constructor-arg ref="dataSource" />
+        <constructor-arg index="0" ref="jdbcTemplate" />
+        <constructor-arg index="1" value="${authentication.policy.client.lockoutEnabled:false}" />
     </bean>
 
     <!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
