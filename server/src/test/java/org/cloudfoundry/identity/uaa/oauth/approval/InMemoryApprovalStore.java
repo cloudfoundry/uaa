@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,12 +17,8 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * 
- * @author Joel D'sa
- * 
- */
 public class InMemoryApprovalStore implements ApprovalStore {
 
     private ArrayList<Approval> store = new ArrayList<Approval>();
@@ -44,16 +40,6 @@ public class InMemoryApprovalStore implements ApprovalStore {
     }
 
     @Override
-    public boolean revokeApprovals(String filter) {
-        return false;
-    }
-
-    @Override
-    public List<Approval> getApprovals(String filter) {
-        return null;
-    }
-
-    @Override
     public List<Approval> getApprovals(String userName, String clientId) {
         ArrayList<Approval> returnList = new ArrayList<Approval>();
 
@@ -65,4 +51,36 @@ public class InMemoryApprovalStore implements ApprovalStore {
         return returnList;
     }
 
+    @Override
+    public boolean revokeApprovalsForUser(String userId) {
+        return store.removeIf(approval -> userId.equals(approval.getUserId()));
+    }
+
+    @Override
+    public boolean revokeApprovalsForClient(String clientId) {
+        return store.removeIf(approval -> clientId.equals(approval.getClientId()));
+    }
+
+    @Override
+    public boolean revokeApprovalsForClientAndUser(String clientId, String userId) {
+        return store.removeIf(
+            approval ->
+                clientId.equals(approval.getClientId()) &&
+                userId.equals(approval.getUserId())
+        );
+    }
+
+    @Override
+    public List<Approval> getApprovalsForUser(String userId) {
+        return store.stream()
+            .filter(approval -> userId.equals(approval.getUserId()))
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Approval> getApprovalsForClient(String clientId) {
+        return store.stream()
+            .filter(approval -> clientId.equals(approval.getClientId()))
+            .collect(Collectors.toList());
+    }
 }

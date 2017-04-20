@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,7 +28,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
@@ -39,9 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 
@@ -137,38 +133,68 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     @Override
     public boolean revokeApproval(Approval approval) {
-        return revokeApprovals(String.format("user_id eq \"%s\" and client_id eq \"%s\" and scope eq \"%s\"", approval.getUserId(), approval.getClientId(), approval.getScope()));
+        String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
+        sql += " WHERE user_id = ? AND client_id = ? AND scope = ? AND identity_zone_id = ?";
+        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int pos = 1;
+                ps.setString(pos++, approval.getUserId());
+                ps.setString(pos++, approval.getClientId());
+                ps.setString(pos++, approval.getScope());
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+            }
+        });
+        return count > 0;
     }
 
     @Override
-    public boolean revokeApprovals(String filter) {
-        ProcessedFilter where = queryConverter.convert(filter, null, true);
-        logger.debug(String.format("Filtering approvals with filter: [%s]", where));
-
-        String sql;
-        Map<String, Object> sqlParams = new HashMap<>(where.getParams());
-        if (handleRevocationsAsExpiry) {
-            // just expire all approvals matching the filter
-            sql = EXPIRE_AUTHZ_SQL + " where " + where.getSql();
-            sqlParams.put("expiry", new Timestamp(new Date().getTime() - 1));
-        } else {
-            // delete the records
-            sql = DELETE_AUTHZ_SQL + " where " + where.getSql();
-        }
-        sqlParams.put("__identity_zone_id", IdentityZoneHolder.get().getId());
-        sql = sql + " and identity_zone_id = :__identity_zone_id";
-
-        try {
-            int revoked = new NamedParameterJdbcTemplate(jdbcTemplate).update(sql, sqlParams);
-            logger.debug(String.format("revoked [%d] approvals matching sql: [%s]", revoked, where));
-        } catch (DataAccessException ex) {
-            logger.error("Error expiring approvals, possible invalid filter: " + where, ex);
-            throw new IllegalArgumentException("Error revoking approvals");
-        }
-        return true;
+    public boolean revokeApprovalsForUser(String userId) {
+        String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
+        sql += " WHERE user_id = ? AND identity_zone_id = ?";
+        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int pos = 1;
+                ps.setString(pos++, userId);
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+            }
+        });
+        return count > 0;
     }
 
-    public boolean purgeExpiredApprovals() {
+    @Override
+    public boolean revokeApprovalsForClient(String clientId) {
+        String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
+        sql += " WHERE client_id = ? AND identity_zone_id = ?";
+        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int pos = 1;
+                ps.setString(pos++, clientId);
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+            }
+        });
+        return count > 0;
+    }
+
+    @Override
+    public boolean revokeApprovalsForClientAndUser(String clientId, String userId) {
+        String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
+        sql += " WHERE user_id = ? AND client_id = ? AND identity_zone_id = ?";
+        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int pos = 1;
+                ps.setString(pos++, userId);
+                ps.setString(pos++, clientId);
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+            }
+        });
+        return count > 0;
+    }
+
+        public boolean purgeExpiredApprovals() {
         logger.debug("Purging expired approvals from database");
         try {
             int deleted = jdbcTemplate.update(DELETE_AUTHZ_SQL + " where expiresAt <= ?",
@@ -184,27 +210,55 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public List<Approval> getApprovals(String filter) {
-        ProcessedFilter where = queryConverter.convert(filter, null, true);
-        logger.debug(String.format("Filtering approvals with filter: [%s]", where));
-        try {
-            Map<String, Object> params = new HashMap(where.getParams());
-            params.put("__identity_zone_id", IdentityZoneHolder.get().getId());
-            return pagingListFactory.createJdbcPagingList(
-                GET_AUTHZ_SQL + " where " + where.getSql() + " and identity_zone_id = :__identity_zone_id",
-                params,
-                rowMapper,
-                200
-            );
-        } catch (DataAccessException e) {
-            logger.error("Error filtering approvals with filter: " + where, e);
-            throw new IllegalArgumentException("Invalid filter: " + filter);
-        }
+    public List<Approval> getApprovalsForUser(String userId) {
+        String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND identity_zone_id = ?";
+        return jdbcTemplate.query(
+            sql,
+            new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    int pos = 1;
+                    ps.setString(pos++, userId);
+                    ps.setString(pos++, IdentityZoneHolder.get().getId());
+                }
+            },
+            rowMapper
+        );
+    }
+
+    @Override
+    public List<Approval> getApprovalsForClient(String clientId) {
+        String sql = GET_AUTHZ_SQL + " WHERE client_id = ? AND identity_zone_id = ?";
+        return jdbcTemplate.query(
+            sql,
+            new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    int pos = 1;
+                    ps.setString(pos++, clientId);
+                    ps.setString(pos++, IdentityZoneHolder.get().getId());
+                }
+            },
+            rowMapper
+        );
     }
 
     @Override
     public List<Approval> getApprovals(String userId, String clientId) {
-        return getApprovals(String.format("user_id eq \"%s\" and client_id eq \"%s\"", userId, clientId));
+        String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND client_id = ? AND identity_zone_id = ?";
+        return jdbcTemplate.query(
+            sql,
+            new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    int pos = 1;
+                    ps.setString(pos++, userId);
+                    ps.setString(pos++, clientId);
+                    ps.setString(pos++, IdentityZoneHolder.get().getId());
+                }
+            },
+            rowMapper
+        );
     }
 
     @Override
