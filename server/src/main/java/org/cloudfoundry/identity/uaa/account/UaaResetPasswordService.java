@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
@@ -54,6 +56,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
     public static final String FORGOT_PASSWORD_INTENT_PREFIX = "forgot_password_for_id:";
+    
+    private final Log logger = LogFactory.getLog(getClass());
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
@@ -149,15 +153,15 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     }
 
     @Override
-    public ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri) {
-        String jsonEmail = JsonUtils.writeValueAsString(email);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + OriginKeys.UAA + "\"");
+    public ForgotPasswordInfo forgotPassword(String username, String clientId, String redirectUri) {
+        String jsonUsername = JsonUtils.writeValueAsString(username);
+        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonUsername + " and origin eq \"" + OriginKeys.UAA + "\"");
         if (results.isEmpty()) {
-            results = scimUserProvisioning.query("userName eq " + jsonEmail);
+            results = scimUserProvisioning.query("userName eq " + jsonUsername);
             if (results.isEmpty()) {
                 throw new NotFoundException();
             } else {
-                throw new ConflictException(results.get(0).getId());
+                throw new ConflictException(results.get(0).getId(), results.get(0).getPrimaryEmail());
             }
         }
         ScimUser scimUser = results.get(0);
@@ -166,8 +170,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         String intent = FORGOT_PASSWORD_INTENT_PREFIX+scimUser.getId();
         expiringCodeStore.expireByIntent(intent);
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), intent);
-        publish(new ResetPasswordRequestEvent(email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
-        return new ForgotPasswordInfo(scimUser.getId(), code);
+        publish(new ResetPasswordRequestEvent(username, scimUser.getPrimaryEmail(), code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
+        return new ForgotPasswordInfo(scimUser.getId(), scimUser.getPrimaryEmail(), code);
     }
 
     private boolean isUserModified(ScimUser user, Timestamp expiresAt, String userName, Date passwordLastModified) {
