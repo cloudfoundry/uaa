@@ -81,6 +81,8 @@ jwt:
           signingKey: |
             test-signing-key-2
       refreshTokenValiditySeconds: 9600
+    queryString:
+      enabled: false
     refresh:
       format: opaque
       restrict_grant: true

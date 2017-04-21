@@ -42,6 +42,16 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @RequestMapping(value = "/oauth/token") //used simply because TokenEndpoint wont match /oauth/token/alias/saml-entity-id
 public class UaaTokenEndpoint extends TokenEndpoint {
 
+    private Boolean allowQueryString = null;
+
+    public Boolean isAllowQueryString() {
+        return allowQueryString;
+    }
+
+    public void setAllowQueryString(boolean allowQueryString) {
+        this.allowQueryString = allowQueryString;
+    }
+
     @RequestMapping(value = "**", method = GET)
     public ResponseEntity<OAuth2AccessToken> doDelegateGet(Principal principal,
                                                            @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {

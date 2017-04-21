@@ -22,9 +22,11 @@ import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -175,6 +177,13 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        UaaTokenEndpoint tokenEndpoint = context.getBean(UaaTokenEndpoint.class);
+        CheckTokenEndpoint checkEndpoint = context.getBean(CheckTokenEndpoint.class);
+        assertNotNull(tokenEndpoint.isAllowQueryString());
+        assertTrue(tokenEndpoint.isAllowQueryString());
+        assertNotNull(checkEndpoint.isAllowQueryString());
+        assertTrue(checkEndpoint.isAllowQueryString());
 
         for (String expectedProfile : StringUtils.commaDelimitedListToSet(profiles)) {
             String[] springProfiles = context.getEnvironment().getActiveProfiles();
@@ -363,6 +372,13 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        UaaTokenEndpoint tokenEndpoint = context.getBean(UaaTokenEndpoint.class);
+        CheckTokenEndpoint checkEndpoint = context.getBean(CheckTokenEndpoint.class);
+        assertNotNull(tokenEndpoint.isAllowQueryString());
+        assertFalse(tokenEndpoint.isAllowQueryString());
+        assertNotNull(checkEndpoint.isAllowQueryString());
+        assertFalse(checkEndpoint.isAllowQueryString());
 
         JdbcTemplate template = context.getBean(JdbcTemplate.class);
         assertEquals(0, (int)template.queryForObject("SELECT count(*) FROM oauth_client_details WHERE client_id IN (?,?) AND identity_zone_id = ?", Integer.class, "client-should-not-exist-1", "client-should-not-exist-2", IdentityZone.getUaa().getId()));

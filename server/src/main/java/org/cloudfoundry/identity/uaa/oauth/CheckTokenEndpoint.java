@@ -60,6 +60,16 @@ public class CheckTokenEndpoint implements InitializingBean {
         this.resourceServerTokenServices = resourceServerTokenServices;
     }
 
+    private boolean allowQueryString = false;
+
+    public boolean isAllowQueryString() {
+        return allowQueryString;
+    }
+
+    public void setAllowQueryString(boolean allowQueryString) {
+        this.allowQueryString = allowQueryString;
+    }
+
     @Override
     public void afterPropertiesSet() throws Exception {
         Assert.notNull(resourceServerTokenServices, "tokenServices must be set");
