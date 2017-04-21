@@ -94,9 +94,9 @@ public class ChangePasswordIT {
         signIn(userEmail, PASSWORD);
 
         changePassword(PASSWORD, NEW_PASSWORD, "new");
-        WebElement errorMessage = webDriver.findElement(By.className("error-message"));
+        WebElement errorMessage = webDriver.findElement(By.id("match-passwords"));
         assertTrue(errorMessage.isDisplayed());
-        assertEquals("Passwords must match and not be empty.", errorMessage.getText());
+        assertEquals("DO NOT", errorMessage.getText());
 
         changePassword(PASSWORD, NEW_PASSWORD, NEW_PASSWORD);
         signOut();

@@ -658,7 +658,7 @@
     </bean>
 
     <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService"/>
-
+   
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.account.UaaChangePasswordService">
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="uaaPasswordValidator"/>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
@@ -24,6 +25,8 @@ public interface ResetPasswordService {
     ResetPasswordResponse resetPassword(ExpiringCode code, String newPassword);
 
     void updateLastLogonTime(String userId);
+
+    PasswordPolicy getPasswordPolicy();
 
     class ResetPasswordResponse {
         @JsonProperty("user")
