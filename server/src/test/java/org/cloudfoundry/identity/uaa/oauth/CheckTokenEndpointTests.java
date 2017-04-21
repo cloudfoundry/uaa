@@ -52,6 +52,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -777,6 +778,33 @@ public class CheckTokenEndpointTests {
         assertEquals(2, aud.size());
         assertTrue(aud.contains("scim"));
         assertTrue(aud.contains("client"));
+    }
+
+    @Test
+    public void by_default_query_string_is_allowed() throws Exception {
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        request.setQueryString("token="+getAccessToken());
+        endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+    }
+
+    @Test
+    public void by_default_get_is_allowed() throws Exception {
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        request.setQueryString("token="+getAccessToken());
+        request.setParameter("token", getAccessToken());
+        endpoint.checkToken(request);
+    }
+
+    @Test(expected = HttpRequestMethodNotSupportedException.class)
+    public void disable_query_string() throws Exception {
+        endpoint.setAllowQueryString(false);
+        by_default_query_string_is_allowed();
+    }
+
+    @Test(expected = HttpRequestMethodNotSupportedException.class)
+    public void disable_get_method() throws Exception {
+        endpoint.setAllowQueryString(false);
+        by_default_get_is_allowed();
     }
 
     @Test

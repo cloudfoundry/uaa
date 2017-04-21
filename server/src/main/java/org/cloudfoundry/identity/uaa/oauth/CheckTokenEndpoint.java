@@ -39,10 +39,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
+import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -60,10 +63,10 @@ public class CheckTokenEndpoint implements InitializingBean {
         this.resourceServerTokenServices = resourceServerTokenServices;
     }
 
-    private boolean allowQueryString = false;
+    private Boolean allowQueryString = null;
 
     public boolean isAllowQueryString() {
-        return allowQueryString;
+        return (allowQueryString == null) ? true : allowQueryString;
     }
 
     public void setAllowQueryString(boolean allowQueryString) {
@@ -81,7 +84,7 @@ public class CheckTokenEndpoint implements InitializingBean {
                              @RequestParam(name = "scopes", required = false, defaultValue = "") List<String> scopes,
                              HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
 
-        if (hasText(request.getQueryString())) {
+        if (hasText(request.getQueryString()) && !isAllowQueryString()) {
             logger.debug("Call to /oauth/token contains a query string. Aborting.");
             throw new HttpRequestMethodNotSupportedException("POST");
         }
@@ -121,7 +124,15 @@ public class CheckTokenEndpoint implements InitializingBean {
 
     @RequestMapping(value = "/check_token")
     public void checkToken(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
-        throw new HttpRequestMethodNotSupportedException(request.getMethod());
+        if (isAllowQueryString()) {
+            String token = request.getParameter("token");
+            String scope = request.getParameter("scope");
+            checkToken(
+                token, hasText(scope) ? new LinkedList<>(commaDelimitedListToSet(scope)) : emptyList(),
+                request);
+        } else {
+            throw new HttpRequestMethodNotSupportedException(request.getMethod());
+        }
     }
 
 

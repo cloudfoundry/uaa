@@ -44,8 +44,8 @@ public class UaaTokenEndpoint extends TokenEndpoint {
 
     private Boolean allowQueryString = null;
 
-    public Boolean isAllowQueryString() {
-        return allowQueryString;
+    public boolean isAllowQueryString() {
+        return allowQueryString == null ? true : allowQueryString;
     }
 
     public void setAllowQueryString(boolean allowQueryString) {
