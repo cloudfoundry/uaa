@@ -6,11 +6,20 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BrandingInformation implements BrandingInformationSource {
+    private String fromAddress;
     private String companyName;
     private String productLogo;
     private String squareLogo;
     private String footerLegalText;
     private Map<String, String> footerLinks;
+
+    public String getFromAddress() {
+        return fromAddress;
+    }
+
+    public void setFromAddress(String fromAddress) {
+        this.fromAddress = fromAddress;
+    }
 
     @Override
     public String getCompanyName() {

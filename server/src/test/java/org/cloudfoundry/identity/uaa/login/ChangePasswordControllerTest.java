@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -91,12 +92,14 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
     @Test
     public void changePassword_ConfirmationPasswordDoesNotMatch() throws Exception {
         MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "newsecret");
+
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("change_password"))
                 .andExpect(model().attribute("message_code", "form_error"));
 
-        verifyZeroInteractions(changePasswordService);
+        verify(changePasswordService, times(1)).getPasswordPolicy();
+        verifyNoMoreInteractions(changePasswordService);
     }
 
     @Test

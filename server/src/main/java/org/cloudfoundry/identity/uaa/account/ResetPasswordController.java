@@ -172,6 +172,7 @@ public class ResetPasswordController {
             String newCode = codeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
             model.addAttribute("code", newCode);
             model.addAttribute("email", uaaUser.getEmail());
+            model.addAttribute("passwordPolicy", resetPasswordService.getPasswordPolicy());
             return "reset_password";
         }
     }

@@ -64,6 +64,5 @@ public class EmailServiceTests {
         } finally {
             IdentityZoneHolder.get().setConfig(defaultConfig);
         }
-
     }
 }

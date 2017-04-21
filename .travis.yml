@@ -108,6 +108,7 @@ cache:
   - $HOME/.gradle
 
 before_install:
+- npm install PrettyCSS -g
 - ulimit -c
 - ulimit -a -S
 - ulimit -a -H
@@ -146,6 +147,7 @@ install:
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 script:
+- prettycss --ignore-all uaa/src/main/webapp/resources/govcloud/stylesheets/application.css > /dev/null # ignore all warnings, just report errors which will output to stderr, redirect stdout to /dev/null
 - echo "Test env $TESTENV"
 - echo "Test cmd $TEST_COMMAND"
 - ./gradlew "-Dspring.profiles.active=$TESTENV" "$TEST_COMMAND"

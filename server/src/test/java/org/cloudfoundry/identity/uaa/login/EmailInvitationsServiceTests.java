@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -76,6 +77,9 @@ public class EmailInvitationsServiceTests {
 
     @Autowired
     ScimUserProvisioning scimUserProvisioning;
+
+    @Autowired
+    private PasswordValidator passwordValidator;
 
     @Autowired
     ClientDetailsService clientDetailsService;
@@ -281,6 +285,11 @@ public class EmailInvitationsServiceTests {
         @Bean
         ScimUserProvisioning scimUserProvisioning() {
             return mock(ScimUserProvisioning.class);
+        }
+
+        @Bean
+        PasswordValidator passwordValidator() {
+            return mock(PasswordValidator.class);
         }
 
     }

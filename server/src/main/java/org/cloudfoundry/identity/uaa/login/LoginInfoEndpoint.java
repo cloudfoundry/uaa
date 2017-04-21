@@ -190,6 +190,18 @@ public class LoginInfoEndpoint {
         this.entityID = entityID;
     }
 
+
+    private String assetBaseUrl = "";
+
+    public void setAssetBaseUrl(String assetBaseUrl) {
+        this.assetBaseUrl = assetBaseUrl;
+    }
+
+    private String getSkinFromAssetBaseUrl() {
+        return this.assetBaseUrl.substring(this.assetBaseUrl.lastIndexOf("/") + 1);
+    }
+
+
     public LoginInfoEndpoint() {
         try {
             gitProperties = PropertiesLoaderUtils.loadAllProperties("git.properties");
@@ -426,7 +438,12 @@ public class LoginInfoEndpoint {
                 return "idp_discovery/email";
             }
 
-            return "login";
+            if (!getSkinFromAssetBaseUrl().equals("oss")) {
+                return getSkinFromAssetBaseUrl() + "/login";
+            } else {
+                return "login";
+            }
+
         }
         return "home";
     }

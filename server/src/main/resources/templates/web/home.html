@@ -19,5 +19,6 @@
             <th:block th:text="${#strings.isEmpty(tile.clientName) ? ' ' : tile.clientName}" />
         </li>
     </ul>
+    <a th:unless="${#strings.isEmpty(invitationsLink)}" href="/invitations/new" th:href="@{${invitationsLink}}">Invite Users</a>
 </div>
 </html>
