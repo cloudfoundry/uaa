@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -35,9 +36,13 @@ public class JdbcAuditService implements UaaAuditService {
 
     @Override
     public List<AuditEvent> find(String principal, long after) {
+        return find(principal, after, IdentityZoneHolder.get().getId());
+    }
+
+    public List<AuditEvent> find(String principalId, long after, String identityZoneId) {
         return template.query("select event_type, principal_id, origin, event_data, created, identity_zone_id from sec_audit where " +
-                        "principal_id=? and created > ? order by created desc", new AuditEventRowMapper(), principal,
-                        new Timestamp(after));
+            "principal_id=? and identity_zone_id=? and created > ? order by created desc", new AuditEventRowMapper(), principalId
+            , identityZoneId, new Timestamp(after));
     }
 
     @Override

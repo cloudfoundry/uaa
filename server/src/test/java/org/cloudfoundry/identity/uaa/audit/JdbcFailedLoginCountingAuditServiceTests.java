@@ -135,6 +135,23 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
             verifyZeroInteractions(template);
         }
     }
+    
+
+    @Test
+    public void clientAuthenticationFailureAuditIsZoneAware() throws Exception {
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        Thread.sleep(100);
+        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"));
+        Thread.sleep(100);
+        auditService.log(getAuditEventForAltZone(ClientAuthenticationFailure, "client", "testman"));
+        Thread.sleep(100);
+        auditService.log(getAuditEventForAltZone(ClientAuthenticationFailure, "client", "testman"));
+        List<AuditEvent> events = auditService.find("client", 0, "test-zone");
+        assertEquals(2, events.size());
+        assertEquals("client", events.get(0).getPrincipalId());
+        assertEquals("testman", events.get(0).getData());
+        assertEquals("1.1.1.1", events.get(0).getOrigin());
+    }
 
     @Test
     public void clientAuthenticationFailureDeletesOldData() throws Exception {
@@ -174,6 +191,10 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
         return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaa().getId());
+    }
+    
+    private AuditEvent getAuditEventForAltZone(AuditEventType type, String principal, String data) {
+        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), "test-zone");
     }
 
 }
