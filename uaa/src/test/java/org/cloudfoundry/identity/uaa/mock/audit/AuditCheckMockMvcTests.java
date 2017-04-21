@@ -830,7 +830,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(ResetPasswordRequestEvent.class, testListener.getLatestEvent().getClass());
         ResetPasswordRequestEvent event = (ResetPasswordRequestEvent) testListener.getLatestEvent();
         assertEquals(testUser.getUserName(), event.getAuditEvent().getPrincipalId());
-        assertEquals(null, event.getAuditEvent().getData());
+        assertEquals(testUser.getPrimaryEmail(), event.getAuditEvent().getData());
     }
 
     @Test

@@ -538,7 +538,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void testForgotPasswordSubmitDoesNotValidateCsrf() throws Exception {
         getMockMvc().perform(
             post("/forgot_password.do")
-                .param("email", "marissa@test.org")
+                .param("username", "marissa")
                 .with(csrf().useInvalidToken()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));

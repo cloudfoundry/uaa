@@ -68,6 +68,7 @@ public class ResetPasswordIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
+    private String username;
     private String userEmail;
     private String scimClientId;
 
@@ -91,8 +92,9 @@ public class ResetPasswordIT {
         scimClientId = "scim" + randomInt;
         testClient.createScimClient(adminAccessToken, scimClientId);
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
-        userEmail = "user" + randomInt + "@example.com";
-        testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", true);
+        username = "user" + randomInt;
+        userEmail = username + "@example.com";
+        testClient.createUser(scimAccessToken, username, userEmail, "secr3T", true);
     }
 
     @After
@@ -119,17 +121,17 @@ public class ResetPasswordIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
         // Log out and back in with new password
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
+        webDriver.findElement(By.xpath("//*[text()='"+ username +"']")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
 
-        webDriver.findElement(By.name("username")).sendKeys(userEmail);
+        webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
         // Attempt to use same code again
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
+        webDriver.findElement(By.xpath("//*[text()='"+ username +"']")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
 
         webDriver.get(link);
@@ -144,7 +146,7 @@ public class ResetPasswordIT {
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
         Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
 
@@ -181,7 +183,7 @@ public class ResetPasswordIT {
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        webDriver.findElement(By.name("email")).sendKeys("nonexistent@example.com");
+        webDriver.findElement(By.name("username")).sendKeys("nonexistent_user");
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
 
         Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
@@ -221,15 +223,20 @@ public class ResetPasswordIT {
         webDriver.findElement(By.linkText("Reset password")).click();
         Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
-        // Enter an invalid email address
-        webDriver.findElement(By.name("email")).sendKeys("notAnEmail");
+        // Enter an email address
+        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
+        webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        assertThat(webDriver.findElement(By.className("error-message")).getText(), Matchers.equalTo("Please enter a valid email address."));
+        //verify no email was sent.
+        assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
+        
+        webDriver.get(baseUrl + "/login");
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        webDriver.findElement(By.linkText("Reset password")).click();
+        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
         // Successfully enter email address
-        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
-
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
         Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
 
