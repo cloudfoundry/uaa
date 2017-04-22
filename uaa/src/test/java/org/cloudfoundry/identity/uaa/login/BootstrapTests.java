@@ -65,6 +65,7 @@ import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.web.MockRequestDispatcher;
@@ -75,6 +76,7 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
@@ -184,6 +186,7 @@ public class BootstrapTests {
         assertTrue(tokenEndpoint.isAllowQueryString());
         assertNotNull(checkEndpoint.isAllowQueryString());
         assertTrue(checkEndpoint.isAllowQueryString());
+        assertThat((Set<HttpMethod>) ReflectionTestUtils.getField(tokenEndpoint, "allowedRequestMethods"), containsInAnyOrder(HttpMethod.POST, HttpMethod.GET));
 
         for (String expectedProfile : StringUtils.commaDelimitedListToSet(profiles)) {
             String[] springProfiles = context.getEnvironment().getActiveProfiles();
@@ -379,6 +382,7 @@ public class BootstrapTests {
         assertFalse(tokenEndpoint.isAllowQueryString());
         assertNotNull(checkEndpoint.isAllowQueryString());
         assertFalse(checkEndpoint.isAllowQueryString());
+        assertThat((Set<HttpMethod>) ReflectionTestUtils.getField(tokenEndpoint, "allowedRequestMethods"), containsInAnyOrder(HttpMethod.POST));
 
         JdbcTemplate template = context.getBean(JdbcTemplate.class);
         assertEquals(0, (int)template.queryForObject("SELECT count(*) FROM oauth_client_details WHERE client_id IN (?,?) AND identity_zone_id = ?", Integer.class, "client-should-not-exist-1", "client-should-not-exist-2", IdentityZone.getUaa().getId()));

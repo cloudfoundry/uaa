@@ -28,10 +28,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.singleton;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -44,29 +46,38 @@ public class UaaTokenEndpoint extends TokenEndpoint {
 
     private Boolean allowQueryString = null;
 
+    public UaaTokenEndpoint() {
+        setAllowedRequestMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST)));
+    }
+
     public boolean isAllowQueryString() {
         return allowQueryString == null ? true : allowQueryString;
     }
 
     public void setAllowQueryString(boolean allowQueryString) {
         this.allowQueryString = allowQueryString;
+        if (allowQueryString) {
+            setAllowedRequestMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST)));
+        } else {
+            setAllowedRequestMethods(Collections.singleton(HttpMethod.POST));
+        }
     }
 
     @RequestMapping(value = "**", method = GET)
     public ResponseEntity<OAuth2AccessToken> doDelegateGet(Principal principal,
                                                            @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
-        return super.getAccessToken(principal, parameters);
+        return getAccessToken(principal, parameters);
     }
 
     @RequestMapping(value = "**", method = POST)
     public ResponseEntity<OAuth2AccessToken> doDelegatePost(Principal principal,
                                                             @RequestParam Map<String, String> parameters,
                                                             HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
-        if (hasText(request.getQueryString())) {
+        if (hasText(request.getQueryString()) && !isAllowQueryString()) {
             logger.debug("Call to /oauth/token contains a query string. Aborting.");
             throw new HttpRequestMethodNotSupportedException("POST");
         }
-        return super.postAccessToken(principal, parameters);
+        return postAccessToken(principal, parameters);
     }
 
     @RequestMapping(value = "**")
@@ -74,10 +85,7 @@ public class UaaTokenEndpoint extends TokenEndpoint {
         throw new HttpRequestMethodNotSupportedException(request.getMethod());
     }
 
-    @Override
-    public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
-        super.setAllowedRequestMethods(singleton(HttpMethod.POST));
-    }
+
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @Override
@@ -105,5 +113,12 @@ public class UaaTokenEndpoint extends TokenEndpoint {
         return getExceptionTranslator().translate(e);
     }
 
-
+    @Override
+    public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
+        if (isAllowQueryString()) {
+            super.setAllowedRequestMethods(allowedRequestMethods);
+        } else {
+            super.setAllowedRequestMethods(Collections.singleton(HttpMethod.POST));
+        }
+    }
 }
