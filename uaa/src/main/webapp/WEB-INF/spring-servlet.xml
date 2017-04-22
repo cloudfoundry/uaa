@@ -188,6 +188,10 @@
                            @config['cors']['xhr']['max_age']}"/>
     </bean>
 
+    <bean id="allowQueryStringForTokens" class="java.lang.Boolean">
+        <constructor-arg value="${jwt.token.queryString.enabled:true}"/>
+    </bean>
+
     <bean id="sessionFixationProtectionStrategy"
           class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
 

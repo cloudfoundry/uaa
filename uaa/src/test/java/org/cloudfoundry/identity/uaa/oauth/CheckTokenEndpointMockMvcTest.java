@@ -20,6 +20,7 @@ import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -50,6 +51,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     public static final String CLIENTSECRET = "secret";
     private String token;
     private String basic;
+    private boolean allowQueryString;
 
     @Before
     public void get_token_to_check() throws Exception {
@@ -70,7 +72,15 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         Map<String,Object> tokenMap = JsonUtils.readValue(content, new TypeReference<Map<String, Object>>() {});
         token = (String) tokenMap.get("access_token");
         basic = new String(Base64.encodeBase64((CLIENTID+":"+CLIENTSECRET).getBytes()));
+        allowQueryString = getWebApplicationContext().getBean(CheckTokenEndpoint.class).isAllowQueryString();
+        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(false);
     }
+
+    @After
+    public void resetAllowQueryString() throws Exception {
+        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(allowQueryString);
+    }
+
 
     @Test
     public void check_token_get() throws Exception {
@@ -91,6 +101,12 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     @Test
     public void check_token_post() throws Exception {
         check_token(post("/check_token"), status().isOk());
+    }
+
+    @Test
+    public void check_token_get_when_allowed() throws Exception {
+        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(true);
+        check_token(get("/check_token"), status().isOk());
     }
 
     @Test

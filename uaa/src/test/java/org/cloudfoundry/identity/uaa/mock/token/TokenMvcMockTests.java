@@ -127,6 +127,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private MockEnvironment mockEnvironment;
     private static SamlTestUtils samlTestUtils = new SamlTestUtils();
+    private boolean allowQueryString;
 
     @BeforeClass
     public static void initializeSamlUtils() {
@@ -140,7 +141,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Before
     public void setup () throws Exception {
         mockEnvironment = ((MockEnvironment) getWebApplicationContext().getEnvironment());
+        allowQueryString = getWebApplicationContext().getBean(UaaTokenEndpoint.class).isAllowQueryString();
     }
+
+    @After
+    public void resetAllowQueryString() throws Exception {
+        getWebApplicationContext().getBean(UaaTokenEndpoint.class).setAllowQueryString(allowQueryString);
+    }
+
     @Override
     public void setUpContext() throws Exception {
         testClient = new TestClient();
@@ -149,7 +157,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void token_endpoint_get_by_default() throws Exception {
+        try_token_with_non_post(get("/oauth/token"), status().isOk());
+    }
+
+    @Test
     public void token_endpoint_get() throws Exception {
+        getWebApplicationContext().getBean(UaaTokenEndpoint.class).setAllowQueryString(false);
         try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
             .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
@@ -178,7 +192,19 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void token_endpoint_post_query_string_by_default() throws Exception {
+        String username = setUpUserForPasswordGrant();
+
+        getMockMvc().perform(
+            post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret", username)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     public void token_endpoint_post_query_string() throws Exception {
+        getWebApplicationContext().getBean(UaaTokenEndpoint.class).setAllowQueryString(false);
         String username = setUpUserForPasswordGrant();
 
         getMockMvc().perform(
