@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -115,9 +116,42 @@ public class SamlKeyRotationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void key_rotation() throws Exception {
+    public void sp_key_rotation() throws Exception {
         //default with three keys
-        String metadata = getMetadata();
+        String metadata = getMetadata("/saml/metadata");
+        List<String> signatureVerificationKeys = getCertificates(metadata, "signing");
+        assertThat(signatureVerificationKeys, containsInAnyOrder(clean(legacyCertificate), clean(certificate1), clean(certificate2)));
+        List<String> encryptionKeys = getCertificates(metadata, "encryption");
+        assertThat(encryptionKeys, containsInAnyOrder(clean(legacyCertificate)));
+        evaluateSignatureKey(metadata, legacyCertificate);
+
+        //activate key1
+        zone.getConfig().getSamlConfig().setActiveKeyId("key1");
+        updateZone(zone, false);
+        metadata = getMetadata();
+        signatureVerificationKeys = getCertificates(metadata, "signing");
+        assertThat(signatureVerificationKeys, containsInAnyOrder(clean(legacyCertificate), clean(certificate1), clean(certificate2)));
+        encryptionKeys = getCertificates(metadata, "encryption");
+        evaluateSignatureKey(metadata, certificate1);
+        assertThat(encryptionKeys, containsInAnyOrder(clean(certificate1)));
+
+        //remove all but key2
+        zone.getConfig().getSamlConfig().setKeys(EMPTY_MAP);
+        zone.getConfig().getSamlConfig().addAndActivateKey("key2", samlKey2);
+        updateZone(zone, false);
+        metadata = getMetadata();
+        signatureVerificationKeys = getCertificates(metadata, "signing");
+        assertThat(signatureVerificationKeys, containsInAnyOrder(clean(certificate2)));
+        evaluateSignatureKey(metadata, certificate2);
+        encryptionKeys = getCertificates(metadata, "encryption");
+        assertThat(encryptionKeys, containsInAnyOrder(clean(certificate2)));
+    }
+
+    @Test
+    @Ignore("IDP Key rotation not yet implemented")
+    public void idp_key_rotation() throws Exception {
+        //default with three keys
+        String metadata = getMetadata("/saml/idp/metadata");
         List<String> signatureVerificationKeys = getCertificates(metadata, "signing");
         assertThat(signatureVerificationKeys, containsInAnyOrder(clean(legacyCertificate), clean(certificate1), clean(certificate2)));
         List<String> encryptionKeys = getCertificates(metadata, "encryption");
@@ -164,8 +198,11 @@ public class SamlKeyRotationMockMvcTests extends InjectedMockContextTest {
     }
 
     public String getMetadata() throws Exception {
+        return getMetadata("/saml/metadata");
+    }
+    public String getMetadata(String uri) throws Exception {
         return getMockMvc().perform(
-            get("/saml/metadata")
+            get(uri)
                 .header("Host", zone.getSubdomain()+".localhost")
                 .accept(APPLICATION_XML)
         )
