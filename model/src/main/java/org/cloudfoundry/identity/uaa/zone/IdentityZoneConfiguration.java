@@ -31,7 +31,7 @@ public class IdentityZoneConfiguration {
     private CorsPolicy corsPolicy = new CorsPolicy();
     private Links links = new Links();
     private List<Prompt> prompts = Arrays.asList(
-        new Prompt("username", "text", "Email"),
+        new Prompt("username", "text", "Username"),
         new Prompt("password", "password", "Password"),
         new Prompt("passcode", "password", "One Time Code (Get on at /passcode)")
     );
