@@ -30,11 +30,17 @@ public class PredixAuditConfig {
     @Bean
     public AuditClient auditClient() throws AuditException, EventHubClientException {
         AuditConfiguration sdkConfig = getConfig();
-        sdkConfig.setClientType(AuditClientType.ASYNC);
-        AuditCallback auditCallback = auditCallback();
-        log.info("Connecting to Audit Service.");
-        log.info("Auditing will be " + sdkConfig.getClientType());
-        return new AuditClient(sdkConfig, auditCallback);
+        try {
+            sdkConfig.setClientType(AuditClientType.ASYNC);
+            AuditCallback auditCallback = auditCallback();
+            log.info("Connecting to Audit Service.");
+            log.info("Auditing will be " + sdkConfig.getClientType());
+            return new AuditClient(sdkConfig, auditCallback);
+        }
+        catch(AuditException | EventHubClientException | NullPointerException e) {
+            log.info("Error wiring up predixAudit Client. " + e.getMessage());
+            return null;
+        }
     }
 
     private AuditConfiguration getConfig() {
