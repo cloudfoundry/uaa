@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
@@ -17,7 +18,12 @@ import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLException;
 import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
-import org.opensaml.saml2.core.*;
+import org.opensaml.saml2.core.Assertion;
+import org.opensaml.saml2.core.AuthnRequest;
+import org.opensaml.saml2.core.Issuer;
+import org.opensaml.saml2.core.NameID;
+import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.Subject;
 import org.opensaml.saml2.core.impl.AssertionMarshaller;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
@@ -30,6 +36,7 @@ import org.opensaml.xml.io.Marshaller;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.SecurityHelper;
+import org.opensaml.xml.security.credential.Credential;
 import org.opensaml.xml.signature.Signature;
 import org.opensaml.xml.signature.SignatureException;
 import org.opensaml.xml.signature.Signer;
@@ -42,14 +49,32 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
 
 public class SamlTestUtils {
@@ -214,14 +239,13 @@ public class SamlTestUtils {
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
         assertion.getConditions().setNotOnOrAfter(until);
         SamlConfig config = new SamlConfig();
-        config.setPrivateKey(privateKey);
-        config.setPrivateKeyPassword(keyPassword);
-        config.setCertificate(certificate);
+        config.addAndActivateKey("active-key", new SamlKey(privateKey,keyPassword, certificate));
         KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
         SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
         Signature signature = signatureBuilder.buildObject();
-        signature.setSigningCredential(keyManager.getDefaultCredential());
-        SecurityHelper.prepareSignatureParams(signature, keyManager.getDefaultCredential(), null, null);
+        final Credential defaultCredential = keyManager.getDefaultCredential();
+        signature.setSigningCredential(defaultCredential);
+        SecurityHelper.prepareSignatureParams(signature, defaultCredential, null, null);
         assertion.setSignature(signature);
         Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
         marshaller.marshall(assertion);
@@ -640,5 +664,29 @@ public class SamlTestUtils {
         return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
                 .setConfig(singleAddDef);
      }
+
+    public static List<String> getCertificates(String metadata, String type) throws Exception {
+        Document doc = getMetadataDoc(metadata);
+        NodeList nodeList = evaluateXPathExpression(doc, "//*[local-name()='KeyDescriptor' and @*[local-name() = 'use']='"+ type +"']//*[local-name()='X509Certificate']/text()");
+        assertNotNull(nodeList);
+        List<String> result = new LinkedList<>();
+        for (int i=0; i<nodeList.getLength(); i++) {
+            result.add(nodeList.item(i).getNodeValue().replace("\n", ""));
+        }
+        return result;
+    }
+
+    public static NodeList evaluateXPathExpression(Document doc, String xpath) throws XPathExpressionException {
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        XPathExpression expression = xPath.compile(xpath);
+        return (NodeList) expression.evaluate(doc, XPathConstants.NODESET);
+    }
+
+    public static Document getMetadataDoc(String metadata) throws SAXException, IOException, ParserConfigurationException {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(false);
+        InputSource is = new InputSource(new StringReader(metadata));
+        return documentBuilderFactory.newDocumentBuilder().parse(is);
+    }
 
 }
