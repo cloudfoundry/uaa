@@ -31,7 +31,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.*;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
+//import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -641,7 +641,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         IdentityZoneHolder.set(zone.getIdentityZone());
         getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
-        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+//        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
@@ -713,7 +713,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         IdentityZoneHolder.clear();
         getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
-        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+//        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",

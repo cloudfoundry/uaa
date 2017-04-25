@@ -224,21 +224,6 @@
         <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
-
-    <bean id="spEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.ServiceProviderEventPublisher"/>
-
-    <aop:config proxy-target-class="true">
-        <aop:aspect ref="spEventPublisher">
-            <aop:after-returning method="spCreated"
-                                 pointcut="execution(* *..SamlServiceProviderProvisioning+.create(..)) and bean(serviceProviderProvisioning)"
-                                 returning="serviceProvider"/>
-            <aop:after-returning method="spModified"
-                                 pointcut="execution(* *..SamlServiceProviderProvisioning+.update(..)) and bean(serviceProviderProvisioning)"
-                                 returning="serviceProvider"/>
-
-        </aop:aspect>
-    </aop:config>
-
     <!-- End SAML SP Management -->
 
 </beans>
