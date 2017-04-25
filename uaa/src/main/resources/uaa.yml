@@ -58,6 +58,8 @@
 #mysql commands that were run
 #create database uaa;
 #SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');
+#CREATE USER 'root'@'127.0.0.1';
+#GRANT ALL TO 'root'@'127.0.0.1' WITH GRANT OPTION;
 #SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');
 
 # A comprehensive list of hostnames routed to the UAA default zone. The UAA uses this to resolve subdomains for Identity Zones.

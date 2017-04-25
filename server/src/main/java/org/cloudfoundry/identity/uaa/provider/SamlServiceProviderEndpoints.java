@@ -62,7 +62,7 @@ public class SamlServiceProviderEndpoints {
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
 
-        samlConfigurator.addSamlServiceProvider(body);
+        samlConfigurator.validateSamlServiceProvider(body);
 
         SamlServiceProvider createdSp = serviceProviderProvisioning.create(body);
         return new ResponseEntity<>(createdSp, HttpStatus.CREATED);
@@ -80,7 +80,7 @@ public class SamlServiceProviderEndpoints {
         }
         body.setEntityId(existing.getEntityId());
 
-        samlConfigurator.addSamlServiceProvider(body);
+        samlConfigurator.validateSamlServiceProvider(body);
 
         SamlServiceProvider updatedSp = serviceProviderProvisioning.update(body);
         return new ResponseEntity<>(updatedSp, OK);

@@ -12,6 +12,8 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
@@ -134,6 +136,19 @@ public class SamlTestUtils {
         initializeSimple();
     }
 
+    public IdentityZone getUaaZoneWithSamlConfig() {
+        IdentityZone uaa = IdentityZoneHolder.getUaaZone();
+        setupZoneWithSamlConfig(uaa);
+        return uaa;
+    }
+
+    public void setupZoneWithSamlConfig(IdentityZone zone) {
+        SamlConfig config = zone.getConfig().getSamlConfig();
+        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
+        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+        config.setCertificate(PROVIDER_CERTIFICATE);
+    }
+
     public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId, String idpMetaData) {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);
@@ -186,6 +201,10 @@ public class SamlTestUtils {
     }
 
     public EntityDescriptor mockIdpMetadata() {
+        return mockIdpMetadataGenerator().generateMetadata();
+    }
+
+    public IdpMetadataGenerator mockIdpMetadataGenerator() {
         IdpExtendedMetadata extendedMetadata = new IdpExtendedMetadata();
 
         IdpMetadataGenerator metadataGenerator = new IdpMetadataGenerator();
@@ -196,7 +215,7 @@ public class SamlTestUtils {
         KeyManager keyManager = mock(KeyManager.class);
         when(keyManager.getDefaultCredentialName()).thenReturn(null);
         metadataGenerator.setKeyManager(keyManager);
-        return metadataGenerator.generateMetadata();
+        return metadataGenerator;
     }
 
     public EntityDescriptor mockSpMetadata() {
@@ -619,12 +638,12 @@ public class SamlTestUtils {
 
     public static final String UNSIGNED_SAML_SP_METADATA_WITHOUT_HEADER = UNSIGNED_SAML_SP_METADATA_WITHOUT_ID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
 
-    public static final String MOCK_SP_ENTITY_ID = "cloudfoundry-saml-login";
+    public static final String MOCK_SP_ENTITY_ID = "mock-saml-sp-entity-id";
 
     public static SamlServiceProvider mockSamlServiceProviderForZone(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
-                        new RandomValueStringGenerator().generate()))
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
+                        new RandomValueStringGenerator().generate(), MOCK_SP_ENTITY_ID, DEFAULT_NAME_ID_FORMATS))
                 .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
                 .setMetadataTrustCheck(true).build();
 
@@ -658,8 +677,8 @@ public class SamlTestUtils {
 
     public static SamlServiceProvider mockSamlServiceProviderForZoneWithoutSPSSOInMetadata(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_SPSSODESCRIPTOR,
-                        new RandomValueStringGenerator().generate()))
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
+                        new RandomValueStringGenerator().generate(), MOCK_SP_ENTITY_ID, DEFAULT_NAME_ID_FORMATS))
                 .setMetadataTrustCheck(true).build();
         return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
                 .setConfig(singleAddDef);

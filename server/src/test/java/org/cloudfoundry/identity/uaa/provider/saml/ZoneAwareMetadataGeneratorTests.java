@@ -60,11 +60,11 @@ public class ZoneAwareMetadataGeneratorTests {
     private KeyManager keyManager;
     private ExtendedMetadata extendedMetadata;
 
-    private SamlKey samlKey1 = new SamlKey(key1, passphrase1, certificate1);
-    private SamlKey samlKey2 = new SamlKey(key2, passphrase2, certificate2);
+    public static final SamlKey samlKey1 = new SamlKey(key1, passphrase1, certificate1);
+    public static final SamlKey samlKey2 = new SamlKey(key2, passphrase2, certificate2);
 
-    private String cert1Plain = certificate1.replace("-----BEGIN CERTIFICATE-----","").replace("-----END CERTIFICATE-----","").replace("\n","");
-    private String cert2Plain = certificate2.replace("-----BEGIN CERTIFICATE-----","").replace("-----END CERTIFICATE-----","").replace("\n","");
+    public static final String cert1Plain = certificate1.replace("-----BEGIN CERTIFICATE-----","").replace("-----END CERTIFICATE-----","").replace("\n","");
+    public static final String cert2Plain = certificate2.replace("-----BEGIN CERTIFICATE-----","").replace("-----END CERTIFICATE-----","").replace("\n","");
 
     @BeforeClass
     public static void bootstrap() throws Exception {
