@@ -1,3 +1,17 @@
+/*
+ * ****************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ * ****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
@@ -9,29 +23,22 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.MOCK_SP_ENTITY_ID;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZoneWithoutSPSSOInMetadata;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderWithoutXmlHeaderInMetadata;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class SamlServiceProviderConfiguratorTest {
@@ -74,26 +81,20 @@ public class SamlServiceProviderConfiguratorTest {
     @Test
     public void testValidateSamlServiceProviderWithNoNameIDFormats() throws Exception {
         SamlServiceProvider sp = mockSamlServiceProvider("uaa", "");
-
-//        assertEquals(0, conf.getSamlServiceProviders().size());
         try {
             conf.validateSamlServiceProvider(sp);
             Assert.assertTrue("Valid Saml Service Provider", true);
-        }catch (MetadataProviderException e) {
+        } catch (MetadataProviderException e) {
             Assert.fail("Invalid Saml Service Provider");
         }
-
-//        assertEquals(1, conf.getSamlServiceProviders().size());
     }
 
     @Test
     public void testValidateSamlServiceProviderWithUnsupportedNameIDFormats() throws Exception {
         String entityId = "uaa";
         expectedEx.expect(MetadataProviderException.class);
-        expectedEx.expectMessage("UAA does not support any of the NameIDFormats specified in the metadata for entity: "
-                + entityId);
-        SamlServiceProvider sp = mockSamlServiceProvider(entityId,
-                "<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>");
+        expectedEx.expectMessage("UAA does not support any of the NameIDFormats specified in the metadata for entity: " + entityId);
+        SamlServiceProvider sp = mockSamlServiceProvider(entityId, "<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>");
         conf.validateSamlServiceProvider(sp);
     }
 
@@ -114,7 +115,6 @@ public class SamlServiceProviderConfiguratorTest {
             conf.validateSamlServiceProvider(sp);
             when(providerProvisioning.retrieveActive(zoneId)).thenReturn(Arrays.asList(sp));
 
-
             String unwantedZoneId = UUID.randomUUID().toString();
             SamlServiceProvider unwantedSp = mockSamlServiceProviderForZone("uaa");
             unwantedSp.setIdentityZoneId(unwantedZoneId);
@@ -124,12 +124,10 @@ public class SamlServiceProviderConfiguratorTest {
 
             IdentityZone zone = new IdentityZone().setId(zoneId);
 
-
             List<SamlServiceProviderHolder> spList = conf.getSamlServiceProvidersForZone(zone);
             assertEquals(1, spList.size());
             assertEquals(sp, spList.get(0).getSamlServiceProvider());
-        }
-        finally {
+        } finally {
             IdentityZoneHolder.set(IdentityZone.getUaa());
         }
     }
@@ -140,12 +138,12 @@ public class SamlServiceProviderConfiguratorTest {
 
         conf.validateSamlServiceProvider(sp);
         SamlServiceProviderDefinition duplicateDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
-                        new RandomValueStringGenerator().generate()))
-                .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
-                .setMetadataTrustCheck(true).build();
+            .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
+                                               new RandomValueStringGenerator().generate()))
+            .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
+            .setMetadataTrustCheck(true).build();
         SamlServiceProvider duplicate = new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID + "_2").setIdentityZoneId("uaa")
-                .setConfig(duplicateDef);
+            .setConfig(duplicateDef);
         conf.validateSamlServiceProvider(duplicate);
     }
 
@@ -169,13 +167,13 @@ public class SamlServiceProviderConfiguratorTest {
             switch (provider.getEntityId()) {
                 case "cloudfoundry-saml-login": {
                     ComparableProvider compProvider = (ComparableProvider) conf.getExtendedMetadataDelegate(provider)
-                            .getDelegate();
+                        .getDelegate();
                     assertEquals("cloudfoundry-saml-login", compProvider.getEntityID());
                     break;
                 }
                 default:
                     fail(String.format("Unknown provider %s", provider.getEntityId()));
-                }
+            }
         }
     }
 
@@ -183,15 +181,5 @@ public class SamlServiceProviderConfiguratorTest {
     public void testNullSSODescriptor() throws Exception {
         conf.validateSamlServiceProvider(mockSamlServiceProviderForZoneWithoutSPSSOInMetadata("uaa"));
     }
-
-    /*@Test
-    public void testGetNonExistentServiceProviderMetadata() throws Exception {
-       Assert.assertNull(conf.getExtendedMetadataDelegateFromCache("non-existent-entity-id"));
-    }
-
-    @Test
-    public void testRemoveNonExistentServiceProviderMetadata() throws Exception {
-       Assert.assertNull(conf.removeSamlServiceProvider("non-existent-entity-id"));
-    }*/
 
 }

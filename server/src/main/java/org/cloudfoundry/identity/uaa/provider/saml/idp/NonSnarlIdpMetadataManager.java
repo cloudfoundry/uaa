@@ -1,21 +1,30 @@
+/*
+ * ****************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ * ****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.opensaml.common.xml.SAMLConstants;
-import org.opensaml.saml2.metadata.*;
-import org.opensaml.saml2.metadata.provider.MetadataFilter;
+import org.opensaml.saml2.metadata.EntityDescriptor;
+import org.opensaml.saml2.metadata.IDPSSODescriptor;
+import org.opensaml.saml2.metadata.RoleDescriptor;
+import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-import org.opensaml.saml2.metadata.provider.ObservableMetadataProvider;
-import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.security.x509.PKIXValidationInformationResolver;
-import org.opensaml.xml.signature.SignatureTrustEngine;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -30,7 +39,13 @@ import org.springframework.security.saml.util.SAMLUtil;
 import org.springframework.util.StringUtils;
 
 import javax.xml.namespace.QName;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -43,7 +58,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     private IdpMetadataGenerator generator;
     private Map<String, String> zoneHostedIdpNames;
     private ExtendedMetadata defaultExtendedMetadata;
-    private String beanName = NonSnarlIdpMetadataManager.class.getName()+"-"+System.identityHashCode(this);
+    private String beanName = NonSnarlIdpMetadataManager.class.getName() + "-" + System.identityHashCode(this);
 
     public NonSnarlIdpMetadataManager(SamlServiceProviderConfigurator configurator) throws MetadataProviderException {
         super(Collections.<MetadataProvider>emptyList());
@@ -54,7 +69,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
         super.setRefreshCheckInterval(0);
         logger.info("-----> Internal Timer is disabled");
         this.defaultExtendedMetadata = new ExtendedMetadata();
-        if (zoneHostedIdpNames==null) {
+        if (zoneHostedIdpNames == null) {
             zoneHostedIdpNames = new ConcurrentHashMap<>();
         }
     }
@@ -145,14 +160,14 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     public Set<String> getIDPEntityNames() {
         Set<String> result = new HashSet<>();
         ExtendedMetadataDelegate delegate = null;
-        try{
+        try {
             delegate = getLocalIdp();
             String idp = getProviderIdpAlias(delegate);
             if (StringUtils.hasText(idp)) {
                 result.add(idp);
             }
         } catch (MetadataProviderException e) {
-            log.error("Unable to get IDP alias for:"+delegate, e);
+            log.error("Unable to get IDP alias for:" + delegate, e);
         }
         return result;
     }
@@ -179,7 +194,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
                     result.add(sp);
                 }
             } catch (MetadataProviderException e) {
-                log.error("Unable to get IDP alias for:"+delegate, e);
+                log.error("Unable to get IDP alias for:" + delegate, e);
             }
         }
         return result;
@@ -210,7 +225,9 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     public List<RoleDescriptor> getRole(String entityID, QName roleName) throws MetadataProviderException {
         List<RoleDescriptor> roleDescriptors = null;
         for (MetadataProvider provider : getProviders()) {
@@ -222,17 +239,19 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
                 }
             } catch (MetadataProviderException e) {
                 log.warn("Error retrieving metadata from provider of type {}, proceeding to next provider",
-                        provider.getClass().getName(), e);
+                         provider.getClass().getName(), e);
                 continue;
             }
         }
         return roleDescriptors;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RoleDescriptor getRole(String entityID, QName roleName, String supportedProtocol)
-            throws MetadataProviderException {
+        throws MetadataProviderException {
         RoleDescriptor roleDescriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -243,7 +262,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
                 }
             } catch (MetadataProviderException e) {
                 log.warn("Error retrieving metadata from provider of type {}, proceeding to next provider",
-                        provider.getClass().getName(), e);
+                         provider.getClass().getName(), e);
                 continue;
             }
         }
@@ -281,7 +300,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
                     return spName;
                 }
             } catch (MetadataProviderException e) {
-                log.error("Unable to find hosted SP name:"+delegate, e);
+                log.error("Unable to find hosted SP name:" + delegate, e);
             }
         }
         return null;
@@ -314,7 +333,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
                 }
             } catch (MetadataProviderException e) {
                 log.warn("Error retrieving metadata from provider of type {}, proceeding to next provider",
-                        provider.getClass().getName(), e);
+                         provider.getClass().getName(), e);
                 continue;
             }
         }

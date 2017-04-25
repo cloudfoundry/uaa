@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.NonSnarlIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -86,7 +85,7 @@ public class SamlMockMvcTests extends InjectedMockContextTest {
         assertNotNull(provider);
         assertTrue(provider instanceof MetadataMemoryProvider);
         String providerSpAlias = spManager.getProviderSpAlias(localServiceProvider);
-        assertEquals(subdomain+"."+entityAlias, providerSpAlias);
+        assertEquals(subdomain + "." + entityAlias, providerSpAlias);
         assertEquals(addSubdomainToEntityId(entityID, subdomain), spManager.getEntityIdForAlias(providerSpAlias));
     }
 
@@ -94,7 +93,7 @@ public class SamlMockMvcTests extends InjectedMockContextTest {
         if (UaaUrlUtils.isUrl(entityId)) {
             return UaaUrlUtils.addSubdomainToUrl(entityId, subdomain);
         } else {
-            return subdomain +"."+ entityId;
+            return subdomain + "." + entityId;
         }
     }
 
