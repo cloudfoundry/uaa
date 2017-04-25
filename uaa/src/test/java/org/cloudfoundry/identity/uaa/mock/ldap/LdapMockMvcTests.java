@@ -67,7 +67,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.HttpSession;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -164,8 +166,22 @@ public class LdapMockMvcTests  {
         apacheDS.stop();
     }
 
+    public static boolean checkOpenPorts(int port) throws Exception {
+        //need to configure gradle to not swallow the output, but log it to a file
+        System.out.println("Checking for processes using port:"+port);
+        ProcessBuilder builder = new ProcessBuilder(Arrays.asList("sudo", "lsof", "-i", ":"+port));
+        builder.inheritIO().redirectOutput(ProcessBuilder.Redirect.PIPE);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(builder.start().getInputStream()))) {
+            long count = reader.lines().count();
+            reader.lines().forEach(line -> System.err.println("LDAP Port["+port+"] lsof:"+line));
+            return count > 0;
+        }
+    }
+
     @BeforeClass
     public static void startApacheDS() throws Exception {
+        checkOpenPorts(33389);
+        checkOpenPorts(33636);
         apacheDS = ApacheDSHelper.start();
         webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
