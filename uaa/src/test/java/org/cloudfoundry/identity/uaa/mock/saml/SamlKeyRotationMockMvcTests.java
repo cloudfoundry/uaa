@@ -22,9 +22,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.w3c.dom.NodeList;
@@ -55,19 +52,10 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(Parameterized.class)
-public class SamlKeyRotationMockMvcTests extends InjectedMockContextTest {
+public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTest {
 
 
-    @Parameters(name = "{index}: type[{0}]; url[{1}];")
-    public static Object[][] parameters() {
-        return new Object[][] {
-            {"SP", "/saml/metadata"},
-            //{"IDP", "/saml/idp/metadata"} // caching still in play
-        };
-    }
-
-    public SamlKeyRotationMockMvcTests(String type, String url) {
+    public SamlKeyRotationMockMvcTests(String url) {
         this.url = url;
     }
 
