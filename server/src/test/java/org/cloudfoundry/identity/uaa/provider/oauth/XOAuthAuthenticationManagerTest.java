@@ -723,6 +723,28 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     @Test
+    public void test_user_existing_attributes_mapping() throws Exception {
+        addTheUserOnAuth();
+
+        claims.put("emailClaim", "test@email.org");
+        claims.put("firstName", "first_name");
+        claims.put("lastName", "last_name");
+        claims.put("phoneNum", "randomNumber");
+        attributeMappings.put("email", "emailClaim");
+        attributeMappings.put("given_name", "firstName");
+        attributeMappings.put("family_name", "lastName");
+        attributeMappings.put("phone_number", "phoneNum");
+        config.setStoreCustomAttributes(true);
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        UaaUser actualUaaUser = xoAuthAuthenticationManager.getUserDatabase().retrieveUserById(authentication.getPrincipal().getId());
+        assertEquals("test@email.org", actualUaaUser.getEmail());
+        assertEquals("first_name", actualUaaUser.getGivenName());
+        assertEquals("last_name", actualUaaUser.getFamilyName());
+        assertEquals("randomNumber", actualUaaUser.getPhoneNumber());
+    }
+
+    @Test
     public void test_custom_user_attributes_are_stored() throws Exception {
         addTheUserOnAuth();
 
