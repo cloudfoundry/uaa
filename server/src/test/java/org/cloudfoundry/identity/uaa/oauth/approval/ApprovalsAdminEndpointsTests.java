@@ -33,9 +33,12 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
@@ -65,6 +68,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
     private UaaTestAccounts testAccounts = null;
 
     private JdbcApprovalStore dao;
@@ -129,6 +136,20 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         TestUtils.deleteFrom(dataSource, "users");
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users", Integer.class), is(0));
+    }
+
+    @Test
+    public void validate_client_id_on_revoke() throws Exception {
+        exception.expect(NoSuchClientException.class);
+        exception.expectMessage("No client with requested id: invalid_id");
+        endpoints.revokeApprovals("invalid_id");
+    }
+
+    @Test
+    public void validate_client_id_on_update() throws Exception {
+        exception.expect(NoSuchClientException.class);
+        exception.expectMessage("No client with requested id: invalid_id");
+        endpoints.updateClientApprovals("invalid_id", new Approval[0]);
     }
 
     @Test
