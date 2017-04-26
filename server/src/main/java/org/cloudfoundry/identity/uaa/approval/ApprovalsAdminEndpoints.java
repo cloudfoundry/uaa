@@ -29,6 +29,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -170,6 +171,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ResponseBody
     @Override
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
+        clientDetailsService.loadClientByClientId(clientId);
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
         approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId);
@@ -202,10 +204,17 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ResponseBody
     @Override
     public ActionResult revokeApprovals(@RequestParam(required = true) String clientId) {
+        clientDetailsService.loadClientByClientId(clientId);
         String userId = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + userId + " and client " + clientId);
         approvalStore.revokeApprovalsForClientAndUser(clientId, userId);
         return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
+    }
+
+    @ExceptionHandler
+    public View handleException(NoSuchClientException nsce) {
+        logger.debug("Client not found:" + nsce.getMessage());
+        return handleException(new UaaException(nsce.getMessage(), 404));
     }
 
     @ExceptionHandler
