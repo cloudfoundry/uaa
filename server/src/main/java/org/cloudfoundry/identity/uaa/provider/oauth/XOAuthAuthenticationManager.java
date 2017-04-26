@@ -83,8 +83,7 @@ import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
@@ -216,9 +215,15 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     protected UaaUser getUser(Authentication request, AuthenticationData authenticationData) {
         if (authenticationData != null) {
 
+            String emailClaim = (String) authenticationData.getAttributeMappings().get(EMAIL_ATTRIBUTE_NAME);
+            String givenNameClaim = (String) authenticationData.getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME);
+            String familyNameClaim = (String) authenticationData.getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME);
+            String phoneClaim = (String) authenticationData.getAttributeMappings().get(PHONE_NUMBER_ATTRIBUTE_NAME);
+
             Map<String, Object> claims = authenticationData.getClaims();
+            //TODO call userinfo?
             String username = authenticationData.getUsername();
-            String email = (String) claims.get("email");
+            String email = (String) claims.get(emailClaim != null ? emailClaim : "email");
             if (email == null) {
                 email = generateEmailIfNull(username);
             }
@@ -226,9 +231,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return new UaaUser(
                 new UaaUserPrototype()
                     .withEmail(email)
-                    .withGivenName((String) claims.get("given_name"))
-                    .withFamilyName((String) claims.get("family_name"))
-                    .withPhoneNumber((String) claims.get("phone_number"))
+                    .withGivenName((String) claims.get(givenNameClaim != null ? givenNameClaim : "given_name"))
+                    .withFamilyName((String) claims.get(familyNameClaim != null ? familyNameClaim : "family_name"))
+                    .withPhoneNumber((String) claims.get(phoneClaim != null ? phoneClaim : "phone_number"))
                     .withModified(new Date())
                     .withUsername(username)
                     .withPassword("")
