@@ -22,25 +22,64 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class UaaUrlUtilsTest {
 
     private List<String> invalidWildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
-    private List<String> invalidHttpWildCardUrls = Arrays.asList("http://*", "http://**", "http://*/**", "http://*/*", "http://**/*", "http://a*", "http://abc*.domain.com",
-        "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path");
-    private List<String> validUrls = Arrays.asList("http://valid.com","http://sub.valid.com","http://valid.com/with/path", "https://subsub.sub.valid.com/**",
-        "https://valid.com/path/*/path", "http://sub.valid.com/*/with/path**", "http*://sub.valid.com/*/with/path**");
+    private List<String> invalidHttpWildCardUrls = Arrays.asList(
+        "http://*",
+        "http://**",
+        "http://*/**",
+        "http://*/*",
+        "http://**/*",
+        "http://a*",
+        "http://*.com",
+        "http://*domain*",
+        "http://*domain.com",
+        "http://*domain/path",
+        "http://local*",
+        "*.valid.com/*/with/path**",
+        "http://**/path",
+        "https://*.*.*.com/*/with/path**",
+        "www.*/path",
+        "http://username:password@*.com",
+        "http://username:password@*.com/path"
+    );
+    private List<String> validUrls = Arrays.asList(
+        "http://localhost",
+        "http://localhost:8080",
+        "http://localhost:8080/uaa",
+        "http://valid.com",
+        "http://sub.valid.com",
+        "http://valid.com/with/path",
+        "https://subsub.sub.valid.com/**",
+        "https://valid.com/path/*/path",
+        "http://sub.valid.com/*/with/path**",
+        "http*://sub.valid.com/*/with/path**",
+        "http*://*.valid.com/*/with/path**",
+        "http://*.valid.com/*/with/path**",
+        "https://*.valid.com/*/with/path**",
+        "https://*.*.valid.com/*/with/path**",
+        "www.valid.com/*/with/path**",
+        "www.*.valid.com/*/with/path**",
+        "http://sub*.valid.com/*/with/path**",
+        "http://*.domain.com",
+        "http://username:password@some.server.com",
+        "http://username:password@some.server.com/path"
+    );
 
     @Before
     public void setUp() throws Exception {
@@ -309,28 +348,43 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void test_validate_redirect_uri() {
-        validateRedirectUri(invalidWildCardUrls, false);
-        validateRedirectUri(invalidHttpWildCardUrls, false);
-        validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
-
+    public void test_validate_valid_redirect_uri() {
         validateRedirectUri(validUrls, true);
         validateRedirectUri(convertToHttps(validUrls), true);
     }
 
+    @Test
+    public void test_validate_invalid_redirect_uri() {
+        validateRedirectUri(invalidWildCardUrls, false);
+        validateRedirectUri(invalidHttpWildCardUrls, false);
+        validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
+    }
+
     private void validateRedirectUri(List<String> urls, boolean result) {
-        urls.stream().forEach(url -> {
-            assertEquals("Assertion failed for:" + url, result, UaaUrlUtils.isValidRegisteredRedirectUrl(url));
-        });
+        Map<String, String> failed = getFailedUrls(urls, result);
+        if (!failed.isEmpty()) {
+            StringBuilder builder = new StringBuilder("\n");
+            failed.entrySet().forEach(entry ->
+                builder.append(entry.getValue()).append("\n")
+            );
+            fail(builder.toString());
+        }
+    }
+    private Map<String, String> getFailedUrls(List<String> urls, boolean result) {
+        Map<String, String> failed = new LinkedHashMap<>();
+        urls.stream().forEach(
+            url -> {
+                String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
+                if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
+                    failed.put(url, message);
+                }
+            }
+        );
+        return failed;
     }
 
     private List<String> convertToHttps(List<String> urls) {
-        List<String> httpsUrls = new ArrayList<>(urls.size());
-        for(String url : urls) {
-            httpsUrls.add(url.replace("http:", "https:"));
-        }
-
-        return httpsUrls;
+        return urls.stream().map(url -> url.replace("http:", "https:")).collect(Collectors.toList());
     }
 
     private void setIdentityZone(String subdomain) {

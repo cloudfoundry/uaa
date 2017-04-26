@@ -45,8 +45,17 @@ public class ClientAdminEndpointsValidatorTests {
     BaseClientDetails caller;
     ClientAdminEndpointsValidator validator;
     private List wildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
-    private List httpWildCardUrls = Arrays.asList("http://*", "http://**", "http://*/**", "http://*/*", "http://**/*", "http://a*", "http://abc*.domain.com",
-        "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path");
+    private List httpWildCardUrls = Arrays.asList(
+        "http://*",
+        "http://**",
+        "http://*/**",
+        "http://*/*",
+        "http://**/*",
+        "http://a*",
+        "http://*domain*",
+        "http://*domain.com",
+        "http://*domain/path",
+        "http://**/path");
 
     @Before
     public void createClient() throws Exception {

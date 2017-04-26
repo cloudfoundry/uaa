@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
@@ -75,8 +76,24 @@ public abstract class UaaUrlUtils {
 
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
-            final String permittedURLs = "http(\\*|s)?://[^\\*/]+(/.*|$)";
-            return Pattern.matches(permittedURLs, url);
+            final String permittedURLs =
+                    "^(www\\.|http(\\*|s)?://)" +    //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
+                    "((.*:.*@)?)"+                   //username/password in URL
+                    "([a-zA-Z0-9\\-\\*\\.]+)" +      //hostname
+                    "(:.*|/.*|$)?";                  //port and path
+            Matcher matchResult = Pattern.compile(permittedURLs).matcher(url);
+            if (matchResult.matches()) {
+                String host = matchResult.group(5);
+                String[] segments = host.split("\\.");
+                //last two segments are not allowed to contain wildcards
+                for (int i=0; i<2 && i<segments.length; i++) {
+                    int index = segments.length - i - 1;
+                    if (segments[index].indexOf('*')>=0) {
+                        return false;
+                    }
+                }
+                return true;
+            }
         }
         return false;
     }
