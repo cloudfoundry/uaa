@@ -347,7 +347,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
             return new ModelAndView(
                 new RedirectView(
-                    appendAccessToken(authorizationRequest, accessToken, authentication, true),
+                    appendAccessToken(authorizationRequest, accessToken, authentication),
                     false,
                     true,
                     false
@@ -391,8 +391,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private String appendAccessToken(AuthorizationRequest authorizationRequest,
                                      OAuth2AccessToken accessToken,
-                                     Authentication authUser,
-                                     boolean fragment) {
+                                     Authentication authUser) {
 
         String requestedRedirect = authorizationRequest.getRedirectUri();
         if (accessToken == null) {
@@ -441,17 +440,15 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
-        if (fragment) {
-            String existingFragment = builder.build(true).getFragment();
-            if (StringUtils.hasText(existingFragment)) {
-                existingFragment = existingFragment + "&" + url.toString();
-            } else {
-                existingFragment = url.toString();
-            }
-            builder.fragment(existingFragment);
+
+        String existingFragment = builder.build(true).getFragment();
+        if (StringUtils.hasText(existingFragment)) {
+            existingFragment = existingFragment + "?" + url.toString();
         } else {
-            builder.query(url.toString());
+            existingFragment = url.toString();
         }
+        builder.fragment(existingFragment);
+
         // Do not include the refresh token (even if there is one)
         return builder.build(true).toUriString();
     }
