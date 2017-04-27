@@ -27,11 +27,9 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-//@RunWith(Parameterized.class)
 public class UserInfoTableTest extends JdbcTestBase {
 
     private String tableName = "user_info";
-    private String springProfile;
 
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
         new TestColumn("user_id", "varchar", 36),
@@ -39,26 +37,10 @@ public class UserInfoTableTest extends JdbcTestBase {
     );
 
 
-//    public UserInfoTableTest(String springProfile, String tableName) {
-//        this.springProfile = springProfile;
-//        this.tableName = tableName;
-//    }
-
-//    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
-//    public static Collection<Object[]> data() {
-//        return Arrays.asList(new Object[][]{
-//            {"hsqldb", "user_info"},
-//            {"postgresql", "user_info"},
-//            {"mysql", "user_info"}
-//        });
-//    }
-
     @Override
     public void setUp() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        if ( springProfile!=null ) {
-            environment.setActiveProfiles(springProfile);
-        } else if (System.getProperty("spring.active.profiles")!=null) {
+        if (System.getProperty("spring.active.profiles")!=null) {
             environment.setActiveProfiles(System.getProperty("spring.active.profiles"));
         }
         setUp(environment);
