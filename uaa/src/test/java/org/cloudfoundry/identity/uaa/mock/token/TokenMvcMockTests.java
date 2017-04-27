@@ -2106,7 +2106,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String locationToken = locationParts[1];
 
         assertEquals(redirectUri.split("#")[0], locationUri);
-        String[] locationParams = locationToken.split("&");
+        String[] locationPath = locationToken.split("\\?");
+        int paramIndex = locationPath.length == 2 ? 1 : 0;
+        String[] locationParams = locationPath[paramIndex].split("&");
         assertThat(Arrays.asList(locationParams), hasItem(is("token_type=bearer")));
         assertThat(Arrays.asList(locationParams), hasItem(startsWith("access_token=")));
     }
