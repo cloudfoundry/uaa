@@ -10,6 +10,14 @@ matrix:
       sudo: required
       language: java
       env:
+        - TESTENV=default
+        - TEST_COMMAND=generateDocs
+    - os: linux
+      dist: trusty
+      jdk: oraclejdk8
+      sudo: required
+      language: java
+      env:
         - TESTENV=sqlserver,default
         - TEST_COMMAND=cloudfoundry-identity-server:test
     - os: linux
