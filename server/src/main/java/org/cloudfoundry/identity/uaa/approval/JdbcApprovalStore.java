@@ -16,8 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
+import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -41,15 +40,11 @@ import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 
-public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublisherAware {
+public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublisherAware, SystemDeletable {
 
     private final JdbcTemplate jdbcTemplate;
 
-    private JdbcPagingListFactory pagingListFactory;
-
     private final Log logger = LogFactory.getLog(getClass());
-
-    private final SearchQueryConverter queryConverter;
 
     private final RowMapper<Approval> rowMapper = new AuthorizationRowMapper();
 
@@ -70,16 +65,21 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     private static final String EXPIRE_AUTHZ_SQL = String.format("update %s set expiresAt = :expiry", TABLE_NAME);
 
+    protected static final String DELETE_ZONE_APPROVALS = "delete from authz_approvals where identity_zone_id = ?";
+
+    protected static final String DELETE_CLIENT_APPROVALS = "delete from authz_approvals where client_id = ? and identity_zone_id = ?";
+
+    protected static final String DELETE_USER_APPROVALS = "delete from authz_approvals where user_id = ? and identity_zone_id = ?";
+
+    public static final String DELETE_OF_USER_APPROVALS_BY_PROVIDER = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ? and origin = ?)";
+
+
     private boolean handleRevocationsAsExpiry = false;
     private ApplicationEventPublisher applicationEventPublisher;
 
-    public JdbcApprovalStore(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory,
-                    SearchQueryConverter queryConverter) {
+    public JdbcApprovalStore(JdbcTemplate jdbcTemplate) {
         Assert.notNull(jdbcTemplate);
-        Assert.notNull(queryConverter);
         this.jdbcTemplate = jdbcTemplate;
-        this.queryConverter = queryConverter;
-        this.pagingListFactory = pagingListFactory;
     }
 
     public void setHandleRevocationsAsExpiry(boolean handleRevocationsAsExpiry) {
@@ -270,6 +270,39 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         if (applicationEventPublisher != null) {
             applicationEventPublisher.publishEvent(event);
         }
+    }
+
+    @Override
+    public int deleteByIdentityZone(String zoneId) {
+        int approvalCount = jdbcTemplate.update(DELETE_ZONE_APPROVALS, zoneId);
+        getLogger().debug(String.format("Deleted zone approvals '%s' and count:%s", zoneId, approvalCount));
+        return approvalCount;
+    }
+
+    @Override
+    public int deleteByOrigin(String origin, String zoneId) {
+        int approvalCount = jdbcTemplate.update(DELETE_OF_USER_APPROVALS_BY_PROVIDER, origin, zoneId);
+        getLogger().debug(String.format("Deleted provider approvals '%s'/%s and count:%s", origin, zoneId, approvalCount));
+        return approvalCount;
+    }
+
+    @Override
+    public int deleteByClient(String clientId, String zoneId) {
+        int approvalCount = jdbcTemplate.update(DELETE_CLIENT_APPROVALS, clientId, zoneId);
+        getLogger().debug(String.format("Deleted client '%s' and %s approvals", clientId, approvalCount));
+        return approvalCount;
+    }
+
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        int approvalCount = jdbcTemplate.update(DELETE_USER_APPROVALS, userId, zoneId);
+        getLogger().debug(String.format("Deleted user '%s' and %s approvals", userId, approvalCount));
+        return approvalCount;
+    }
+
+    @Override
+    public Log getLogger() {
+        return logger;
     }
 
     private static class AuthorizationRowMapper implements RowMapper<Approval> {

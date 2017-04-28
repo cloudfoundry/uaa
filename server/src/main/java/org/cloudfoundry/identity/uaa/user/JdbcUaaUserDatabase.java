@@ -12,12 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-
-import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -238,8 +237,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                 return;
             }
             StringBuffer dynamicAuthoritiesQuery = new StringBuffer("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
-            for(int i=0;i<memberIdList.size()-1;i++)
-            {
+            for (int i = 0; i < memberIdList.size() - 1; i++) {
                 dynamicAuthoritiesQuery.append("?,");
             }
             dynamicAuthoritiesQuery.append("?);");

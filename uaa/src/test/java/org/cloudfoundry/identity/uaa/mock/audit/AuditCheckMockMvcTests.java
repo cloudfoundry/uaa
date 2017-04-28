@@ -763,7 +763,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(userDelete).andExpect(status().isOk());
 
-        assertEquals(1, testListener.getEventCount());
+        assertEquals(2, testListener.getEventCount());
 
         userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());

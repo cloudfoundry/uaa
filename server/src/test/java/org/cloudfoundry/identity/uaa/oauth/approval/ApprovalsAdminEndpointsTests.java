@@ -18,8 +18,6 @@ import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
@@ -95,8 +93,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);
 
-        dao = new JdbcApprovalStore(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-                        new SimpleSearchQueryConverter());
+        dao = new JdbcApprovalStore(jdbcTemplate);
         endpoints = new ApprovalsAdminEndpoints();
         endpoints.setApprovalStore(dao);
         endpoints.setUaaUserDatabase(userDao);

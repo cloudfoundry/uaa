@@ -90,8 +90,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private static final String VERIFY_USER_SQL_FORMAT = "select verified from users where id=?";
 
-    private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
-    private static final String INSERT_MEMBERSHIP = "insert into group_membership (group_id, member_id, member_type,authorities,added, origin) values (?,?,?,?,?,?)";
+    private static final String INSERT_MEMBERSHIP = "insert into group_membership (group_id, member_id, member_type,authorities,added, origin, identity_zone_id) values (?,?,?,?,?,?,?)";
 
     private int existingUserCount = 0;
 
@@ -162,10 +161,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(userName, created.getUserName());
     }
 
-    protected void addApprovalAndMembership(String userId, String origin) {
+    protected void addMembership(String userId, String origin) {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        jdbcTemplate.update(INSERT_APPROVAL, userId, userId, "uaa.user", "APPROVED", timestamp, timestamp);
-        jdbcTemplate.update(INSERT_MEMBERSHIP, userId, userId, "USER", "authorities", timestamp, origin);
+        String zoneId = IdentityZoneHolder.get().getId();
+        jdbcTemplate.update(INSERT_MEMBERSHIP, userId, userId, "USER", "authorities", timestamp, origin, zoneId);
     }
 
     @Test
@@ -183,8 +182,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                          Integer.class
                      ), is(1)
         );
-        addApprovalAndMembership(created.getId(), created.getOrigin());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(1));
+        addMembership(created.getId(), created.getOrigin());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(1));
 
         IdentityProvider loginServer =
@@ -193,7 +191,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 .setIdentityZoneId(IdentityZone.getUaa().getId());
         db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, IdentityZone.getUaa().getId()}, Integer.class), is(0));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
     }
 
@@ -211,8 +208,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(LOGIN_SERVER, created.getOrigin());
         assertEquals(zone.getId(), created.getZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, zone.getId()}, Integer.class), is(1));
-        addApprovalAndMembership(created.getId(), created.getOrigin());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(1));
+        addMembership(created.getId(), created.getOrigin());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(1));
 
         IdentityProvider loginServer =
@@ -221,7 +217,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 .setIdentityZoneId(zone.getId());
         db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, zone.getId()}, Integer.class), is(0));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
     }
 
@@ -239,13 +234,11 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(UAA, created.getOrigin());
         assertEquals(zone.getId(), created.getZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, zone.getId()}, Integer.class), is(1));
-        addApprovalAndMembership(created.getId(), created.getOrigin());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(1));
+        addMembership(created.getId(), created.getOrigin());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(1));
 
         db.onApplicationEvent(new EntityDeletedEvent<>(zone, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, zone.getId()}, Integer.class), is(0));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
     }
 

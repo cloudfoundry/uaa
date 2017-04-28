@@ -16,8 +16,6 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
@@ -31,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.sql.Timestamp;
@@ -40,6 +39,8 @@ import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThan;
@@ -47,6 +48,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.spy;
 
 public class JdbcApprovalStoreTests extends JdbcTestBase {
 
@@ -67,18 +69,24 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             testAccounts.addRandomUser(jdbcTemplate, userId);
         }
 
-        dao = new JdbcApprovalStore(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-                        new SimpleSearchQueryConverter());
+        dao = spy(new JdbcApprovalStore(jdbcTemplate));
 
         eventPublisher = TestApplicationEventPublisher.forEventClass(ApprovalModifiedEvent.class);
         dao.setApplicationEventPublisher(eventPublisher);
 
-        addApproval("u1", "c1", "uaa.user", 6000, APPROVED);
-        addApproval("u1", "c2", "uaa.admin", 12000, DENIED);
-        addApproval("u2", "c1", "openid", 6000, APPROVED);
+        addApproval("u1", "c1", "uaa.user", 6000, APPROVED, UAA);
+        addApproval("u1", "c2", "uaa.admin", 12000, DENIED, UAA);
+        addApproval("u2", "c1", "openid", 6000, APPROVED, UAA);
     }
 
-    private void addApproval(String userId, String clientId, String scope, long expiresIn, ApprovalStatus status) {
+    private void addApproval(String userId, String clientId, String scope, long expiresIn, ApprovalStatus status, String origin) {
+        String zoneId = IdentityZoneHolder.get().getId();
+        String sql = "insert into users (id, username, password, email, origin) values (?,?,?,?,?)";
+        try {
+            jdbcTemplate.update(sql, userId, userId, userId, userId+"@testapprovals.com", origin);
+        } catch (DataIntegrityViolationException e) {
+            //ignore, user exists
+        }
         Date expiresAt = new Timestamp(new Date().getTime() + expiresIn);
         Date lastUpdatedAt = new Date();
         Approval newApproval = new Approval()
@@ -91,11 +99,91 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         dao.addApproval(newApproval);
     }
 
+    public int countClientApprovals(String clientId, String zoneId) {
+        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=? and identity_zone_id = ?", new Object[] {clientId, zoneId}, Integer.class);
+    }
+
+    public int countUserApprovals(String userId, String zoneId) {
+        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=? and identity_zone_id = ?", new Object[] {userId, zoneId}, Integer.class);
+    }
+
+    public int countZoneApprovals(String zoneId) {
+        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where identity_zone_id = ?", new Object[] {zoneId}, Integer.class);
+    }
+
     @After
     public void cleanupDataSource() throws Exception {
         TestUtils.deleteFrom(dataSource, "authz_approvals");
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void delete_zone_deletes_approvals() throws Exception {
+        String zoneId = IdentityZoneHolder.getUaaZone().getId();
+        assertEquals(3, countZoneApprovals(zoneId));
+        dao.deleteByIdentityZone(zoneId);
+        assertEquals(0, countZoneApprovals(zoneId));
+    }
+
+    @Test
+    public void delete_other_zone() throws Exception {
+        String zoneId = otherZone.getId();
+        String uaaZoneID = IdentityZoneHolder.getUaaZone().getId();;
+        assertEquals(0, countZoneApprovals(zoneId));
+        assertEquals(3, countZoneApprovals(uaaZoneID));
+        dao.deleteByIdentityZone(zoneId);
+        assertEquals(0, countZoneApprovals(zoneId));
+        assertEquals(3, countZoneApprovals(uaaZoneID));
+    }
+
+    @Test
+    public void delete_provider_deletes_approvals() throws Exception {
+        addApproval("u4", "c1", "openid", 6000, APPROVED, LDAP);
+        String zoneId = IdentityZoneHolder.getUaaZone().getId();
+        assertEquals(4, countZoneApprovals(zoneId));
+        dao.deleteByOrigin(UAA, zoneId);
+        assertEquals(1, countZoneApprovals(zoneId));
+    }
+
+    @Test
+    public void delete_other_provider() throws Exception {
+        addApproval("u4", "c1", "openid", 6000, APPROVED, LDAP);
+        String zoneId = otherZone.getId();
+        String uaaZoneID = IdentityZoneHolder.getUaaZone().getId();;
+        assertEquals(0, countZoneApprovals(zoneId));
+        assertEquals(4, countZoneApprovals(uaaZoneID));
+        dao.deleteByOrigin(LDAP, zoneId);
+        assertEquals(0, countZoneApprovals(zoneId));
+        assertEquals(4, countZoneApprovals(uaaZoneID));
+    }
+
+    @Test
+    public void delete_client() throws Exception {
+        String zoneId = IdentityZoneHolder.getUaaZone().getId();
+        String otherZoneId = otherZone.getId();
+        assertEquals(2, countClientApprovals("c1", zoneId));
+        assertEquals(0, countClientApprovals("c1", otherZoneId));
+        dao.deleteByClient("c1", otherZoneId);
+        assertEquals(2, countClientApprovals("c1", zoneId));
+        assertEquals(0, countClientApprovals("c1", otherZoneId));
+        dao.deleteByClient("c1", zoneId);
+        assertEquals(0, countClientApprovals("c1", zoneId));
+        assertEquals(0, countClientApprovals("c1", otherZoneId));
+    }
+
+    @Test
+    public void delete_user() throws Exception {
+        String zoneId = IdentityZoneHolder.getUaaZone().getId();
+        String otherZoneId = otherZone.getId();
+        assertEquals(2, countUserApprovals("u1", zoneId));
+        assertEquals(0, countUserApprovals("u1", otherZoneId));
+        dao.deleteByUser("u1", otherZoneId);
+        assertEquals(2, countUserApprovals("u1", zoneId));
+        assertEquals(0, countUserApprovals("u1", otherZoneId));
+        dao.deleteByUser("u1", zoneId);
+        assertEquals(0, countUserApprovals("u1", zoneId));
+        assertEquals(0, countUserApprovals("u1", otherZoneId));
     }
 
     @Test
@@ -267,9 +355,9 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         assertEquals(0, dao.getApprovalsForUser("u3").size());
         assertEquals(2, dao.getApprovalsForClient("c1").size());
         assertEquals(2, dao.getApprovalsForUser("u1").size());
-        addApproval("u3", "c3", "test1", 0, APPROVED);
-        addApproval("u3", "c3", "test2", 0, DENIED);
-        addApproval("u3", "c3", "test3", 0, APPROVED);
+        addApproval("u3", "c3", "test1", 0, APPROVED, UAA);
+        addApproval("u3", "c3", "test2", 0, DENIED, UAA);
+        addApproval("u3", "c3", "test3", 0, APPROVED, UAA);
         assertEquals(3, dao.getApprovalsForClient("c3").size());
         assertEquals(3, dao.getApprovalsForUser("u3").size());
 

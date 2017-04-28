@@ -144,6 +144,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
         SearchQueryConverter.ProcessedFilter where = getQueryConverter().convert(filter, null, false);
         logger.debug("Filtering groups with SQL: " + where);
         try {
+            //TODO
             String completeSql = "DELETE FROM "+getTableName() + " WHERE group_id IN (SELECT id FROM groups WHERE identity_zone_id='"+IdentityZoneHolder.get().getId()+"') AND  " + where.getSql();
             logger.debug("delete sql: " + completeSql + ", params: " + where.getParams());
             return new NamedParameterJdbcTemplate(jdbcTemplate).update(completeSql, where.getParams());

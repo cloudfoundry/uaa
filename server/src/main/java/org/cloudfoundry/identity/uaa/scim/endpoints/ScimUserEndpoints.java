@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -299,6 +300,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         membershipManager.removeMembersByMemberId(userId);
         dao.delete(userId, version);
         scimDeletes.incrementAndGet();
+        if (publisher != null) {
+            publisher.publishEvent(
+                new EntityDeletedEvent<>(
+                    user,
+                    SecurityContextHolder.getContext().getAuthentication()
+                )
+            );
+            logger.debug("User delete event sent[" + userId + "]");
+        }
         return user;
     }
 

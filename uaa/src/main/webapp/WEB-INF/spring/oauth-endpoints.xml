@@ -443,12 +443,6 @@
         <property name="approvalStore" ref="approvalStore" />
     </bean>
 
-    <bean id="approvalStore" class="org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore">
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
-        <constructor-arg ref="scimUserQueryConverter"/>
-    </bean>
-
     <bean id="authorizationRequestManager" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager">
         <constructor-arg ref="jdbcClientDetailsService" />
         <constructor-arg ref="userDatabase"/>
