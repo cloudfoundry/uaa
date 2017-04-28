@@ -16,9 +16,6 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -61,12 +58,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
     @Before
     public void initUserManagedAuthzApprovalHandlerTests() {
-        limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
-        approvalStore = new JdbcApprovalStore(
-            jdbcTemplate,
-            new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-            new SimpleSearchQueryConverter()
-        );
+        approvalStore = new JdbcApprovalStore(jdbcTemplate);
         handler.setApprovalStore(approvalStore);
         handler.setClientDetailsService(
             mockClientDetailsService(

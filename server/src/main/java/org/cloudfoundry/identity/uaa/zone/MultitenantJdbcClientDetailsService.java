@@ -91,13 +91,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     protected static final String DELETE_CLIENTS_BY_ZONE = "delete from oauth_client_details where identity_zone_id = ?";
 
-    //TODO Move this to the JdbcApproval Store
-    protected static final String DELETE_CLIENT_APPROVALS_BY_ZONE = "delete from authz_approvals where client_id in (select client_id from oauth_client_details where identity_zone_id = ?)"+
-        " and user_id in (select id from users where identity_zone_id = ?)";
 
-    //TODO Move this to the JdbcApproval Store
-    protected static final String DELETE_CLIENT_APPROVALS = "delete from authz_approvals where client_id = ?"+
-        " and user_id in (select id from users where identity_zone_id = ?)";
 
     private RowMapper<ClientDetails> rowMapper = new ClientDetailsRowMapper();
 
@@ -281,7 +275,6 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
 
     @Override
     public int deleteByIdentityZone(String zoneId) {
-        jdbcTemplate.update(DELETE_CLIENT_APPROVALS_BY_ZONE, zoneId, zoneId);
         return jdbcTemplate.update(DELETE_CLIENTS_BY_ZONE, zoneId);
     }
 
@@ -296,8 +289,6 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         if (count == 0) {
             throw new NoSuchClientException("No client found with id = " + clientId);
         }
-        int approvalCount = jdbcTemplate.update(DELETE_CLIENT_APPROVALS, clientId, zoneId);
-        getLogger().debug(String.format("Deleted client '%s' and %s approvals", clientId, approvalCount));
         return count;
     }
 

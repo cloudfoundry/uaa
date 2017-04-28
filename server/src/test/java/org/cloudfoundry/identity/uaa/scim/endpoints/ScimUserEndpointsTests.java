@@ -200,7 +200,7 @@ public class ScimUserEndpointsTests {
         map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
         endpoints.setStatuses(map);
 
-        am = new JdbcApprovalStore(jdbcTemplate, pagingListFactory, new ScimSearchQueryConverter());
+        am = new JdbcApprovalStore(jdbcTemplate);
         endpoints.setApprovalStore(am);
     }
 

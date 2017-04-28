@@ -104,13 +104,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
-    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE = "delete from group_membership where member_type='USER' and member_id in (select id from users where identity_zone_id = ?)";
+    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE = "delete from group_membership where identity_zone_id = ?";
 
-    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER = "delete from group_membership where member_type='USER' and member_id in (select id from users where identity_zone_id = ? and origin = ?)";
-
-    public static final String HARD_DELETE_OF_USER_APPROVALS_BY_ZONE = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ?)";
-
-    public static final String HARD_DELETE_OF_USER_APPROVALS_BY_PROVIDER = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ? and origin = ?)";
+    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER = "delete from group_membership where identity_zone_id = ? and origin = ?";
 
     public static final String HARD_DELETE_BY_ZONE = "delete from users where identity_zone_id = ?";
 
@@ -477,13 +473,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public int deleteByIdentityZone(String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE, zoneId);
-        jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_ZONE, zoneId);
         return jdbcTemplate.update(HARD_DELETE_BY_ZONE, zoneId);
     }
 
     public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER, zoneId, origin);
-        jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(HARD_DELETE_BY_PROVIDER, zoneId, origin);
     }
 

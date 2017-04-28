@@ -42,7 +42,6 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRE
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.isUaa;
 import static org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService.DEFAULT_DELETE_STATEMENT;
-import static org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService.DELETE_CLIENT_APPROVALS;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -70,8 +69,6 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
     private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, lastmodified, required_user_groups from oauth_client_details where client_id=?";
 
     private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified, required_user_groups) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
-
-    private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
 
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
@@ -102,14 +99,6 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         String clientId = "client-with-id-" + new RandomValueStringGenerator(36).generate();
         clientDetails.setClientId(clientId);
 
-    }
-
-    protected void addApproval(String clientId) {
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        String zoneId = IdentityZoneHolder.get().getId();
-        String userId = zoneId + clientId;
-        jdbcTemplate.update(INSERT_APPROVAL, clientId, userId, "uaa.user", "APPROVED", timestamp, timestamp);
-        testAccounts.addRandomUser(jdbcTemplate, userId, zoneId);
     }
 
     @Test
@@ -149,7 +138,6 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
             }
             verify(service, times(1)).deleteByClient(eq("some-client-id"), eq("zone-id"));
             verify(template, times(1)).update(DEFAULT_DELETE_STATEMENT, "some-client-id", "zone-id");
-            verify(template, times(1)).update(DELETE_CLIENT_APPROVALS, "some-client-id", "zone-id");
         }
     }
 
@@ -160,18 +148,14 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherIdentityZone)) {
             IdentityZoneHolder.set(zone);
             List<ClientDetails> clients = new LinkedList<>();
-            addClientsInCurrentZone(clients, 10, true);
+            addClientsInCurrentZone(clients, 10);
             assertEquals((isUaa() ? 5 : 0) + clients.size(), countClientsInZone(zone.getId()));
-            clients.stream().forEach(client -> {
-                assertEquals(1, countClientApprovals(client.getClientId(), zone.getId()));
-            });
 
 
             clients.removeIf(
                 client -> {
                     assertEquals("We deleted exactly one row", 1, service.deleteByClient(client.getClientId(), zone.getId()));
                     assertEquals("Our client count decreased by 1", (isUaa() ? 5 : 0) + (clients.size()-1), countClientsInZone(zone.getId()));
-                    assertEquals("Approvals "+client.getClientId()+" for client were deleted.", 0, countClientApprovals(client.getClientId(), zone.getId()));
                     assertFalse("Client "+client.getClientId()+ " was deleted.", clientExists(client.getClientId(), zone.getId()));
                     return true;
                 });
@@ -182,14 +166,8 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
     }
 
     public void addClientsInCurrentZone(List<ClientDetails> clients, int count) {
-        addClientsInCurrentZone(clients, count, false);
-    }
-    public void addClientsInCurrentZone(List<ClientDetails> clients, int count, boolean addapproval) {
         for (int i = 0; i < count; i++) {
             clients.add(addClientToDb(i + "-" + generate.generate()));
-        }
-        if (addapproval) {
-            clients.stream().forEach(c -> addApproval(c.getClientId()));
         }
     }
 
@@ -200,18 +178,12 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
             IdentityZoneHolder.set(zone);
             addClientToDb(id);
             assertThat(countClientsInZone(IdentityZoneHolder.get().getId()), is(1));
-            addApproval(id);
-            assertThat(countClientApprovals(id, zone.getId()), is(1));
         }
 
         service.onApplicationEvent(new EntityDeletedEvent<>(otherIdentityZone, null));
         assertThat(countClientsInZone(otherIdentityZone.getId()), is(0));
-        assertThat(countClientApprovals(id, otherIdentityZone.getId()), is(0));
     }
 
-    public int countClientApprovals(String clientId, String zoneId) {
-        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=? and user_id in (select id from users where identity_zone_id = ?)", new Object[] {clientId, zoneId}, Integer.class);
-    }
 
     public int countClientsInZone(String zoneId) {
         return jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[] {zoneId}, Integer.class);
@@ -227,12 +199,9 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         addClientToDb(id);
         String zoneId = IdentityZoneHolder.get().getId();
         assertThat(countClientsInZone(zoneId), is(1));
-        addApproval(id);
-        assertThat(countClientApprovals(id, zoneId), is(1));
 
         service.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get(), null));
         assertThat(countClientsInZone(zoneId), is(1));
-        assertThat(countClientApprovals(id, zoneId), is (1));
     }
 
     public ClientDetails addClientToDb(String id) {
