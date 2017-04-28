@@ -143,6 +143,9 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, null);
     }
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, zone, Collections.emptyMap());
+    }
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String,Object> additionalInfo) {
         IdentityZone original = IdentityZoneHolder.get();
         if (zone!=null) {
             IdentityZoneHolder.set(zone);
@@ -157,6 +160,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         if (allowedIdps!=null && !allowedIdps.isEmpty()) {
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
+        additional.putAll(additionalInfo);
         c.setAdditionalInformation(additional);
         if (hasText(redirectUri)) {
             c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));

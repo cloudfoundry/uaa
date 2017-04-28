@@ -107,6 +107,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -414,7 +415,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         clientDetails.setClientSecret(SECRET);
         clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
         clientDetailsService.addClientDetails(clientDetails);
-        MvcResult result = doPasswordGrant(username, SECRET, clientId, SECRET, status().isUnauthorized());
+        MvcResult result = doPasswordGrant(username, SECRET, clientId, SECRET, status().isBadRequest());
         Map<String,Object> errorResponse = JsonUtils.readValue(
             result.getResponse().getContentAsString(),
             new TypeReference<Map<String, Object>>() {}
@@ -742,7 +743,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(post.param("scope","uaa.admin"))
             .andDo(print())
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isBadRequest());
 
     }
 
@@ -814,7 +815,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(post.param("scope","uaa.admin"))
             .andDo(print())
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isBadRequest());
 
     }
 
@@ -1114,10 +1115,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param("client_secret", SECRET)
             .param("username", username)
             .param("password", SECRET))
-            .andExpect(status().isUnauthorized())
+            .andDo(print())
+            .andExpect(status().isBadRequest())
             .andReturn();
 
-        assertThat(result.getResponse().getErrorMessage(), containsString("[something_else] is invalid. This user is not allowed any of the requested scopes"));
+        assertThat(result.getResponse().getContentAsString(), containsString("[something_else] is invalid. This user is not allowed any of the requested scopes"));
     }
 
     @Test
@@ -2522,6 +2524,33 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertTrue("Expiration Date should be more than 9 years ahead.", new Date(expirationTime*1000l).after(new Date(nineYearsAhead.getTimeInMillis())));
 
 
+    }
+
+    @Test
+    public void required_user_groups_password_grant() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        String scopes = "*.*";
+        Map<String, Object> additional = new HashMap();
+        additional.put(ClientConstants.REQUIRED_USER_GROUPS, Arrays.asList("non.existent"));
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, null, null, -1, null, additional);
+        String userId = "testuser"+ generator.generate();
+        String userScopes = "scope.one,scope.two,scope.three";
+        ScimUser developer = setUpUser(userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+        getMockMvc().perform(
+            post("/oauth/token")
+                .param("client_id", clientId)
+                .param("client_secret", SECRET)
+                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("username", developer.getUserName())
+                .param("password", SECRET)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED))
+            .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("invalid_scope"))
+            .andExpect(jsonPath("$.error_description").value("User does not meet the client's required group criteria."))
+            .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
     }
 
     @Test
