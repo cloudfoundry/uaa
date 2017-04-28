@@ -1,8 +1,8 @@
-##Introduction
+## Introduction
 This document outlines a very simple SAML integration between the OpenAM server and the 
 Cloud Foundry UAA.
 
-###Step 1
+### Step 1
 
 Download and install software
 
@@ -12,7 +12,7 @@ Download and install software
   - d) Create a directory under `apache-tomcat-7.0.55/webapps/` called 'openam'
   - e) Extract contents (zip) of OpenAM-11.0.0.war into `apache-tomcat-7.0.55/webapps/openam`
 
-###Step 2
+### Step 2
 Open apache-tomcat-7.0.55/conf/server.xml
 
   - a) Change the value 8005 to -1 on the line 
@@ -26,7 +26,7 @@ Open apache-tomcat-7.0.55/conf/server.xml
   - d) Go to the directory apache-tomcat-7.0.55/bin
   - e) Start Tomcat on port 8081 by typing `./catalina.sh run` (Ctrl+C to kill it)
 
-###Step 3
+### Step 3
 Initialize OpenAM
 
   - a) Go to [http://localhost:8081/openam](http://localhost:8081/openam)
@@ -36,7 +36,7 @@ Initialize OpenAM
       if you wish to restart an installation, wipe this dir clean and restart tomcat)
   - d) Log in as amAdmin and the password you just created
 
-###Step 4
+### Step 4
 Setup OpenAM as an Identity Provider (IDP)
 
   - a) Click "Create Hosted Identity Provider"
@@ -47,7 +47,7 @@ Setup OpenAM as an Identity Provider (IDP)
   - f) Click 'Configure'
 
 
-###Step 5
+### Step 5
 Configure and start UAA
 
   - a) Configure login.yml
@@ -62,14 +62,14 @@ Configure and start UAA
         DEBUG --- MetadataManager: Metadata provider was initialized org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider@41f4a18b
         DEBUG --- MetadataManager: Reloading metadata was finished
 
-###Step 6
+### Step 6
 Configure OpenAM to have UAA as a service that wishes to authenticate
 
   - a) Click 'register a service provider'
   - b) Put the 'http://localhost:8080/uaa/saml/metadata' as the URL
   - c) Click 'Configure'
 
-###Step 7
+### Step 7
 Create a SAML user
 
   - a) Click 'Access Control'
@@ -80,7 +80,7 @@ Create a SAML user
     After the user is created, click on it again, and give the user an email address
   - e) Log out of OpenAM
 
-###Step 8
+### Step 8
 Test SAML Authentication
 
   - a) Go to http://localhost:8080/uaa
