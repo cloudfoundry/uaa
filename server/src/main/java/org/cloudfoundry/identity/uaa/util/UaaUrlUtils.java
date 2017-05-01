@@ -77,7 +77,7 @@ public abstract class UaaUrlUtils {
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
             final String permittedURLs =
-                    "^(www\\.|http(\\*|s)?://)" +    //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
+                    "^(http(\\*|s)?://)" +    //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
                     "((.*:.*@)?)"+                   //username/password in URL
                     "([a-zA-Z0-9\\-\\*\\.]+)" +      //hostname
                     "(:.*|/.*|$)?";                  //port and path

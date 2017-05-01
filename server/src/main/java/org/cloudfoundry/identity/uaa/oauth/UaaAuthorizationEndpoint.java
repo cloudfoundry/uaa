@@ -72,6 +72,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.Arrays;
@@ -382,8 +383,20 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private View getAuthorizationCodeResponse(AuthorizationRequest authorizationRequest, Authentication authUser) {
         try {
-            return new RedirectView(getSuccessfulRedirect(authorizationRequest,
-                generateCode(authorizationRequest, authUser)), false, true, false);
+            return new RedirectView(
+                getSuccessfulRedirect(
+                    authorizationRequest,
+                    generateCode(authorizationRequest, authUser)
+                ),
+                false,
+                false, //so that we send absolute URLs always
+                false
+            ) {
+                @Override
+                protected HttpStatus getHttp11StatusCode(HttpServletRequest request, HttpServletResponse response, String targetUrl) {
+                    return HttpStatus.FOUND; //Override code, defaults to 303
+                }
+            };
         } catch (OAuth2Exception e) {
             return new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, false), false, true, false);
         }

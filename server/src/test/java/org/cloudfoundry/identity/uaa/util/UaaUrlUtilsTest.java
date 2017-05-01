@@ -55,6 +55,8 @@ public class UaaUrlUtilsTest {
         "http://**/path",
         "https://*.*.*.com/*/with/path**",
         "www.*/path",
+        "www.invalid.com/*/with/path**",
+        "www.*.invalid.com/*/with/path**",
         "http://username:password@*.com",
         "http://username:password@*.com/path"
     );
@@ -73,8 +75,6 @@ public class UaaUrlUtilsTest {
         "http://*.valid.com/*/with/path**",
         "https://*.valid.com/*/with/path**",
         "https://*.*.valid.com/*/with/path**",
-        "www.valid.com/*/with/path**",
-        "www.*.valid.com/*/with/path**",
         "http://sub*.valid.com/*/with/path**",
         "http://*.domain.com",
         "http://username:password@some.server.com",
