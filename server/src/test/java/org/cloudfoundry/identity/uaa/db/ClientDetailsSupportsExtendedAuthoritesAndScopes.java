@@ -60,7 +60,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName) && (scopeColumnName.equalsIgnoreCase(rscolumnName)
                         || authoritiesColumnName.equalsIgnoreCase(rscolumnName))) {
-                    assertEquals(String.format("Table: %s Column: %s should be 4096 in size.", rstableName, rscolumnName), 4096,  columnSize);
+                    assertEquals(String.format("Table: %s Column: %s should be 4000 in size.", rstableName, rscolumnName), 4000,  columnSize);
                     foundTable = true;
                     if(scopeColumnName.equalsIgnoreCase(rscolumnName)) {
                         foundColumnScope = true;
