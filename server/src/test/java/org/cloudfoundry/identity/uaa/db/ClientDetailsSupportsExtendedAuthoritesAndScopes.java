@@ -16,55 +16,30 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
-import java.util.Collection;
 
 import static org.hamcrest.Matchers.isIn;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
-@RunWith(Parameterized.class)
 public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBase {
 
-    private String springProfile;
-    private String tableName;
-    private String columnNameOne;
-    private String columnNameTwo;
-
-
-    public ClientDetailsSupportsExtendedAuthoritesAndScopes(String springProfile, String tableName, String columnNameOne, String columnNameTwo) {
-        this.springProfile = springProfile;
-        this.tableName = tableName;
-        this.columnNameOne = columnNameOne;
-        this.columnNameTwo = columnNameTwo;
-    }
-
-    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {null, "oauth_client_details", "scope", "authorities"}
-//            {"sqlserver", "oauth_client_details", "scope", "authorities"},
-//            {"mysql", "oauth_client_details", "scope", "authorities"},
-//            {"hsqldb", "oauth_client_details", "scope", "authorities"},
-//            {"postgresql", "oauth_client_details", "scope", "authorities"}
-        });
-    }
+    private String tableName = "oauth_client_details";
+    private String scopeColumnName = "scope";
+    private String authoritiesColumnName = "authorities";
 
     @Override
     public void setUp() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        if ( springProfile!=null ) {
-            environment.setActiveProfiles(springProfile);
-        }
         setUp(environment);
     }
-
 
     @Test
     public void test_That_authorites_and_scopes_are_extended() throws Exception {
@@ -73,33 +48,35 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             boolean foundColumnScope = false;
-            boolean foundColumnAutorities = false;
+            boolean foundColumnAuthorities = false;
             ResultSet rs = meta.getColumns(connection.getCatalog(), null, null, null);
             while (rs.next()) {
                 String rstableName = rs.getString("TABLE_NAME");
                 String rscolumnName = rs.getString("COLUMN_NAME");
                 int columnSize = rs.getInt("COLUMN_SIZE");
-                if (tableName.equalsIgnoreCase(rstableName) && (columnNameOne.equalsIgnoreCase(rscolumnName)
-                        || columnNameTwo.equalsIgnoreCase(rscolumnName))) {
-                    assertTrue("Table:"+rstableName+" Column:"+rscolumnName+" should be max in size.", columnSize > 4000);
+                if (tableName.equalsIgnoreCase(rstableName) && (scopeColumnName.equalsIgnoreCase(rscolumnName)
+                        || authoritiesColumnName.equalsIgnoreCase(rscolumnName))) {
+                    assertEquals(String.format("Table: %s Column: %s should be 4096 in size.", rstableName, rscolumnName), 4096,  columnSize);
                     foundTable = true;
-                    if(columnNameOne.equalsIgnoreCase(rscolumnName)) {
+                    if(scopeColumnName.equalsIgnoreCase(rscolumnName)) {
                         foundColumnScope = true;
-                    } else {
-                        foundColumnAutorities = true;
                     }
+                    else if(authoritiesColumnName.equalsIgnoreCase(rscolumnName)) {
+                        foundColumnAuthorities = true;
+                    }
+
                     String columnType = rs.getString("TYPE_NAME");
-                    assertNotNull("Table:" + rstableName + " Column:" + rscolumnName + " should have a column type.", columnType);
-                    assertThat("Table:" + rstableName + " Column:" + rscolumnName+" should be varchar", columnType.toLowerCase(), isIn(Arrays.asList("varchar","nvarchar","clob","text")));
+                    assertNotNull(String.format("Table: %s Column: %s should have a column type", rstableName, rscolumnName), columnType);
+                    assertThat(String.format("Table: %s Column: %s should be varchar or nvarchar", rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("varchar","nvarchar")));
                 } else {
                     continue;
                 }
             }
             rs.close();
 
-            assertTrue("["+springProfile+"] I was expecting to find table:" + tableName, foundTable);
-            assertTrue("["+springProfile+"] I was expecting to find column: "+columnNameOne, foundColumnScope);
-            assertTrue("["+springProfile+"] I was expecting to find column: "+columnNameTwo, foundColumnAutorities);
+            assertTrue("I was expecting to find table:" + tableName, foundTable);
+            assertTrue("I was expecting to find column: "+ scopeColumnName, foundColumnScope);
+            assertTrue("I was expecting to find column: "+ authoritiesColumnName, foundColumnAuthorities);
 
         } finally {
             connection.close();

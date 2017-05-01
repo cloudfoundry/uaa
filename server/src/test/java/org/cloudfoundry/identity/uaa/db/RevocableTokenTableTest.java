@@ -14,20 +14,17 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Test;
-import org.junit.runners.Parameterized;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-//@RunWith(Parameterized.class)
 public class RevocableTokenTableTest extends JdbcTestBase {
 
     private String springProfile;
@@ -41,7 +38,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
         new TestColumn("response_type", "varchar", 25),
         new TestColumn("issued_at", "bigint/int8", 64),
         new TestColumn("expires_at", "bigint/int8", 64),
-        new TestColumn("scope", "varchar", 1000),
+        new TestColumn("scope", "varchar", 4096),
         new TestColumn("data", "longvarchar/mediumtext", 0),
         new TestColumn("identity_zone_id", "varchar", 36)
     );
@@ -52,20 +49,6 @@ public class RevocableTokenTableTest extends JdbcTestBase {
         new TestColumn("idx_revocable_token_expires_at", "", 0)
 
     );
-
-//    public RevocableTokenTableTest(String springProfile, String tableName) {
-//        this.springProfile = springProfile;
-//        this.tableName = tableName;
-//    }
-
-    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {"hsqldb", "revocable_tokens"},
-            {"postgresql", "revocable_tokens"},
-            {"mysql", "revocable_tokens"}
-        });
-    }
 
     @Override
     public void setUp() throws Exception {
