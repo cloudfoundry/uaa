@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.db;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.util.StringUtils;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -38,6 +39,9 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
     @Override
     public void setUp() throws Exception {
         MockEnvironment environment = new MockEnvironment();
+        if (System.getProperty("spring.profiles.active")!=null) {
+            environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
+        }
         setUp(environment);
     }
 
