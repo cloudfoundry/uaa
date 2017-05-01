@@ -66,7 +66,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
     public boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
-                return "varchar".equalsIgnoreCase(type) && !"data".equalsIgnoreCase(name) ?
+                return ("varchar".equalsIgnoreCase(type) || "nvarchar".equalsIgnoreCase(type)) && !"data".equalsIgnoreCase(name) ?
                     c.type.toLowerCase().contains(type.toLowerCase()) && c.size == size :
                     c.type.toLowerCase().contains(type.toLowerCase());
             }
@@ -86,9 +86,10 @@ public class RevocableTokenTableTest extends JdbcTestBase {
             while (rs.next()) {
                 String rstableName = rs.getString("TABLE_NAME");
                 String rscolumnName = rs.getString("COLUMN_NAME");
-                int columnSize = rs.getInt("COLUMN_SIZE");
+                int actualColumnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
-                    assertTrue("Testing column:"+rscolumnName, testColumn(rscolumnName, rs.getString("TYPE_NAME"), columnSize));
+                    String actualColumnType = rs.getString("TYPE_NAME");
+                    assertTrue("Testing column:"+rscolumnName, testColumn(rscolumnName, actualColumnType, actualColumnSize));
                     foundTable = true;
                     foundColumn++;
                 }
