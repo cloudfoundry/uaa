@@ -37,6 +37,16 @@ public class JsonWebKeySetTests {
         "    \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
         "}";
 
+    public static final String unknownKeyJson = "{\n" +
+        "    \"alg\": \"RS256\",\n" +
+        "    \"e\": \"AQAB\",\n" +
+        "    \"kid\": \"legacy\",\n" +
+        "    \"kty\": \"GARBAGE\",\n" +
+        "    \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
+        "    \"use\": \"sig\",\n" +
+        "    \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
+        "}";
+
     public static final String multiKeyJson = "{\n" +
         "    \"keys\": [\n" +
         "        {\n" +
@@ -62,6 +72,36 @@ public class JsonWebKeySetTests {
         "            \"k\": \"test-mac-key\",\n" +
         "            \"kid\": \"mac-id\",\n" +
         "            \"kty\": \"MAC\",\n" +
+        "            \"key_ops\": [\"sign\",\"verify\"]\n" +
+        "        }\n" +
+        "    ]\n" +
+        "}";
+
+    public static final String someUnknownKeysJson = "{\n" +
+        "    \"keys\": [\n" +
+        "        {\n" +
+        "            \"alg\": \"RS256\",\n" +
+        "            \"e\": \"AQAB\",\n" +
+        "            \"kid\": \"legacy\",\n" +
+        "            \"kty\": \"RSA\",\n" +
+        "            \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
+        "            \"use\": \"sig\",\n" +
+        "            \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
+        "        },\n" +
+        "        {\n" +
+        "            \"alg\": \"RS256\",\n" +
+        "            \"e\": \"AQAB\",\n" +
+        "            \"kid\": \"legacy\",\n" +
+        "            \"kty\": \"UNKNOWN1\",\n" +
+        "            \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
+        "            \"use\": \"sig\",\n" +
+        "            \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
+        "        },\n" +
+        "        {\n" +
+        "            \"alg\": \"HMACSHA256\",\n" +
+        "            \"k\": \"test-mac-key\",\n" +
+        "            \"kid\": \"mac-id\",\n" +
+        "            \"kty\": \"UNKNOWN2\",\n" +
         "            \"key_ops\": [\"sign\",\"verify\"]\n" +
         "        }\n" +
         "    ]\n" +
@@ -106,6 +146,18 @@ public class JsonWebKeySetTests {
         );
         assertEquals(sig, key.getUse());
         return keys;
+    }
+
+    @Test
+    public void testUnknownKeyType() {
+        JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.deserialize(unknownKeyJson);
+        assertEquals(0, keys.getKeys().size());
+    }
+
+    @Test
+    public void testIgnoreUnknownKeyTypes() {
+        JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.deserialize(someUnknownKeysJson);
+        assertEquals(1, keys.getKeys().size());
     }
 
 }
