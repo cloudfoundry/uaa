@@ -15,7 +15,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
@@ -33,9 +32,7 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
         }
         List<SignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
-            if(key.getKty() == KeyType.RSA || key.getKty() == KeyType.MAC ) {
-                ds.add(new CommonSignatureVerifier(key.getValue()));
-            }
+            ds.add(new CommonSignatureVerifier(key.getValue()));
         }
         delegates = Collections.unmodifiableList(ds);
     }
