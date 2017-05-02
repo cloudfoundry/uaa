@@ -465,6 +465,7 @@ public class BootstrapTests {
         assertTrue(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
         assertFalse(zoneAwareMetadataGenerator.isWantAssertionSigned());
+        assertFalse(zoneAwareMetadataGenerator.isRequestSigned());
 
         assertEquals(
             Arrays.asList(

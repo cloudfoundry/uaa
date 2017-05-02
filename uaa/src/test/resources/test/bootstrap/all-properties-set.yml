@@ -381,6 +381,7 @@ login:
         skipSslValidation: true
     signatureAlgorithm: SHA256
     wantAssertionSigned: false
+    signRequest: false
   selfServiceLinksEnabled: false
   serviceProviderCertificate: |
     -----BEGIN CERTIFICATE-----
