@@ -128,7 +128,6 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
@@ -142,7 +141,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -364,26 +362,6 @@ public class UaaTokenServicesTests {
         AbstractOAuth2AccessTokenMatchers.revocableTokens.remove();
         IdentityZoneHolder.clear();
         tokens.clear();
-    }
-
-
-    @Test
-    public void test_persist_scope_is_longer_than_1000_chars() throws Exception {
-        tokenServices.persistRevocableToken("id",
-                                            "rid",
-                                            persistToken,
-                                            new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
-                                            "clientId",
-                                            "userId",
-                                            true,
-                                            true);
-
-        ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, atLeast(1)).create(rt.capture());
-        assertNotNull(rt.getAllValues());
-        assertThat(rt.getAllValues().size(), greaterThanOrEqualTo(1));
-        assertNotNull(rt.getAllValues().get(0));
-        assertEquals(1000, rt.getAllValues().get(0).getScope().length());
     }
 
     @Test
