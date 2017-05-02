@@ -32,16 +32,16 @@ public class RevocableTokenTableTest extends JdbcTestBase {
     private String tableName = "revocable_tokens";
 
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
-        new TestColumn("token_id", "varchar", 36),
-        new TestColumn("client_id", "varchar", 255),
-        new TestColumn("user_id", "varchar", 36),
-        new TestColumn("format", "varchar", 255),
-        new TestColumn("response_type", "varchar", 25),
+        new TestColumn("token_id", "varchar/nvarchar", 36),
+        new TestColumn("client_id", "varchar/nvarchar", 255),
+        new TestColumn("user_id", "varchar/nvarchar", 36),
+        new TestColumn("format", "varchar/nvarchar", 255),
+        new TestColumn("response_type", "varchar/nvarchar", 25),
         new TestColumn("issued_at", "bigint/int8", 64),
         new TestColumn("expires_at", "bigint/int8", 64),
-        new TestColumn("scope", "varchar", 4000),
-        new TestColumn("data", "longvarchar/mediumtext", 0),
-        new TestColumn("identity_zone_id", "varchar", 36)
+        new TestColumn("scope", "varchar/nvarchar", 4000),
+        new TestColumn("data", "nvarchar/longvarchar/mediumtext", 0),
+        new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );
 
     private List<TestColumn> TEST_INDEX = Arrays.asList(
