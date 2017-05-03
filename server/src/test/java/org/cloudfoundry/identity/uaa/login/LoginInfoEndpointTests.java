@@ -205,6 +205,31 @@ public class LoginInfoEndpointTests {
         assertEquals("ldap", savedAccount1.getOrigin());
         assertEquals("zzzz", savedAccount1.getUserId());
     }
+    
+
+    @Test
+    public void testIgnoresBadJsonSavedAccount() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        assertThat(model, not(hasKey("savedAccounts")));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        Cookie cookieGood = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
+
+        Cookie cookieBadJson = new Cookie("Saved-Account-Bad", "{");
+
+        request.setCookies(cookieGood, cookieBadJson);
+        endpoint.loginForHtml(model, null, request);
+
+        assertThat(model, hasKey("savedAccounts"));
+        assertThat(model.get("savedAccounts"), instanceOf(List.class));
+        List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) model.get("savedAccounts");
+        assertThat(savedAccounts, hasSize(1));
+    }
 
     @Test
     public void testSavedAccountsEncodedAndUnEncoded() throws Exception {
@@ -250,7 +275,7 @@ public class LoginInfoEndpointTests {
         assertEquals("xxxx", savedAccount1.getUserId());
     }
 
-    @Test(expected=NullPointerException.class)
+    @Test
     public void testSavedAccountsInvalidCookie() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
         assertThat(model, not(hasKey("savedAccounts")));
@@ -266,6 +291,12 @@ public class LoginInfoEndpointTests {
 
         request.setCookies(cookie1);
         endpoint.loginForHtml(model, null, request);
+        
+        assertThat(model, hasKey("savedAccounts"));
+        assertThat(model.get("savedAccounts"), instanceOf(List.class));
+        List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) model.get("savedAccounts");
+        assertThat(savedAccounts, hasSize(0));
+
     }
 
     @Test
