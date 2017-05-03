@@ -34,25 +34,25 @@ public class PredixAuditService implements UaaAuditService {
         try{
             UUID.fromString(correlationId);
         } catch (Exception e){
-            logger.info("non-request based event, setting correlation Id to all zeros");
+            logger.debug("non-request based event, setting correlation Id to all zeros");
             correlationId = null;
         }
         try{
             UUID.fromString(zoneId);
         } catch (Exception e){
-            logger.info("base zone event, setting zone Id to base zone placeholder");
+            logger.debug("base zone event, setting zone Id to base zone placeholder");
             zoneId = null;
         }
         
         AuditEventV2 predixEvent = constructPredixAuditEvent(auditEvent, correlationId, zoneId);
                 
         try {
-            logger.info("Auditing uaa events for Predix. "
+            logger.debug("Auditing uaa events for Predix. "
                     + predixEvent.getPayload());
             if(this.predixAuditClient != null && predixEvent != null) {
                 this.predixAuditClient.audit(predixEvent);
             } else {
-                logger.info("Mock publish to audit service: " + predixEvent.toString());
+                logger.debug("Mock publish to audit service: " + predixEvent.toString());
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
