@@ -40,7 +40,7 @@ dependencies {
   runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
-  runtime group: 'com.ge.predix', name: 'spring-log-filter', version:'1.0.1'
+  runtime group: 'com.ge.predix', name: 'spring-log-filter', version:'1.1.0'
 
   // For Spring Metering Filter support
   runtime group: 'com.ge.predix', name: 'spring-metering-filter', version:'1.2.1'
