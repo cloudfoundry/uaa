@@ -228,7 +228,7 @@ h1 {
 .header {
 	margin         : 0 auto 1rem;
 	height         : 60px;
-	background     : url($background-image) no-repeat center;
+	background     : no-repeat center;
 	background-size: contain;
 	@include sm-down() {
 		background-size: 150px;
