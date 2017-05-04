@@ -14,10 +14,8 @@ package org.cloudfoundry.identity.uaa.home;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,11 +27,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +40,6 @@ import static org.springframework.util.StringUtils.hasText;
 public class HomeController {
     private final Log logger = LogFactory.getLog(getClass());
     protected final Environment environment;
-    private Map<String, String> links = new HashMap<String, String>();
     private String baseUrl;
 
     @Autowired
@@ -54,17 +47,6 @@ public class HomeController {
 
     public HomeController(Environment environment) {
         this.environment = environment;
-    }
-
-    /**
-     * @param links the links to set
-     */
-    public void setLinks(Map<String, String> links) {
-        this.links = links;
-    }
-
-    public Map<String, String> getLinks() {
-        return links;
     }
 
     /**
@@ -78,19 +60,9 @@ public class HomeController {
         return baseUrl;
     }
 
-    protected Map<String, ?> getLinksInfo() {
-        Map<String, Object> model = new HashMap<String, Object>();
-        model.put(OriginKeys.UAA, getUaaBaseUrl());
-        model.put("login", getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"));
-        model.putAll(getLinks());
-        return model;
-    }
-
     protected void populateBuildAndLinkInfo(Model model) {
         Map<String, Object> attributes = new HashMap<String, Object>();
-        attributes.put("links", getLinksInfo());
         model.addAllAttributes(attributes);
-        model.addAttribute("links", getLinks());
     }
 
     @RequestMapping(value = { "/", "/home" })
