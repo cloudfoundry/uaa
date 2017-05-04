@@ -586,14 +586,14 @@ public class SamlLoginWithLocalIdpIT {
 
         //change the active key
         spZone.getConfig().getSamlConfig().setActiveKeyId("key-2");
-        spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config);
+        spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, spZone.getConfig());
         assertEquals(2, spZone.getConfig().getSamlConfig().getKeys().size());
         assertEquals("key-2", spZone.getConfig().getSamlConfig().getActiveKeyId());
         performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
 
         //remove the inactive key
         spZone.getConfig().getSamlConfig().removeKey("key-1");
-        spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config);
+        spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, spZone.getConfig());
         assertEquals(1, spZone.getConfig().getSamlConfig().getKeys().size());
         assertEquals("key-2", spZone.getConfig().getSamlConfig().getActiveKeyId());
         performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);

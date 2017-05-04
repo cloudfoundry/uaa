@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -45,8 +45,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
+import static java.util.stream.Collectors.toList;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -70,6 +72,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     private OAuth2AccessToken token;
     private HttpHeaders headers;
+    private List<Approval> approvalList;
 
     @Before
     public void setUp() throws Exception {
@@ -527,13 +530,14 @@ public class ClientAdminEndpointsIntegrationTests {
         HttpHeaders headers = getAuthenticatedHeaders(token);
 
         ResponseEntity<Approval[]> approvals =
-            serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/approvals?filter={filter}"),
+            serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/approvals"),
                 HttpMethod.GET,
-                new HttpEntity<Object>(headers),
+                new HttpEntity<>(headers),
                 Approval[].class,
                 filter);
         assertEquals(HttpStatus.OK, approvals.getStatusCode());
-        return approvals.getBody();
+        approvalList = Arrays.asList(approvals.getBody()).stream().filter(a -> clientId.equals(a.getClientId())).collect(toList());
+        return approvalList.toArray(new Approval[0]);
     }
 
 
