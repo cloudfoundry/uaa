@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -23,6 +24,19 @@ import java.util.Optional;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Links {
+
+    @JsonIgnore
+    private static SelfService globalService = null;
+
+    @JsonIgnore
+    public static SelfService getGlobalService() {
+        return globalService;
+    }
+
+    @JsonIgnore
+    public static void setGlobalService(SelfService globalService) {
+        Links.globalService = globalService;
+    }
 
     private SelfService service = new SelfService();
     private Logout logout = new Logout();

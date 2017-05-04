@@ -259,6 +259,7 @@ public class BootstrapTests {
 
         assertFalse(zoneConfiguration.isAccountChooserEnabled());
         assertTrue(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
+        assertNull(zoneConfiguration.getLinks().getGlobalService());
         assertNull(zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
@@ -452,6 +453,8 @@ public class BootstrapTests {
         assertEquals("http://some.redirect.com/redirect", zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("/configured_signup", zoneConfiguration.getLinks().getSelfService().getSignup());
         assertEquals("/configured_passwd", zoneConfiguration.getLinks().getSelfService().getPasswd());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account", zoneConfiguration.getLinks().getGlobalService().getSignup());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password", zoneConfiguration.getLinks().getGlobalService().getPasswd());
 
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());

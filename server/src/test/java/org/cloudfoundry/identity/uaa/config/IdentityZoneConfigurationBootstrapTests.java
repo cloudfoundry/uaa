@@ -52,7 +52,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     public static final String ID = "id";
     private IdentityZoneProvisioning provisioning;
     private IdentityZoneConfigurationBootstrap bootstrap;
-    private Map<String, String> links = new HashMap<>();
+    private Map<String, Object> links = new HashMap<>();
 
 
     @Before
@@ -159,6 +159,18 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertEquals("/configured_signup", zone.getConfig().getLinks().getSelfService().getSignup());
         assertEquals("/forgot_password", zone.getConfig().getLinks().getSelfService().getPasswd());
     }
+
+    @Test
+    public void global_links_set() throws Exception {
+        Map<String,String> global = new HashMap<>();
+        global.put("signup", "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account");
+        global.put("passwd", "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password");
+        links.put("global", global);
+        signup_link_configured();
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account", Links.getGlobalService().getSignup());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password", Links.getGlobalService().getPasswd());
+    }
+
 
     @Test
     public void passwd_link_configured() throws Exception {
