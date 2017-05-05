@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -51,6 +52,7 @@ import org.springframework.security.providers.ExpiringUsernameAuthenticationToke
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
+import org.springframework.ui.Model;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
@@ -124,7 +126,6 @@ public class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, mock(UrlContentCache.class), mock(RestTemplateFactory.class));
-
     }
 
     @After
@@ -132,6 +133,8 @@ public class LoginInfoEndpointTests {
         IdentityZoneHolder.clear();
         IdentityZoneHolder.get().setConfig(originalConfiguration);
     }
+
+
 
     @Test
     public void testLoginReturnsSystemZone() throws Exception {
@@ -288,15 +291,52 @@ public class LoginInfoEndpointTests {
         zone.setName("some_other_zone");
         zone.setId("some_id");
         zone.setSubdomain(zone.getName());
+        IdentityZoneConfiguration config = zone.getConfig();
         IdentityZoneHolder.set(zone);
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
+        validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", model);
+        validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", endpoint.getSelfServiceLinks());
+
+        //null config
+        zone.setConfig(null);
+        validateSelfServiceLinks("/create_account", "/forgot_password", endpoint.getSelfServiceLinks());
+
+        //null config with globals
+        endpoint.setGlobalSelfServiceLinks(new Links.SelfService().setSignup("/signup").setPasswd("/passwd"));
+        validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
+
+        //null links with globals
+        IdentityZoneConfiguration otherConfig = new IdentityZoneConfiguration(null);
+        otherConfig.getLinks().setSelfService(new Links.SelfService().setSignup(null).setPasswd(null));
+        validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
+
+        //null links with globals using variables
+        endpoint.setGlobalSelfServiceLinks(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}"));
+        validateSelfServiceLinks("/signup?domain="+zone.getSubdomain(), "/passwd?id="+zone.getId(), endpoint.getSelfServiceLinks());
+
+        //zone config overrides global
+        zone.setConfig(config);
+        validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", endpoint.getSelfServiceLinks());
+
+        //zone config supports variables too
+        config.getLinks().getSelfService().setSignup("/local_signup?domain={zone.subdomain}");
+        config.getLinks().getSelfService().setPasswd("/local_passwd?id={zone.id}");
+        validateSelfServiceLinks("/local_signup?domain="+zone.getSubdomain(), "/local_passwd?id="+zone.getId(), endpoint.getSelfServiceLinks());
+    }
+
+    public void validateSelfServiceLinks(String signup, String passwd, Model model) {
+        Map<String, String> links = (Map<String, String>) model.asMap().get("links");
+        validateSelfServiceLinks(signup, passwd, links);
+    }
+
+    public void validateSelfServiceLinks(String signup, String passwd, Map<String,String> links) {
+        assertEquals(signup, links.get("createAccountLink"));
+        assertEquals(passwd, links.get("forgotPasswordLink"));
         //json links
-        assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("register"));
-        assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
+        assertEquals(signup, links.get("register"));
+        assertEquals(passwd, links.get("passwd"));
     }
 
     @Test

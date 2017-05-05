@@ -1,7 +1,7 @@
 /*
  * *****************************************************************************
  *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *      Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *      You may not use this product except in compliance with the License.
  *
@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -24,19 +23,6 @@ import java.util.Optional;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Links {
-
-    @JsonIgnore
-    private static SelfService globalService = null;
-
-    @JsonIgnore
-    public static SelfService getGlobalService() {
-        return globalService;
-    }
-
-    @JsonIgnore
-    public static void setGlobalService(SelfService globalService) {
-        Links.globalService = globalService;
-    }
 
     private SelfService service = new SelfService();
     private Logout logout = new Logout();

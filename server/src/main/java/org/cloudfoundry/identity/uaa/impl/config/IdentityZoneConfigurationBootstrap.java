@@ -83,13 +83,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setActiveKeyId(this.activeKeyId);
 
         if (selfServiceLinks!=null) {
-            if (selfServiceLinks.get("global")!=null) {
-                Map<String, String> global = (Map<String, String>) selfServiceLinks.remove("global");
-                Links.SelfService globalService = new Links.SelfService();
-                globalService.setPasswd(global.get("passwd"));
-                globalService.setSignup(global.get("signup"));
-                Links.setGlobalService(globalService);
-            }
             String signup = (String)selfServiceLinks.get("signup");
             String passwd = (String)selfServiceLinks.get("passwd");
             if (hasText(signup)) {

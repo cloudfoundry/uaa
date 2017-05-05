@@ -164,10 +164,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private XmlWebApplicationContext webApplicationContext;
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
+    private Links.SelfService globalService;
 
 
     @Before
     public void setUpContext() throws Exception {
+        globalService = getWebApplicationContext().getBean("globalSelfService", Links.SelfService.class);
         SecurityContextHolder.clearContext();
         webApplicationContext = getWebApplicationContext();
         mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
@@ -184,6 +186,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @After
     public void resetGenerator() throws Exception {
         getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalSelfServiceLinks(globalService);
     }
 
     @After
@@ -209,6 +212,59 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
             .andExpect(model().attributeExists("prompts"))
             .andExpect(content().string(containsString("/create_account")));
+    }
+
+    @Test
+    public void self_service_zone_variable_links() throws Exception {
+        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        zone.getConfig().getLinks().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
+        zone = MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+
+        getMockMvc().perform(
+            get("/login")
+            .header("Host", subdomain+".localhost")
+        )
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
+            .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
+            .andExpect(content().string(containsString("/create_account")));
+
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalSelfServiceLinks(
+            new Links.SelfService()
+                .setPasswd("/passwd?id={zone.id}")
+                .setSignup("/signup?subdomain={zone.subdomain}")
+        );
+
+        getMockMvc().perform(
+            get("/login")
+                .header("Host", subdomain+".localhost")
+        )
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/passwd?id="+zone.getId())))
+            .andExpect(model().attribute("links", hasEntry("createAccountLink", "/signup?subdomain="+zone.getSubdomain())))
+            .andExpect(content().string(containsString("/passwd?id="+zone.getId())))
+            .andExpect(content().string(containsString("/signup?subdomain="+zone.getSubdomain())));
+
+        zone.getConfig().getLinks().setSelfService(
+            new Links.SelfService()
+                .setPasswd("/local_passwd?id={zone.id}")
+                .setSignup("/local_signup?subdomain={zone.subdomain}")
+        );
+        zone = MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+        getMockMvc().perform(
+            get("/login")
+                .header("Host", subdomain+".localhost")
+        )
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/local_passwd?id="+zone.getId())))
+            .andExpect(model().attribute("links", hasEntry("createAccountLink", "/local_signup?subdomain="+zone.getSubdomain())))
+            .andExpect(content().string(containsString("/local_passwd?id="+zone.getId())))
+            .andExpect(content().string(containsString("/local_signup?subdomain="+zone.getSubdomain())));
+
     }
 
     @Test

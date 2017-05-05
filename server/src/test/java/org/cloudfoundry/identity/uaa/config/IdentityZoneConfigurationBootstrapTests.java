@@ -161,18 +161,6 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void global_links_set() throws Exception {
-        Map<String,String> global = new HashMap<>();
-        global.put("signup", "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account");
-        global.put("passwd", "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password");
-        links.put("global", global);
-        signup_link_configured();
-        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account", Links.getGlobalService().getSignup());
-        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password", Links.getGlobalService().getPasswd());
-    }
-
-
-    @Test
     public void passwd_link_configured() throws Exception {
         links.put("passwd", "/configured_passwd");
         bootstrap.setSelfServiceLinks(links);

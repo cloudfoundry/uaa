@@ -405,6 +405,11 @@
         <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
     </bean>
 
+    <bean id="globalSelfService" class="org.cloudfoundry.identity.uaa.zone.Links$SelfService">
+        <property name="passwd" value="${links.global.passwd:#{null}}"/>
+        <property name="signup" value="${links.global.signup:#{null}}"/>
+    </bean>
+
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
@@ -416,6 +421,7 @@
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
         <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
+        <property name="globalSelfServiceLinks" ref="globalSelfService"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />

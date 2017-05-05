@@ -518,6 +518,10 @@ public final class MockMvcUtils {
         return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client);
     }
 
+    public static IdentityZone updateIdentityZone(IdentityZone zone, ApplicationContext context) {
+        return context.getBean(IdentityZoneProvisioning.class).update(zone);
+    }
+
     public static IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
                                                      IdentityProvider identityProvider, ResultMatcher resultMatcher) throws Exception {
         return createIdpUsingWebRequest(mockMvc, zoneId, token, identityProvider, resultMatcher, false);
