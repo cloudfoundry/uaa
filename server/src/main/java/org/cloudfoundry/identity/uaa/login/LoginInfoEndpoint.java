@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -72,7 +73,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.sql.Timestamp;
@@ -159,6 +159,12 @@ public class LoginInfoEndpoint {
         );
 
     private XOAuthProviderConfigurator xoAuthProviderConfigurator;
+
+    private Links.SelfService globalSelfServiceLinks = new Links.SelfService().setPasswd(null).setSignup(null);
+
+    public void setGlobalSelfServiceLinks(Links.SelfService globalSelfServiceLinks) {
+        this.globalSelfServiceLinks = globalSelfServiceLinks;
+    }
 
     public LoginInfoEndpoint setXoAuthProviderConfigurator(XOAuthProviderConfigurator xoAuthProviderConfigurator) {
         this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
@@ -738,21 +744,36 @@ public class LoginInfoEndpoint {
         return model;
     }
 
-    private Map<String,String> getSelfServiceLinks() {
+    protected Map<String,String> getSelfServiceLinks() {
         Map<String, String> selfServiceLinks = new HashMap<>();
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
+
         boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
-        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getSignup() : "/create_account";
-        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getPasswd() : "/forgot_password";
+
+        final String defaultSignup = "/create_account";
+        final String defaultPasswd = "/forgot_password";
+        Links.SelfService service = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService() : null;
+        String signup = UaaStringUtils.nonNull(
+            service!=null ? service.getSignup() : null,
+            globalSelfServiceLinks.getSignup(),
+            defaultSignup);
+
+        String passwd = UaaStringUtils.nonNull(
+            service!=null ? service.getPasswd() : null,
+            globalSelfServiceLinks.getPasswd(),
+            defaultPasswd);
+
 
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             if (hasText(signup)) {
+                signup = UaaStringUtils.replaceZoneVariables(signup, IdentityZoneHolder.get());
                 selfServiceLinks.put(CREATE_ACCOUNT_LINK, signup);
                 selfServiceLinks.put("register", signup);
             }
             if (hasText(passwd)) {
+                passwd = UaaStringUtils.replaceZoneVariables(passwd, IdentityZoneHolder.get());
                 selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
                 selfServiceLinks.put("passwd", passwd);
             }

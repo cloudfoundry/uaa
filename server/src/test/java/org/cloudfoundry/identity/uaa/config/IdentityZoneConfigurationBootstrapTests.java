@@ -52,7 +52,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     public static final String ID = "id";
     private IdentityZoneProvisioning provisioning;
     private IdentityZoneConfigurationBootstrap bootstrap;
-    private Map<String, String> links = new HashMap<>();
+    private Map<String, Object> links = new HashMap<>();
 
 
     @Before

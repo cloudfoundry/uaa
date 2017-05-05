@@ -107,6 +107,9 @@ ldap:
     file: ldap/ldap-search-and-bind.xml
   providerDescription: Test LDAP Provider Description
 links:
+  global:
+    passwd: "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password"
+    signup: "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account"
   passwd: /configured_passwd
   signup: /configured_signup
 login:

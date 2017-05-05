@@ -259,6 +259,8 @@ public class BootstrapTests {
 
         assertFalse(zoneConfiguration.isAccountChooserEnabled());
         assertTrue(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
+        assertNull(context.getBean("globalSelfService", Links.SelfService.class).getPasswd());
+        assertNull(context.getBean("globalSelfService", Links.SelfService.class).getSignup());
         assertNull(zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
@@ -452,6 +454,8 @@ public class BootstrapTests {
         assertEquals("http://some.redirect.com/redirect", zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("/configured_signup", zoneConfiguration.getLinks().getSelfService().getSignup());
         assertEquals("/configured_passwd", zoneConfiguration.getLinks().getSelfService().getPasswd());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account", context.getBean("globalSelfService", Links.SelfService.class).getSignup());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password", context.getBean("globalSelfService", Links.SelfService.class).getPasswd());
 
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());

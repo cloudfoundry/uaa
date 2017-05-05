@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -10,9 +10,9 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.util.StringUtils;
@@ -34,14 +34,28 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * @author Dave Syer
- *
- */
 public class UaaStringUtils {
+
+    public static final String ZONE_VAR_ID = "{zone.id}";
+    public static final String ZONE_VAR_SUBDOMAIN = "{zone.subdomain}";
 
     public static final String ISO_8859_1 = "ISO-8859-1";
     public static final String UTF_8 = "UTF-8";
+
+    public static String replaceZoneVariables(String s, IdentityZone zone) {
+        return s.replace(ZONE_VAR_ID, zone.getId()).replace(ZONE_VAR_SUBDOMAIN, zone.getSubdomain());
+    }
+
+    public static String nonNull(String... s) {
+        if (s != null) {
+            for (String str : s) {
+                if (str != null) {
+                    return str;
+                }
+            }
+        }
+        return null;
+    }
 
     /**
      * Convert a string from camel case to underscores, also replacing periods

@@ -33,7 +33,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
     private String homeRedirect = null;
-    private Map<String,String> selfServiceLinks;
+    private Map<String,Object> selfServiceLinks;
     private List<String> logoutRedirectWhitelist;
     private String logoutRedirectParameterName;
     private String logoutDefaultRedirectUrl;
@@ -83,8 +83,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setActiveKeyId(this.activeKeyId);
 
         if (selfServiceLinks!=null) {
-            String signup = selfServiceLinks.get("signup");
-            String passwd = selfServiceLinks.get("passwd");
+            String signup = (String)selfServiceLinks.get("signup");
+            String passwd = (String)selfServiceLinks.get("passwd");
             if (hasText(signup)) {
                 definition.getLinks().getSelfService().setSignup(signup);
             }
@@ -142,7 +142,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         }
     }
 
-    public void setSelfServiceLinks(Map<String, String> links) {
+    public void setSelfServiceLinks(Map<String, Object> links) {
         this.selfServiceLinks = links;
     }
 
