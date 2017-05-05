@@ -115,6 +115,12 @@ public class IdentityZoneHolder {
         }
 
         @Override
+        public String getZoneCompanyName() {
+            return tryGet(get(), BrandingInformationSource::getCompanyName)
+                            .orElse(null);
+        }
+
+        @Override
         public String getProductLogo() {
             return tryGet(get(), BrandingInformationSource::getProductLogo).orElse(null);
         }

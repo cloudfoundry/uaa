@@ -4,12 +4,12 @@
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
                 branding=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).resolveBranding()},
-                companyName=${branding.getCompanyName() ?: @environment.getProperty('login.branding.companyName', 'Predix')},
+                companyName=${branding.getZoneCompanyName() ?: ''},
                 copyrightCompanyName=${branding.getCompanyName() ?: 'General Electric Company'},
                 copyrightFallback=${'Copyright &#169; ' + #dates.year(#dates.createNow()) + ' ' + copyrightCompanyName + '. All Rights Reserved.'},
                 copyright=${branding.getFooterLegalText() ?: copyrightFallback}" >
 <head>
-    <title th:text="${companyName !=null and !companyName.isEmpty() ? companyName : zoneName}" th:inline="text"></title>
+    <title th:text="${!companyName.isEmpty() ? companyName : zoneName}" th:inline="text"></title>
     <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null and !icon.isEmpty() ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' th:content="|${companyName}|" />
