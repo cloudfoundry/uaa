@@ -501,6 +501,7 @@ public class BootstrapTests {
         assertEquals(OIDC10, oidcProvider.getType());
         assertEquals(Collections.singletonList("requested_scope"), oidcProvider.getConfig().getScopes());
         assertEquals("code id_token", oidcProvider.getConfig().getResponseType());
+        assertTrue(oidcProvider.getConfig().isStoreCustomAttributes());
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
         assertNotNull(oauthProvider);
@@ -519,6 +520,7 @@ public class BootstrapTests {
         assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
         assertEquals(Collections.singletonList("example.com"), oauthProvider.getConfig().getEmailDomain());
         assertEquals("code", oauthProvider.getConfig().getResponseType());
+        assertTrue(oauthProvider.getConfig().isStoreCustomAttributes());
 
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -629,6 +631,7 @@ public class BootstrapTests {
         LdapIdentityProviderDefinition ldapConfig = ldapProvider.getConfig();
         assertFalse(ldapConfig.isAddShadowUserOnLogin());
         assertEquals("Test LDAP Provider Description", ldapConfig.getProviderDescription());
+        assertTrue(ldapConfig.isStoreCustomAttributes());
 
         //LDAP Group Validation
         assertEquals("ldap/ldap-groups-map-to-scopes.xml", ldapConfig.getLdapGroupFile());
@@ -643,6 +646,7 @@ public class BootstrapTests {
         assertEquals("Test Okta Preview 1 Description", samlProvider.getConfig().getProviderDescription());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED, samlProvider.getConfig().getGroupMappingMode());
         assertTrue(samlProvider.getConfig().isSkipSslValidation());
+        assertTrue(samlProvider.getConfig().isStoreCustomAttributes());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = providerProvisioning.retrieveByOrigin("okta-local-2", IdentityZone.getUaa().getId());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES, samlProvider2.getConfig().getGroupMappingMode());

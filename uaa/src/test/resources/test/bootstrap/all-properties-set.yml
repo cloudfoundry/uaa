@@ -106,6 +106,7 @@ ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
   providerDescription: Test LDAP Provider Description
+  storeCustomAttributes: true
 links:
   global:
     passwd: "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password"
@@ -150,10 +151,20 @@ login:
         tokenKeyUrl: null
         tokenUrl: http://my-token.com
         type: oauth2.0
+        storeCustomAttributes: true
       my-oidc-provider:
         attributeMappings:
           family_name: last_name
           given_name: first_name
+          user_name: <Attribute holding username in the OIDC ID Token>
+          external_groups:
+            - roles
+            - <other attribute holding roles or group memberships in the OIDC id_token>
+          user:
+            attribute:
+              name-of-attribute-in-uaa-id-token: name-of-attribute-in-provider-token
+              name-of-other-attribute-in-uaa-id-token: name-of-other-attribute-in-provider-token
+
         authUrl: http://my-auth.com
         linkText: My Oauth Provider
         relyingPartyId: uaa
@@ -167,6 +178,7 @@ login:
         tokenUrl: http://my-token.com
         type: oidc1.0
         userInfoUrl: http://my-token.com/userinfo
+        storeCustomAttributes: true
   prompt:
     password:
       text: Your Secret
@@ -288,6 +300,7 @@ login:
 
     providers:
       okta-local:
+        storeCustomAttributes: true
         iconUrl: http://link.to/icon.jpg
         idpMetadata: |
           <?xml version="1.0" encoding="UTF-8"?><!--

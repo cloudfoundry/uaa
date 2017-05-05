@@ -34,6 +34,8 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
     public static final String USER_NAME_ATTRIBUTE_NAME = "user_name";
 
+    public static final String STORE_CUSTOM_ATTRIBUTES_NAME = "storeCustomAttributes";
+
     public static final String EXTERNAL_GROUPS_WHITELIST = "externalGroupsWhitelist";
     public static final String ATTRIBUTE_MAPPINGS = "attributeMappings";
 
