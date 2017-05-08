@@ -4,13 +4,13 @@
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
                 branding=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).resolveBranding()},
-                companyName=${branding.getCompanyName() ?: @environment.getProperty('login.branding.companyName', 'Predix')},
+                companyName=${branding.getZoneCompanyName() ?: ''},
                 copyrightCompanyName=${branding.getCompanyName() ?: 'General Electric Company'},
                 copyrightFallback=${'Copyright &#169; ' + #dates.year(#dates.createNow()) + ' ' + copyrightCompanyName + '. All Rights Reserved.'},
                 copyright=${branding.getFooterLegalText() ?: copyrightFallback}" >
 <head>
-    <title th:text="${isUaa ? companyName : zoneName}" th:inline="text"></title>
-    <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
+    <title th:text="${!companyName.isEmpty() ? companyName : zoneName}" th:inline="text"></title>
+    <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null and !icon.isEmpty() ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' th:content="|${companyName}|" />
     <meta name='copyright' th:content="|${copyright}|" />
@@ -21,6 +21,11 @@
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
     <link th:href="@{${assetBaseUrl}+'/stylesheets/predix-styles.css'}" rel="stylesheet"/>
+    <style th:with="logo=${branding.getProductLogo()}" th:text="'.header {' + (|background-image: url(@{${logo != null and !logo.isEmpty() ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : assetBaseUrl+'/images/predix-word.svg' }});|) + '}'">
+        .header-image {
+            background-image: url(/resources/oss/images/product-logo.png);
+        }
+    </style>
 </head>
 <body class="predix-uaa">
   <div class="predix-uaa__wrap">

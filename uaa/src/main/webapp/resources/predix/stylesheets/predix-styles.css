@@ -212,7 +212,7 @@ h1 {
 .header {
   margin: 0 auto 1rem;
   height: 60px;
-  background: url("../images/predix-word.svg") no-repeat center;
+  background: no-repeat center;
   background-size: contain; }
   @media (max-width: 51.13333rem) {
     .header {

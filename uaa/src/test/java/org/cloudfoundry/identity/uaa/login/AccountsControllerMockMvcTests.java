@@ -148,8 +148,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString(ACCOUNT_OTHER_ZONE_CREATE_MESSAGE)))
-            .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
-            .andExpect(content().string(containsString(UAA_AUTHOR)));
+            .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
     }
 
     @Test

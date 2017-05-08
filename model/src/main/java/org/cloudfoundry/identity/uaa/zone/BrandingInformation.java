@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.Map;
@@ -16,6 +17,10 @@ public class BrandingInformation implements BrandingInformationSource {
     public String getCompanyName() {
         return companyName;
     }
+
+    @JsonIgnore
+    @Override
+    public String getZoneCompanyName() { return getCompanyName(); }
 
     public void setCompanyName(String companyName) {
         this.companyName = companyName;
