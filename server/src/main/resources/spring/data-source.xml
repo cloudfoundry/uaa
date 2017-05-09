@@ -61,7 +61,7 @@
             <bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
                 <property name="methodMappings">
                     <map>
-                        <entry key="spring.application:type=DataSource,name=dataSource" value="getMaxIdle,getMaxActive,getNumIdle,getNumActive" />
+                        <entry key="spring.application:type=DataSource,name=dataSource" value="getMaxIdle,getMaxActive,getNumIdle,getNumActive,getWaitCount,getSize" />
                     </map>
                 </property>
             </bean>
