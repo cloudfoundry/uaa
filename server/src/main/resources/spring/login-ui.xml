@@ -430,6 +430,7 @@
     <bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController">
         <constructor-arg ref="environment"/>
         <property name="uaaBaseUrl" ref="uaaUrl"/>
+        <property name="globalLinks" ref="globalLinks"/>
     </bean>
 
     <bean id="sessionController" class="org.cloudfoundry.identity.uaa.login.SessionController"/>

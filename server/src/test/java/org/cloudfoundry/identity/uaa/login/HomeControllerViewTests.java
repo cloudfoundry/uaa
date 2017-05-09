@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -134,6 +135,45 @@ public class HomeControllerViewTests extends TestClassNullifier {
         mockMvc.perform(get("/home"))
             .andExpect(status().isOk());
 
+        zone.getConfig().getLinks().setHomeRedirect(customHomePage);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", customHomePage));
+    }
+
+    @Test
+    public void testConfiguredGlobalHomePage() throws Exception {
+        HomeController controller = webApplicationContext.getBean(HomeController.class);
+
+        //nothing configured
+        mockMvc.perform(get("/home"))
+            .andExpect(status().isOk());
+
+        String globalHomePage = "http://{zone.subdomain}.custom.home/{zone.id}";
+        controller.setGlobalLinks(new Links().setHomeRedirect(globalHomePage));
+
+        //global home redirect configured
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", "http://.custom.home/uaa"));
+
+        //configure home redirect on the default zone
+        String customHomePage = "http://custom.home/page";
+        IdentityZoneHolder.get().getConfig().getLinks().setHomeRedirect(customHomePage);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", customHomePage));
+
+
+        //create a new zone, no config, inherits the global redirect
+        IdentityZone zone = MultitenancyFixture.identityZone("zoneId","zonesubdomain");
+        zone.setConfig(new IdentityZoneConfiguration());
+        IdentityZoneHolder.set(zone);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", "http://zonesubdomain.custom.home/zoneId"));
+
+        //zone configures its own home redirect
         zone.getConfig().getLinks().setHomeRedirect(customHomePage);
         mockMvc.perform(get("/home"))
             .andExpect(status().is3xxRedirection())

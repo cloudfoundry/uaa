@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -106,6 +107,9 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUserInZone;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.allOf;
@@ -214,16 +218,20 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("/create_account")));
     }
 
-    @Test
-    public void self_service_zone_variable_links() throws Exception {
+    public IdentityZone createZoneLinksZone() throws Exception {
         String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
         zone.getConfig().getLinks().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
-        zone = MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+        return MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+    }
+
+    @Test
+    public void self_service_zone_variable_links() throws Exception {
+        IdentityZone zone = createZoneLinksZone();
 
         getMockMvc().perform(
             get("/login")
-            .header("Host", subdomain+".localhost")
+            .header("Host", zone.getSubdomain()+".localhost")
         )
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
@@ -241,7 +249,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(
             get("/login")
-                .header("Host", subdomain+".localhost")
+                .header("Host", zone.getSubdomain()+".localhost")
         )
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
@@ -258,7 +266,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         zone = MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
         getMockMvc().perform(
             get("/login")
-                .header("Host", subdomain+".localhost")
+                .header("Host", zone.getSubdomain()+".localhost")
         )
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
@@ -266,6 +274,47 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(model().attribute("links", hasEntry("createAccountLink", "/local_signup?subdomain="+zone.getSubdomain())))
             .andExpect(content().string(containsString("/local_passwd?id="+zone.getId())))
             .andExpect(content().string(containsString("/local_signup?subdomain="+zone.getSubdomain())));
+
+    }
+
+    @Test
+    public void global_zone_variable_home_redirect() throws Exception {
+
+        IdentityZone zone = createZoneLinksZone();
+        ScimUser marissa = new ScimUser(null, "marissa", "", "");
+        marissa.setPassword("secret");
+        marissa.setPrimaryEmail("marissa@test.org");
+        marissa = createUserInZone(getMockMvc(), adminToken, marissa, "", zone.getId());
+
+        getMockMvc().perform(
+            get("/")
+                .with(securityContext(getUaaSecurityContext(marissa.getUserName(), getWebApplicationContext(), zone)))
+                .header("Host", zone.getSubdomain()+".localhost")
+        )
+            .andDo(print())
+            .andExpect(status().isOk());
+
+        getWebApplicationContext().getBean(HomeController.class).setGlobalLinks(
+            new Links().setHomeRedirect("http://{zone.subdomain}.redirect.to/z/{zone.id}")
+        );
+
+        getMockMvc().perform(
+            get("/")
+                .with(securityContext(getUaaSecurityContext(marissa.getUserName(), getWebApplicationContext(), zone)))
+                .header("Host", zone.getSubdomain()+".localhost")
+        )
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("http://"+zone.getSubdomain()+".redirect.to/z/"+zone.getId()));
+
+        zone.getConfig().getLinks().setHomeRedirect("http://configured.{zone.subdomain}.redirect.to/z/{zone.id}");
+        zone = MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+        getMockMvc().perform(
+            get("/")
+                .with(securityContext(getUaaSecurityContext(marissa.getUserName(), getWebApplicationContext(), zone)))
+                .header("Host", zone.getSubdomain()+".localhost")
+        )
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("http://configured."+zone.getSubdomain()+".redirect.to/z/"+zone.getId()));
 
     }
 
@@ -646,7 +695,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         ScimUser user = new ScimUser(null, username, "Test", "User");
         user.setPrimaryEmail(username);
         user.setPassword("Secr3t");
-        user = MockMvcUtils.createUserInZone(getMockMvc(), accessToken, user, subdomain);
+        user = createUserInZone(getMockMvc(), accessToken, user, subdomain);
         user.setPassword("Secr3t");
         return user;
     }
@@ -1552,7 +1601,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailPageHasCsrf() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
@@ -1564,7 +1613,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithMissingCsrf() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
@@ -1588,7 +1637,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithInvalidCsrf() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
@@ -1613,7 +1662,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithSpringSecurityForcedCsrf() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
         //example shows to to test a request that is secured by csrf and you wish to bypass it
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
@@ -1631,7 +1680,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithCorrectCsrf() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
@@ -1660,7 +1709,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailDoNotLoggedIn() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
@@ -1687,7 +1736,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailNoCsrfReturns403AndInvalidRequest() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
@@ -1711,7 +1760,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCsrfForInvitationAcceptPost() throws Exception {
-        SecurityContext marissaContext = MockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
+        SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
         AnonymousAuthenticationToken inviteToken = new AnonymousAuthenticationToken("invited-test", marissaContext.getAuthentication().getPrincipal(), asList(UaaAuthority.UAA_INVITED));
         MockHttpSession inviteSession = new MockHttpSession();
         SecurityContext inviteContext = new SecurityContextImpl();

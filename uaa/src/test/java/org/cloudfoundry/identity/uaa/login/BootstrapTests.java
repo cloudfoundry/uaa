@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
@@ -267,6 +268,7 @@ public class BootstrapTests {
         assertTrue(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
         assertNull(context.getBean("globalLinks", Links.class).getSelfService().getPasswd());
         assertNull(context.getBean("globalLinks", Links.class).getSelfService().getSignup());
+        assertNull(context.getBean("globalLinks", Links.class).getHomeRedirect());
         assertNull(zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
@@ -462,7 +464,8 @@ public class BootstrapTests {
         assertEquals("/configured_passwd", zoneConfiguration.getLinks().getSelfService().getPasswd());
         assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account", context.getBean("globalLinks", Links.class).getSelfService().getSignup());
         assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password", context.getBean("globalLinks", Links.class).getSelfService().getPasswd());
-        //assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/success", context.getBean("globalSelfService", Links.SelfService.class).getHomeRedirect());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/success", context.getBean("globalLinks", Links.class).getHomeRedirect());
+        assertSame(context.getBean("globalLinks", Links.class), context.getBean(HomeController.class).getGlobalLinks());
 
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
