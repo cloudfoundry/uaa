@@ -135,11 +135,11 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     }
 
     public void setHomeRedirect(String homeRedirect) {
-        if ("null".equals(homeRedirect)) {
-            this.homeRedirect = null;
-        } else {
-            this.homeRedirect = homeRedirect;
-        }
+        this.homeRedirect = homeRedirect;
+    }
+
+    public String getHomeRedirect() {
+        return homeRedirect;
     }
 
     public void setSelfServiceLinks(Map<String, Object> links) {

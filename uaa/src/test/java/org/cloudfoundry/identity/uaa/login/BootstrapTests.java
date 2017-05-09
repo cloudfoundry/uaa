@@ -47,19 +47,25 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
+import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.signature.SignatureConstants;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
@@ -259,8 +265,8 @@ public class BootstrapTests {
 
         assertFalse(zoneConfiguration.isAccountChooserEnabled());
         assertTrue(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
-        assertNull(context.getBean("globalSelfService", Links.SelfService.class).getPasswd());
-        assertNull(context.getBean("globalSelfService", Links.SelfService.class).getSignup());
+        assertNull(context.getBean("globalLinks", Links.class).getSelfService().getPasswd());
+        assertNull(context.getBean("globalLinks", Links.class).getSelfService().getSignup());
         assertNull(zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
@@ -451,11 +457,12 @@ public class BootstrapTests {
 
         assertTrue(zoneConfiguration.isAccountChooserEnabled());
         assertFalse(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
-        assertEquals("http://some.redirect.com/redirect", zoneConfiguration.getLinks().getHomeRedirect());
+        assertEquals("/configured_home_redirect", zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("/configured_signup", zoneConfiguration.getLinks().getSelfService().getSignup());
         assertEquals("/configured_passwd", zoneConfiguration.getLinks().getSelfService().getPasswd());
-        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account", context.getBean("globalSelfService", Links.SelfService.class).getSignup());
-        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password", context.getBean("globalSelfService", Links.SelfService.class).getPasswd());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account", context.getBean("globalLinks", Links.class).getSelfService().getSignup());
+        assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password", context.getBean("globalLinks", Links.class).getSelfService().getPasswd());
+        //assertEquals("https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/success", context.getBean("globalSelfService", Links.SelfService.class).getHomeRedirect());
 
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
@@ -663,18 +670,14 @@ public class BootstrapTests {
     }
 
     @Test
-    public void xlegacy_scim_groups_as_pipes_from_yaml() throws Exception {
-        context = getServletContext(null, "login.yml", "test/bootstrap/legacy_config_with_groups.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+    public void xlegacy_test_deprecated_properties() throws Exception {
+        context = getServletContext(null, "login.yml", "test/bootstrap/deprecated_properties_still_work.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
-    }
-
-    @Test(expected = BeanCreationException.class)
-    @Ignore("Transfer this test to property validation")
-    public void xinvalid_saml_signature_algorithm() throws Exception {
-        context = getServletContext(null, "login.yml", "test/bootstrap/legacy_config_with_invalid_saml_signature_algorithm.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        IdentityZoneConfigurationBootstrap zoneBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);
+        assertEquals("https://deprecated.home_redirect.com", zoneBootstrap.getHomeRedirect());
     }
 
     @Test

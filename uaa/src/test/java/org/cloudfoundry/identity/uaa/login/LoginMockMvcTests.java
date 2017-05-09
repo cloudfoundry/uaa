@@ -164,12 +164,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private XmlWebApplicationContext webApplicationContext;
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
-    private Links.SelfService globalService;
+    private Links globalLinks;
 
 
     @Before
     public void setUpContext() throws Exception {
-        globalService = getWebApplicationContext().getBean("globalSelfService", Links.SelfService.class);
+        globalLinks = getWebApplicationContext().getBean("globalLinks", Links.class);
         SecurityContextHolder.clearContext();
         webApplicationContext = getWebApplicationContext();
         mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
@@ -186,7 +186,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @After
     public void resetGenerator() throws Exception {
         getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
-        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalSelfServiceLinks(globalService);
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalLinks(globalLinks);
     }
 
     @After
@@ -231,10 +231,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
             .andExpect(content().string(containsString("/create_account")));
 
-        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalSelfServiceLinks(
-            new Links.SelfService()
-                .setPasswd("/passwd?id={zone.id}")
-                .setSignup("/signup?subdomain={zone.subdomain}")
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalLinks(
+            new Links().setSelfService(
+                new Links.SelfService()
+                    .setPasswd("/passwd?id={zone.id}")
+                    .setSignup("/signup?subdomain={zone.subdomain}")
+            )
         );
 
         getMockMvc().perform(

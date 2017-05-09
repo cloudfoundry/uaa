@@ -111,8 +111,10 @@ links:
   global:
     passwd: "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password"
     signup: "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/create_account"
+    homeRedirect: "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/success"
   passwd: /configured_passwd
   signup: /configured_signup
+  homeRedirect: /configured_home_redirect
 login:
   accountChooserEnabled: true
   authorize:
@@ -128,7 +130,6 @@ login:
       base64 logo with
       line feeds
   entityBaseURL: https://login.some.test.domain.com:555/uaa
-  homeRedirect: http://some.redirect.com/redirect
   idpDiscoveryEnabled: true
   oauth:
     providers:

@@ -304,7 +304,7 @@ public class LoginInfoEndpointTests {
         validateSelfServiceLinks("/create_account", "/forgot_password", endpoint.getSelfServiceLinks());
 
         //null config with globals
-        endpoint.setGlobalSelfServiceLinks(new Links.SelfService().setSignup("/signup").setPasswd("/passwd"));
+        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup").setPasswd("/passwd")));
         validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
 
         //null links with globals
@@ -313,7 +313,7 @@ public class LoginInfoEndpointTests {
         validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
 
         //null links with globals using variables
-        endpoint.setGlobalSelfServiceLinks(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}"));
+        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}")));
         validateSelfServiceLinks("/signup?domain="+zone.getSubdomain(), "/passwd?id="+zone.getId(), endpoint.getSelfServiceLinks());
 
         //zone config overrides global
