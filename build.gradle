@@ -76,7 +76,14 @@ allprojects {
         username geArtifactoryReader
         password geArtifactoryReaderPassword
       }
-      url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+      url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX'
+    }
+    maven {
+     credentials {
+       username geArtifactoryReader
+       password geArtifactoryReaderPassword
+      }
+      url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX-SNAPSHOT'
     }
   }
 
@@ -190,7 +197,15 @@ subprojects {
        username geArtifactoryReader
        password geArtifactoryReaderPassword
       }
-      url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+      url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX'
+    }
+
+    maven {
+     credentials {
+       username geArtifactoryReader
+       password geArtifactoryReaderPassword
+      }
+      url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX-SNAPSHOT'
     }
   }
 
