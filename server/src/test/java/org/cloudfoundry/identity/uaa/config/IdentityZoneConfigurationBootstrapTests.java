@@ -141,15 +141,6 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void null_home_redirect() throws Exception {
-        bootstrap.setHomeRedirect("null");
-        bootstrap.afterPropertiesSet();
-
-        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
-        assertNull(zone.getConfig().getLinks().getHomeRedirect());
-    }
-
-    @Test
     public void signup_link_configured() throws Exception {
         links.put("signup", "/configured_signup");
         bootstrap.setSelfServiceLinks(links);

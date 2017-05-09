@@ -160,10 +160,10 @@ public class LoginInfoEndpoint {
 
     private XOAuthProviderConfigurator xoAuthProviderConfigurator;
 
-    private Links.SelfService globalSelfServiceLinks = new Links.SelfService().setPasswd(null).setSignup(null);
+    private Links globalLinks = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
 
-    public void setGlobalSelfServiceLinks(Links.SelfService globalSelfServiceLinks) {
-        this.globalSelfServiceLinks = globalSelfServiceLinks;
+    public void setGlobalLinks(Links globalLinks) {
+        this.globalLinks = globalLinks;
     }
 
     public LoginInfoEndpoint setXoAuthProviderConfigurator(XOAuthProviderConfigurator xoAuthProviderConfigurator) {
@@ -757,12 +757,12 @@ public class LoginInfoEndpoint {
         Links.SelfService service = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService() : null;
         String signup = UaaStringUtils.nonNull(
             service!=null ? service.getSignup() : null,
-            globalSelfServiceLinks.getSignup(),
+            globalLinks.getSelfService().getSignup(),
             defaultSignup);
 
         String passwd = UaaStringUtils.nonNull(
             service!=null ? service.getPasswd() : null,
-            globalSelfServiceLinks.getPasswd(),
+            globalLinks.getSelfService().getPasswd(),
             defaultPasswd);
 
 

@@ -1,0 +1,4 @@
+scim:
+  groups: pony|The magic of friendship,cat|The cat
+login:
+  homeRedirect: https://deprecated.home_redirect.com

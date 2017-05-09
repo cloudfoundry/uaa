@@ -16,8 +16,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.AuthenticationException;
@@ -41,12 +43,21 @@ public class HomeController {
     private final Log logger = LogFactory.getLog(getClass());
     protected final Environment environment;
     private String baseUrl;
+    private Links globalLinks;
 
     @Autowired
     private JdbcClientMetadataProvisioning clientMetadataProvisioning;
 
     public HomeController(Environment environment) {
         this.environment = environment;
+    }
+
+    public Links getGlobalLinks() {
+        return globalLinks;
+    }
+
+    public void setGlobalLinks(Links globalLinks) {
+        this.globalLinks = globalLinks;
     }
 
     /**
@@ -68,8 +79,12 @@ public class HomeController {
     @RequestMapping(value = { "/", "/home" })
     public String home(Model model, Principal principal) {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        String homePage = config!=null?config.getLinks().getHomeRedirect() : null;
+        String homePage =
+            config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
+            getGlobalLinks() != null && getGlobalLinks().getHomeRedirect() != null ?
+                getGlobalLinks().getHomeRedirect() : null;
         if (homePage != null) {
+            homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
             return "redirect:" + homePage;
         }
         model.addAttribute("principal", principal);

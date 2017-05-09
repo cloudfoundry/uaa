@@ -1006,14 +1006,23 @@ public final class MockMvcUtils {
     }
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context) {
-        ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
-        ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
-        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
-        SecurityContext securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(principal);
-        return securityContext;
+        return getUaaSecurityContext(username, context, IdentityZoneHolder.get());
     }
+
+    public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, IdentityZone zone) {
+            try {
+                IdentityZoneHolder.set(zone);
+                ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
+                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
+                UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
+                UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
+                SecurityContext securityContext = new SecurityContextImpl();
+                securityContext.setAuthentication(principal);
+                return securityContext;
+            } finally {
+                IdentityZoneHolder.clear();
+            }
+        }
 
 
     public static <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {
