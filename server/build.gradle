@@ -9,6 +9,7 @@ dependencies {
   //Audit service dependency
   compile group: 'com.ge.predix.audit', name: 'audit-sdk', version:'0.0.6'
   compile group: 'org.glassfish', name: 'javax.el', version: '3.0.1-b08'
+  compile group: 'com.ge.predix', name: 'spring-log-filter', version:'1.1.0'
   
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
