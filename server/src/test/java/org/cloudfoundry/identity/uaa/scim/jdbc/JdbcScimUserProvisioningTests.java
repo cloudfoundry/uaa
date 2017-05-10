@@ -452,6 +452,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         nohbdy.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
         nohbdy.setSalt("salt");
         nohbdy.setPassword(generator.generate());
+        nohbdy.setOrigin(OriginKeys.UAA);
         String createdUserId = noValidateProvisioning.create(nohbdy).getId();
 
         db.retrieve(createdUserId);
@@ -676,6 +677,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser scimUser = new ScimUser("user-id-2", "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("user@example.com");
+        scimUser.setOrigin(OriginKeys.UAA);
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setPassword("password");
 
@@ -702,6 +704,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setPassword("password");
         scimUser.setSalt("salt");
+        scimUser.setOrigin(OriginKeys.UAA);
         scimUser = db.create(scimUser);
         assertNotNull(scimUser);
         assertEquals("salt", scimUser.getSalt());

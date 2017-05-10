@@ -186,7 +186,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser user = getScimUser();
         user.setUserName(email);
-        user.setPrimaryEmail(email);
         user.setPassword(new RandomValueStringGenerator(300).generate());
         ResultActions result = createUserAndReturnResult(user, scimReadWriteToken, null, null);
         result.andExpect(status().isBadRequest())

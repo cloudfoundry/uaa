@@ -92,6 +92,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -225,6 +226,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         } else {
             //only validate for UAA users
             List<String> idpOriginsForEmailDomain = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), user.getEmails().get(0).getValue());
+            idpOriginsForEmailDomain = idpOriginsForEmailDomain.stream().filter(idp -> !idp.equals(OriginKeys.UAA)).collect(Collectors.toList());
             if(!idpOriginsForEmailDomain.isEmpty()) {
                 throw new ScimException(String.format("The user account is set up for single sign-on. Please use one of these origin(s) : %s",idpOriginsForEmailDomain.toString()), HttpStatus.BAD_REQUEST);
             }
