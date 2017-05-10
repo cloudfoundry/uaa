@@ -291,4 +291,12 @@ public class DomainFilterTest {
 
         assertEquals(0, idpsForEmailDomain.size());
     }
+
+    @Test
+    public void test_uaa_not_returned_as_idp_for_email_domain() {
+        uaaDef.setEmailDomain(Collections.singletonList("example.org"));
+        List<String> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@example.org");
+
+        assertEquals(0, idpsForEmailDomain.size());
+    }
 }

@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -1139,5 +1140,30 @@ public class ScimUserEndpointsTests {
 
         endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         verify(identityProviderProvisioning, times(0)).retrieveActive(anyString());
+    }
+
+    @Test
+    public void testWhenEmailDomainConfiguredForUaaAllowsCreationOfUser() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        user.setPassword("password");
+        user.setOrigin("uaa");
+        IdentityProvider uaaProvider = new IdentityProvider().setActive(true).setType(OriginKeys.UAA).setOriginKey(OriginKeys.UAA).setConfig(new UaaIdentityProviderDefinition());
+        uaaProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
+        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(uaaProvider));
+
+        endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+    }
+
+    @Test
+    public void testUserWithNoOriginGetsDefaultUaa() {
+        ScimUser user = new ScimUser("user1", "joeseph", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        user.setPassword("password");
+        user.setOrigin("");
+
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+
+        assertEquals(OriginKeys.UAA, createdUser.getOrigin());
     }
 }

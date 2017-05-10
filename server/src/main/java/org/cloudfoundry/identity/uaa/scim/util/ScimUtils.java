@@ -102,9 +102,6 @@ public final class ScimUtils {
 
     public static void validate(final ScimUser user) throws InvalidScimResourceException {
         Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
-        if (!hasText(user.getOrigin())) {
-            user.setOrigin(OriginKeys.UAA);
-        }
         if (!hasText(user.getUserName())) {
             throw new InvalidScimResourceException("A username must be provided.");
         }

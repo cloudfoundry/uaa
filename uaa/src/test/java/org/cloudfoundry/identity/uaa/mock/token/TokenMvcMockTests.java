@@ -4111,6 +4111,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(username);
         scimUser.setEmails(Arrays.asList(email));
+        scimUser.setOrigin(OriginKeys.UAA);
         return jdbcScimUserProvisioning.createUser(scimUser, "secret");
     }
 

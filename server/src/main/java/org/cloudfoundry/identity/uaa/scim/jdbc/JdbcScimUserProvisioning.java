@@ -250,9 +250,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
-        ScimUtils.validate(user);
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
+        user.setOrigin(origin);
+        ScimUtils.validate(user);
         final String zoneId = IdentityZoneHolder.get().getId();
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override

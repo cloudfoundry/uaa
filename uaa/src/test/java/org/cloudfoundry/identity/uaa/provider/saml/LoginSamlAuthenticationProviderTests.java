@@ -498,6 +498,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         invitedUser.setPassword("a");
         invitedUser.setVerified(false);
         invitedUser.setPrimaryEmail("marissa.invited@test.org");
+        invitedUser.setOrigin(OriginKeys.UAA);
         ScimUser scimUser = userProvisioning.create(invitedUser);
 
         RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
