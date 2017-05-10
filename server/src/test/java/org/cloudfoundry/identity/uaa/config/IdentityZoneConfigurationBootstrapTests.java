@@ -148,7 +148,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
         assertEquals("/configured_signup", zone.getConfig().getLinks().getSelfService().getSignup());
-        assertEquals("/forgot_password", zone.getConfig().getLinks().getSelfService().getPasswd());
+        assertNull(zone.getConfig().getLinks().getSelfService().getPasswd());
     }
 
     @Test
@@ -158,7 +158,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
-        assertEquals("/create_account", zone.getConfig().getLinks().getSelfService().getSignup());
+        assertNull(zone.getConfig().getLinks().getSelfService().getSignup());
         assertEquals("/configured_passwd", zone.getConfig().getLinks().getSelfService().getPasswd());
     }
 
