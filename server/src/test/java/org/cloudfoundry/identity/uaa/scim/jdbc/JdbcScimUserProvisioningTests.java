@@ -296,7 +296,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
-        assertEquals(OriginKeys.UAA, created.getOrigin());
         assertEquals("uaa", map.get("identity_zone_id"));
         assertNull(user.getPasswordLastModified());
         assertNotNull(created.getPasswordLastModified());
@@ -346,7 +345,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
-        assertEquals(OriginKeys.UAA, created.getOrigin());
         assertEquals("my-zone-id", map.get("identity_zone_id"));
     }
 
@@ -425,55 +423,19 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         db.createUser(user, "j7hyqpassX");
     }
 
-    @Test(expected = InvalidScimResourceException.class)
-    public void cannotCreateUserWithNonAsciiUsername() {
-        ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
-        user.addEmail("jo@blah.com");
-        db.createUser(user, "j7hyqpassX");
-    }
-
-
     @Test(expected = IllegalArgumentException.class)
     public void cannotCreateScimUserWithEmptyEmail() {
         ScimUser user = new ScimUser(null, "joeyjoejoe", "joe", "young");
         user.addEmail("");
     }
 
-    @Test(expected = InvalidScimResourceException.class)
-    public void cannotPersistScimUserWithEmptyEmail() {
-        ScimUser user = new ScimUser(null, "josephine", "Jo", "Jung");
-        List<ScimUser.Email> emails = new ArrayList<>();
-        ScimUser.Email email = new ScimUser.Email();
-        email.setValue("");
-        emails.add(email);
-        user.setEmails(emails);
-        db.createUser(user, "j7hyqpassX");
-    }
 
-    @Test(expected = InvalidScimResourceException.class)
-    public void cannotPersistScimUserWithEmptyandNonEmptyEmails() {
-        ScimUser user = new ScimUser(null, "josephine", "Jo", "Jung");
-        List<ScimUser.Email> emails = new ArrayList<>();
-        ScimUser.Email email1 = new ScimUser.Email();
-        email1.setValue("sample@sample.com");
-        emails.add(email1);
-        ScimUser.Email email2 = new ScimUser.Email();
-        email2.setValue("");
-        emails.add(email2);
-        user.setEmails(emails);
-        db.createUser(user, "j7hyqpassX");
-    }
 
     @Test
     public void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
         JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory) {
-            @Override
-            protected void validate(ScimUser user) throws InvalidScimResourceException {
-                return;
-            }
-
             @Override
             public ScimUser retrieve(String id) {
                 ScimUser createdUserId = new ScimUser();

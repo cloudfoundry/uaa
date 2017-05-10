@@ -19,6 +19,10 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -56,6 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.mockito.verification.VerificationMode;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -128,6 +133,8 @@ public class ScimUserEndpointsTests {
 
     private JdbcScimUserProvisioning dao;
 
+    private JdbcIdentityProviderProvisioning identityProviderProvisioning;
+
     private JdbcScimGroupMembershipManager mm;
 
     private JdbcApprovalStore am;
@@ -137,6 +144,9 @@ public class ScimUserEndpointsTests {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private JdbcTemplate jdbcTemplate;
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     @BeforeClass
     public static void setUpDatabase() throws Exception {
@@ -167,7 +177,10 @@ public class ScimUserEndpointsTests {
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         dao.setQueryConverter(filterConverter);
 
+        identityProviderProvisioning = Mockito.mock(JdbcIdentityProviderProvisioning.class);
+
         endpoints.setScimUserProvisioning(dao);
+        endpoints.setIdentityProviderProvisioning(identityProviderProvisioning);
 
         mockPasswordValidator = mock(PasswordValidator.class);
         doThrow(new InvalidPasswordException("Password must be at least 1 characters in length."))
@@ -1096,5 +1109,35 @@ public class ScimUserEndpointsTests {
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setPasswordChangeRequired(true);
         endpoints.updateAccountStatus(userAccountStatus, createdUser.getId());
+    }
+
+    @Test
+    public void testCreateUserWithEmailDomainNotAllowedForOriginUaa() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        user.setOrigin("uaa");
+        IdentityProvider ldapProvider = new IdentityProvider().setActive(true).setType(OriginKeys.LDAP).setOriginKey(OriginKeys.LDAP).setConfig(new LdapIdentityProviderDefinition());
+        ldapProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
+        IdentityProvider oidcProvider = new IdentityProvider().setActive(true).setType(OriginKeys.OIDC10).setOriginKey("oidc1").setConfig(new OIDCIdentityProviderDefinition());
+        oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
+        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(ldapProvider, oidcProvider));
+
+        expected.expect(ScimException.class);
+        expected.expectMessage("The user account is set up for single sign-on. Please use one of these origin(s) : [ldap, oidc1]");
+        endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        verify(identityProviderProvisioning).retrieveActive(anyString());
+    }
+
+    @Test
+    public void testCreateUserWithEmailDomainAllowedForOriginNotUaa() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        user.setOrigin("NOT_UAA");
+        IdentityProvider ldapProvider = new IdentityProvider().setActive(true).setType(OriginKeys.LDAP).setOriginKey(OriginKeys.LDAP).setConfig(new LdapIdentityProviderDefinition());
+        ldapProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
+        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(ldapProvider));
+
+        endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        verify(identityProviderProvisioning, times(0)).retrieveActive(anyString());
     }
 }
