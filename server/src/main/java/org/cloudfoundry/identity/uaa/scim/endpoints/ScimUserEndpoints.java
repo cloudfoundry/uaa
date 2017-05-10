@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -42,10 +43,12 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -113,7 +116,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     public static final String E_TAG = "ETag";
 
-    private ScimUserProvisioning dao;
+    private ScimUserProvisioning scimUserProvisioning;
+
+    private IdentityProviderProvisioning identityProviderProvisioning;
 
     private ResourceMonitor<ScimUser> scimUserResourceMonitor;
 
@@ -198,7 +203,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
     @ResponseBody
     public ScimUser getUser(@PathVariable String userId, HttpServletResponse response) {
-        ScimUser scimUser = syncApprovals(syncGroups(dao.retrieve(userId)));
+        ScimUser scimUser = syncApprovals(syncGroups(scimUserProvisioning.retrieve(userId)));
         addETagHeader(response, scimUser);
         return scimUser;
     }
@@ -213,16 +218,20 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         checkIsEditAllowed(user.getOrigin(), request);
-
+        ScimUtils.validate(user);
         if (!isUaaUser(user)) {
             //set a default password, "" for non UAA users.
             user.setPassword("");
         } else {
             //only validate for UAA users
+            List<String> idpOriginsForEmailDomain = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), user.getEmails().get(0).getValue());
+            if(!idpOriginsForEmailDomain.isEmpty()) {
+                throw new ScimException(String.format("The user account is set up for single sign-on. Please use one of these origin(s) : %s",idpOriginsForEmailDomain.toString()), HttpStatus.BAD_REQUEST);
+            }
             passwordValidator.validate(user.getPassword());
         }
 
-        ScimUser scimUser = dao.createUser(user, user.getPassword());
+        ScimUser scimUser = scimUserProvisioning.createUser(user, user.getPassword());
         if (user.getApprovals()!=null) {
             for (Approval approval : user.getApprovals()) {
                 approval.setUserId(scimUser.getId());
@@ -251,7 +260,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = getVersion(userId, etag);
         user.setVersion(version);
         try {
-            ScimUser updated = dao.update(userId, user);
+            ScimUser updated = scimUserProvisioning.update(userId, user);
             scimUpdates.incrementAndGet();
             ScimUser scimUser = syncApprovals(syncGroups(updated));
             addETagHeader(httpServletResponse, scimUser);
@@ -273,7 +282,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         int version = getVersion(userId, etag);
-        ScimUser existing = dao.retrieve(userId);
+        ScimUser existing = scimUserProvisioning.retrieve(userId);
         try {
             existing.patch(patch);
             existing.setVersion(version);
@@ -298,7 +307,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         ScimUser user = getUser(userId, httpServletResponse);
         checkIsEditAllowed(user.getOrigin(), request);
         membershipManager.removeMembersByMemberId(userId);
-        dao.delete(userId, version);
+        scimUserProvisioning.delete(userId, version);
         scimDeletes.incrementAndGet();
         if (publisher != null) {
             publisher.publishEvent(
@@ -329,7 +338,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         VerificationResponse responseBody = new VerificationResponse();
 
-        ScimUser user = dao.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId);
         if (user.isVerified()) {
             throw new UserAlreadyVerifiedException();
         }
@@ -346,7 +355,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                     @RequestHeader(value = "If-Match", required = false) String etag,
                     HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
-        ScimUser user = dao.verifyUser(userId, version);
+        ScimUser user = scimUserProvisioning.verifyUser(userId, version);
         scimUpdates.incrementAndGet();
         addETagHeader(httpServletResponse, user);
         return user;
@@ -361,7 +370,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             value = value.substring(0, value.length() - 1);
         }
         if (value.equals("*")) {
-            return dao.retrieve(userId).getVersion();
+            return scimUserProvisioning.retrieve(userId).getVersion();
         }
         try {
             return Integer.valueOf(value);
@@ -388,7 +397,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         List<ScimUser> input = new ArrayList<ScimUser>();
         List<ScimUser> result;
         try {
-            result = dao.query(filter, sortBy, sortOrder.equals("ascending"));
+            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"));
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
                 if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)groups") || attributesCommaSeparated.isEmpty()) {
                     syncGroups(user);
@@ -428,7 +437,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
-        ScimUser user = dao.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId);
 
         if(!user.getOrigin().equals(OriginKeys.UAA)) {
             throw new IllegalArgumentException("Can only manage users from the internal user store.");
@@ -445,7 +454,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             publish(new UserAccountUnlockedEvent(user));
         }
         if(status.isPasswordChangeRequired() != null && status.isPasswordChangeRequired()) {
-            dao.updatePasswordChangeRequired(userId, true);
+            scimUserProvisioning.updatePasswordChangeRequired(userId, true);
         }
 
         return status;
@@ -534,7 +543,11 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     }
 
     public void setScimUserProvisioning(ScimUserProvisioning dao) {
-        this.dao = dao;
+        this.scimUserProvisioning = dao;
+    }
+
+    public void setIdentityProviderProvisioning(IdentityProviderProvisioning identityProviderProvisioning) {
+        this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
     public void setScimGroupMembershipManager(ScimGroupMembershipManager membershipManager) {
@@ -547,7 +560,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        Assert.notNull(dao, "ScimUserProvisioning must be set");
+        Assert.notNull(scimUserProvisioning, "ScimUserProvisioning must be set");
         Assert.notNull(membershipManager, "ScimGroupMembershipManager must be set");
         Assert.notNull(approvalStore, "ApprovalStore must be set");
     }

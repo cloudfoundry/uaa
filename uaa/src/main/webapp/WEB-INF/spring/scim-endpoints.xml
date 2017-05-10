@@ -110,6 +110,7 @@
 
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
         <property name="scimUserResourceMonitor" ref="scimUserProvisioning"/>
         <property name="scimGroupMembershipManager" ref="groupMembershipManager" />
         <property name="approvalStore" ref="approvalStore" />

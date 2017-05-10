@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -174,10 +175,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser create(final ScimUser user) {
-        if (!hasText(user.getOrigin())) {
-            user.setOrigin(OriginKeys.UAA);
-        }
-        validate(user);
         logger.debug("Creating new user: " + user.getUserName());
 
         final String id = UUID.randomUUID().toString();
@@ -243,23 +240,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return create(user);
     }
 
-    protected void validate(final ScimUser user) throws InvalidScimResourceException {
-        if (!hasText(user.getUserName())) {
-            throw new InvalidScimResourceException("A username must be provided.");
-        }
-        if (OriginKeys.UAA.equals(user.getOrigin()) && !usernamePattern.matcher(user.getUserName()).matches()) {
-            throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
-        }
-        if (user.getEmails() == null || user.getEmails().size() != 1) {
-            throw new InvalidScimResourceException("Exactly one email must be provided.");
-        }
-        for (ScimUser.Email email : user.getEmails()) {
-            if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
-                throw new InvalidScimResourceException("An email must be provided.");
-            }
-        }
-    }
-
     private String extractPhoneNumber(final ScimUser user) {
         String phoneNumber = null;
         if (user.getPhoneNumbers() != null && !user.getPhoneNumbers().isEmpty()) {
@@ -270,7 +250,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
-        validate(user);
+        ScimUtils.validate(user);
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
         final String zoneId = IdentityZoneHolder.get().getId();
