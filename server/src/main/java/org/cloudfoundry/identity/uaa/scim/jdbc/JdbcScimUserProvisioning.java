@@ -175,6 +175,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser create(final ScimUser user) {
+        if (!hasText(user.getOrigin())) {
+            user.setOrigin(OriginKeys.UAA);
+        }
         logger.debug("Creating new user: " + user.getUserName());
 
         final String id = UUID.randomUUID().toString();

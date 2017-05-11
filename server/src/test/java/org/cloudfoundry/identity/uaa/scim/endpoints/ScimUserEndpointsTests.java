@@ -398,7 +398,9 @@ public class ScimUserEndpointsTests {
         endpoints.setScimUserProvisioning(mockDao);
         when(mockDao.createUser(any(ScimUser.class), anyString())).thenReturn(new ScimUser());
 
-        ScimUser user = new ScimUser();
+        String userName = "user@example.com";
+        ScimUser user = new ScimUser("user1",userName, null, null);
+        user.addEmail(userName);
         user.setOrigin(OriginKeys.UAA);
         user.setPassword("some bad password");
 
