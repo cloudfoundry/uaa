@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.util;
 
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.junit.Test;
@@ -37,6 +38,7 @@ public class ScimUtilsTest {
     @Test(expected = InvalidScimResourceException.class)
     public void userWithNonAsciiUsername() {
         ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
+        user.setOrigin(OriginKeys.UAA);
         user.addEmail("jo@blah.com");
         ScimUtils.validate(user);
     }

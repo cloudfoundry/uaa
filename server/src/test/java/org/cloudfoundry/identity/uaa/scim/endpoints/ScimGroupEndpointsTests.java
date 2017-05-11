@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
@@ -116,6 +117,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
         userEndpoints = new ScimUserEndpoints();
         userEndpoints.setScimUserProvisioning(udao);
+        userEndpoints.setIdentityProviderProvisioning(mock(JdbcIdentityProviderProvisioning.class));
         userEndpoints.setScimGroupMembershipManager(mm);
         userEndpoints.setPasswordValidator(mock(PasswordValidator.class));
 
