@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Iterables;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
@@ -162,6 +163,19 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         verify(applicationEventPublisher, times(1)).publishEvent(captor.capture());
         assertEquals(AuditEventType.ClientCreateSuccess, captor.getValue().getAuditEvent().getType());
         assertEquals(makeClientName(client.getClientId()), client.getAdditionalInformation().get("name"));
+    }
+
+    @Test
+    public void testCreateClientWithInvalidRedirectUrl() throws Exception {
+        BaseClientDetails client = createBaseClient(new RandomValueStringGenerator().generate(),Collections.singleton("implicit"));
+        client.setRegisteredRedirectUri(Collections.singleton("*/**"));
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(client));
+        MvcResult mvcResult = getMockMvc().perform(createClientPost).andExpect(status().isBadRequest()).andReturn();
+        verify(applicationEventPublisher, times(0)).publishEvent(captor.capture());
     }
 
     @Test
@@ -383,7 +397,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         String subdomain = generator.generate();
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String clientId = generator.generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid","authorization_code","","http://some.redirect.url.com");
         client.setClientSecret("secret");
         MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone());
     }
@@ -394,14 +408,14 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String id = result.getIdentityZone().getId();
         String clientId = generator.generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.admin");
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.admin", "http://some.redirect.url.com");
         client.setClientSecret("secret");
         client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
         client.setClientSecret("secret");
 
         String zonesClientsAdminToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.admin");
 
-        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","","http://some.redirect.url.com");
         newclient.setClientSecret("secret");
         newclient = MockMvcUtils.utils().createClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
 
@@ -417,7 +431,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
 
         setupAdminUserToken();
 
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid","authorization_code","","http://some.redirect.url.com");
         client.setClientSecret("secret");
         BaseClientDetails createdClient = MockMvcUtils.utils().createClient(getMockMvc(), adminUserToken, client, result.getIdentityZone());
 
@@ -461,14 +475,14 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String id = result.getIdentityZone().getId();
         String clientId = generator.generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.admin");
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.admin","http://some.redirect.url.com");
         client.setClientSecret("secret");
         client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
         client.setClientSecret("secret");
 
         String zonesClientsAdminToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones."+id+".clients.admin");
 
-        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","","http://some.redirect.url.com");
         newclient.setClientSecret("secret");
         MockMvcUtils.utils().createClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
     }
@@ -479,14 +493,14 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String id = result.getIdentityZone().getId();
         String clientId = generator.generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.read");
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.read","http://some.redirect.url.com");
         client.setClientSecret("secret");
         client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
         client.setClientSecret("secret");
 
         String zonesClientsReadToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.read");
 
-        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","","http://some.redirect.url.com");
         newclient.setClientSecret("secret");
         MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), newclient, result.getIdentityZone());
 
@@ -1557,16 +1571,8 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
     }
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
-        String filter = "client_id eq \""+clientId+"\"";
-
-        MockHttpServletRequestBuilder get = get("/approvals")
-                        .header("Authorization", "Bearer " + token)
-                        .accept(APPLICATION_JSON)
-                        .param("filter", filter);
-        MvcResult result = getMockMvc().perform(get).andExpect(status().isOk()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        Approval[] approvals = (Approval[])arrayFromString(body, Approval[].class);
-        return approvals;
+        JdbcApprovalStore endpoint = getWebApplicationContext().getBean(JdbcApprovalStore.class);
+        return endpoint.getApprovalsForClient(clientId).toArray(new Approval[0]);
     }
 
 

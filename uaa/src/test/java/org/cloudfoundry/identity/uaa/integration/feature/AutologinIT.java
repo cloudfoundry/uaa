@@ -12,12 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,6 +31,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -40,10 +42,12 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -202,59 +206,57 @@ public class AutologinIT {
         //request a token using our code
         String tokenUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
             .path("/oauth/token")
-            .queryParam("response_type", "token")
-            .queryParam("grant_type", "authorization_code")
-            .queryParam("code", newCode)
-            .queryParam("redirect_uri", appUrl)
             .build().toUriString();
 
-        ResponseEntity<Map> tokenResponse = template.exchange(
-            tokenUrl,
+        MultiValueMap<String,String> tokenParams = new LinkedMultiValueMap<>();
+        tokenParams.add("response_type", "token");
+        tokenParams.add("grant_type", "authorization_code");
+        tokenParams.add("code", newCode);
+        tokenParams.add("redirect_uri", appUrl);
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+        headers.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
+
+        RequestEntity<MultiValueMap<String,String>> requestEntity = new RequestEntity<>(
+            tokenParams,
+            headers,
             HttpMethod.POST,
-            new HttpEntity<>(new HashMap<String, String>(), headers),
-            Map.class);
+            new URI(tokenUrl)
+        );
+        ResponseEntity<Map> tokenResponse = template.exchange(requestEntity,Map.class);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
 
         //here we must reset our state. we do that by following the logout flow.
         headers.clear();
 
-        headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        BasicCookieStore cookieStore = new BasicCookieStore();
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
                                                                  HttpMethod.GET,
-                                                                 new HttpEntity<>(null, headers),
+                                                                 new HttpEntity<>(null, getHeaders(cookieStore)),
                                                                  String.class);
 
-        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
-            }
-        }
+        setCookiesFromResponse(cookieStore, loginResponse);
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
         requestBody.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         loginResponse = restOperations.exchange(baseUrl + "/login.do",
                                                 HttpMethod.POST,
-                                                new HttpEntity<>(requestBody, headers),
+                                                new HttpEntity<>(requestBody, getHeaders(cookieStore)),
                                                 String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
         assertThat(cookies, hasItem(startsWith("Saved-Account-")));
         assertThat(cookies, hasItem(startsWith("Current-User")));
-        headers.clear();
-        for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-            if (!cookie.contains("1970")) { //deleted cookie
-                headers.add("Cookie", cookie);
-            }
-        }
+        cookieStore.clear();
+        setCookiesFromResponse(cookieStore, loginResponse);
         headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> profilePage =
             restOperations.exchange(baseUrl + "/profile",
                                     HttpMethod.GET,
-                                    new HttpEntity<>(null, headers), String.class);
+                                    new HttpEntity<>(null, getHeaders(cookieStore)), String.class);
 
-
+        setCookiesFromResponse(cookieStore, profilePage);
         String revokeApprovalsUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
             .path("/profile")
             .build().toUriString();
@@ -264,9 +266,18 @@ public class AutologinIT {
         requestBody.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(profilePage.getBody()));
         ResponseEntity<Void> revokeResponse = template.exchange(revokeApprovalsUrl,
                                                                 HttpMethod.POST,
-                                                                new HttpEntity<>(requestBody, headers),
+                                                                new HttpEntity<>(requestBody, getHeaders(cookieStore)),
                                                                 Void.class);
         assertEquals(HttpStatus.FOUND, revokeResponse.getStatusCode());
+    }
+
+    private void setCookiesFromResponse(BasicCookieStore cookieStore, ResponseEntity<String> loginResponse) {
+        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookieStore.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+            }
+        }
     }
 
     @Test

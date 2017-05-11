@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.client;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -33,6 +34,9 @@ import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
@@ -44,6 +48,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
@@ -81,7 +86,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Controller
 @ManagedResource
-public class ClientAdminEndpoints implements InitializingBean {
+public class ClientAdminEndpoints implements InitializingBean, ApplicationEventPublisherAware {
 
     private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
 
@@ -113,6 +118,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     private ApprovalStore approvalStore;
 
     private AuthenticationManager authenticationManager;
+    private ApplicationEventPublisher publisher;
 
     public ClientDetailsValidator getRestrictedScopesValidator() {
         return restrictedScopesValidator;
@@ -431,9 +437,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
-            String clientId = details[i].getClientId();
-            clientRegistrationService.removeClientDetails(clientId);
-            deleteApprovals(clientId);
+            publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication()));
             clientDeletes.incrementAndGet();
             result[i] = removeSecret(details[i]);
             result[i].setApprovalsDeleted(true);
@@ -443,7 +447,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     protected void deleteApprovals(String clientId) {
         if (approvalStore!=null) {
-            approvalStore.revokeApprovals(String.format("client_id eq \"%s\"", clientId));
+            approvalStore.revokeApprovalsForClient(clientId);
         } else {
             throw new UnsupportedOperationException("No approval store configured on "+getClass().getName());
         }
@@ -576,19 +580,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private void incrementErrorCounts(Exception e) {
         String series = UaaStringUtils.getErrorName(e);
-        AtomicInteger value = errorCounts.get(series);
-        if (value == null) {
-            synchronized (errorCounts) {
-                value = errorCounts.get(series);
-                if (value == null) {
-                    value = new AtomicInteger();
-                    errorCounts.put(series, value);
-                }
-            }
-        }
-        value.incrementAndGet();
+        errorCounts.computeIfAbsent(series, k -> new AtomicInteger()).incrementAndGet();
     }
-
 
 
     private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
@@ -715,5 +708,16 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     public void setClientDetailsResourceMonitor(ResourceMonitor<ClientDetails> clientDetailsResourceMonitor) {
         this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
+    }
+
+    public void publish(ApplicationEvent event) {
+        if (publisher!=null) {
+            publisher.publishEvent(event);
+        }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        publisher = applicationEventPublisher;
     }
 }

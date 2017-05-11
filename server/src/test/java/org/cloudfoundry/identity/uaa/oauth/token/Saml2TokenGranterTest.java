@@ -27,7 +27,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.internal.util.reflection.Whitebox;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.saml2.core.Assertion;
@@ -58,6 +57,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.context.SAMLMessageContext;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -189,7 +189,7 @@ public class Saml2TokenGranterTest {
         when(authentication.getUserAuthentication()).thenReturn(userAuthentication);
         when(userAuthentication.isAuthenticated()).thenReturn(true);
         when(requestFactory.createOAuth2Request(receivingClient, tokenRequest)).thenReturn(myReq);
-        Whitebox.setInternalState(granter, "requestFactory", requestFactory);
+        ReflectionTestUtils.setField(granter, "requestFactory", requestFactory);
         granter.getAccessToken(receivingClient, tokenRequest);
     }
 

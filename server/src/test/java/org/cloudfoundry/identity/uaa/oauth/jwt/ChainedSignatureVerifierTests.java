@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -33,12 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.singletonMap;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ChainedSignatureVerifierTests {
     private Signer signer;
@@ -136,11 +137,52 @@ public class ChainedSignatureVerifierTests {
         }
     }
 
+    @Test
+    public void unsupported_key_types_are_ignored() {
+        Map<String,Object> p = new HashMap<>();
+        p.put("kty","EC");
+        p.put("kid", "ecid");
+        p.put("x", "test-ec-key-x");
+        p.put("y", "test-ec-key-y");
+        p.put("use", "sig");
+        p.put("crv", "test-crv");
+        Map<String,Object> q = new HashMap<>();
+        q.put("kty","oct");
+        q.put("k", "octkeyvalue");
+        JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(validKey, p, q)), JsonWebKeySet.class);
+        verifier = new ChainedSignatureVerifier(keySet);
+        List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
+        assertNotNull(delegates);
+        assertEquals(1, delegates.size());
+        int pos = 0;
+        for (SignatureVerifier v : delegates) {
+            assertTrue("Checking "+(pos++), v instanceof CommonSignatureVerifier);
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void no_supported_key_types_causes_error() {
+        Map<String,Object> p = new HashMap<>();
+        p.put("kty","EC");
+        p.put("kid", "ecid");
+        p.put("x", "test-ec-key-x");
+        p.put("y", "test-ec-key-y");
+        p.put("use", "sig");
+        p.put("crv", "test-crv");
+        Map<String,Object> q = new HashMap<>();
+        q.put("kty","oct");
+        q.put("k", "octkeyvalue");
+        JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(p, q)), JsonWebKeySet.class);
+        verifier = new ChainedSignatureVerifier(keySet);
+    }
 
     @Test
     public void test_multi_key_both_valid() {
-        JsonWebKey jsonWebKey = mock(JsonWebKey.class);
-        when(jsonWebKey.getValue()).thenReturn("mac-content");
+        Map<String,Object> p = new HashMap<>();
+        p.put("kty",MAC.name());
+        p.put("value", "mac-content");
+        JsonWebKey jsonWebKey = new JsonWebKey(p);
+
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(validKey, jsonWebKey)));
         signedValidContent.verifySignature(verifier);
         List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));

@@ -12,13 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -83,7 +85,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private IdentityZoneValidator validator;
 
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
-            IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
+                                 IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
@@ -99,19 +101,25 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "{id}", method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
         List<IdentityZone> result = filterForCurrentZone(Arrays.asList(zoneDao.retrieve(id)));
-        if (result.size()==0) {
+        if (result.size() == 0) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
         return removeKeys(result.get(0));
     }
 
-    private IdentityZone removeKeys(IdentityZone identityZone) {
-        if(identityZone.getConfig() != null && identityZone.getConfig().getTokenPolicy() != null) {
+    protected IdentityZone removeKeys(IdentityZone identityZone) {
+        if (identityZone.getConfig() != null && identityZone.getConfig().getTokenPolicy() != null) {
             identityZone.getConfig().getTokenPolicy().setKeys(null);
         }
-        if(identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
+        if (identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
             identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(null);
             identityZone.getConfig().getSamlConfig().setPrivateKey(null);
+            identityZone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
+                entry -> {
+                    entry.getValue().setPassphrase(null);
+                    entry.getValue().setKey(null);
+                }
+            );
         }
         return identityZone;
     }
@@ -125,8 +133,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         List<IdentityZone> result = new LinkedList<>();
         if (IdentityZoneHolder.isUaa()) {
             for (IdentityZone zone : zones) {
-                    result.add(removeKeys(zone));
-                }
+                result.add(removeKeys(zone));
+            }
             return result;
         }
         String currentId = IdentityZoneHolder.get().getId();
@@ -143,7 +151,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     protected IdentityZone filterForZonesDotRead(IdentityZone zone) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth!=null && hasReadOnlyAuthority(zone.getId(), auth)) {
+        if (auth != null && hasReadOnlyAuthority(zone.getId(), auth)) {
             zone.getConfig().setSamlConfig(null);
             zone.getConfig().setTokenPolicy(null);
         }
@@ -164,7 +172,6 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
         return hasRead && doesNotHaveAdmin;
     }
-
 
 
     @RequestMapping(method = POST)
@@ -189,7 +196,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone - creating id["+body.getId()+"] subdomain["+body.getSubdomain()+"]");
+            logger.debug("Zone - creating id[" + body.getId() + "] subdomain[" + body.getSubdomain() + "]");
             IdentityZone created = zoneDao.create(body);
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
@@ -210,7 +217,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     private String getErrorMessages(Errors errors) {
         List<String> messages = new ArrayList<>();
-        for(ObjectError error : errors.getAllErrors()) {
+        for (ObjectError error : errors.getAllErrors()) {
             messages.add(messageSource.getMessage(error, Locale.getDefault()));
         }
         return String.join("\r\n", messages);
@@ -218,11 +225,11 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityZone> updateIdentityZone(
-            @RequestBody @Valid IdentityZone body, @PathVariable String id) {
-        if (id==null) {
+        @RequestBody @Valid IdentityZone body, @PathVariable String id) {
+        if (id == null) {
             throw new ZoneDoesNotExistsException(id);
         }
-        if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId()) ) {
+        if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId())) {
             throw new AccessDeniedException("Zone admins can only update their own zone.");
         }
 
@@ -232,13 +239,13 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
-        } catch(InvalidIdentityZoneDetailsException ex) {
+        } catch (InvalidIdentityZoneDetailsException ex) {
             throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
         }
 
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone - updating id["+id+"] subdomain["+body.getSubdomain()+"]");
+            logger.debug("Zone - updating id[" + id + "] subdomain[" + body.getSubdomain() + "]");
             // ignore the id in the body, the id in the path is the only one that matters
             body.setId(id);
             IdentityZone updated = zoneDao.update(body);
@@ -250,19 +257,27 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    private void restoreSecretProperties(IdentityZone existingZone, IdentityZone newZone) {
-        if(newZone.getConfig() != null) {
+
+    protected void restoreSecretProperties(IdentityZone existingZone, IdentityZone newZone) {
+        if (newZone.getConfig() != null) {
             if (newZone.getConfig().getTokenPolicy() != null) {
                 if (newZone.getConfig().getTokenPolicy().getKeys() == null || newZone.getConfig().getTokenPolicy().getKeys().isEmpty()) {
                     newZone.getConfig().getTokenPolicy().setKeys(existingZone.getConfig().getTokenPolicy().getKeys());
                 }
             }
-            if(newZone.getConfig().getSamlConfig() != null) {
+            if (newZone.getConfig().getSamlConfig() != null) {
                 SamlConfig config = newZone.getConfig().getSamlConfig();
                 SamlConfig oldConfig = existingZone.getConfig().getSamlConfig();
-                if(config.getPrivateKey() == null && config.getPrivateKeyPassword() == null && oldConfig.getCertificate() != null && oldConfig.getCertificate().equals(config.getCertificate())) {
-                    config.setPrivateKey(oldConfig.getPrivateKey());
-                    config.setPrivateKeyPassword(oldConfig.getPrivateKeyPassword());
+                for (Map.Entry<String, SamlKey> entry : config.getKeys().entrySet()) {
+                    SamlKey original = oldConfig.getKeys().get(entry.getKey());
+                    if (entry.getValue().getKey() == null &&
+                        entry.getValue().getPassphrase() == null &&
+                        original != null &&
+                        original.getCertificate() != null &&
+                        original.getCertificate().equals(entry.getValue().getCertificate())) {
+                        entry.getValue().setKey(original.getKey());
+                        entry.getValue().setPassphrase(original.getPassphrase());
+                    }
                 }
             }
         }
@@ -271,20 +286,20 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "{id}", method = DELETE)
     @Transactional
     public ResponseEntity<IdentityZone> deleteIdentityZone(@PathVariable String id) {
-        if (id==null) {
+        if (id == null) {
             throw new ZoneDoesNotExistsException(id);
         }
-        if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId()) ) {
+        if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId())) {
             throw new AccessDeniedException("Zone admins can only update their own zone.");
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone - deleting id["+id+"]");
+            logger.debug("Zone - deleting id[" + id + "]");
             // make sure it exists
             IdentityZone zone = zoneDao.retrieve(id);
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
-            if (publisher!=null && zone!=null) {
+            if (publisher != null && zone != null) {
                 publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return new ResponseEntity<>(removeKeys(zone), OK);
@@ -298,11 +313,11 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(method = POST, value = "{identityZoneId}/clients")
     public ResponseEntity<? extends ClientDetails> createClient(
-            @PathVariable String identityZoneId, @RequestBody BaseClientDetails clientDetails) {
-        if (identityZoneId==null) {
+        @PathVariable String identityZoneId, @RequestBody BaseClientDetails clientDetails) {
+        if (identityZoneId == null) {
             throw new ZoneDoesNotExistsException(identityZoneId);
         }
-        if (!IdentityZoneHolder.isUaa() && !identityZoneId.equals(IdentityZoneHolder.get().getId()) ) {
+        if (!IdentityZoneHolder.isUaa() && !identityZoneId.equals(IdentityZoneHolder.get().getId())) {
             throw new AccessDeniedException("Zone admins can only create clients in their own zone.");
         }
         IdentityZone previous = IdentityZoneHolder.get();
@@ -311,7 +326,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
             IdentityZoneHolder.set(identityZone);
             ClientDetails createdClient = clientRegistrationService.createClient(clientDetails);
-            logger.debug("Zone client created zone["+identityZoneId+"] client["+clientDetails.getClientId()+"]");
+            logger.debug("Zone client created zone[" + identityZoneId + "] client[" + clientDetails.getClientId() + "]");
             return new ResponseEntity<>(removeSecret(createdClient), CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -326,20 +341,20 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(method = DELETE, value = "{identityZoneId}/clients/{clientId}")
     public ResponseEntity<? extends ClientDetails> deleteClient(
-            @PathVariable String identityZoneId, @PathVariable String clientId) {
-        if (identityZoneId==null) {
+        @PathVariable String identityZoneId, @PathVariable String clientId) {
+        if (identityZoneId == null) {
             throw new ZoneDoesNotExistsException(identityZoneId);
         }
-        if (!IdentityZoneHolder.isUaa() && !identityZoneId.equals(IdentityZoneHolder.get().getId()) ) {
+        if (!IdentityZoneHolder.isUaa() && !identityZoneId.equals(IdentityZoneHolder.get().getId())) {
             throw new AccessDeniedException("Zone admins can only delete their own zone.");
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone deleting client zone["+identityZoneId+ "] client[" + clientId+"]");
+            logger.debug("Zone deleting client zone[" + identityZoneId + "] client[" + clientId + "]");
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
             IdentityZoneHolder.set(identityZone);
             ClientDetails deleted = clientRegistrationService.deleteClient(clientId);
-            logger.debug("Zone client deleted zone["+identityZoneId+"] client["+clientId+"]");
+            logger.debug("Zone client deleted zone[" + identityZoneId + "] client[" + clientId + "]");
             return new ResponseEntity<>(removeSecret(deleted), OK);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -364,7 +379,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     @ExceptionHandler(ClientAlreadyExistsException.class)
     public ResponseEntity<InvalidClientDetailsException> handleClientAlreadyExists(ClientAlreadyExistsException e) {
         return new ResponseEntity<>(new InvalidClientDetailsException(e.getMessage()),
-                        HttpStatus.CONFLICT);
+                                    HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(ZoneDoesNotExistsException.class)

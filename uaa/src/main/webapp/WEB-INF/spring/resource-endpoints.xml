@@ -13,7 +13,7 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+    xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
     <http name="checkTokenSecurity" pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
@@ -48,6 +48,7 @@
 
     <bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
         <property name="tokenServices" ref="tokenServices" />
+        <property name="allowQueryString" ref="allowQueryStringForTokens"/>
     </bean>
 
     <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint">

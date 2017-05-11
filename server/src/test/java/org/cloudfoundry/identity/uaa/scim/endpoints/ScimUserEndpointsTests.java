@@ -55,6 +55,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
 import org.mockito.verification.VerificationMode;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -101,6 +102,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -198,7 +200,7 @@ public class ScimUserEndpointsTests {
         map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
         endpoints.setStatuses(map);
 
-        am = new JdbcApprovalStore(jdbcTemplate, pagingListFactory, new ScimSearchQueryConverter());
+        am = new JdbcApprovalStore(jdbcTemplate);
         endpoints.setApprovalStore(am);
     }
 
@@ -423,6 +425,25 @@ public class ScimUserEndpointsTests {
     public void create_ldap_user_when_internal_user_management_is_disabled() {
         create_user_when_internal_user_management_is_disabled(OriginKeys.LDAP);
     }
+
+    @Test
+    public void create_with_non_uaa_origin_does_not_validate_password() throws Exception {
+        ScimUser user = spy(new ScimUser(null, "dave", "David", "Syer"));
+        user.addEmail(new RandomValueStringGenerator().generate() + "@test.org");
+        user.setOrigin("google");
+        user.setPassword("bla bla");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        endpoints.createUser(user, request, new MockHttpServletResponse());
+        ArgumentCaptor<String> passwords = ArgumentCaptor.forClass(String.class);
+        verify(user, atLeastOnce()).setPassword(passwords.capture());
+
+        //1. this method, 2. user endpoints, 3. user provisioning
+        assertEquals(3, passwords.getAllValues().size());
+        assertEquals("bla bla", passwords.getAllValues().get(0));
+        assertEquals("", passwords.getAllValues().get(1));
+    }
+
+
 
     public void create_user_when_internal_user_management_is_disabled(String origin) {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
@@ -686,7 +707,7 @@ public class ScimUserEndpointsTests {
         endpoints.setApprovalStore(mockApprovalStore);
 
         endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovals(anyString());
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString());
 
         endpoints.setApprovalStore(am);
     }
@@ -697,7 +718,7 @@ public class ScimUserEndpointsTests {
         endpoints.setApprovalStore(mockApprovalStore);
 
         endpoints.findUsers("approvals", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovals(anyString());
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString());
 
         endpoints.setApprovalStore(am);
     }

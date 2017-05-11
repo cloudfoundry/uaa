@@ -54,7 +54,11 @@ public class AccountsController {
     @RequestMapping(value = "/create_account", method = GET)
     public String activationEmail(Model model,
                                   @RequestParam(value = "client_id", required = false) String clientId,
-                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
+                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri,
+                                  HttpServletResponse response) {
+        if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+            return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
+        }
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
         return "accounts/new_activation_email";
@@ -67,6 +71,9 @@ public class AccountsController {
                                       @Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
                                       @RequestParam("password") String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation) {
+        if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+            return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
+        }
         if(result.hasErrors()) {
             return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email");
         }
@@ -120,6 +127,12 @@ public class AccountsController {
         model.addAttribute(attributeKey, attributeValue);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "accounts/new_activation_email";
+    }
+
+    private String handleSelfServiceDisabled(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
+        model.addAttribute(attributeKey, attributeValue);
+        response.setStatus(HttpStatus.NOT_FOUND.value());
+        return "error";
     }
 
     public static class ValidEmail {

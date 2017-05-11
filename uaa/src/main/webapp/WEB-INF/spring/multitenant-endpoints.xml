@@ -1,7 +1,7 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
        xmlns:aop="http://www.springframework.org/schema/aop"
        xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
@@ -27,9 +27,11 @@
         <constructor-arg ref="identityZoneProvisioning"/>
     </bean>
 
-    <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager" depends-on="identityZoneHolderInitializer"/>
+    <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager"
+          depends-on="identityZoneHolderInitializer"/>
 
-    <bean id="identityProviderProvisioning" class="org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning">
+    <bean id="identityProviderProvisioning"
+          class="org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
     </bean>
 
@@ -52,17 +54,22 @@
         <constructor-arg ref="approvalStore"/>
     </bean>
 
-    <bean id="xOAuthIdentityProviderConfigValidator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthIdentityProviderConfigValidator">
-    </bean>
+    <bean id="xOAuthIdentityProviderConfigValidator"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthIdentityProviderConfigValidator"/>
+    <bean id="uaaIdentityProviderConfigValidator"
+          class="org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator"/>
+    <bean id="ldapIdentityProviderConfigValidator"
+          class="org.cloudfoundry.identity.uaa.provider.ldap.LdapIdentityProviderConfigValidator"/>
 
-    <bean id="uaaIdentityProviderConfigValidator" class="org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator">
-    </bean>
 
-    <bean id="identityProviderConfigValidator" class="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
+    <bean id="identityProviderConfigValidator"
+          class="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
         <property name="delegates">
-            <util:map id="delegatesMap" key-type="java.lang.String" value-type="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
+            <util:map id="delegatesMap" key-type="java.lang.String"
+                      value-type="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
                 <entry key="xoauth" value-ref="xOAuthIdentityProviderConfigValidator"/>
                 <entry key="uaa" value-ref="uaaIdentityProviderConfigValidator"/>
+                <entry key="ldap" value-ref="ldapIdentityProviderConfigValidator"/>
             </util:map>
         </property>
     </bean>
@@ -80,10 +87,10 @@
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/identity-zones"
-                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')"
                        method="GET"/>
         <intercept-url pattern="/identity-zones/*"
-                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.read')"
+                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.read') or #oauth2.hasScope('zones.write')"
                        method="GET"/>
         <intercept-url pattern="/identity-zones/*/clients" access="#oauth2.hasScopeInAuthZone('zones.write')"
                        method="POST"/>
@@ -93,7 +100,7 @@
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="POST"/>
         <intercept-url pattern="/**"
-                       access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')"
                        method="PUT"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
@@ -155,9 +162,9 @@
         <intercept-url pattern="/**"
                        access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="PUT"/>
-      <intercept-url pattern="/**"
-                     access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
-                     method="PATCH"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PATCH"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="DELETE"/>
@@ -187,12 +194,12 @@
     <!-- Begin SAML SP Management -->
 
     <bean id="serviceProviderProvisioning"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning">
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
     </bean>
 
     <bean id="serviceProviderEndpoints"
-        class="org.cloudfoundry.identity.uaa.provider.SamlServiceProviderEndpoints">
+          class="org.cloudfoundry.identity.uaa.provider.SamlServiceProviderEndpoints">
         <constructor-arg ref="serviceProviderProvisioning"/>
         <constructor-arg ref="spMetaDataProviders"/>
     </bean>
@@ -211,27 +218,12 @@
                        access="#oauth2.hasScope('sps.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="GET"/>
         <intercept-url pattern="/**"
-                     access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
-                     method="DELETE"/>
+                       access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
-
-    <bean id="spEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.ServiceProviderEventPublisher"/>
-
-    <aop:config proxy-target-class="true">
-        <aop:aspect ref="spEventPublisher">
-            <aop:after-returning method="spCreated"
-                                 pointcut="execution(* *..SamlServiceProviderProvisioning+.create(..)) and bean(serviceProviderProvisioning)"
-                                 returning="serviceProvider"/>
-            <aop:after-returning method="spModified"
-                                 pointcut="execution(* *..SamlServiceProviderProvisioning+.update(..)) and bean(serviceProviderProvisioning)"
-                                 returning="serviceProvider"/>
-
-        </aop:aspect>
-    </aop:config>
-
     <!-- End SAML SP Management -->
 
 </beans>

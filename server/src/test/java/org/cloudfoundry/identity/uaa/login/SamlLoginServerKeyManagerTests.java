@@ -12,14 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import static org.junit.Assert.assertNotNull;
-
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensaml.xml.security.credential.Credential;
 import org.springframework.security.saml.key.KeyManager;
+
+import static org.junit.Assert.assertNotNull;
 
 public class SamlLoginServerKeyManagerTests {
 
@@ -64,7 +65,11 @@ public class SamlLoginServerKeyManagerTests {
     @Test
     public void testWithWorkingCertificate() throws Exception {
 
-        keyManager = SamlKeyManagerFactory.getKeyManager(KEY, PASSWORD, CERTIFICATE);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(KEY);
+        config.setPrivateKeyPassword(PASSWORD);
+        config.setCertificate(CERTIFICATE);
+        keyManager = SamlKeyManagerFactory.getKeyManager(config);
         Credential credential = keyManager.getDefaultCredential();
         assertNotNull(credential.getPrivateKey());
         assertNotNull(credential.getPublicKey());
@@ -106,7 +111,11 @@ public class SamlLoginServerKeyManagerTests {
         String password = "vmware";
 
         try {
-            keyManager = SamlKeyManagerFactory.getKeyManager(key, password, certificate);
+            SamlConfig config = new SamlConfig();
+            config.setPrivateKey(key);
+            config.setPrivateKeyPassword(password);
+            config.setCertificate(certificate);
+            keyManager = SamlKeyManagerFactory.getKeyManager(config);
             Assert.fail("Password invalid. Should not reach this line.");
         } catch (Exception x) {
             if (x.getClass().getName().equals("org.bouncycastle.openssl.EncryptionException")) {
@@ -161,7 +170,11 @@ public class SamlLoginServerKeyManagerTests {
             "-----END CERTIFICATE-----";
         String password = null;
 
-        keyManager = SamlKeyManagerFactory.getKeyManager(key, password, certificate);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(key);
+        config.setPrivateKeyPassword(password);
+        config.setCertificate(certificate);
+        keyManager = SamlKeyManagerFactory.getKeyManager(config);
         Credential credential = keyManager.getDefaultCredential();
         assertNotNull(credential.getPrivateKey());
         assertNotNull(credential.getPublicKey());
@@ -202,7 +215,12 @@ public class SamlLoginServerKeyManagerTests {
                         "-----END CERTIFICATE-----";
         String password = "password";
 
-        keyManager = SamlKeyManagerFactory.getKeyManager(key, password, certificate);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(key);
+        config.setPrivateKeyPassword(password);
+        config.setCertificate(certificate);
+        keyManager = SamlKeyManagerFactory.getKeyManager(config);
+
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -239,7 +257,11 @@ public class SamlLoginServerKeyManagerTests {
         String password = "password";
 
         try {
-            keyManager = SamlKeyManagerFactory.getKeyManager(key, password, certificate);
+            SamlConfig config = new SamlConfig();
+            config.setPrivateKey(key);
+            config.setPrivateKeyPassword(password);
+            config.setCertificate(certificate);
+            keyManager = SamlKeyManagerFactory.getKeyManager(config);
             Assert.fail("Key/Cert pair is invalid. Should not reach this line.");
         } catch (Exception x) {
             if (x.getClass().getName().equals("org.bouncycastle.openssl.PEMException")) {
@@ -301,6 +323,11 @@ public class SamlLoginServerKeyManagerTests {
 
         String password = "password";
 
-        keyManager = SamlKeyManagerFactory.getKeyManager(key, password, certificate);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(key);
+        config.setPrivateKeyPassword(password);
+        config.setCertificate(certificate);
+        keyManager = SamlKeyManagerFactory.getKeyManager(config);
+
     }
 }

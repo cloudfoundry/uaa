@@ -1,3 +1,15 @@
+/*******************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
@@ -5,10 +17,10 @@ import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.home.HomeController;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -40,7 +52,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
@@ -100,7 +111,7 @@ public class HomeControllerViewTests extends TestClassNullifier {
           .andExpect(xpath("//*[@id='tile-1'][text()[contains(.,'client-1')]]").exists())
           .andExpect(xpath("//*[@class='tile-1']/@href").string("http://app.launch/url"))
 
-          .andExpect(xpath("//head/style[2]").string(".tile-1 .tile-icon {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
+          .andExpect(xpath("//head/style[1]").string(".tile-1 .tile-icon {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
           .andExpect(xpath("//*[@id='tile-2'][text()[contains(.,'Client 2 Name')]]").exists())
           .andExpect(xpath("//*[@class='tile-2']/@href").string("http://second.url/"))
 
@@ -124,6 +135,45 @@ public class HomeControllerViewTests extends TestClassNullifier {
         mockMvc.perform(get("/home"))
             .andExpect(status().isOk());
 
+        zone.getConfig().getLinks().setHomeRedirect(customHomePage);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", customHomePage));
+    }
+
+    @Test
+    public void testConfiguredGlobalHomePage() throws Exception {
+        HomeController controller = webApplicationContext.getBean(HomeController.class);
+
+        //nothing configured
+        mockMvc.perform(get("/home"))
+            .andExpect(status().isOk());
+
+        String globalHomePage = "http://{zone.subdomain}.custom.home/{zone.id}";
+        controller.setGlobalLinks(new Links().setHomeRedirect(globalHomePage));
+
+        //global home redirect configured
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", "http://.custom.home/uaa"));
+
+        //configure home redirect on the default zone
+        String customHomePage = "http://custom.home/page";
+        IdentityZoneHolder.get().getConfig().getLinks().setHomeRedirect(customHomePage);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", customHomePage));
+
+
+        //create a new zone, no config, inherits the global redirect
+        IdentityZone zone = MultitenancyFixture.identityZone("zoneId","zonesubdomain");
+        zone.setConfig(new IdentityZoneConfiguration());
+        IdentityZoneHolder.set(zone);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", "http://zonesubdomain.custom.home/zoneId"));
+
+        //zone configures its own home redirect
         zone.getConfig().getLinks().setHomeRedirect(customHomePage);
         mockMvc.perform(get("/home"))
             .andExpect(status().is3xxRedirection())

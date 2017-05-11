@@ -13,9 +13,10 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -56,6 +57,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.extractCookieCsrf;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -196,9 +199,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
     private String doOpenIdHybridFlowIdTokenAndReturnCode(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
 
-        HttpHeaders headers = new HttpHeaders();
-        // TODO: should be able to handle just TEXT_HTML
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+        BasicCookieStore cookies = new BasicCookieStore();
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
@@ -217,12 +218,11 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String clientSecret = resource.getClientSecret();
         String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
             "state={state}&client_id={client_id}&redirect_uri={redirect_uri}");
-        headers.remove("Authorization");
         RestTemplate restTemplate = serverRunning.createRestTemplate();
 
         ResponseEntity<Void> result = restTemplate.exchange(uri,
             HttpMethod.GET,
-            new HttpEntity<Void>(null, headers),
+            new HttpEntity<Void>(null, getHeaders(cookies)),
             Void.class,
             responseType,
             state,
@@ -234,14 +234,16 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
-        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
         // should be directed to the login screen...
@@ -252,16 +254,17 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("username", user.getUserName());
         formData.add("password", "s3Cret");
-        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
+        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(response.getBody()));
 
         // Should be redirected to the original URL, but now authenticated
-        result = serverRunning.postForResponse("/login.do", headers, formData);
+        result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
-        headers.remove("Cookie");
+        cookies.clear();
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
@@ -269,16 +272,22 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         //response = serverRunning.getForString(location, headers);
         response = restTemplate.exchange(location,
             HttpMethod.GET,
-            new HttpEntity<>(null,headers),
+            new HttpEntity<>(null, getHeaders(cookies)),
             String.class);
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+            }
+        }
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("Application Authorization</h1>"));
 
             formData.clear();
             formData.add(USER_OAUTH_APPROVAL, "true");
-            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
-            result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(response.getBody()));
+            result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         }

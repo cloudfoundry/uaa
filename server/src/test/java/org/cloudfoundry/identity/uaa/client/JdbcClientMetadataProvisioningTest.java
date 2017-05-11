@@ -40,7 +40,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
 
     @Before
     public void createDatasource() throws Exception {
-        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(dataSource);
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
         db = new JdbcClientMetadataProvisioning(clientService, clientService, jdbcTemplate);
     }
 

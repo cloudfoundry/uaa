@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.lang.reflect.ParameterizedType;
 import java.net.URL;
@@ -98,6 +99,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
         return (T) this;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getRelyingPartySecret() {
         return relyingPartySecret;
     }

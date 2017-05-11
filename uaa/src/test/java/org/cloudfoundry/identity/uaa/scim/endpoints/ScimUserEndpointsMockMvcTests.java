@@ -16,6 +16,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -41,6 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -63,6 +66,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -957,9 +961,29 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testDeleteUserWithUaaAdminToken() throws Exception {
+    public void delete_user_clears_approvals() throws Exception {
+        ApprovalStore store = getWebApplicationContext().getBean(ApprovalStore.class);
+        JdbcTemplate template = getWebApplicationContext().getBean(JdbcTemplate.class);
         ScimUser user = setUpScimUser();
 
+        Approval approval = new Approval();
+        approval.setClientId("cf");
+        approval.setUserId(user.getId());
+        approval.setScope("openid");
+        approval.setStatus(Approval.ApprovalStatus.APPROVED);
+        store.addApproval(approval);
+        assertEquals(1, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));
+        testDeleteUserWithUaaAdminToken(user);
+        assertEquals(0, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));
+    }
+
+    @Test
+    public void testDeleteUserWithUaaAdminToken() throws Exception {
+        ScimUser user = setUpScimUser();
+        testDeleteUserWithUaaAdminToken(user);
+    }
+
+    public void testDeleteUserWithUaaAdminToken(ScimUser user) throws Exception {
         getMockMvc().perform((delete("/Users/" + user.getId()))
             .header("Authorization", "Bearer " + uaaAdminToken)
             .contentType(APPLICATION_JSON)
