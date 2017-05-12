@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -59,7 +60,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -91,6 +91,11 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create");
         usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
+    }
+
+    @After
+    public void clear() {
+        IdentityZoneHolder.clear();
     }
 
     private ScimUser createUser(String token) throws Exception {
@@ -225,7 +230,9 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String code = getQueryStringParam(query, "code");
         assertThat(code, is(notNullValue()));
 
+        IdentityZoneHolder.set(zoneResult.getIdentityZone());
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        IdentityZoneHolder.clear();
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));

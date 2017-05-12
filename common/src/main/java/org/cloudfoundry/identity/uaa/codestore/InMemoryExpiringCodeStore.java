@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -47,7 +47,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
         ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data);
 
-        ExpiringCode duplicate = store.putIfAbsent(code, expiringCode);
+        ExpiringCode duplicate = store.putIfAbsent(zonifyCode(code), expiringCode);
         if (duplicate != null) {
             throw new DataIntegrityViolationException("Duplicate code: " + code);
         }
@@ -61,7 +61,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
             throw new NullPointerException();
         }
 
-        ExpiringCode expiringCode = store.remove(code);
+        ExpiringCode expiringCode = store.remove(zonifyCode(code));
 
         if (expiringCode == null || expiringCode.getExpiresAt().getTime() < System.currentTimeMillis()) {
             expiringCode = null;

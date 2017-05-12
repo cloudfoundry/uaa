@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.sql.DataSource;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,6 +19,12 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
@@ -47,6 +46,8 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     private AtomicLong lastExpired = new AtomicLong();
     private long expirationInterval = 60 * 1000; // once a minute
+
+    private RowMapper<ExpiringCode> rowMapper = new JdbcExpiringCodeMapper();
 
     public long getExpirationInterval() {
         return expirationInterval;
@@ -85,7 +86,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             count++;
             String code = generator.generate();
             try {
-                int update = jdbcTemplate.update(insert, code, expiresAt.getTime(), data);
+                int update = jdbcTemplate.update(insert, zonifyCode(code), expiresAt.getTime(), data);
                 if (update == 1) {
                     ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data);
                     return expiringCode;
@@ -111,17 +112,14 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         }
 
         try {
-            ExpiringCode expiringCode = jdbcTemplate.queryForObject(select, new JdbcExpiringCodeMapper(), code);
-            try {
-                if (expiringCode != null) {
-                    jdbcTemplate.update(delete, code);
-                }
-                if (expiringCode.getExpiresAt().getTime() < System.currentTimeMillis()) {
-                    expiringCode = null;
-                }
-            } finally {
-                return expiringCode;
+            ExpiringCode expiringCode = jdbcTemplate.queryForObject(select, rowMapper, zonifyCode(code));
+            if (expiringCode != null) {
+                jdbcTemplate.update(delete, zonifyCode(code));
             }
+            if (expiringCode.getExpiresAt().getTime() < System.currentTimeMillis()) {
+                expiringCode = null;
+            }
+            return expiringCode;
         } catch (EmptyResultDataAccessException x) {
             return null;
         }
@@ -145,14 +143,14 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         return 0;
     }
 
-    protected static class JdbcExpiringCodeMapper implements RowMapper<ExpiringCode> {
+    protected class JdbcExpiringCodeMapper implements RowMapper<ExpiringCode> {
 
         @Override
         public ExpiringCode mapRow(ResultSet rs, int rowNum) throws SQLException {
             int pos = 1;
-            String code = rs.getString(pos++);
+            String code = extractCode(rs.getString(pos++));
             Timestamp expiresAt = new Timestamp(rs.getLong(pos++));
-            String data = rs.getString(pos++).toString();
+            String data = rs.getString(pos++);
             return new ExpiringCode(code, expiresAt, data);
         }
 
