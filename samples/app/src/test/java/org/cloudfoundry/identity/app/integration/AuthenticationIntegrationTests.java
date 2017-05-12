@@ -25,12 +25,17 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
  * Tests implicit grant using a direct posting of credentials to the /authorize
@@ -121,10 +126,22 @@ public class AuthenticationIntegrationTests {
             location = serverRunning.getAuthServerUrl("/oauth/authorize");
 
             formData = new LinkedMultiValueMap<String, String>();
-            formData.add("user_oauth_approval", "true");
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            String csrf = extractCookieCsrf(result.getBody());
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
+
+            List<String> cookies = uaaHeaders.get("Cookie");
+            cookies.removeIf(c -> c.contains(DEFAULT_CSRF_COOKIE_NAME));
+            cookies.add(DEFAULT_CSRF_COOKIE_NAME+"="+csrf+"; Path=/; HttpOnly");
+            uaaHeaders.put("Cookie", cookies);
 
             // *** POST /uaa/oauth/authorize
             result = serverRunning.postForString(location, formData, uaaHeaders);
+
+            for (String cookie : ofNullable(result.getHeaders().get("Set-Cookie")).orElse(Collections.emptyList())) {
+                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+                uaaHeaders.add("Cookie", cookie);
+            }
         }
 
         location = result.getHeaders().getLocation().toString();
