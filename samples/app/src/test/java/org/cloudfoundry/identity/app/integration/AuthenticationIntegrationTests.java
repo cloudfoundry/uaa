@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -24,13 +24,17 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
  * Tests implicit grant using a direct posting of credentials to the /authorize
@@ -84,9 +88,11 @@ public class AuthenticationIntegrationTests {
         assertTrue("Wrong location: " + location, location.contains("/login"));
 
         result = serverRunning.getForString(location, uaaHeaders);
-        for (String cookie : result.getHeaders().get("Set-Cookie")) {
-            assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-            uaaHeaders.add("Cookie", cookie);
+        if (result.getHeaders().get("Set-Cookie") != null) {
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+                uaaHeaders.add("Cookie", cookie);
+            }
         }
 
         location = serverRunning.getAuthServerUrl("/login.do");
@@ -119,17 +125,25 @@ public class AuthenticationIntegrationTests {
         // approval page.
         // TODO: revoke the token so we always get the approval page
         if (result.getStatusCode() == HttpStatus.OK) {
-            for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-                uaaHeaders.add("Cookie", cookie);
-            }
             location = serverRunning.getAuthServerUrl("/oauth/authorize");
 
             formData = new LinkedMultiValueMap<String, String>();
-            formData.add("user_oauth_approval", "true");
-            formData.add(DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(result.getBody()));
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            String csrf = extractCookieCsrf(result.getBody());
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
+
+            List<String> cookies = uaaHeaders.get("Cookie");
+            cookies.removeIf(c -> c.contains(DEFAULT_CSRF_COOKIE_NAME));
+            cookies.add(DEFAULT_CSRF_COOKIE_NAME+"="+csrf+"; Path=/; HttpOnly");
+            uaaHeaders.put("Cookie", cookies);
+
             // *** POST /uaa/oauth/authorize
             result = serverRunning.postForString(location, formData, uaaHeaders);
+
+            for (String cookie : ofNullable(result.getHeaders().get("Set-Cookie")).orElse(Collections.emptyList())) {
+                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+                uaaHeaders.add("Cookie", cookie);
+            }
         }
 
         location = result.getHeaders().getLocation().toString();
