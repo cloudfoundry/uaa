@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
+import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
@@ -269,7 +270,9 @@ public class LdapMockMvcTests extends TestClassNullifier {
                 .andReturn();
 
         code = mainContext.getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
-
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+        code = new InMemoryExpiringCodeStore().extractCode(code);
+        IdentityZoneHolder.clear();
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .session(session)
@@ -309,7 +312,9 @@ public class LdapMockMvcTests extends TestClassNullifier {
                 .andReturn();
 
         code = mainContext.getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
-
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+        code = new InMemoryExpiringCodeStore().extractCode(code);
+        IdentityZoneHolder.clear();
         session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .session(session)

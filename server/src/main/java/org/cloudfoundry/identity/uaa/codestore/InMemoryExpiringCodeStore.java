@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
@@ -40,7 +41,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
         ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
 
-        ExpiringCode duplicate = store.putIfAbsent(code, expiringCode);
+        ExpiringCode duplicate = store.putIfAbsent(zonifyCode(code), expiringCode);
         if (duplicate != null) {
             throw new DataIntegrityViolationException("Duplicate code: " + code);
         }
@@ -54,7 +55,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
             throw new NullPointerException();
         }
 
-        ExpiringCode expiringCode = store.remove(code);
+        ExpiringCode expiringCode = store.remove(zonifyCode(code));
 
         if (expiringCode == null || expiringCode.getExpiresAt().getTime() < System.currentTimeMillis()) {
             expiringCode = null;
@@ -71,7 +72,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     @Override
     public void expireByIntent(String intent) {
         Assert.hasText(intent);
-
-        store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode()));
+        String id = IdentityZoneHolder.get().getId();
+        store.entrySet().stream().filter(c -> c.getKey().contains(id) && intent.equals(c.getValue().getIntent())).forEach(c -> store.remove(c.getKey()));
     }
 }
