@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
@@ -244,6 +245,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
+        code = new InMemoryExpiringCodeStore().extractCode(code);
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = getMockMvc().perform(
             post("/invitations/accept.do")

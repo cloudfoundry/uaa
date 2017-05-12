@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
+import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -92,6 +93,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
     @After
     public void cleanUpDomainList() throws Exception {
+        IdentityZoneHolder.clear();
         IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         uaaProvider.getConfig().setEmailDomain(null);
         getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
@@ -148,7 +150,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
         BaseClientDetails defaultClientDetails = new BaseClientDetails();
         defaultClientDetails.setClientId("admin");
-        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), invitationsResponse, defaultClientDetails);
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone(), invitationsResponse, defaultClientDetails);
 
     }
 
@@ -182,7 +184,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
                 .andReturn();
 
         InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
-        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), invitationsResponse, zonifiedScimInviteClientDetails);
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone(), invitationsResponse, zonifiedScimInviteClientDetails);
 
     }
 
@@ -216,7 +218,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
                 .andReturn();
 
         InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
-        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), invitationsResponse, zonifiedScimInviteClientDetails);
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone(), invitationsResponse, zonifiedScimInviteClientDetails);
 
     }
 
@@ -235,7 +237,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         String redirectUrl = "example.com";
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(zonedScimInviteToken, result.getIdentityZone().getSubdomain(), zonedClientDetails.getClientId(), redirectUrl, email);
 
-        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), response, zonedClientDetails);
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone(), response, zonedClientDetails);
     }
 
     @Test
@@ -346,6 +348,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         sendRequestWithToken(userToken, null, clientId, "example.com", "user1@"+domain);
 
         String code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT code FROM expiring_code_store", String.class);
+        code = new InMemoryExpiringCodeStore().extractCode(code);
         assertNotNull("Invite Code Must be Present", code);
 
         MockHttpServletRequestBuilder accept = get("/invitations/accept")
@@ -371,7 +374,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         assertThat(response.getFailedInvites().size(), is(0));
     }
 
-    private void assertResponseAndCodeCorrect(String[] emails, String redirectUrl, String subdomain, InvitationsResponse response, ClientDetails clientDetails) {
+    private void assertResponseAndCodeCorrect(String[] emails, String redirectUrl, IdentityZone zone, InvitationsResponse response, ClientDetails clientDetails) {
         for (int i = 0; i < emails.length; i++) {
             assertThat(response.getNewInvites().size(), is(emails.length));
             assertThat(response.getNewInvites().get(i).getEmail(), is(emails[i]));
@@ -382,8 +385,9 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
             String link = response.getNewInvites().get(i).getInviteLink().toString();
             assertFalse(contains(link, "@"));
             assertFalse(contains(link, "%40"));
-            if (StringUtils.hasText(subdomain)) {
-                assertThat(link, startsWith("http://" + subdomain + ".localhost/invitations/accept"));
+            if (zone != null && StringUtils.hasText(zone.getSubdomain())) {
+                assertThat(link, startsWith("http://" + zone.getSubdomain() + ".localhost/invitations/accept"));
+                IdentityZoneHolder.set(zone);
             } else {
                 assertThat(link, startsWith("http://localhost/invitations/accept"));
             }
@@ -392,6 +396,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
             assertThat(query, startsWith("code="));
             String code = query.split("=")[1];
             ExpiringCode expiringCode = codeStore.retrieveCode(code);
+            IdentityZoneHolder.clear();
             assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
             assertThat(expiringCode.getIntent(), is(ExpiringCodeType.INVITATION.name()));
             Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});

@@ -35,10 +35,10 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     protected static final String insert = "insert into " + tableName + " (" + fields + ") values (?,?,?,?)";
     protected static final String delete = "delete from " + tableName + " where code = ?";
-    protected static final String deleteIntent = "delete from " + tableName + " where intent = ?";
+    protected static final String deleteIntent = "delete from " + tableName + " where intent = ? and code LIKE ?";
     protected static final String deleteExpired = "delete from " + tableName + " where expiresat < ?";
 
-    private static final JdbcExpiringCodeMapper rowMapper = new JdbcExpiringCodeMapper();
+    private final JdbcExpiringCodeMapper rowMapper = new JdbcExpiringCodeMapper();
 
     protected static final String selectAllFields = "select " + fields + " from " + tableName + " where code = ?";
 
@@ -98,7 +98,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             count++;
             String code = generator.generate();
             try {
-                int update = jdbcTemplate.update(insert, code, expiresAt.getTime(), data, intent);
+                int update = jdbcTemplate.update(insert, zonifyCode(code), expiresAt.getTime(), data, intent);
                 if (update == 1) {
                     ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
                     return expiringCode;
@@ -124,9 +124,9 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         }
 
         try {
-            ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code);
+            ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, zonifyCode(code));
             if (expiringCode != null) {
-                jdbcTemplate.update(delete, code);
+                jdbcTemplate.update(delete, zonifyCode(code));
             }
             if (expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
                 expiringCode = null;
@@ -146,7 +146,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     public void expireByIntent(String intent) {
         Assert.hasText(intent);
 
-        jdbcTemplate.update(deleteIntent, intent);
+        jdbcTemplate.update(deleteIntent, intent, zonifyCode("%")+"%");
     }
 
     public int cleanExpiredEntries() {
@@ -162,11 +162,11 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         return 0;
     }
 
-    protected static class JdbcExpiringCodeMapper implements RowMapper<ExpiringCode> {
+    protected class JdbcExpiringCodeMapper implements RowMapper<ExpiringCode> {
 
         @Override
         public ExpiringCode mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String code = rs.getString("code");
+            String code = extractCode(rs.getString("code"));
             Timestamp expiresAt = new Timestamp(rs.getLong("expiresat"));
             String intent = rs.getString("intent");
             String data = rs.getString("data");
