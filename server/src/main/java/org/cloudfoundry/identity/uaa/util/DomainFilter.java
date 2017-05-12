@@ -20,7 +20,6 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -68,18 +67,12 @@ public class DomainFilter {
         return activeProviders != null ? activeProviders : EMPTY_LIST;
     }
 
-    public static List<String> getIdpsForEmailDomain(List<IdentityProvider> activeProviders, String email) {
+    public static List<IdentityProvider> getIdpsForEmailDomain(List<IdentityProvider> activeProviders, String email) {
         if (!StringUtils.hasText(email) || !email.contains("@")) {
             return EMPTY_LIST;
         }
         final String domain = email.substring(email.indexOf('@') + 1);
-        List<IdentityProvider> filteredIdentityProviders = activeProviders.stream().filter(provider -> doesEmailDomainMatchProvider(provider, domain, true)).collect(Collectors.toList());
-
-        if(filteredIdentityProviders.isEmpty()) {
-            return Collections.EMPTY_LIST;
-        }
-
-        return filteredIdentityProviders.stream().map(provider ->  provider.getOriginKey()).collect(Collectors.toList());
+        return activeProviders.stream().filter(provider -> doesEmailDomainMatchProvider(provider, domain, true)).collect(Collectors.toList());
     }
 
     protected static List<String> getProvidersForClient(ClientDetails client) {

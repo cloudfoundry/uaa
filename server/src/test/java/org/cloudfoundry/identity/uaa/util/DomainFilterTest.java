@@ -265,29 +265,29 @@ public class DomainFilterTest {
 
     @Test
     public void test_ipds_for_email_domain() {
-        samlDef1.setEmailDomain(Collections.singletonList("test.org"));
-        samlDef2.setEmailDomain(Collections.singletonList("test.org"));
+        samlProvider1.getConfig().setEmailDomain(Collections.singletonList("test.org"));
+        samlProvider2.getConfig().setEmailDomain(Collections.singletonList("test.org"));
 
-        List<String> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
+        List<IdentityProvider> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
 
         assertEquals(2, idpsForEmailDomain.size());
-        assertThat(idpsForEmailDomain, Matchers.containsInAnyOrder(samlDef1.getIdpEntityAlias(), samlDef2.getIdpEntityAlias()));
+        assertThat(idpsForEmailDomain, Matchers.containsInAnyOrder(samlProvider1, samlProvider2));
     }
 
     @Test
     public void test_idp_with_wildcard_for_email_domain() {
-        samlDef1.setEmailDomain(Collections.singletonList("t*.org"));
+        samlProvider1.getConfig().setEmailDomain(Collections.singletonList("t*.org"));
 
-        List<String> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
+        List<IdentityProvider> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
 
         assertEquals(1, idpsForEmailDomain.size());
-        assertThat(idpsForEmailDomain, Matchers.containsInAnyOrder(samlDef1.getIdpEntityAlias()));
+        assertThat(idpsForEmailDomain, Matchers.containsInAnyOrder(samlProvider1));
     }
 
     @Test
     public void test_idp_with_no_matching_email_domain() {
         samlDef1.setEmailDomain(Collections.singletonList("example.org"));
-        List<String> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
+        List<IdentityProvider> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
 
         assertEquals(0, idpsForEmailDomain.size());
     }

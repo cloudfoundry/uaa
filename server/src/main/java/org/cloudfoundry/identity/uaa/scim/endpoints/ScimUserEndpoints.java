@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
@@ -225,10 +226,11 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             user.setPassword("");
         } else {
             //only validate for UAA users
-            List<String> idpOriginsForEmailDomain = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), user.getEmails().get(0).getValue());
-            idpOriginsForEmailDomain = idpOriginsForEmailDomain.stream().filter(idp -> !idp.equals(OriginKeys.UAA)).collect(Collectors.toList());
-            if(!idpOriginsForEmailDomain.isEmpty()) {
-                throw new ScimException(String.format("The user account is set up for single sign-on. Please use one of these origin(s) : %s",idpOriginsForEmailDomain.toString()), HttpStatus.BAD_REQUEST);
+            List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), user.getEmails().get(0).getValue());
+            idpsForEmailDomain = idpsForEmailDomain.stream().filter(idp -> !idp.getOriginKey().equals(OriginKeys.UAA)).collect(Collectors.toList());
+            if(!idpsForEmailDomain.isEmpty()) {
+                List<String> idpOrigins = idpsForEmailDomain.stream().map(idp -> idp.getOriginKey()).collect(Collectors.toList());
+                throw new ScimException(String.format("The user account is set up for single sign-on. Please use one of these origin(s) : %s",idpOrigins.toString()), HttpStatus.BAD_REQUEST);
             }
             passwordValidator.validate(user.getPassword());
         }
