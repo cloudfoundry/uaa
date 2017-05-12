@@ -114,8 +114,8 @@ public class HomeController {
         return "error";
     }
 
-    @RequestMapping("/error404")
-    public String error404(Model model) {
+    @RequestMapping({"/error", "error404"})
+    public String errorGeneric(Model model) {
         populateBuildAndLinkInfo(model);
         return "error";
     }
