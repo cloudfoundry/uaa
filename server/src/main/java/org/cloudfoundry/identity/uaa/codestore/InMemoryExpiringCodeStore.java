@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
@@ -44,7 +45,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
         ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
 
-        ExpiringCode duplicate = store.putIfAbsent(code, expiringCode);
+        ExpiringCode duplicate = store.putIfAbsent(code + IdentityZoneHolder.get().getId(), expiringCode);
         if (duplicate != null) {
             throw new DataIntegrityViolationException("Duplicate code: " + code);
         }
@@ -58,7 +59,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
             throw new NullPointerException();
         }
 
-        ExpiringCode expiringCode = store.remove(code);
+        ExpiringCode expiringCode = store.remove(code + IdentityZoneHolder.get().getId());
 
         if (expiringCode == null || isExpired(expiringCode)) {
             expiringCode = null;
@@ -80,7 +81,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     public void expireByIntent(String intent) {
         Assert.hasText(intent);
 
-        store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode()));
+        store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + IdentityZoneHolder.get().getId()));
     }
 
     public InMemoryExpiringCodeStore setTimeService(TimeService timeService) {

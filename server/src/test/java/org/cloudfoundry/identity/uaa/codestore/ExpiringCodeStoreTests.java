@@ -16,6 +16,8 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,11 +29,13 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -65,6 +69,16 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
             TestUtils.deleteFrom(jdbcTemplate.getDataSource(), JdbcExpiringCodeStore.tableName);
             ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
             ((JdbcExpiringCodeStore) expiringCodeStore).setTimeService(timeService);
+        }
+    }
+
+    public int countCodes() {
+        if (expiringCodeStore instanceof InMemoryExpiringCodeStore) {
+            Map map = (Map) ReflectionTestUtils.getField(expiringCodeStore, "store");
+            return map.size();
+        } else {
+            // confirm that everything is clean prior to test.
+            return jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class);
         }
     }
 
@@ -133,6 +147,22 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
+    public void testRetrieveCode_In_Another_Zone() throws Exception {
+        String data = "{}";
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null);
+
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("other","other"));
+        Assert.assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode()));
+
+        IdentityZoneHolder.clear();
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode());
+        Assert.assertEquals(generatedCode, retrievedCode);
+
+
+    }
+
+    @Test
     public void testRetrieveCodeWithCodeNotFound() throws Exception {
         ExpiringCode retrievedCode = expiringCodeStore.retrieveCode("unknown");
 
@@ -174,10 +204,16 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     public void testExpireCodeByIntent() throws Exception {
         ExpiringCode code = expiringCodeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 60000), "Test Intent");
 
+        Assert.assertEquals(1, countCodes());
+
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("id","id"));
         expiringCodeStore.expireByIntent("Test Intent");
+        Assert.assertEquals(1, countCodes());
 
+        IdentityZoneHolder.clear();
+        expiringCodeStore.expireByIntent("Test Intent");
         ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(code.getCode());
-
+        Assert.assertEquals(0, countCodes());
         Assert.assertNull(retrievedCode);
     }
 
@@ -203,10 +239,10 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     public void testExpirationCleaner() throws Exception {
         when(timeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
         if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
-            jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null);
+            jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
             ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
             jdbcTemplate.queryForObject(JdbcExpiringCodeStore.selectAllFields,
-                            new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test");
+                            new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test", IdentityZoneHolder.get().getId());
         } else {
             throw new EmptyResultDataAccessException(1);
         }
