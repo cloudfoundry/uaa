@@ -25,9 +25,13 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -49,6 +53,7 @@ public class AuthenticationIntegrationTests {
 
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+
 
     @Test
     public void formLoginSucceeds() throws Exception {
@@ -123,9 +128,21 @@ public class AuthenticationIntegrationTests {
 
             formData = new LinkedMultiValueMap<String, String>();
             formData.add(USER_OAUTH_APPROVAL, "true");
+            String csrf = extractCookieCsrf(result.getBody());
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
+
+            List<String> cookies = uaaHeaders.get("Cookie");
+            cookies.removeIf(c -> c.contains(DEFAULT_CSRF_COOKIE_NAME));
+            cookies.add(DEFAULT_CSRF_COOKIE_NAME+"="+csrf+"; Path=/; HttpOnly");
+            uaaHeaders.put("Cookie", cookies);
 
             // *** POST /uaa/oauth/authorize
             result = serverRunning.postForString(location, formData, uaaHeaders);
+
+            for (String cookie : ofNullable(result.getHeaders().get("Set-Cookie")).orElse(Collections.emptyList())) {
+                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+                uaaHeaders.add("Cookie", cookie);
+            }
         }
 
         location = result.getHeaders().getLocation().toString();
