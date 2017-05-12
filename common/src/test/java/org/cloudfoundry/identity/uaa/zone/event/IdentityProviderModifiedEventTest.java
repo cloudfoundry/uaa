@@ -19,8 +19,10 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.ArrayList;
@@ -53,6 +55,8 @@ public class IdentityProviderModifiedEventTest {
 
     @Before
     public void setup() {
+        IdentityZoneHolder.clear();
+        SecurityContextHolder.clearContext();
         String origin = "idp-mock-saml-"+new RandomValueStringGenerator().generate();
         String metadata = String.format(xmlWithoutID, "http://localhost:9999/metadata/"+origin);
         provider = new IdentityProvider<>();

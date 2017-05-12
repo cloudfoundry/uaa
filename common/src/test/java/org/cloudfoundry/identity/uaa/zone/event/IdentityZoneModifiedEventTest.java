@@ -17,8 +17,10 @@ package org.cloudfoundry.identity.uaa.zone.event;
 
 import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.junit.Assert.assertEquals;
 
@@ -29,6 +31,8 @@ public class IdentityZoneModifiedEventTest {
 
     @Before
     public void setup() {
+        IdentityZoneHolder.clear();
+        SecurityContextHolder.clearContext();
         zone = new IdentityZone();
         zone.setId("id");
         zone.setSubdomain("subdomain");
