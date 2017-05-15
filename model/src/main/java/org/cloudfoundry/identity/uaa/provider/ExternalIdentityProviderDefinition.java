@@ -42,7 +42,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     private List<String> externalGroupsWhitelist = new LinkedList<>();
     private Map<String, Object> attributeMappings = new HashMap<>();
     private boolean addShadowUserOnLogin = true;
-    private boolean storeCustomAttributes = false;
+    private boolean storeCustomAttributes = true;
 
     public List<String> getExternalGroupsWhitelist() {
         return Collections.unmodifiableList(externalGroupsWhitelist);

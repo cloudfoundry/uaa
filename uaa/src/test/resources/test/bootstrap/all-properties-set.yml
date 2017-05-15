@@ -106,7 +106,7 @@ ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
   providerDescription: Test LDAP Provider Description
-  storeCustomAttributes: true
+  storeCustomAttributes: false
 links:
   global:
     passwd: "https://{zone.subdomain}.myaccountmanager.domain.com/z/{zone.id}/forgot_password"
@@ -152,7 +152,7 @@ login:
         tokenKeyUrl: null
         tokenUrl: http://my-token.com
         type: oauth2.0
-        storeCustomAttributes: true
+        storeCustomAttributes: false
       my-oidc-provider:
         attributeMappings:
           family_name: last_name
@@ -179,7 +179,14 @@ login:
         tokenUrl: http://my-token.com
         type: oidc1.0
         userInfoUrl: http://my-token.com/userinfo
-        storeCustomAttributes: true
+        storeCustomAttributes: false
+      default-discovery-provider:
+        discoveryUrl: https://accounts.google.com/.well-known/openid-configuration
+        relyingPartyId: uaa
+        relyingPartySecret: secret
+        showLinkText: true
+        type: oidc1.0
+
   prompt:
     password:
       text: Your Secret
@@ -301,7 +308,7 @@ login:
 
     providers:
       okta-local:
-        storeCustomAttributes: true
+        storeCustomAttributes: false
         iconUrl: http://link.to/icon.jpg
         idpMetadata: |
           <?xml version="1.0" encoding="UTF-8"?><!--

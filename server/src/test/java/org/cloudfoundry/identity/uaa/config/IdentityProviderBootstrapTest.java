@@ -106,7 +106,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         HashMap<String, Object> ldapConfig = new HashMap<>();
 
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
-        ldapConfig.put(STORE_CUSTOM_ATTRIBUTES_NAME, true);
+        ldapConfig.put(STORE_CUSTOM_ATTRIBUTES_NAME, false);
         final String idpDescription = "Test LDAP Provider Description";
         ldapConfig.put(PROVIDER_DESCRIPTION, idpDescription);
         List<String> attrMap = new ArrayList<>();
@@ -129,7 +129,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(Arrays.asList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
         assertEquals("first_name", ldapProvider.getConfig().getAttributeMappings().get("given_name"));
         assertEquals(idpDescription, ldapProvider.getConfig().getProviderDescription());
-        assertTrue(ldapProvider.getConfig().isStoreCustomAttributes());
+        assertFalse(ldapProvider.getConfig().isStoreCustomAttributes());
     }
 
     @Test
@@ -268,7 +268,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
             assertNotNull(bootstrapOauthProvider.getLastModified());
             assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
             assertTrue(bootstrapOauthProvider.isActive());
-            assertFalse(bootstrapOauthProvider.getConfig().isStoreCustomAttributes()); //default
+            assertTrue(bootstrapOauthProvider.getConfig().isStoreCustomAttributes()); //default
             if (OIDC10.equals(provider.getKey())) {
                 assertEquals("code id_token", bootstrapOauthProvider.getConfig().getResponseType());
             } else {
