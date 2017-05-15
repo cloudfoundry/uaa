@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -102,6 +103,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     private MockMvcUtils mockMvcUtils = utils();
     private ClientDetails clientDetails;
     private ScimUserProvisioning usersRepository;
+    private JdbcIdentityProviderProvisioning identityProviderProvisioning;
     private ExpiringCodeStore codeStore;
 
     @Before
@@ -115,6 +117,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read scim.write password.write");
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create");
         usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
     }
@@ -183,7 +186,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser user = getScimUser();
         user.setUserName(email);
-        user.setPrimaryEmail(email);
         user.setPassword(new RandomValueStringGenerator(300).generate());
         ResultActions result = createUserAndReturnResult(user, scimReadWriteToken, null, null);
         result.andExpect(status().isBadRequest())
@@ -1032,6 +1034,33 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(jsonPath("$.error").value("invalid_password"))
                 .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
     }
+
+    @Test
+    public void testCreateUserWithEmailDomainNotAllowedForOriginUaa() throws Exception {
+        ScimUser user = new ScimUser(null, "abc@example.org", "First", "Last");
+        user.addEmail("abc@example.org");
+        user.setPassword(new RandomValueStringGenerator(2).generate());
+        user.setOrigin("uaa");
+        byte[] requestBody = JsonUtils.writeValueAsBytes(user);
+        IdentityProvider oidcProvider = new IdentityProvider().setActive(true).setName("OIDC_test").setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
+        oidcProvider.setIdentityZoneId(IdentityZoneHolder.getUaaZone().getId());
+        oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
+
+        identityProviderProvisioning.create(oidcProvider);
+        try {
+            MockHttpServletRequestBuilder post = post("/Users")
+                .header("Authorization", "Bearer " + scimCreateToken)
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+
+            getMockMvc().perform(post)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("The user account is set up for single sign-on. Please use one of these origin(s) : [oidc1.0]"));
+        } finally {
+            identityProviderProvisioning.deleteByOrigin(oidcProvider.getOriginKey(), IdentityZoneHolder.getUaaZone().getId());
+        }
+    }
+
 
     private MockHttpServletRequestBuilder setUpVerificationLinkRequest(ScimUser user, String token) {
         return MockMvcRequestBuilders.get("/Users/" + user.getId() + "/verify-link")
