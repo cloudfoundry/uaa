@@ -47,7 +47,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     @Test
     public void store_custom_attributes_default() throws Exception {
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertFalse(providerDefinition.isStoreCustomAttributes());
+        assertTrue(providerDefinition.isStoreCustomAttributes());
     }
 
     @Test
