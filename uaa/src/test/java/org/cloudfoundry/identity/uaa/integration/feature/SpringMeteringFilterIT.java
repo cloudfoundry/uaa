@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,8 @@ import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
+import org.springframework.security.oauth2.client.resource.UserRedirectRequiredException;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -38,7 +41,6 @@ import org.springframework.web.client.RestTemplate;
 
 import com.nurego.Nurego;
 import com.nurego.model.Entitlement;
-import com.nurego.model.Subscription;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -58,55 +60,35 @@ public class SpringMeteringFilterIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-//    @Value("${ORG_ID:4aecd40c-eda0-4a9c-b506-cfe4cc09ea88}")
-//    String orgId;
-//
-//    @Value("${PLAN_ID:line_a9b-789d-4917-b2dd-eb9911f52de5}")
-//    String planId;
-
-    @Value("${NUREGO_API_URL:https://am-staging.nurego.com}")
+    @Value("${NUREGO_API_URL}")
     String nuregoApiUrl;
 
-    @Value("${NUREGO_API_KEY:l694cdb1-59bb-49c5-ac5b-f74518f2dfc0}")
-    String nuregoApiKey;
+    @Value("${NUREGO_USERNAME}")
+    String nuregoUser;
+
+    @Value("${NUREGO_PASSWORD}")
+    String nuregoPassword;
+
+    @Value("${NUREGO_INSTANCE_ID}")
+    String nuregoInstanceId;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
 
     private final String zoneId = "int-test-zone-uaa";
 
-    private RestTemplate adminClient;
+    private OAuth2RestTemplate adminClient;
     private RestTemplate identityClient;
     private RestTemplate zoneAdminClient;
 
     private String adminUserEmail;
     private final String zoneUrl = "http://" + this.zoneId + ".localhost:8080/uaa";
-// Uncomment the following code to create a new subscription, for now we are using a pre-existing subscription.
-/*    @Before
-    public void createSubscription() throws Exception {
-        Nurego.apiKey = this.nuregoApiKey;
-        Nurego.setApiBase(this.nuregoApiUrl);
-        Map<String, Object> params = new HashMap<>();
-        params.put("plan_id", this.planId);
-        params.put("external_subscription_id", this.zoneId);
-        params.put("provider", "cloud-foundry");
-
-        try {
-            this.subscription = Subscription.create(this.orgId, params);
-            System.out.println("******** Subscription created: " + this.subscription.toString());
-
-            System.out.println("******** Entitlements: " + this.subscription.entitlements().getData().toString());
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail("Failed to create Nurego subscription.");
-        }
-    } */
 
     @Before
     public void setupZone() throws Exception {
-        Nurego.apiKey = this.nuregoApiKey;
         Nurego.setApiBase(this.nuregoApiUrl);
+        Nurego.setApiCredentials(this.nuregoUser, this.nuregoPassword, this.nuregoInstanceId);
         // admin client rest template - to create users on base uaa
-        this.adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+        this.adminClient = (OAuth2RestTemplate)IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(this.baseUrl, new String[0], "admin", "adminsecret"));
         // identity client rest template
         this.identityClient = IntegrationTestUtils
@@ -115,8 +97,7 @@ public class SpringMeteringFilterIT {
         // create the zone
         IntegrationTestUtils.createZoneOrUpdateSubdomain(this.identityClient, this.baseUrl, this.zoneId, this.zoneId);
 
-        // this.adminUserEmail = new RandomValueStringGenerator().generate() +"@samltesting.org";
-        this.adminUserEmail = "adminUserTest@filter.org";
+        this.adminUserEmail = new RandomValueStringGenerator().generate() +"@filtertest.org";
         ScimUser adminUser = IntegrationTestUtils.createUser(this.adminClient, this.baseUrl, this.adminUserEmail,
                 "firstname", "lastname", this.adminUserEmail, true);
         IntegrationTestUtils.makeZoneAdmin(this.identityClient, this.baseUrl, adminUser.getId(), this.zoneId);
@@ -145,23 +126,13 @@ public class SpringMeteringFilterIT {
         System.out.println("****** END SETUP ZONE ******");
     }
 
-    /* @After
-    public void cancelSubscription() throws Exception {
-        try {
-            Subscription.cancel(this.orgId, this.subscription.getId());
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail("Failed to cancel Nurego subscription.");
-        }
-    } */
-
     @Test
     public void testFilter() throws Exception {
         
         Double beforeUsedAmountUsers = getEntitlementUsageByFeatureId(USERS_FEATURE_ID, this.zoneId);
         Double beforeUsedAmountTokens = getEntitlementUsageByFeatureId(TOKEN_FEATURE_ID, this.zoneId);
 
-        String zoneUserEmail = "zoneUser@filter.org";
+        String zoneUserEmail = new RandomValueStringGenerator().generate() +"@zone-user.org";
         // call user api
         IntegrationTestUtils.createUser(this.zoneAdminClient, this.zoneUrl, zoneUserEmail,
                 "firstname", "lastname", zoneUserEmail, true);
@@ -175,6 +146,11 @@ public class SpringMeteringFilterIT {
 
         Assert.assertEquals(1.0, afterUsedAmountUsers - beforeUsedAmountUsers, 0.0);
         Assert.assertEquals(1.0, afterUsedAmountTokens - beforeUsedAmountTokens, 0.0);
+    }
+    
+    @After
+    public void after() throws UserRedirectRequiredException, URISyntaxException {
+        IntegrationTestUtils.deleteZone(this.baseUrl, this.zoneId, this.adminClient.getAccessToken().toString());
     }
 
     private Double getEntitlementUsageByFeatureId(final String featureId, final String subscriptionId)

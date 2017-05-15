@@ -29,7 +29,7 @@
         <constructor-arg name="ticker" ref="timeService"/>
     </bean>
 
-    <import resource="spring/spring-metering-filter.xml"/>
+    <import resource="classpath:META-INF/spring-metering-filter.xml"/>
 
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
