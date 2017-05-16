@@ -2,11 +2,20 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorator="layouts/main">
-<div class="island-landscape" layout:fragment="page-content">
+<div th:switch="${error_message_code}" class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
         <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
     </div>
-    <div class="island-content">
+    <div th:case = "'other_idp'" class="island-content">
+        <div class="alert alert-error">
+            <p th:text="#{'create_account.' + ${error_message_code}}">Error Message</p>
+        </div>
+        <form th:action="@{/login/idp_discovery}" method="post" novalidate="novalidate">
+            <input type="hidden" name="email" th:value="${email}"/>
+            <input type="submit" value="Login with provider" class="island-button"/>
+        </form>
+    </div>
+    <div th:case = "*" class="island-content">
         <form th:action="@{/create_account.do}" method="post" novalidate="novalidate">
             <div th:if="${error_message_code}" class="alert alert-error">
                 <p th:text="#{'create_account.' + ${error_message_code}}">Error Message</p>
