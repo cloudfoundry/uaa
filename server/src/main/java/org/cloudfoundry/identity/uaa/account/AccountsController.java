@@ -15,8 +15,11 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
@@ -37,6 +40,8 @@ import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -47,8 +52,11 @@ public class AccountsController {
 
     private final AccountCreationService accountCreationService;
 
-    public AccountsController(AccountCreationService accountCreationService) {
+    private final IdentityProviderProvisioning identityProviderProvisioning;
+
+    public AccountsController(AccountCreationService accountCreationService, IdentityProviderProvisioning identityProviderProvisioning) {
         this.accountCreationService = accountCreationService;
+        this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
     @RequestMapping(value = "/create_account", method = GET)
@@ -76,6 +84,13 @@ public class AccountsController {
         }
         if(result.hasErrors()) {
             return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email");
+        }
+
+        List<IdentityProvider> identityProviderList = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId()), email.getEmail());
+        identityProviderList = identityProviderList.stream().filter(idp -> !idp.getOriginKey().equals(OriginKeys.UAA)).collect(Collectors.toList());
+        if(!identityProviderList.isEmpty()) {
+            model.addAttribute("email", email.getEmail());
+            return handleUnprocessableEntity(model, response, "error_message_code", "other_idp");
         }
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
         if (!validation.valid()) {
