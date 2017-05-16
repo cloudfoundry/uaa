@@ -137,10 +137,9 @@ public class AccountsControllerTest extends TestClassNullifier {
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
         when(identityProviderProvisioning.retrieveAll(true, OriginKeys.UAA)).thenReturn(Collections.singletonList(oidcProvider));
 
-        MvcResult result = mockMvc.perform(post)
-                .andExpect(view().name("accounts/new_activation_email"))
-                .andExpect(model().attribute("error_message", "Account sign-up is not required for this email domain. Please login with the identity provider"))
-                .andReturn();
+        mockMvc.perform(post)
+            .andExpect(view().name("accounts/new_activation_email"))
+            .andExpect(model().attribute("error_message_code", "other_idp"));
 
         Mockito.verify(accountCreationService, times(0)).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
     }
