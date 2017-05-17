@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -64,6 +65,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
     }
     @Before
     public void setUp() throws Exception {
+        getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
         FilterChainProxy springSecurityFilterChain = (FilterChainProxy) getWebApplicationContext().getBean("org.springframework.security.filterChainProxy");
         if (captureSecurityContextFilter==null) {
             captureSecurityContextFilter = new CaptureSecurityContextFilter();
