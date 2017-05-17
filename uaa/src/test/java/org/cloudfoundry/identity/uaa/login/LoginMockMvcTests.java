@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -25,9 +27,9 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -79,6 +81,7 @@ import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1582,6 +1585,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         SecurityContext inviteContext = new SecurityContextImpl();
         inviteContext.setAuthentication(inviteToken);
         inviteSession.setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
+
+        Map<String, String> codeData = new HashMap();
+        codeData.put("user_id", ((UaaPrincipal)marissaContext.getAuthentication().getPrincipal()).getId());
+        codeData.put("email", ((UaaPrincipal)marissaContext.getAuthentication().getPrincipal()).getEmail());
+        codeData.put("origin", OriginKeys.UAA);
+
+        ExpiringCode code = getWebApplicationContext().getBean(ExpiringCodeStore.class).generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 1000 * 60), null);
 
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")

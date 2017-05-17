@@ -43,6 +43,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
@@ -115,6 +116,22 @@ public class InvitationsIT {
         webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.manage().deleteAllCookies();
+    }
+
+    @Test
+    public void invite_fails() {
+        RestTemplate uaaTemplate = new RestTemplate();
+        uaaTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
+            @Override
+            protected boolean hasError(HttpStatus statusCode) {
+                return statusCode.is5xxServerError();
+            }
+        });
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>("{\"emails\":[\"marissa@test.org\"]}", headers);
+        ResponseEntity<Void> response = uaaTemplate.exchange(uaaUrl + "/invite_users/?client_id=admin&redirect_uri={uri}", POST, request, Void.class, "https://www.google.com");
+        assertThat(response.getStatusCode(), is(HttpStatus.UNAUTHORIZED));
     }
 
     @Test

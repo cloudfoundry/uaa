@@ -113,7 +113,7 @@
         <intercept-url pattern="/invitations/accept" access="isFullyAuthenticated() or isAnonymous()" method="GET"/>
         <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/invitations/accept_enterprise.do" access="hasAuthority('uaa.invited')" method="POST"/>
-        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
+        <intercept-url pattern="/**" access="denyAll"/>
         <csrf disabled="false"/>
         <custom-filter ref="acceptInvitationSecurityContextPersistenceFilter" before="FIRST"/>
     </http>
@@ -123,9 +123,10 @@
           use-expressions="true"
           pattern="/invite_users/**"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/invite_users"
+        <intercept-url pattern="/**"
                        access="#oauth2.hasAnyScope('scim.invite') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="POST"/>
+        <intercept-url pattern="**" access="denyAll"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER"/>
