@@ -13,7 +13,7 @@ dependencies {
   
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
-  compile group: 'com.sun.mail', name: 'smtp', version: '1.4.5'
+
   compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
 
   compile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
