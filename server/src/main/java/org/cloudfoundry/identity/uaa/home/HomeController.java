@@ -83,7 +83,7 @@ public class HomeController {
             config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
             getGlobalLinks() != null && getGlobalLinks().getHomeRedirect() != null ?
                 getGlobalLinks().getHomeRedirect() : null;
-        if (homePage != null) {
+        if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
             homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
             return "redirect:" + homePage;
         }
