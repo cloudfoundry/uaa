@@ -123,13 +123,17 @@ public class CheckTokenEndpoint implements InitializingBean {
     }
 
     @RequestMapping(value = "/check_token")
-    public void checkToken(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
+    @ResponseBody
+    public Claims checkToken(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
         if (isAllowQueryString()) {
             String token = request.getParameter("token");
             String scope = request.getParameter("scope");
-            checkToken(
-                token, hasText(scope) ? new LinkedList<>(commaDelimitedListToSet(scope)) : emptyList(),
-                request);
+            return
+                checkToken(
+                    token,
+                    hasText(scope) ? new LinkedList<>(commaDelimitedListToSet(scope)) : emptyList(),
+                    request
+                );
         } else {
             throw new HttpRequestMethodNotSupportedException(request.getMethod());
         }

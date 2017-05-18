@@ -66,7 +66,7 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         idpDefinition.setEmailDomain((List<String>) idpDefinitionMap.get("emailDomain"));
         idpDefinition.setShowLinkText(idpDefinitionMap.get("showLinkText") == null ? true : (boolean) idpDefinitionMap.get("showLinkText"));
         idpDefinition.setAddShadowUserOnLogin(idpDefinitionMap.get("addShadowUserOnLogin") == null ? true : (boolean) idpDefinitionMap.get("addShadowUserOnLogin"));
-        idpDefinition.setStoreCustomAttributes(idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME) == null ? false : (boolean) idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME));
+        idpDefinition.setStoreCustomAttributes(idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME) == null ? true : (boolean) idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME));
         idpDefinition.setSkipSslValidation(idpDefinitionMap.get("skipSslValidation") == null ? false : (boolean) idpDefinitionMap.get("skipSslValidation"));
         idpDefinition.setTokenKey((String) idpDefinitionMap.get("tokenKey"));
         idpDefinition.setIssuer((String) idpDefinitionMap.get("issuer"));
@@ -76,10 +76,15 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         if (hasText(responseType)) {
             idpDefinition.setResponseType(responseType);
         }
+        String discoveryUrl = (String) idpDefinitionMap.get("discoveryUrl");
         try {
-            idpDefinition.setAuthUrl(new URL((String)idpDefinitionMap.get("authUrl")));
-            idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String)idpDefinitionMap.get("tokenKeyUrl")));
-            idpDefinition.setTokenUrl(new URL((String)idpDefinitionMap.get("tokenUrl")));
+            if (hasText(discoveryUrl) && idpDefinition instanceof OIDCIdentityProviderDefinition) {
+                ((OIDCIdentityProviderDefinition) idpDefinition).setDiscoveryUrl(new URL(discoveryUrl));
+            } else {
+                idpDefinition.setAuthUrl(new URL((String) idpDefinitionMap.get("authUrl")));
+                idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String) idpDefinitionMap.get("tokenKeyUrl")));
+                idpDefinition.setTokenUrl(new URL((String) idpDefinitionMap.get("tokenUrl")));
+            }
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL is malformed.", e);
         }

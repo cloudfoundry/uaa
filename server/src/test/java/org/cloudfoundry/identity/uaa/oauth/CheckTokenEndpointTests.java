@@ -784,7 +784,9 @@ public class CheckTokenEndpointTests {
     public void by_default_query_string_is_allowed() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         request.setQueryString("token="+getAccessToken());
-        endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        request.setParameter("token", getAccessToken());
+        Claims claims = endpoint.checkToken(request);
+        assertNotNull(claims);
     }
 
     @Test

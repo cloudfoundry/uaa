@@ -466,6 +466,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         when(uaaAuthentication.getUserAttributes()).thenReturn(userAttributes);
         when(uaaAuthentication.getExternalGroups()).thenReturn(new HashSet<>(externalGroups));
 
+        providerDefinition.setStoreCustomAttributes(false);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
         verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
 
