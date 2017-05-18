@@ -106,7 +106,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     @Test
     public void check_token_get_when_allowed() throws Exception {
         getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(true);
-        check_token(get("/check_token"), status().isOk());
+        get_check_token(status().isOk());
     }
 
     @Test
@@ -136,6 +136,16 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
                 .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
                 .param("token", token))
+            .andExpect(matcher)
+            .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
+    }
+
+    public ResultActions get_check_token(ResultMatcher matcher) throws Exception {
+        return getMockMvc().perform(
+            get("/check_token?token={token}", token)
+                .header("Authorization", "Basic " + basic)
+                .header(ACCEPT, APPLICATION_JSON_VALUE)
+                .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE))
             .andExpect(matcher)
             .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
     }
