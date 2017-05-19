@@ -149,6 +149,7 @@
         <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.read') or @groupRole.isGroupReader(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
         <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or @groupRole.isGroupWriter(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PATCH" />
         <intercept-url pattern="/Groups" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
+        <intercept-url pattern="/**" access="denyAll"/>
         <!--<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />-->
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -194,7 +195,7 @@
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"  use-expressions="false"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/User*/*/password" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
         <custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <csrf disabled="true"/>
@@ -215,7 +216,7 @@
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PUT" /> <!-- add self logic -->
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PATCH" />
         <intercept-url pattern="/Users" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
+        <intercept-url pattern="/**" access="denyAll" />
         <expression-handler ref="oauthWebExpressionHandler" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
