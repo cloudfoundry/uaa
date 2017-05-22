@@ -74,26 +74,17 @@ public abstract class UaaUrlUtils {
         return builder;
     }
 
+    private static final Pattern allowedRedirectUriPattern = Pattern.compile(
+        "^http(\\*|s)?://" +            //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
+        "(.*:.*@)?" +                   //username/password in URL
+        "(([a-zA-Z0-9\\-\\*]+\\.)*" +   //subdomains
+        "[a-zA-Z0-9\\-]+\\.)?" +        //hostname
+        "[a-zA-Z0-9\\-]+" +             //tld
+        "(:[0-9]+)?(/.*|$)"             //port and path
+    );
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
-            final String permittedURLs =
-                    "^(http(\\*|s)?://)" +    //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
-                    "((.*:.*@)?)"+                   //username/password in URL
-                    "([a-zA-Z0-9\\-\\*\\.]+)" +      //hostname
-                    "(:.*|/.*|$)?";                  //port and path
-            Matcher matchResult = Pattern.compile(permittedURLs).matcher(url);
-            if (matchResult.matches()) {
-                String host = matchResult.group(5);
-                String[] segments = host.split("\\.");
-                //last two segments are not allowed to contain wildcards
-                for (int i=0; i<2 && i<segments.length; i++) {
-                    int index = segments.length - i - 1;
-                    if (segments[index].indexOf('*')>=0) {
-                        return false;
-                    }
-                }
-                return true;
-            }
+            return allowedRedirectUriPattern.matcher(url).matches();
         }
         return false;
     }
