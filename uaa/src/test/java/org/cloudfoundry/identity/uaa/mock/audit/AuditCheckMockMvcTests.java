@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.SQLServerLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
@@ -518,6 +519,21 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         PasswordChangeFailureEvent pwfe = (PasswordChangeFailureEvent)captor.getValue();
         assertEquals(testUser.getUserName(), pwfe.getUser().getUsername());
         assertEquals("Old password is incorrect", pwfe.getMessage());
+    }
+
+    @Test
+    public void password_change_recorded_at_dao() throws Exception {
+        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        ScimUser user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "first","last");
+        user.setPrimaryEmail(user.getUserName());
+        user = provisioning.createUser(user, "oldpassword");
+        provisioning.changePassword(user.getId(), "oldpassword", "newpassword");
+        ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        //the last event should be our password modified event
+        PasswordChangeEvent pw = (PasswordChangeEvent)captor.getValue();
+        assertEquals(user.getUserName(), pw.getUser().getUsername());
+        assertEquals("Password changed", pw.getMessage());
     }
 
     private String requestExpiringCode(String email, String token) throws Exception {
