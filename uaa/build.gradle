@@ -43,13 +43,14 @@ dependencies {
   runtime group: 'com.ge.predix', name: 'spring-log-filter', version:'1.1.0'
 
   // For Spring Metering Filter support
-  runtime group: 'com.ge.predix', name: 'spring-metering-filter', version:'1.2.3'
+  runtime(group: 'com.ge.predix', name: 'spring-metering-filter', version:'1.2.3') {
+    exclude(group: 'javax.mail')
+  }
   //Audit service dependency
   runtime group: 'com.ge.predix.audit', name: 'audit-sdk', version:'0.0.6'
   runtime group: 'org.apache.httpcomponents', name: 'httpasyncclient', version:'4.1'
   runtime group: 'org.springframework.data', name: 'spring-data-commons', version:'1.9.1.RELEASE'
   runtime group: 'com.nurego', name: 'nurego-java', version:'1.0.18'
-  runtime group: 'com.github.fge', name: 'json-schema-validator', version:'2.2.6'
 
   // For dynamic log level configuration
   runtime group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.1'
