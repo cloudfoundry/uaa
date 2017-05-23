@@ -55,6 +55,7 @@ public class TokenConstants {
     public static final String USER_TOKEN_REQUESTING_CLIENT_ID = "requesting_client_id";
     public static final String REFRESH_TOKEN_SUFFIX = "-r";
     public static final String GRANT_TYPE_SAML2_BEARER = "urn:ietf:params:oauth:grant-type:saml2-bearer";
+    public static final String GRANT_TYPE_JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 
     public static final String ID_TOKEN_HINT_PROMPT = "prompt";
     public static final String ID_TOKEN_HINT_PROMPT_NONE = "none";

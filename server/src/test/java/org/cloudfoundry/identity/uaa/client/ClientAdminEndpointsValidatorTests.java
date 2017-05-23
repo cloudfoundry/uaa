@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.hamcrest.Matchers.containsString;
@@ -85,6 +86,13 @@ public class ClientAdminEndpointsValidatorTests {
     @Test
     public void test_validate_saml_bearer_grant_type() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_SAML2_BEARER));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
     }
