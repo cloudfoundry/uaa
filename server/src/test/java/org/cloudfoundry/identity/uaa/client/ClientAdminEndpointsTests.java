@@ -58,6 +58,7 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -353,6 +354,17 @@ public class ClientAdminEndpointsTests {
     public void testCreateClientDetailsWithClientCredentials() throws Exception {
         when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         input.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+        ClientDetails result = endpoints.createClientDetails(input);
+        assertNull(result.getClientSecret());
+        verify(clientDetailsService).create(detail);
+    }
+
+    @Test
+    public void testCreateClientDetailsWithJwtBearer() throws Exception {
+        when(clientDetailsService.retrieve(anyString())).thenReturn(input);
+        input.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        input.setScope(null);
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());

@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -53,7 +54,7 @@ public class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     public void testCreateClientNoSecretIsInvalid() {
-        for (String grantType : Arrays.asList("password", "client_credentials", "authorization_code", GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN, GRANT_TYPE_SAML2_BEARER)) {
+        for (String grantType : Arrays.asList("password", "client_credentials", "authorization_code", GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN, GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_JWT_BEARER)) {
             try {
                 BaseClientDetails clientDetails = new BaseClientDetails("client", null, "openid", grantType, "uaa.resource");
                 clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
