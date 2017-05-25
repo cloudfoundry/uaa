@@ -556,6 +556,9 @@ scim:
   - delete-user-2|admin|admin|||foo.bar,uaa.admin|uaa
 require_https: true
 servlet:
+  filtered-headers:
+    - X-Forwarded-Host
+    - Forwarded
   session-cookie:
     comment: C is for Cookie
     domain: sesame.com

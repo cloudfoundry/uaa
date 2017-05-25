@@ -48,6 +48,7 @@ import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.web.HeaderFilter;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -188,6 +189,13 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
+        assertNotNull(filterWrapper);
+        assertThat(
+            Arrays.asList("X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Prefix", "Forwarded"),
+            containsInAnyOrder(filterWrapper.getFilteredHeaderNames().toArray())
+        );
 
         UaaTokenEndpoint tokenEndpoint = context.getBean(UaaTokenEndpoint.class);
         CheckTokenEndpoint checkEndpoint = context.getBean(CheckTokenEndpoint.class);
@@ -387,6 +395,13 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
+        assertNotNull(filterWrapper);
+        assertThat(
+            Arrays.asList("X-Forwarded-Host", "Forwarded"),
+            containsInAnyOrder(filterWrapper.getFilteredHeaderNames().toArray())
+        );
 
         UaaTokenEndpoint tokenEndpoint = context.getBean(UaaTokenEndpoint.class);
         CheckTokenEndpoint checkEndpoint = context.getBean(CheckTokenEndpoint.class);
