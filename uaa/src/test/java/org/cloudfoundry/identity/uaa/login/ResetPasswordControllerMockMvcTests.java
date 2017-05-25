@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
@@ -55,8 +56,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -178,6 +181,32 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         getMockMvc().perform(createChangePasswordRequest(user, newCode, true, "secret1", "secret1"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("home"));
+    }
+
+    @Test
+    public void correct_url_gets_generated_by_default() throws Exception {
+        ScimUser user = getScimUser();
+        FakeJavaMailSender sender = getWebApplicationContext().getBean(FakeJavaMailSender.class);
+        sender.clearMessage();
+        getMockMvc().perform(
+            post("/forgot_password.do")
+                .header("Host", "localhost")
+                .header("X-Forwarded-Host", "other.host.com")
+                .param("email", user.getUserName())
+        )
+            .andExpect(redirectedUrl("email_sent?code=reset_password"));
+        assertThat(sender.getSentMessages().get(0).getContentString(), containsString("http://localhost/reset_password?code="));
+        assertThat(sender.getSentMessages().get(0).getContentString(), not(containsString("other.host.com")));
+    }
+
+    public ScimUser getScimUser() throws Exception {
+        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        ScimUser user = new ScimUser(null, username, "givenname","familyname");
+        user.setPrimaryEmail(username);
+        user.setPassword("secret");
+        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
+        user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
+        return user;
     }
 
     @Test

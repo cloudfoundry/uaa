@@ -176,6 +176,9 @@ jwt:
       restrict_grant: true
 
 servlet:
+  filtered-headers:
+    - X-Forwarded-Host
+    - Forwarded
   session-cookie:
     secure: true
     http-only: false
