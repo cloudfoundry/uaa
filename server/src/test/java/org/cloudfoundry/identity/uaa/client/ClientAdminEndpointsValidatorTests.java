@@ -18,7 +18,9 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -58,6 +60,9 @@ public class ClientAdminEndpointsValidatorTests {
         "http://*domain/path",
         "http://**/path");
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Before
     public void createClient() throws Exception {
         client = new BaseClientDetails("newclient","","","client_credentials","");
@@ -93,7 +98,17 @@ public class ClientAdminEndpointsValidatorTests {
     @Test
     public void test_validate_jwt_bearer_grant_type() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        client.setScope(Arrays.asList(client.getClientId()+".read"));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type_invalid() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        expectedException.expect(InvalidClientDetailsException.class);
+        expectedException.expectMessage("Scope cannot be empty for grant_type "+GRANT_TYPE_JWT_BEARER);
         validator.validate(client, true, true);
     }
 

@@ -57,6 +57,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.arrayF
 import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.clientArrayFromString;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.core.Is.is;
@@ -163,6 +164,33 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         verify(applicationEventPublisher, times(1)).publishEvent(captor.capture());
         assertEquals(AuditEventType.ClientCreateSuccess, captor.getValue().getAuditEvent().getType());
         assertEquals(makeClientName(client.getClientId()), client.getAdditionalInformation().get("name"));
+    }
+
+    @Test
+    public void testCreateClientWithJwtBearerGrant() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
+        ClientDetails client = createBaseClient(id, Collections.singletonList(GRANT_TYPE_JWT_BEARER), null, Collections.singletonList(id+".read"));
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(client));
+        MvcResult mvcResult = getMockMvc().perform(createClientPost).andExpect(status().isCreated()).andReturn();
+        verify(applicationEventPublisher, times(1)).publishEvent(captor.capture());
+    }
+
+    @Test
+    public void testCreateClientWithJwtBearerGrantInvalid() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
+        ClientDetails client = createBaseClient(id, Collections.singletonList(GRANT_TYPE_JWT_BEARER), null, null);
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(client));
+        MvcResult mvcResult = getMockMvc().perform(createClientPost).andExpect(status().isBadRequest()).andReturn();
+        assertTrue(mvcResult.getResponse().getContentAsString().contains("Scope cannot be empty for grant_type "+GRANT_TYPE_JWT_BEARER));
+        verify(applicationEventPublisher, times(0)).publishEvent(captor.capture());
     }
 
     @Test
