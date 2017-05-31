@@ -104,9 +104,18 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void test_validate_jwt_bearer_grant_type_invalid() throws Exception {
+    public void test_validate_jwt_bearer_grant_type_without_secret() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
-        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        client.setScope(Collections.singleton(client.getClientId()+".write"));
+        client.setClientSecret("");
+        expectedException.expect(InvalidClientDetailsException.class);
+        expectedException.expectMessage("Client secret is required for grant type "+GRANT_TYPE_JWT_BEARER);
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type_without_scopes() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
         expectedException.expect(InvalidClientDetailsException.class);
         expectedException.expectMessage("Scope cannot be empty for grant_type "+GRANT_TYPE_JWT_BEARER);
         validator.validate(client, true, true);
