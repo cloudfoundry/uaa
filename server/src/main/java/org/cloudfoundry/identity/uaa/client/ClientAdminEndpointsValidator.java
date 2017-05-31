@@ -124,6 +124,17 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             requestedGrantTypes.add("refresh_token");
         }
 
+        if(requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER)) {
+            if(client.getScope() == null || client.getScope().isEmpty()) {
+                logger.debug("Invalid client: " + clientId +". Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
+                throw new InvalidClientDetailsException("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
+            }
+            if(!StringUtils.hasText(client.getClientSecret())) {
+                logger.debug("Invalid client: " + clientId +". Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
+                throw new InvalidClientDetailsException("Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
+            }
+        }
+
         if (checkAdmin &&
             !(securityContextAccessor.isAdmin() || securityContextAccessor.getScopes().contains("clients.admin"))
             ) {

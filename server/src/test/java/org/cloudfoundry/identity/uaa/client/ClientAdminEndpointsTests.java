@@ -364,8 +364,9 @@ public class ClientAdminEndpointsTests {
     public void testCreateClientDetailsWithJwtBearer() throws Exception {
         when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         input.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
-        input.setScope(null);
+        input.setScope(Arrays.asList(input.getClientId()+".scope"));
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+        detail.setScope(input.getScope());
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
         verify(clientDetailsService).create(detail);
