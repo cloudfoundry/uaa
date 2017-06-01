@@ -257,7 +257,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
                 .withFamilyName(familyName)
                 .withCreated(new Date())
                 .withModified(new Date())
-                .withOrigin(origin)
+                .withOrigin(getOrigin())
                 .withExternalId(externalId)
                 .withZoneId(IdentityZoneHolder.get().getId())
                 .withPhoneNumber(phoneNumber);
