@@ -49,6 +49,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -74,8 +76,10 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
@@ -236,6 +240,80 @@ public class XOAuthAuthenticationManagerTest {
             "uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg\n" +
             "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
             "-----END RSA PRIVATE KEY-----";
+    }
+
+    private static class OriginResultCaptor<T> implements Answer {
+
+        Map<T, AtomicLong> counter = new HashMap<>();
+
+        public OriginResultCaptor(List<T> origins) {
+            for (T origin : origins) {
+                counter.put(origin, new AtomicLong(0));
+            }
+        }
+
+        @Override
+        public T answer(InvocationOnMock invocation) throws Throwable {
+            T origin = (T) invocation.callRealMethod();
+            counter.get(origin).incrementAndGet();
+            return origin;
+        }
+
+        public Map<T, AtomicLong> getCounter() {
+            return counter;
+        }
+    }
+
+    private static class TestRunner extends Thread {
+        private final int loops;
+        private final String origin;
+        private final XOAuthAuthenticationManager manager;
+
+        public TestRunner(int loops, String origin, XOAuthAuthenticationManager manager) {
+            this.loops = loops;
+            this.origin = origin;
+            this.manager = manager;
+        }
+
+        public void run() {
+            XOAuthCodeToken token = new XOAuthCodeToken("code", origin, null);
+            for (int i=0; i<loops; i++) {
+                manager.getExternalAuthenticationDetails(token);
+            }
+        }
+    }
+
+
+    @Test
+    public void race_condition_in_get_auth_details() throws Exception {
+        /*
+         * This tests demonstrates the race condition in setOrigin/getOrigin
+         * in the authentication manager.
+         */
+        List<String> origins = Arrays.asList(ORIGIN, "origin-2", "origin-3", "origin-4");
+        OriginResultCaptor<String> getOriginCaptor = new OriginResultCaptor(origins);
+        doAnswer(getOriginCaptor).when(xoAuthAuthenticationManager).getOrigin();
+        int loops = 10000;
+        List<Thread> threads = new LinkedList<>();
+        for (String origin : origins) {
+            threads.add(new TestRunner(loops, origin, xoAuthAuthenticationManager));
+        }
+        for (Thread t : threads) {
+            t.start();
+        }
+        for (Thread t : threads) {
+            t.join();
+        }
+
+        ArgumentCaptor<String> setOriginCaptor = ArgumentCaptor.forClass(String.class);
+        verify(xoAuthAuthenticationManager, times(loops*origins.size())).setOrigin(setOriginCaptor.capture());
+
+        //we have called setOrigin exactly once per iteration
+        assertEquals(loops*origins.size(), setOriginCaptor.getAllValues().size());
+        //getOrigin has returned the correct value exact times
+        for (String origin : origins) {
+            assertEquals(loops * 2, getOriginCaptor.getCounter().get(origin).get());
+        }
     }
 
     @Test
