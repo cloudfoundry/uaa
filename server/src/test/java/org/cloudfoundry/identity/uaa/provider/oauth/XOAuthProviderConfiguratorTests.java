@@ -25,7 +25,10 @@ import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -63,6 +66,9 @@ import static org.springframework.http.HttpMethod.GET;
 
 
 public class XOAuthProviderConfiguratorTests {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     String jsonResponse = "{\n" +
         " \"issuer\": \"https://accounts.google.com\",\n" +
@@ -188,7 +194,6 @@ public class XOAuthProviderConfiguratorTests {
         oauthProvider.setType(OAUTH20);
         oauthProvider.setConfig(new RawXOAuthIdentityProviderDefinition());
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
-
     }
 
     @Test
@@ -203,6 +208,41 @@ public class XOAuthProviderConfiguratorTests {
         List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaa().getId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    public void retrieve_by_issuer() throws Exception {
+        String issuer = "https://accounts.google.com";
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    public void issuer_not_found() throws Exception {
+        String issuer = "https://accounts.google.com";
+        exception.expect(IncorrectResultSizeDataAccessException.class);
+        exception.expectMessage(String.format("Active provider with issuer[%s] not found", issuer));
+        reset(provisioning);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(0)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    public void duplicate_issuer_found() throws Exception {
+        String issuer = "https://accounts.google.com";
+        exception.expect(IncorrectResultSizeDataAccessException.class);
+        exception.expectMessage(String.format("Duplicate providers with issuer[%s] not found", issuer));
+        reset(provisioning);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(2)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
     }
 
