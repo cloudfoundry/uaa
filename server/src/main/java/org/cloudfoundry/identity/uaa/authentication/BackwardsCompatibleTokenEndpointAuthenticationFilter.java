@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -46,7 +47,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 
@@ -71,20 +71,24 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final SAMLProcessingFilter samlAuthenticationFilter;
 
+    private final XOAuthAuthenticationManager xoAuthAuthenticationManager;
+
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory) {
-        this(authenticationManager, oAuth2RequestFactory, null);
+        this(authenticationManager, oAuth2RequestFactory, null, null);
     }
     /**
      * @param authenticationManager an AuthenticationManager for the incoming request
      */
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory,
-                                                                SAMLProcessingFilter samlAuthenticationFilter) {
+                                                                SAMLProcessingFilter samlAuthenticationFilter,
+                                                                XOAuthAuthenticationManager xoAuthAuthenticationManager) {
         super();
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;
         this.samlAuthenticationFilter = samlAuthenticationFilter;
+        this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
     }
 
     /**
@@ -113,7 +117,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         final HttpServletResponse response = (HttpServletResponse) res;
 
         try {
-            Authentication userAuthentication = extractCredentials(request, response);
+            Authentication userAuthentication = attemptTokenAuthentication(request, response);
 
             if (userAuthentication != null) {
                 Authentication clientAuth = SecurityContextHolder.getContext().getAuthentication();
@@ -203,7 +207,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         return credentials;
     }
 
-    protected Authentication extractCredentials(HttpServletRequest request, HttpServletResponse response) {
+    protected Authentication attemptTokenAuthentication(HttpServletRequest request, HttpServletResponse response) {
         String grantType = request.getParameter("grant_type");
         Authentication authResult = null;
         if ("password".equals(grantType)) {
@@ -228,13 +232,11 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         return null;
     }
 
-    private Set<String> getScope(HttpServletRequest request) {
-        return OAuth2Utils.parseParameterList(request.getParameter("scope"));
-    }
-
+    @Override
     public void init(FilterConfig filterConfig) throws ServletException {
     }
 
+    @Override
     public void destroy() {
     }
 

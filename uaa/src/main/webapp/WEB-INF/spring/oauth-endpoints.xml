@@ -21,12 +21,6 @@
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd
         http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
 
-    <!--<bean id="tokenEndpoint" class="org.springframework.security.oauth2.provider.endpoint.TokenEndpoint" autowire="byType">-->
-        <!--<property name="OAuth2RequestValidator">-->
-            <!--<bean class="org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator"/>-->
-        <!--</property>-->
-        <!--<property name="clientDetailsService" ref="jdbcClientDetailsService"/>-->
-    <!--</bean>-->
     <bean id="oauth2RequestValidator" class="org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator">
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
     </bean>
