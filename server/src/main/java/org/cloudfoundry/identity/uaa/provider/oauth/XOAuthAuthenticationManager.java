@@ -94,9 +94,21 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private final RestTemplateFactory restTemplateFactory;
 
+    private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
+
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning, RestTemplateFactory restTemplateFactory) {
         super(providerProvisioning);
         this.restTemplateFactory = restTemplateFactory;
+    }
+
+    @Override
+    public String getOrigin() {
+        return origin.get();
+    }
+
+    @Override
+    public void setOrigin(String origin) {
+        this.origin.set(origin);
     }
 
     @Override
