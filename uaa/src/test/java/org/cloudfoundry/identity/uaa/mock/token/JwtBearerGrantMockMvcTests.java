@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -150,6 +151,10 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void auth0_jwt_bearer_grant() throws Exception {
+        setup_auth0_jwt_bearer_grant();
+    }
+
+    public ResultActions setup_auth0_jwt_bearer_grant() throws Exception {
         IdentityZone theZone = IdentityZone.getUaa();
         String idToken = getAuth0IdToken();
         createAuth0Provider(IdentityZone.getUaa(),
@@ -164,17 +169,19 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .param("client_id", client.getClientId())
             .param("client_secret", client.getClientSecret())
             .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
+            .param("response_type", "token id_token")
+            .param("scope", "openid")
+            .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
             .param("assertion", idToken);
 
         if (hasText(theZone.getSubdomain())) {
             jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain()+".localhost");
         }
-
-        getMockMvc().perform(jwtBearerGrant)
+        return getMockMvc().perform(jwtBearerGrant)
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.access_token").isNotEmpty());
-
+            .andExpect(jsonPath("$.access_token").isNotEmpty())
+            .andExpect(jsonPath("$.id_token").isNotEmpty());
     }
 
     public String getAuth0IdToken() throws Exception {
