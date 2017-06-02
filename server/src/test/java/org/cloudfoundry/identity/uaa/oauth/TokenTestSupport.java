@@ -170,6 +170,7 @@ public class TokenTestSupport {
 
     public void clear() {
         tokens.clear();
+        AbstractOAuth2AccessTokenMatchers.revocableTokens.remove();
     }
 
     public TokenTestSupport(UaaTokenEnhancer tokenEnhancer) throws Exception {

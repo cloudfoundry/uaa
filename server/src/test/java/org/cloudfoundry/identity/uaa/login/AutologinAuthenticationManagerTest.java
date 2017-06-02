@@ -58,6 +58,7 @@ public class AutologinAuthenticationManagerTest {
 
     @Before
     public void setUp() {
+        IdentityZoneHolder.clear();
         clientId = new RandomValueStringGenerator().generate();
         manager = new AutologinAuthenticationManager();
         codeStore = mock(ExpiringCodeStore.class);
@@ -82,6 +83,7 @@ public class AutologinAuthenticationManagerTest {
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), ExpiringCodeType.AUTOLOGIN.name()));
 
         when(clientDetailsService.loadClientByClientId(eq(clientId))).thenReturn(new BaseClientDetails("test-client-details","","","",""));
+        String zoneId = IdentityZoneHolder.get().getId();
         when(userDatabase.retrieveUserById(eq("test-user-id")))
             .thenReturn(
                 new UaaUser("test-user-id",
@@ -96,7 +98,7 @@ public class AutologinAuthenticationManagerTest {
                             OriginKeys.UAA,
                             "test-external-id",
                             true,
-                            IdentityZoneHolder.get().getId(),
+                            zoneId,
                             "test-salt",
                             new Date(System.currentTimeMillis())
                 )

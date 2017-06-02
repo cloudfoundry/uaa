@@ -36,6 +36,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import javax.servlet.FilterChain;
 import java.util.Arrays;
 
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -64,6 +65,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private MockHttpServletResponse response;
     private FilterChain chain;
     private AuthenticationEntryPoint entryPoint;
+    private TokenTestSupport support;
 
     @Before
     public void setUp() throws Exception {
@@ -94,6 +96,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     public void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
+        ofNullable(support).ifPresent(TokenTestSupport::clear);
     }
 
     @Test
@@ -136,7 +139,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
     @Test
     public void attempt_jwt_token_authentication() throws Exception {
-        TokenTestSupport support = new TokenTestSupport(null);
+        support = new TokenTestSupport(null);
         String idToken = support.getIdTokenAsString(Arrays.asList(OPENID));
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         request.addParameter("assertion", idToken);
