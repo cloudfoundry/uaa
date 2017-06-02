@@ -211,6 +211,8 @@ You can point the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
 and (if appropriate) set the context root for running the
 server (see below for more detail on that).
 
+[PhantomJS](http://phantomjs.org/download.html) must be installed for the integration tests to run successfully.
+
 ### Custom YAML Configuration
 
 To modify the runtime parameters you can provide a `uaa.yml`, e.g.
