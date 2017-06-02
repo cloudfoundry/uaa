@@ -4,6 +4,7 @@ description = 'CloudFoundry Identity Client Library Jar'
 
 dependencies {
   compile identityModel
+  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   testCompile group: 'junit', name: 'junit', version: parent.junitVersion
   testCompile identityModel.configurations.testCompile.dependencies
   testCompile identityModel.sourceSets.test.output

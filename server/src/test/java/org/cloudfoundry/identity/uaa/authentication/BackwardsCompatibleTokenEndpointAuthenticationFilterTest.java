@@ -26,9 +26,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth.provider.InvalidOAuthParametersException;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -134,7 +134,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());
         assertEquals("SAML Assertion is missing", exceptionArgumentCaptor.getValue().getMessage());
-        assertTrue(exceptionArgumentCaptor.getValue() instanceof InvalidOAuthParametersException);
+        assertTrue(exceptionArgumentCaptor.getValue() instanceof InsufficientAuthenticationException);
     }
 
     @Test
@@ -165,7 +165,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());
         assertEquals("Assertion is missing", exceptionArgumentCaptor.getValue().getMessage());
-        assertTrue(exceptionArgumentCaptor.getValue() instanceof InvalidOAuthParametersException);
+        assertTrue(exceptionArgumentCaptor.getValue() instanceof InsufficientAuthenticationException);
     }
 
 }

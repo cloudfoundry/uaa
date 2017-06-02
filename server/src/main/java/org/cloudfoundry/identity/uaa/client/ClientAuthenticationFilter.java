@@ -69,8 +69,6 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
 
     private PreAuthenticatedPrincipalSource<?> principalSource;
 
-    private boolean oauthAvailable = false;
-
     private boolean oauth2Available = false;
 
     /**
@@ -90,13 +88,6 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
         } catch (NoClassDefFoundError e) {
             // ignore
         }
-        try {
-            oauthAvailable = ClassUtils.isPresent(
-                            org.springframework.security.oauth.consumer.AccessTokenRequiredException.class.getName(),
-                            ClassUtils.getDefaultClassLoader());
-        } catch (NoClassDefFoundError e) {
-            // ignore
-        }
     }
 
     public ClientAuthenticationFilter(String defaultFilterProcessesUrl) {
@@ -111,15 +102,9 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
         if (oauth2Available && failed instanceof SocialRedirectException) {
             throw ((SocialRedirectException) failed).getUserRedirectException();
         }
-        if (oauthAvailable
-                        && failed instanceof org.springframework.security.oauth.consumer.AccessTokenRequiredException) {
-            throw failed;
-        }
-        else {
-            // If the exception is not a Spring Security exception this will
-            // result in a default error page
-            super.unsuccessfulAuthentication(request, response, failed);
-        }
+        // If the exception is not a Spring Security exception this will
+        // result in a default error page
+        super.unsuccessfulAuthentication(request, response, failed);
     }
 
     @Override

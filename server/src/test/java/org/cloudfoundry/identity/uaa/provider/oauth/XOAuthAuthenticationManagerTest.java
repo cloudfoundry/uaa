@@ -57,12 +57,12 @@ import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.oauth.provider.verifier.VerificationFailedException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.util.LinkedMultiValueMap;
@@ -336,7 +336,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void resolve_provider_by_issuer_null_id_token() throws Exception {
         xCodeToken = new XOAuthCodeToken(null,null,null,null,null);
-        exception.expect(VerificationFailedException.class);
+        exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage("Unable to decode expected id_token");
         getAuthenticationData(xCodeToken);
     }
@@ -346,7 +346,7 @@ public class XOAuthAuthenticationManagerTest {
         String issuer = "http://oidc10.identity.cf-app.com/oauth/token";
         CompositeAccessToken token = getCompositeAccessToken();
         xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);
-        exception.expect(VerificationFailedException.class);
+        exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
         when(provisioning.retrieveAll(eq(true), eq(IdentityZoneHolder.get().getId()))).thenReturn(emptyList());
         getAuthenticationData(xCodeToken);
@@ -355,7 +355,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void issuer_missing_in_id_token() throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getProvider();
-        exception.expect(VerificationFailedException.class);
+        exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage("Issuer is missing in id_token");
         CompositeAccessToken token = getCompositeAccessToken(Arrays.asList(ClaimConstants.ISS));
         xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);

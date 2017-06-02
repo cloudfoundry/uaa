@@ -50,11 +50,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth.provider.verifier.VerificationFailedException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -125,15 +125,15 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
             String issuer = (String) claims.get(ClaimConstants.ISS);
             if (isEmpty(issuer)) {
-                throw new VerificationFailedException("Issuer is missing in id_token");
+                throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
             try {
                 return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
             } catch (IncorrectResultSizeDataAccessException x) {
-                throw new VerificationFailedException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+                throw new InsufficientAuthenticationException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
             }
         } catch (IllegalArgumentException | JsonUtils.JsonUtilException x) {
-            throw new VerificationFailedException("Unable to decode expected id_token");
+            throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
     }
 
