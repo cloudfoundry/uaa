@@ -24,9 +24,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
+import org.springframework.security.oauth.provider.InvalidOAuthParametersException;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -149,15 +148,15 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 onSuccessfulAuthentication(request, response, userAuthentication);
             }
         } catch (AuthenticationException failed) {
-            SecurityContextHolder.clearContext();
             logger.debug("Authentication request failed: " + failed.getMessage());
             onUnsuccessfulAuthentication(request, response, failed);
             authenticationEntryPoint.commence(request, response, failed);
             return;
-        } catch (InvalidScopeException | UnauthorizedClientException failed) {
+        } catch (OAuth2Exception failed) {
             String message = failed.getMessage();
-            logger.debug("Authentication token request failed: " + message);
-            UnapprovedClientAuthenticationException ex = new UnapprovedClientAuthenticationException(message, failed);
+            logger.debug("Authentication request failed with Oauth exception: " + message);
+            InvalidOAuthParametersException ex = new InvalidOAuthParametersException(message);
+            ex.initCause(failed);
             onUnsuccessfulAuthentication(request, response, ex);
             authenticationEntryPoint.commence(request, response, ex);
             return;
@@ -220,6 +219,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
             } else {
                 logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
+                throw new InvalidOAuthParametersException("SAML Assertion is missing");
             }
         } else if (GRANT_TYPE_JWT_BEARER.equals(grantType)) {
             logger.debug(GRANT_TYPE_JWT_BEARER +" found. Attempting authentication with assertion");
@@ -231,6 +231,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 authResult = xoAuthAuthenticationManager.authenticate(token);
             } else {
                 logger.debug("No assertion or authentication manager, not attempting JWT bearer authentication for token endpoint.");
+                throw new InvalidOAuthParametersException("Assertion is missing");
             }
         }
         if (authResult != null && authResult.isAuthenticated()) {

@@ -26,9 +26,12 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth.provider.InvalidOAuthParametersException;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.saml.SAMLProcessingFilter;
+import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.FilterChain;
 import java.util.Arrays;
@@ -38,7 +41,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -58,6 +63,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
     private FilterChain chain;
+    private AuthenticationEntryPoint entryPoint;
 
     @Before
     public void setUp() throws Exception {
@@ -75,6 +81,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
                 xoAuthAuthenticationManager
             )
         );
+
+        entryPoint = mock(AuthenticationEntryPoint.class);
+        filter.setAuthenticationEntryPoint(entryPoint);
 
         request = new MockHttpServletRequest("POST", "/oauth/token");
         response = new MockHttpServletResponse();
@@ -111,6 +120,21 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
+    public void saml_assertion_missing() throws Exception {
+        request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
+        filter.doFilter(request, response, chain);
+        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(passwordAuthManager);
+        verifyZeroInteractions(xoAuthAuthenticationManager);
+        ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
+        verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
+        assertNotNull(exceptionArgumentCaptor.getValue());
+        assertEquals("SAML Assertion is missing", exceptionArgumentCaptor.getValue().getMessage());
+        assertTrue(exceptionArgumentCaptor.getValue() instanceof InvalidOAuthParametersException);
+    }
+
+    @Test
     public void attempt_jwt_token_authentication() throws Exception {
         TokenTestSupport support = new TokenTestSupport(null);
         String idToken = support.getIdTokenAsString(Arrays.asList(OPENID));
@@ -124,6 +148,21 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verifyZeroInteractions(xoAuthAuthenticationManager);
         assertEquals(idToken, authenticateData.getValue().getIdToken());
         assertNull(authenticateData.getValue().getOrigin());
+    }
+
+    @Test
+    public void jwt_assertion_missing() throws Exception {
+        request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
+        filter.doFilter(request, response, chain);
+        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(passwordAuthManager);
+        verifyZeroInteractions(xoAuthAuthenticationManager);
+        ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
+        verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
+        assertNotNull(exceptionArgumentCaptor.getValue());
+        assertEquals("Assertion is missing", exceptionArgumentCaptor.getValue().getMessage());
+        assertTrue(exceptionArgumentCaptor.getValue() instanceof InvalidOAuthParametersException);
     }
 
 }

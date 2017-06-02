@@ -37,6 +37,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.net.URL;
@@ -75,16 +76,53 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void jwt_bearer_grant_default_zone() throws Exception {
+    public void  default_zone_jwt_grant () throws Exception {
         IdentityZone defaultZone = IdentityZone.getUaa();
-        ClientDetails client = createJwtBearerClient(defaultZone);
+        perform_grant_in_zone(defaultZone, getIdToken(originZone.getIdentityZone(), originClient, originUser), getTokenVerificationKey(originZone.getIdentityZone()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.access_token").isNotEmpty());
+    }
+
+    @Test
+    public void non_default_zone_jwt_grant () throws Exception {
+        String subdomain = generator.generate().toLowerCase();
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null).getIdentityZone();
+        perform_grant_in_zone(zone, getIdToken(originZone.getIdentityZone(), originClient, originUser), getTokenVerificationKey(originZone.getIdentityZone()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.access_token").isNotEmpty());
+    }
+
+    @Test
+    public void assertion_missing() throws Exception {
+        IdentityZone defaultZone = IdentityZone.getUaa();
+        perform_grant_in_zone(defaultZone, null, getTokenVerificationKey(originZone.getIdentityZone()))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").isNotEmpty())
+            .andExpect(jsonPath("$.error_description").isNotEmpty())
+            .andExpect(jsonPath("$.error_description").value("Assertion is missing"));
+    }
+
+    @Test
+    public void signature_mismatch() throws Exception {
+        IdentityZone defaultZone = IdentityZone.getUaa();
+        perform_grant_in_zone(defaultZone,
+                              getIdToken(originZone.getIdentityZone(), originClient, originUser),
+                              "invalid-verification-key")
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").isNotEmpty())
+            .andExpect(jsonPath("$.error_description").isNotEmpty())
+            .andExpect(jsonPath("$.error_description").value("Could not verify token signature."));
+    }
+
+
+    public ResultActions perform_grant_in_zone(IdentityZone theZone, String assertion, String verificationKey) throws Exception {
+
+        ClientDetails client = createJwtBearerClient(theZone);
         oidcProvider =
-            createOIDCProvider(defaultZone,
-                               getTokenVerificationKey(originZone.getIdentityZone()),
+            createOIDCProvider(theZone,
+                               verificationKey,
                                "http://"+originZone.getIdentityZone().getSubdomain()+".localhost:8080/uaa/oauth/token",
                                originClient.getClientId());
-
-        String idToken = getIdToken(originZone.getIdentityZone(), originClient, originUser);
 
         MockHttpServletRequestBuilder jwtBearerGrant = post("/oauth/token")
             .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
@@ -92,16 +130,14 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .param("client_id", client.getClientId())
             .param("client_secret", client.getClientSecret())
             .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
-            .param("assertion", idToken);
+            .param("assertion", assertion);
 
-        if (hasText(defaultZone.getSubdomain())) {
-            jwtBearerGrant = jwtBearerGrant.header("Host", defaultZone.getSubdomain()+".localhost");
+        if (hasText(theZone.getSubdomain())) {
+            jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain()+".localhost");
         }
 
-        getMockMvc().perform(jwtBearerGrant)
-            .andDo(print())
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.access_token").isNotEmpty());
+        return getMockMvc().perform(jwtBearerGrant)
+            .andDo(print());
     }
 
     public String getIdToken(IdentityZone zone, ClientDetails client, ScimUser user) throws Exception {
