@@ -180,7 +180,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
     }
 
-    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) {
+    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException{
         return null;
     }
 

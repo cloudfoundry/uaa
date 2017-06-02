@@ -253,8 +253,21 @@
         <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="samlWebSSOProcessingFilter"/>
+        <constructor-arg ref="xOauthAuthenticationManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
+    </bean>
+
+    <bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">
+        <constructor-arg name="tokenServices" ref="tokenServices"/>
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
+    </bean>
+
+    <bean id="addJwtTokenGranter"
+          class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
+        <constructor-arg name="userTokenGranter" ref="jwtTokenGranter"/>
+        <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
     </bean>
 
     <authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">

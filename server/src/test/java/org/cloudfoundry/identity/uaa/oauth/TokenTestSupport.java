@@ -73,9 +73,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Created by fhanik on 6/1/17.
- */
+
 public class TokenTestSupport {
 
     public static final String PASSWORD = "password";
@@ -97,6 +95,7 @@ public class TokenTestSupport {
     public static final String OPENID = "openid";
     public static final String ROLES = "roles";
     public static final String PROFILE = "profile";
+    public static final String DEFAULT_ISSUER = "http://localhost:8080/uaa";
 
     String userId = "12345";
     String username = "jdsa";
@@ -174,6 +173,7 @@ public class TokenTestSupport {
     }
 
     public TokenTestSupport(UaaTokenEnhancer tokenEnhancer) throws Exception {
+        tokens.clear();
         publisher = TestApplicationEventPublisher.forEventClass(TokenIssuedEvent.class);
         IdentityZoneHolder.clear();
         IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
@@ -253,7 +253,7 @@ public class TokenTestSupport {
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setTokenPolicy(tokenPolicy);
         tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
-        tokenServices.setIssuer("http://localhost:8080/uaa");
+        tokenServices.setIssuer(DEFAULT_ISSUER);
         tokenServices.setUserDatabase(userDatabase);
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setApplicationEventPublisher(publisher);
@@ -274,7 +274,7 @@ public class TokenTestSupport {
         return defaultUser;
     }
 
-    public Jwt getIdToken(List<String> scopes) {
+    public CompositeAccessToken getCompositeAccessToken(List<String> scopes) {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopes);
 
         authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(CompositeAccessToken.ID_TOKEN)));
@@ -288,13 +288,21 @@ public class TokenTestSupport {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        return (CompositeAccessToken) accessToken;
+    }
 
+    public String getIdTokenAsString(List<String> scopes) {
+        return getCompositeAccessToken(scopes).getIdTokenValue();
+    }
+
+    public Jwt getIdToken(List<String> scopes) {
+        CompositeAccessToken accessToken = getCompositeAccessToken(scopes);
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
         SignatureVerifier verifier = KeyInfo.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull(tokenJwt);
 
-        Jwt idToken = JwtHelper.decode(((CompositeAccessToken) accessToken).getIdTokenValue());
+        Jwt idToken = JwtHelper.decode(accessToken.getIdTokenValue());
         idToken.verifySignature(verifier);
         return idToken;
     }

@@ -15,11 +15,14 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,10 +31,14 @@ import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.saml.SAMLProcessingFilter;
 
 import javax.servlet.FilterChain;
+import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -105,7 +112,18 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
     @Test
     public void attempt_jwt_token_authentication() throws Exception {
-        fail();
+        TokenTestSupport support = new TokenTestSupport(null);
+        String idToken = support.getIdTokenAsString(Arrays.asList(OPENID));
+        request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
+        request.addParameter("assertion", idToken);
+        filter.doFilter(request, response, chain);
+        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+        ArgumentCaptor<XOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(XOAuthCodeToken.class);
+        verify(xoAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
+        verifyZeroInteractions(passwordAuthManager);
+        verifyZeroInteractions(xoAuthAuthenticationManager);
+        assertEquals(idToken, authenticateData.getValue().getIdToken());
+        assertNull(authenticateData.getValue().getOrigin());
     }
 
 }

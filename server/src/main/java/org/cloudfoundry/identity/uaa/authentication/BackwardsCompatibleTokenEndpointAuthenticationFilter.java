@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -48,6 +49,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 
 /**
@@ -146,25 +148,16 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
                 onSuccessfulAuthentication(request, response, userAuthentication);
             }
-        } catch (UnauthorizedClientException failed) {
-            //happens when all went well, but the client is not authorized for the identity provider
-            UnapprovedClientAuthenticationException ex = new UnapprovedClientAuthenticationException(failed.getMessage(), failed);
-            SecurityContextHolder.clearContext();
-            logger.debug("Authentication request for failed: " + failed);
-            onUnsuccessfulAuthentication(request, response, ex);
-            authenticationEntryPoint.commence(request, response, ex);
-            return;
         } catch (AuthenticationException failed) {
             SecurityContextHolder.clearContext();
-            logger.debug("Authentication request for failed: " + failed);
+            logger.debug("Authentication request failed: " + failed.getMessage());
             onUnsuccessfulAuthentication(request, response, failed);
             authenticationEntryPoint.commence(request, response, failed);
             return;
-        } catch (InvalidScopeException failed) {
+        } catch (InvalidScopeException | UnauthorizedClientException failed) {
             String message = failed.getMessage();
+            logger.debug("Authentication token request failed: " + message);
             UnapprovedClientAuthenticationException ex = new UnapprovedClientAuthenticationException(message, failed);
-            SecurityContextHolder.clearContext();
-            logger.debug("Authentication request for failed: " + ex);
             onUnsuccessfulAuthentication(request, response, ex);
             authenticationEntryPoint.commence(request, response, ex);
             return;
@@ -183,12 +176,15 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         return map;
     }
 
-    protected void onSuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+    protected void onSuccessfulAuthentication(HttpServletRequest request,
+                                              HttpServletResponse response,
                                               Authentication authResult) throws IOException {
     }
 
-    protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+    protected void onUnsuccessfulAuthentication(HttpServletRequest request,
+                                                HttpServletResponse response,
                                                 AuthenticationException failed) throws IOException {
+        SecurityContextHolder.clearContext();
     }
 
     /**
@@ -209,6 +205,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     protected Authentication attemptTokenAuthentication(HttpServletRequest request, HttpServletResponse response) {
         String grantType = request.getParameter("grant_type");
+        logger.debug("Processing token user authentication for grant:"+grantType);
         Authentication authResult = null;
         if ("password".equals(grantType)) {
             Authentication credentials = extractCredentials(request);
@@ -223,6 +220,17 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
             } else {
                 logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
+            }
+        } else if (GRANT_TYPE_JWT_BEARER.equals(grantType)) {
+            logger.debug(GRANT_TYPE_JWT_BEARER +" found. Attempting authentication with assertion");
+            String assertion = request.getParameter("assertion");
+            if (assertion != null && xoAuthAuthenticationManager != null) {
+                logger.debug("Attempting OIDC JWT authentication for token endpoint.");
+                String idToken = assertion;
+                XOAuthCodeToken token = new XOAuthCodeToken(null,null,null, assertion,null);
+                authResult = xoAuthAuthenticationManager.authenticate(token);
+            } else {
+                logger.debug("No assertion or authentication manager, not attempting JWT bearer authentication for token endpoint.");
             }
         }
         if (authResult != null && authResult.isAuthenticated()) {
