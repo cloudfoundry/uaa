@@ -33,7 +33,7 @@ uaac user add 1234 -p user3 --email user3@ge.com
 uaac target http://test-platform-zone.localhost:8080/uaa
 uaac token client get admin -s adminsecret
 
-#Create migrated ge user to a shadow user of GESSO
+#Create migrated saml users
 uaac curl '/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
   "externalId" : "1234",
   "meta" : {
@@ -52,7 +52,7 @@ uaac curl '/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: appli
   } ],
   "active" : true,
   "verified" : true,
-  "origin" : "GESSO",
+  "origin" : "test-saml-zone-idp",
   "schemas" : [ "urn:scim:schemas:core:1.0" ]
 }'
 
@@ -62,12 +62,12 @@ SAML_SP_METADATA_RAW=$(echo $SAML_SP_RESPONSE | sed s/.*RESPONSE\ BODY://)
 SAML_SP_METADATA=$(echo $SAML_SP_METADATA_RAW | sed 's/"/\\\\\\"/g')
 SAML_SP_CONFIG='{\"metaDataLocation\":\"'$SAML_SP_METADATA'\",\"metadataTrustCheck\":true}'
 
-#Create IDP of GESSO
+#Create IDP of test-saml-zone-idp
 uaac curl /identity-providers -XPOST -H 'Content-Type: application/json' -d '{
   "type" : "saml",
   "config" : {
     "emailDomain" : ["ge.com"],
-    "providerDescription" :"GE SSO",
+    "providerDescription" :"saml provider",
     "externalGroupsWhitelist" : [ ],
     "attributeMappings" : {
       "user_name" : "user_name",
@@ -80,14 +80,14 @@ uaac curl /identity-providers -XPOST -H 'Content-Type: application/json' -d '{
     "assertionConsumerIndex" : 0,
     "metadataTrustCheck" : false,
     "showSamlLink" : true,
-    "linkText" : "GE SSO",
+    "linkText" : "saml provider",
     "iconUrl" : null,
     "groupMappingMode" : "EXPLICITLY_MAPPED",
     "skipSslValidation" : false,
     "socketFactoryClassName" : null
   },
-  "originKey" : "GESSO",
-  "name" : "GESSO SAML zone",
+  "originKey" : "test-saml-zone-idp",
+  "name" : "test-saml-zone-idp SAML zone",
   "active" : true
 	}'
 
@@ -100,7 +100,7 @@ uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept:
   "authorities" : [ "uaa.resource", "openid" ],
   "redirect_uri" : "http://test-app-zone.localhost:8080/uaa/login/callback/*",
   "autoapprove" : [ "uaa.resource","openid" ],
-  "allowedproviders" : ["uaa", "GESSO"]
+  "allowedproviders" : ["uaa", "test-saml-zone-idp"]
 }'
 
 #Create a client for saml2bearer flow in test-platform-zone
@@ -112,7 +112,7 @@ uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept:
   "authorities" : [ "uaa.resource", "openid" ],
   "redirect_uri" : "http://*.localhost:8080/uaa/login/callback/*",
   "autoapprove" : [ "uaa.resource","openid" ],
-  "allowedproviders" : ["GESSO"]
+  "allowedproviders" : ["test-saml-zone-idp"]
 }'
 
 #Login to test-saml-zone
