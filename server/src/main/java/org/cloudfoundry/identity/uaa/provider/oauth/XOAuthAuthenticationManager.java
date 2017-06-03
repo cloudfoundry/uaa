@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -42,13 +43,16 @@ import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -87,6 +91,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
@@ -94,6 +99,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private final RestTemplateFactory restTemplateFactory;
 
+    //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning, RestTemplateFactory restTemplateFactory) {
@@ -103,20 +109,49 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     @Override
     public String getOrigin() {
+        //origin is per thread during execution
         return origin.get();
     }
 
     @Override
     public void setOrigin(String origin) {
+        //origin is per thread during execution
         this.origin.set(origin);
     }
 
+    public IdentityProvider resolveOriginProvider(String idToken) throws AuthenticationException {
+        try {
+            String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
+            Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+            String issuer = (String) claims.get(ClaimConstants.ISS);
+            if (isEmpty(issuer)) {
+                throw new InsufficientAuthenticationException("Issuer is missing in id_token");
+            }
+            try {
+                return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+            } catch (IncorrectResultSizeDataAccessException x) {
+                throw new InsufficientAuthenticationException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+            }
+        } catch (IllegalArgumentException | JsonUtils.JsonUtilException x) {
+            throw new InsufficientAuthenticationException("Unable to decode expected id_token");
+        }
+    }
+
     @Override
-    protected AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {
+    public AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {
+        IdentityProvider provider = null;
 
         XOAuthCodeToken codeToken = (XOAuthCodeToken) authentication;
+
+        if (isEmpty(codeToken.getOrigin())) {
+            provider = resolveOriginProvider(codeToken.getIdToken());
+            codeToken.setOrigin(provider.getOriginKey());
+        }
+
         setOrigin(codeToken.getOrigin());
-        IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        if (provider == null) {
+            provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        }
 
         if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
             AuthenticationData authenticationData = new AuthenticationData();
@@ -359,7 +394,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         logger.debug("Validating id_token");
         TokenValidation validation = validate(idToken)
             .checkSignature(new ChainedSignatureVerifier(tokenKey))
-            .checkIssuer((StringUtils.isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
+            .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
             .checkAudience(config.getRelyingPartyId())
             .checkExpiry()
             .throwIfInvalid();

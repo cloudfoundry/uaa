@@ -43,10 +43,13 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
@@ -54,6 +57,7 @@ import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -82,6 +86,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
@@ -120,6 +125,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 public class XOAuthAuthenticationManagerTest {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     private MockRestServiceServer mockUaaServer;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
@@ -295,6 +303,8 @@ public class XOAuthAuthenticationManagerTest {
         doAnswer(getOriginCaptor).when(xoAuthAuthenticationManager).getOrigin();
         int loops = 10000;
         List<Thread> threads = new LinkedList<>();
+
+        //run one thread for each origin
         for (String origin : origins) {
             threads.add(new TestRunner(loops, origin, xoAuthAuthenticationManager));
         }
@@ -304,6 +314,7 @@ public class XOAuthAuthenticationManagerTest {
         for (Thread t : threads) {
             t.join();
         }
+        //all threads completed
 
         ArgumentCaptor<String> setOriginCaptor = ArgumentCaptor.forClass(String.class);
         verify(xoAuthAuthenticationManager, times(loops*origins.size())).setOrigin(setOriginCaptor.capture());
@@ -314,6 +325,57 @@ public class XOAuthAuthenticationManagerTest {
         for (String origin : origins) {
             assertEquals(loops * 2, getOriginCaptor.getCounter().get(origin).get());
         }
+    }
+
+    @Test
+    public void when_origin_provided_no_call_resolve_based_on_issuer() {
+        xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
+        verify(xoAuthAuthenticationManager, never()).resolveOriginProvider(anyString());
+    }
+
+    @Test
+    public void resolve_provider_by_issuer_null_id_token() throws Exception {
+        xCodeToken = new XOAuthCodeToken(null,null,null,null,null);
+        exception.expect(InsufficientAuthenticationException.class);
+        exception.expectMessage("Unable to decode expected id_token");
+        getAuthenticationData(xCodeToken);
+    }
+
+    @Test
+    public void unable_to_resolve_to_single_provider() throws Exception {
+        String issuer = "http://oidc10.identity.cf-app.com/oauth/token";
+        CompositeAccessToken token = getCompositeAccessToken();
+        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);
+        exception.expect(InsufficientAuthenticationException.class);
+        exception.expectMessage(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+        when(provisioning.retrieveAll(eq(true), eq(IdentityZoneHolder.get().getId()))).thenReturn(emptyList());
+        getAuthenticationData(xCodeToken);
+    }
+
+    @Test
+    public void issuer_missing_in_id_token() throws Exception {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getProvider();
+        exception.expect(InsufficientAuthenticationException.class);
+        exception.expectMessage("Issuer is missing in id_token");
+        CompositeAccessToken token = getCompositeAccessToken(Arrays.asList(ClaimConstants.ISS));
+        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);
+        //perform test
+        getAuthenticationData(xCodeToken);
+    }
+
+    @Test
+    public void origin_is_resolved_based_on_issuer_and_id_token() throws Exception {
+        CompositeAccessToken token = getCompositeAccessToken();
+        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(getProvider()));
+        //perform test
+        getAuthenticationData(xCodeToken);
+
+        ArgumentCaptor<String> idTokenCaptor = ArgumentCaptor.forClass(String.class);
+        verify(xoAuthAuthenticationManager, times(1)).resolveOriginProvider(idTokenCaptor.capture());
+        verify(provisioning, never()).retrieveByOrigin(anyString(), anyString());
+        verify(xoAuthProviderConfigurator, times(1)).retrieveByIssuer(eq("http://oidc10.identity.cf-app.com/oauth/token"), anyString());
+        assertEquals(token.getIdTokenValue(), idTokenCaptor.getValue());
     }
 
     @Test
@@ -843,7 +905,12 @@ public class XOAuthAuthenticationManagerTest {
             .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
 
-    private String getIdTokenResponse() throws MalformedURLException {
+    private CompositeAccessToken getCompositeAccessToken() throws MalformedURLException {
+        return getCompositeAccessToken(emptyList());
+    }
+
+    private CompositeAccessToken getCompositeAccessToken(List<String> removeClaims) throws MalformedURLException {
+        removeClaims.stream().forEach(c -> claims.remove(c));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         identityProvider = getProvider();
 
@@ -851,7 +918,11 @@ public class XOAuthAuthenticationManagerTest {
 
         CompositeAccessToken compositeAccessToken = new CompositeAccessToken("accessToken");
         compositeAccessToken.setIdTokenValue(idTokenJwt);
-        return JsonUtils.writeValueAsString(compositeAccessToken);
+        return compositeAccessToken;
+    }
+
+    private String getIdTokenResponse() throws MalformedURLException {
+        return JsonUtils.writeValueAsString(getCompositeAccessToken());
     }
 
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getProvider() throws MalformedURLException {

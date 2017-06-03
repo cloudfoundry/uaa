@@ -302,6 +302,35 @@ _Response Fields_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/response-fields.md")).result(binding) %>
 
+## JWT Bearer Token Grant
+
+<aside class="notice">
+  From 4.4.x
+</aside>
+
+The _JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants_
+allows to request an OAuth 2.0 access token with a JWT id_token bearer assertion. The flow is defined in 
+[RFC 7523](https://tools.ietf.org/html/rfc7523). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`.
+In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the 
+UAA database. If multiple providers exists that have the same issuer, the grant will fail.
+
+<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/response-fields.md")).result(binding) %>
+
 ## Refresh Token
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/refreshToken/curl-request.md")).result(binding) %>

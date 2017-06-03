@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
