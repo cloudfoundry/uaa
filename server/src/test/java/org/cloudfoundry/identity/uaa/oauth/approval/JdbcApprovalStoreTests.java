@@ -49,6 +49,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class JdbcApprovalStoreTests extends JdbcTestBase {
 
@@ -77,6 +79,11 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         addApproval("u1", "c1", "uaa.user", 6000, APPROVED, UAA);
         addApproval("u1", "c2", "uaa.admin", 12000, DENIED, UAA);
         addApproval("u2", "c1", "openid", 6000, APPROVED, UAA);
+    }
+
+    @After
+    public void clear() {
+        IdentityZoneHolder.clear();
     }
 
     private void addApproval(String userId, String clientId, String scope, long expiresIn, ApprovalStatus status, String origin) {
@@ -332,6 +339,15 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         app = dao.getApprovals("u2", "c2").iterator().next();
         assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
         assertEquals(DENIED, app.getStatus());
+    }
+
+    @Test
+    public void refresh_approval_calls_get_zone_id() throws Exception {
+        Approval app = dao.getApprovals("u1", "c1").iterator().next();
+        IdentityZone spy = spy(IdentityZoneHolder.get());
+        IdentityZoneHolder.set(spy);
+        dao.refreshApproval(app);
+        verify(spy, times(1)).getId();
     }
 
     @Test

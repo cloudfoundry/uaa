@@ -50,14 +50,16 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     private static final String TABLE_NAME = "authz_approvals";
 
-    private static final String FIELDS = "user_id,client_id,scope,expiresAt,status,lastModifiedAt";
+    private static final String FIELDS = "user_id,client_id,scope,expiresAt,status,lastModifiedAt,identity_zone_id";
 
-    private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?,?)", TABLE_NAME,
-                    FIELDS+",identity_zone_id");
+    private static final String ADD_AUTHZ_SQL =
+        String.format("insert into %s ( %s ) values (?,?,?,?,?,?,?)",
+                      TABLE_NAME,
+                      FIELDS);
 
-    private static final String REFRESH_AUTHZ_SQL = String
-                    .format("update %s set lastModifiedAt=?, expiresAt=?, status=? where user_id=? and client_Id=? and scope=?",
-                                    TABLE_NAME);
+    private static final String REFRESH_AUTHZ_SQL =
+        String.format("update %s set lastModifiedAt=?, expiresAt=?, status=? where user_id=? and client_Id=? and scope=? and identity_zone_id=?",
+                      TABLE_NAME);
 
     private static final String GET_AUTHZ_SQL = String.format("select %s from %s", FIELDS, TABLE_NAME);
 
@@ -97,6 +99,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 ps.setString(4, approval.getUserId());
                 ps.setString(5, approval.getClientId());
                 ps.setString(6, approval.getScope());
+                ps.setString(7, IdentityZoneHolder.get().getId());
             }
         });
         if (refreshed != 1) {
@@ -111,7 +114,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         try {
             refreshApproval(approval); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the
-                                                       // approval. add it.
+            // approval. add it.
             int count = jdbcTemplate.update(ADD_AUTHZ_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -124,7 +127,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                     ps.setString(7, IdentityZoneHolder.get().getId());
                 }
             });
-            if (count==0) throw new EmptyResultDataAccessException("Approval add failed", 1);
+            if (count == 0) throw new EmptyResultDataAccessException("Approval add failed", 1);
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         publish(new ApprovalModifiedEvent(approval, authentication));
@@ -194,13 +197,13 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         return count > 0;
     }
 
-        public boolean purgeExpiredApprovals() {
+    public boolean purgeExpiredApprovals() {
         logger.debug("Purging expired approvals from database");
         try {
             int deleted = jdbcTemplate.update(DELETE_AUTHZ_SQL + " where expiresAt <= ?",
-                ps -> { //PreparedStatementSetter
-                    ps.setTimestamp(1, new Timestamp(new Date().getTime()));
-                });
+                                              ps -> { //PreparedStatementSetter
+                                                  ps.setTimestamp(1, new Timestamp(new Date().getTime()));
+                                              });
             logger.debug(deleted + " expired approvals deleted");
         } catch (DataAccessException ex) {
             logger.error("Error purging expired approvals", ex);
