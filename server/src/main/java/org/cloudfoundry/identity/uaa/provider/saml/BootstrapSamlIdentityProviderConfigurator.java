@@ -124,7 +124,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             Boolean skipSslValidation = (Boolean)((Map)entry.getValue()).get("skipSslValidation");
             Boolean storeCustomAttributes = (Boolean)((Map)entry.getValue()).get(STORE_CUSTOM_ATTRIBUTES_NAME);
             if (storeCustomAttributes == null) {
-                storeCustomAttributes = false; //default value
+                storeCustomAttributes = true; //default value
             }
 
             if (skipSslValidation==null) {

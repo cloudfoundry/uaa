@@ -695,6 +695,7 @@ public class BootstrapTests {
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = providerProvisioning.retrieveByOrigin("okta-local-2", IdentityZone.getUaa().getId());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES, samlProvider2.getConfig().getGroupMappingMode());
         assertFalse(samlProvider2.getConfig().isSkipSslValidation());
+        assertTrue(samlProvider2.getConfig().isStoreCustomAttributes());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider3 = providerProvisioning.retrieveByOrigin("vsphere.local", IdentityZone.getUaa().getId());
         assertTrue(samlProvider3.getConfig().isSkipSslValidation());
