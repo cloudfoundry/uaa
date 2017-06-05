@@ -312,7 +312,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
         @Override
         public Approval mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String userName = rs.getString(1);
+            String userId = rs.getString(1);
             String clientId = rs.getString(2);
             String scope = rs.getString(3);
             Date expiresAt = rs.getTimestamp(4);
@@ -320,7 +320,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             Date lastUpdatedAt = rs.getTimestamp(6);
 
             Approval approval = new Approval()
-                .setUserId(userName)
+                .setUserId(userId)
                 .setClientId(clientId)
                 .setScope(scope)
                 .setExpiresAt(expiresAt)
