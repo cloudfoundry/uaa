@@ -91,7 +91,12 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
 
     public String getCompleteAuthorizationURI(String alias, String baseURL, AbstractXOAuthIdentityProviderDefinition definition) {
         try {
-            String authUrlBase = definition.getAuthUrl().toString();
+            String authUrlBase;
+            if(definition instanceof OIDCIdentityProviderDefinition) {
+                authUrlBase = overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
+            } else {
+                authUrlBase = definition.getAuthUrl().toString();
+            }
             String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
             List<String> query = new ArrayList<>();
             query.add("client_id=" + definition.getRelyingPartyId());

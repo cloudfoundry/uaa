@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinitio
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -351,6 +352,15 @@ public class XOAuthProviderConfiguratorTests {
     public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() throws UnsupportedEncodingException {
         String expected = String.format(baseExpect, oauth.getRelyingPartyId(), URLEncoder.encode("code"), redirectUri, URLEncoder.encode("openid password.write"), "");
         assertEquals(configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth), expected);
+    }
+
+    @Test
+    public void getCompleteAuthorizationURI_withOnlyDiscoveryUrlForOIDCProvider() throws MalformedURLException {
+        oidc.setDiscoveryUrl(new URL(discoveryUrl));
+        oidc.setAuthUrl(null);
+        String authorizationURI = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
+        verify(configurator).overlay(oidc);
+        assertThat(authorizationURI, Matchers.startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
     }
 
     @Test
