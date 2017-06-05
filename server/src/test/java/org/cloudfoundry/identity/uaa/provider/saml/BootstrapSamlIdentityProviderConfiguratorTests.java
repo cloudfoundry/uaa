@@ -147,6 +147,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
 //        "      linkText: 'Log in with vCenter SSO'\n" +
 //        "      iconUrl: 'http://vsphere.local/iconurl.jpg'\n" +
         "    simplesamlphp-url:\n" +
+        "      storeCustomAttributes: false\n" +
         "      assertionConsumerIndex: 0\n" +
         "      idpMetadata: http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php\n" +
         "      metadataTrustCheck: false\n" +
@@ -234,6 +235,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
                     assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));
+                    assertTrue(idp.isStoreCustomAttributes());
                     break;
                 }
                 case "okta-local-2" : {
@@ -244,6 +246,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                     assertNull(idp.getIconUrl());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
+                    assertTrue(idp.isStoreCustomAttributes());
                     break;
                 }
                 case "okta-local-3" : {
@@ -264,6 +267,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                 case "simplesamlphp-url" : {
                     assertTrue(idp.isShowSamlLink());
                     assertEquals("simplesamlphp-url", idp.getLinkText());
+                    assertFalse(idp.isStoreCustomAttributes());
                     break;
                 }
                 default:
@@ -342,7 +346,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                 }
                 case "provider-with-shadow-user-disabled" : {
                     assertFalse("addShadowUserOnLogin can be set to false", def.isAddShadowUserOnLogin());
-                    assertFalse("Default store custom attributes is false", def.isStoreCustomAttributes());
+                    assertTrue("Default store custom attributes is false", def.isStoreCustomAttributes());
                     break;
                 }
                 default: fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
