@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.ResponseEntity;
@@ -63,7 +64,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         String code;
         try {
-            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name()).getCode();
+            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name(), IdentityZoneHolder.get().getId()).getCode();
         } catch (JsonUtils.JsonUtilException e) {
             throw new UaaException("Error while generating change email code", e);
         }
@@ -73,7 +74,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value="/email_changes", method = RequestMethod.POST)
     public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) throws IOException {
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if ((null != expiringCode) && ((null == expiringCode.getIntent()) || EMAIL.name().equals(expiringCode.getIntent()))) {
             Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             String userId = data.get("userId");

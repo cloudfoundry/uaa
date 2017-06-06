@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -45,7 +46,7 @@ public class EmailInvitationsService implements InvitationsService {
 
     @Override
     public AcceptedInvitation acceptInvitation(String code, String password) {
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
 
         if ((null == expiringCode) || (null != expiringCode.getIntent() && !INVITATION.name().equals(expiringCode.getIntent()))) {
             throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);

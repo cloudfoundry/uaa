@@ -652,7 +652,7 @@ public class LoginInfoEndpoint {
                 codeData.put(OriginKeys.ORIGIN, p.getOrigin());
             }
         }
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name());
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), IdentityZoneHolder.get().getId());
 
         return new AutologinResponse(expiringCode.getCode());
     }
@@ -717,12 +717,12 @@ public class LoginInfoEndpoint {
 
         String intent = ExpiringCodeType.PASSCODE + " " + pi.getUserId();
 
-        expiringCodeStore.expireByIntent(intent);
+        expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
 
         ExpiringCode code = expiringCodeStore.generateCode(
             JsonUtils.writeValueAsString(pi),
             new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis())),
-            intent);
+            intent, IdentityZoneHolder.get().getId());
 
         model.put(PASSCODE, code.getCode());
 

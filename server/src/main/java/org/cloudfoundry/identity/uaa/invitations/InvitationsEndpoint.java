@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,12 +20,10 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -112,7 +109,7 @@ public class InvitationsEndpoint {
                         data.put(REDIRECT_URI, redirectUri);
                         data.put(ORIGIN, user.getOrigin());
                         Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
-                        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name());
+                        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name(), IdentityZoneHolder.get().getId());
 
                         String invitationLink = accountsUrl + "?code=" + code.getCode();
                         try {

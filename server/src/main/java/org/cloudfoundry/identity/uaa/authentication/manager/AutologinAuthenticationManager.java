@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -64,7 +65,7 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
     }
 
     public ExpiringCode doRetrieveCode(String code) {
-        return codeStore.retrieveCode(code);
+        return codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
     }
 
 

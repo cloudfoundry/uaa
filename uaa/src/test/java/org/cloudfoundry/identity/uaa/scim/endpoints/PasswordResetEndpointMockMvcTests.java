@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -100,7 +101,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
                 .andExpect(jsonPath("$.username").value(user.getUserName()))
                 .andExpect(jsonPath("$.code").value("test" + generator.counter.get()));
 
-        ExpiringCode expiringCode = store.retrieveCode("test" + generator.counter.get());
+        ExpiringCode expiringCode = store.retrieveCode("test" + generator.counter.get(), IdentityZoneHolder.get().getId());
         assertThat(expiringCode.getIntent(), is(ExpiringCodeType.AUTOLOGIN.name()));
         Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
         assertThat(data.get("user_id"), is(user.getId()));
@@ -129,7 +130,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
                 .andExpect(jsonPath("$.username").value(user.getUserName()))
                 .andExpect(jsonPath("$.code").value("test" + generator.counter.get()));
 
-        ExpiringCode expiringCode = store.retrieveCode("test" + generator.counter.get());
+        ExpiringCode expiringCode = store.retrieveCode("test" + generator.counter.get(), IdentityZoneHolder.get().getId());
         Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
         assertThat(data.get(OAuth2Utils.CLIENT_ID), is("another-client"));
     }
@@ -150,7 +151,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
         String resultingCodeString = getCodeFromPage(result);
         ExpiringCodeStore expiringCodeStore = (ExpiringCodeStore) getWebApplicationContext().getBean("codeStore");
-        ExpiringCode resultingCode = expiringCodeStore.retrieveCode(resultingCodeString);
+        ExpiringCode resultingCode = expiringCodeStore.retrieveCode(resultingCodeString, IdentityZoneHolder.get().getId());
 
         Map<String, String> resultingCodeData = JsonUtils.readValue(resultingCode.getData(), new TypeReference<Map<String, String>>() {
         });

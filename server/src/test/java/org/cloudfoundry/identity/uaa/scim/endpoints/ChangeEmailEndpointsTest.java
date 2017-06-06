@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testGenerateEmailChangeCode() throws Exception {
         String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
-        when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name())))
+        when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), eq(IdentityZoneHolder.get().getId())))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, EMAIL.name()));
 
         ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
@@ -101,7 +102,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangeEmail() throws Exception {
-        when(expiringCodeStore.retrieveCode("the_secret_code"))
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
             .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}", EMAIL.name()));
 
         BaseClientDetails clientDetails = new BaseClientDetails();
@@ -142,7 +143,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangeEmailWhenUsernameNotTheSame() throws Exception {
-        when(expiringCodeStore.retrieveCode("the_secret_code"))
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
             .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", EMAIL.name()));
 
         ScimUser scimUser = new ScimUser();
@@ -166,7 +167,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void changeEmail_withIncorrectCode() throws Exception {
-        when(expiringCodeStore.retrieveCode("the_secret_code"))
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
             .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", "incorrect-code"));
 
         mockMvc.perform(post("/email_changes")

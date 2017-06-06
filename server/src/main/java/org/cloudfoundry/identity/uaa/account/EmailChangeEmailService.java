@@ -87,12 +87,12 @@ public class EmailChangeEmailService implements ChangeEmailService {
         codeData.put("redirect_uri", redirectUri);
         codeData.put("email", newEmail);
 
-        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name()).getCode();
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name(), IdentityZoneHolder.get().getId()).getCode();
     }
 
     @Override
     public Map<String, String> completeVerification(String code) {
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if ((null == expiringCode) || ((null != expiringCode.getIntent()) && !EMAIL.name().equals(expiringCode.getIntent()))) {
             throw new UaaException("Error", 400);
         }

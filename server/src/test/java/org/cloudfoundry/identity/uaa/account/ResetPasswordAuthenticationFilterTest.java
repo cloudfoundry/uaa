@@ -15,12 +15,12 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation.PasswordConfirmationException;
 import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,10 +34,8 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 
 import static junit.framework.TestCase.assertNull;
@@ -82,7 +80,7 @@ public class ResetPasswordAuthenticationFilterTest {
     @Before
     public void setup() throws Exception {
         codeStore = new InMemoryExpiringCodeStore();
-        code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10*60*1000), "").getCode();
+        code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10*60*1000), "", IdentityZoneHolder.get().getId()).getCode();
 
         password = "test";
         passwordConfirmation = "test";

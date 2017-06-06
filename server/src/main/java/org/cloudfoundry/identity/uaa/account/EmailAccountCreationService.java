@@ -102,7 +102,7 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     @Override
     public AccountCreationResponse completeActivation(String code) throws IOException {
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if ((null == expiringCode) || ((null != expiringCode.getIntent()) && !REGISTRATION.name().equals(expiringCode.getIntent()))) {
             throw new HttpClientErrorException(BAD_REQUEST);
         }

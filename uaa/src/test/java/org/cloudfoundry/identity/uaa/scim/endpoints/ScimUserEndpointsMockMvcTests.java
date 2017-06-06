@@ -280,7 +280,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String code = getQueryStringParam(query, "code");
         assertThat(code, is(notNullValue()));
 
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
@@ -319,7 +319,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(code, is(notNullValue()));
 
         IdentityZoneHolder.set(zoneResult.getIdentityZone());
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
@@ -358,7 +358,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(code, is(notNullValue()));
 
         IdentityZoneHolder.set(zoneResult.getIdentityZone());
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));

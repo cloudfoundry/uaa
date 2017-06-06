@@ -295,7 +295,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void testResetPasswordPage() throws Exception {
-        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null);
+        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
             .andExpect(status().isOk())
             .andExpect(view().name("reset_password"));
@@ -303,7 +303,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void testResetPasswordPageDuplicate() throws Exception {
-        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null);
+        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
             .andExpect(status().isOk())
             .andExpect(view().name("reset_password"));

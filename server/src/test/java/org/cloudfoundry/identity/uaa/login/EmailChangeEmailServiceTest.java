@@ -217,13 +217,13 @@ public class EmailChangeEmailServiceTest {
 
     @Test(expected = UaaException.class)
     public void testCompleteVerificationWithInvalidCode() throws Exception {
-        when(codeStore.retrieveCode("invalid_code")).thenReturn(null);
+        when(codeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId())).thenReturn(null);
         emailChangeEmailService.completeVerification("invalid_code");
     }
 
     @Test(expected = UaaException.class)
     public void testCompleteVerificationWithInvalidIntent() throws Exception {
-        when(codeStore.retrieveCode("invalid_code")).thenReturn(new ExpiringCode("invalid_code", new Timestamp(System.currentTimeMillis()), null, "invalid-intent"));
+        when(codeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("invalid_code", new Timestamp(System.currentTimeMillis()), null, "invalid-intent"));
         emailChangeEmailService.completeVerification("invalid_code");
     }
 
@@ -234,7 +234,7 @@ public class EmailChangeEmailServiceTest {
         codeData.put("client_id", "invalid-client");
         codeData.put("email", "new@example.com");
 
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", "user@example.com", "", "");
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
@@ -275,7 +275,7 @@ public class EmailChangeEmailServiceTest {
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
         clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
 
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", username, "", "");
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
@@ -303,11 +303,11 @@ public class EmailChangeEmailServiceTest {
         when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
         when(scimUserProvisioning.query(anyString())).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()))).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
 
         emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
 
-        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()));
+        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(IdentityZoneHolder.get().getId()));
     }
 
 }
