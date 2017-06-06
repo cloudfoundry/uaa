@@ -1022,9 +1022,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .setClientId(client.getClientId())
                 .setScope("openid")
                 .setStatus(Approval.ApprovalStatus.APPROVED)
-                .setUserId(user.getId())
+                .setUserId(user.getId()), IdentityZoneHolder.get().getId()
         );
-        assertEquals(1, approvalStore.getApprovals(user.getId(), client.getClientId()).size());
+        assertEquals(1, approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId()).size());
 
         //perform zone delete
         getMockMvc().perform(
@@ -1057,7 +1057,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         }
 
         assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[]{user.getId()}, Integer.class), is(0));
-        assertEquals(0, approvalStore.getApprovals(user.getId(), client.getClientId()).size());
+        assertEquals(0, approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId()).size());
 
 
     }

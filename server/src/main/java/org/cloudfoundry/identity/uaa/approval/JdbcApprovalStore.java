@@ -88,7 +88,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         this.handleRevocationsAsExpiry = handleRevocationsAsExpiry;
     }
 
-    public boolean refreshApproval(final Approval approval) {
+    public boolean refreshApproval(final Approval approval, final String zoneId) {
         logger.debug(String.format("refreshing approval: [%s]", approval));
         int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, new PreparedStatementSetter() {
             @Override
@@ -99,7 +99,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 ps.setString(4, approval.getUserId());
                 ps.setString(5, approval.getClientId());
                 ps.setString(6, approval.getScope());
-                ps.setString(7, IdentityZoneHolder.get().getId());
+                ps.setString(7, zoneId);
             }
         });
         if (refreshed != 1) {
@@ -109,10 +109,10 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public boolean addApproval(final Approval approval) {
+    public boolean addApproval(final Approval approval, final String zoneId) {
         logger.debug(String.format("adding approval: [%s]", approval));
         try {
-            refreshApproval(approval); // try to refresh the approval
+            refreshApproval(approval, IdentityZoneHolder.get().getId()); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the
             // approval. add it.
             int count = jdbcTemplate.update(ADD_AUTHZ_SQL, new PreparedStatementSetter() {
@@ -124,7 +124,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                     ps.setTimestamp(4, new Timestamp(approval.getExpiresAt().getTime()));
                     ps.setString(5, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
                     ps.setTimestamp(6, new Timestamp(approval.getLastUpdatedAt().getTime()));
-                    ps.setString(7, IdentityZoneHolder.get().getId());
+                    ps.setString(7, zoneId);
                 }
             });
             if (count == 0) throw new EmptyResultDataAccessException("Approval add failed", 1);
@@ -135,7 +135,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public boolean revokeApproval(Approval approval) {
+    public boolean revokeApproval(Approval approval, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE user_id = ? AND client_id = ? AND scope = ? AND identity_zone_id = ?";
         int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
@@ -145,14 +145,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 ps.setString(pos++, approval.getUserId());
                 ps.setString(pos++, approval.getClientId());
                 ps.setString(pos++, approval.getScope());
-                ps.setString(pos++, IdentityZoneHolder.get().getId());
+                ps.setString(pos++, zoneId);
             }
         });
         return count > 0;
     }
 
     @Override
-    public boolean revokeApprovalsForUser(String userId) {
+    public boolean revokeApprovalsForUser(String userId, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE user_id = ? AND identity_zone_id = ?";
         int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
@@ -160,14 +160,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             public void setValues(PreparedStatement ps) throws SQLException {
                 int pos = 1;
                 ps.setString(pos++, userId);
-                ps.setString(pos++, IdentityZoneHolder.get().getId());
+                ps.setString(pos++, zoneId);
             }
         });
         return count > 0;
     }
 
     @Override
-    public boolean revokeApprovalsForClient(String clientId) {
+    public boolean revokeApprovalsForClient(String clientId, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE client_id = ? AND identity_zone_id = ?";
         int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
@@ -175,14 +175,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             public void setValues(PreparedStatement ps) throws SQLException {
                 int pos = 1;
                 ps.setString(pos++, clientId);
-                ps.setString(pos++, IdentityZoneHolder.get().getId());
+                ps.setString(pos++, zoneId);
             }
         });
         return count > 0;
     }
 
     @Override
-    public boolean revokeApprovalsForClientAndUser(String clientId, String userId) {
+    public boolean revokeApprovalsForClientAndUser(String clientId, String userId, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE user_id = ? AND client_id = ? AND identity_zone_id = ?";
         int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
@@ -191,7 +191,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 int pos = 1;
                 ps.setString(pos++, userId);
                 ps.setString(pos++, clientId);
-                ps.setString(pos++, IdentityZoneHolder.get().getId());
+                ps.setString(pos++, zoneId);
             }
         });
         return count > 0;
@@ -213,7 +213,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public List<Approval> getApprovalsForUser(String userId) {
+    public List<Approval> getApprovalsForUser(String userId, final String zoneId) {
         String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
             sql,
@@ -222,7 +222,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 public void setValues(PreparedStatement ps) throws SQLException {
                     int pos = 1;
                     ps.setString(pos++, userId);
-                    ps.setString(pos++, IdentityZoneHolder.get().getId());
+                    ps.setString(pos++, zoneId);
                 }
             },
             rowMapper
@@ -230,7 +230,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public List<Approval> getApprovalsForClient(String clientId) {
+    public List<Approval> getApprovalsForClient(String clientId, final String zoneId) {
         String sql = GET_AUTHZ_SQL + " WHERE client_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
             sql,
@@ -239,7 +239,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 public void setValues(PreparedStatement ps) throws SQLException {
                     int pos = 1;
                     ps.setString(pos++, clientId);
-                    ps.setString(pos++, IdentityZoneHolder.get().getId());
+                    ps.setString(pos++, zoneId);
                 }
             },
             rowMapper
@@ -247,7 +247,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public List<Approval> getApprovals(String userId, String clientId) {
+    public List<Approval> getApprovals(String userId, String clientId, final String zoneId) {
         String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND client_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
             sql,
@@ -257,7 +257,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                     int pos = 1;
                     ps.setString(pos++, userId);
                     ps.setString(pos++, clientId);
-                    ps.setString(pos++, IdentityZoneHolder.get().getId());
+                    ps.setString(pos++, zoneId);
                 }
             },
             rowMapper

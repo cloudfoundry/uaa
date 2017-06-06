@@ -353,13 +353,13 @@ public class ScimUserEndpointsTests {
             .setClientId("c1")
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.APPROVED));
+            .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         am.addApproval(new Approval()
             .setUserId(created.getId())
             .setClientId("c1")
             .setScope("s2")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.DENIED));
+            .setStatus(Approval.ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
 
         created.setApprovals(Collections.singleton(new Approval()
             .setUserId("vidya")
@@ -380,13 +380,13 @@ public class ScimUserEndpointsTests {
             .setClientId("c1")
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.APPROVED));
+            .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         am.addApproval(new Approval()
             .setUserId(joel.getId())
             .setClientId("c1")
             .setScope("s2")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.DENIED));
+            .setStatus(Approval.ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
 
         assertEquals(2, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
     }
@@ -723,7 +723,7 @@ public class ScimUserEndpointsTests {
         endpoints.setApprovalStore(mockApprovalStore);
 
         endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString());
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setApprovalStore(am);
     }
@@ -734,7 +734,7 @@ public class ScimUserEndpointsTests {
         endpoints.setApprovalStore(mockApprovalStore);
 
         endpoints.findUsers("approvals", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString());
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setApprovalStore(am);
     }

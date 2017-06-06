@@ -103,7 +103,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setExpiresAt(expiresAt)
             .setStatus(status)
             .setLastUpdatedAt(lastUpdatedAt);
-        dao.addApproval(newApproval);
+        dao.addApproval(newApproval, IdentityZoneHolder.get().getId());
     }
 
     public int countClientApprovals(String clientId, String zoneId) {
@@ -211,8 +211,8 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setExpiresAt(expiresAt)
             .setStatus(status)
             .setLastUpdatedAt(lastUpdatedAt);
-        dao.addApproval(newApproval);
-        List<Approval> approvals = dao.getApprovals(userId, clientId);
+        dao.addApproval(newApproval, IdentityZoneHolder.get().getId());
+        List<Approval> approvals = dao.getApprovals(userId, clientId, IdentityZoneHolder.get().getId());
 
         assertEquals(clientId, approvals.get(0).getClientId());
         assertEquals(userId, approvals.get(0).getUserId());
@@ -225,10 +225,10 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @Test
     public void canGetApprovals() {
-        assertEquals(2, dao.getApprovalsForClient("c1").size());
-        assertEquals(1, dao.getApprovals("u2", "c1").size());
-        assertEquals(0, dao.getApprovals("u2", "c2").size());
-        assertEquals(1, dao.getApprovals("u1", "c1").size());
+        assertEquals(2, dao.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.getApprovals("u2", "c1", IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.getApprovals("u1", "c1", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
@@ -238,8 +238,8 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setClientId("c2")
             .setScope("dash.user")
             .setExpiresAt(Approval.timeFromNow(12000))
-            .setStatus(APPROVED)));
-        List<Approval> apps = dao.getApprovals("u2", "c2");
+            .setStatus(APPROVED), IdentityZoneHolder.get().getId()));
+        List<Approval> apps = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId());
         assertEquals(1, apps.size());
         Approval app = apps.iterator().next();
         assertEquals("dash.user", app.getScope());
@@ -250,42 +250,42 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     @Test
     public void approvals_is_zone_aware() throws Exception {
         String filter = "client_id eq \"c1\" or client_id eq \"c2\" or client_id eq \"c3\"";
-        assertThat(dao.getApprovalsForClient("c1").size(), equalTo(2));
-        assertThat(dao.getApprovalsForClient("c2").size(), equalTo(1));
-        assertThat(dao.getApprovalsForClient("c3").size(), equalTo(0));
+        assertThat(dao.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size(), equalTo(2));
+        assertThat(dao.getApprovalsForClient("c2", IdentityZoneHolder.get().getId()).size(), equalTo(1));
+        assertThat(dao.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size(), equalTo(0));
 
         IdentityZoneHolder.set(otherZone);
-        assertThat(dao.getApprovalsForClient("c1").size(), equalTo(0));
-        assertThat(dao.getApprovalsForClient("c2").size(), equalTo(0));
-        assertThat(dao.getApprovalsForClient("c3").size(), equalTo(0));
-        dao.revokeApprovalsForClient("c1");
-        dao.revokeApprovalsForClient("c2");
-        dao.revokeApprovalsForClient("c3");
-        dao.revokeApprovalsForUser("u1");
-        dao.revokeApprovalsForUser("u2");
-        dao.revokeApprovalsForUser("u3");
+        assertThat(dao.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size(), equalTo(0));
+        assertThat(dao.getApprovalsForClient("c2", IdentityZoneHolder.get().getId()).size(), equalTo(0));
+        assertThat(dao.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size(), equalTo(0));
+        dao.revokeApprovalsForClient("c1", IdentityZoneHolder.get().getId());
+        dao.revokeApprovalsForClient("c2", IdentityZoneHolder.get().getId());
+        dao.revokeApprovalsForClient("c3", IdentityZoneHolder.get().getId());
+        dao.revokeApprovalsForUser("u1", IdentityZoneHolder.get().getId());
+        dao.revokeApprovalsForUser("u2", IdentityZoneHolder.get().getId());
+        dao.revokeApprovalsForUser("u3", IdentityZoneHolder.get().getId());
 
         IdentityZoneHolder.clear();
-        assertThat(dao.getApprovalsForClient("c1").size(), equalTo(2));
-        assertThat(dao.getApprovalsForClient("c2").size(), equalTo(1));
-        assertThat(dao.getApprovalsForClient("c3").size(), equalTo(0));
+        assertThat(dao.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size(), equalTo(2));
+        assertThat(dao.getApprovalsForClient("c2", IdentityZoneHolder.get().getId()).size(), equalTo(1));
+        assertThat(dao.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size(), equalTo(0));
     }
 
     @Test
     public void canRevokeApprovals() {
-        assertEquals(2, dao.getApprovalsForUser("u1").size());
-        assertTrue(dao.revokeApprovalsForUser("u1"));
-        assertEquals(0, dao.getApprovalsForUser("u1").size());
+        assertEquals(2, dao.getApprovalsForUser("u1", IdentityZoneHolder.get().getId()).size());
+        assertTrue(dao.revokeApprovalsForUser("u1", IdentityZoneHolder.get().getId()));
+        assertEquals(0, dao.getApprovalsForUser("u1", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
     public void canRevokeSingleApproval() {
-        List<Approval> approvals = dao.getApprovalsForUser("u1");
+        List<Approval> approvals = dao.getApprovalsForUser("u1", IdentityZoneHolder.get().getId());
         assertEquals(2, approvals.size());
 
         Approval toRevoke = approvals.get(0);
-        assertTrue(dao.revokeApproval(toRevoke));
-        List<Approval> approvalsAfterRevoke = dao.getApprovalsForUser("u1");
+        assertTrue(dao.revokeApproval(toRevoke, IdentityZoneHolder.get().getId()));
+        List<Approval> approvalsAfterRevoke = dao.getApprovalsForUser("u1", IdentityZoneHolder.get().getId());
 
         assertEquals(1, approvalsAfterRevoke.size());
         assertFalse(approvalsAfterRevoke.contains(toRevoke));
@@ -299,8 +299,8 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setClientId("c2")
             .setScope("dash.user")
             .setExpiresAt(timeFromNow)
-            .setStatus(APPROVED)));
-        Approval app = dao.getApprovals("u2", "c2").iterator().next();
+            .setStatus(APPROVED), IdentityZoneHolder.get().getId()));
+        Approval app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
         //time comparison - we're satisfied if it is within 2 seconds
         assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
 
@@ -311,8 +311,8 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setClientId("c2")
             .setScope("dash.user")
             .setExpiresAt(timeFromNow)
-            .setStatus(APPROVED)));
-        app = dao.getApprovals("u2", "c2").iterator().next();
+            .setStatus(APPROVED), IdentityZoneHolder.get().getId()));
+        app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
         assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
     }
 
@@ -325,8 +325,8 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setClientId("c2")
             .setScope("dash.user")
             .setExpiresAt(timeFromNow)
-            .setStatus(APPROVED)));
-        Approval app = dao.getApprovals("u2", "c2").iterator().next();
+            .setStatus(APPROVED), IdentityZoneHolder.get().getId()));
+        Approval app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
         assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
 
         timeFromNow = Approval.timeFromNow(8000);
@@ -335,24 +335,24 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setClientId("c2")
             .setScope("dash.user")
             .setExpiresAt(timeFromNow)
-            .setStatus(DENIED)));
-        app = dao.getApprovals("u2", "c2").iterator().next();
+            .setStatus(DENIED), IdentityZoneHolder.get().getId()));
+        app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
         assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
         assertEquals(DENIED, app.getStatus());
     }
 
     @Test
     public void refresh_approval_calls_get_zone_id() throws Exception {
-        Approval app = dao.getApprovals("u1", "c1").iterator().next();
+        Approval app = dao.getApprovals("u1", "c1", IdentityZoneHolder.get().getId()).iterator().next();
         IdentityZone spy = spy(IdentityZoneHolder.get());
         IdentityZoneHolder.set(spy);
-        dao.refreshApproval(app);
+        dao.refreshApproval(app, IdentityZoneHolder.get().getId());
         verify(spy, times(1)).getId();
     }
 
     @Test
     public void canRefreshApproval() {
-        Approval app = dao.getApprovals("u1", "c1").iterator().next();
+        Approval app = dao.getApprovals("u1", "c1", IdentityZoneHolder.get().getId()).iterator().next();
         Date now = new Date();
 
         dao.refreshApproval(new Approval()
@@ -360,31 +360,31 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setClientId(app.getClientId())
             .setScope(app.getScope())
             .setExpiresAt(now)
-            .setStatus(APPROVED));
-        app = dao.getApprovals("u1", "c1").iterator().next();
+            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+        app = dao.getApprovals("u1", "c1", IdentityZoneHolder.get().getId()).iterator().next();
         assertThat((int)Math.abs(now.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
     }
 
     @Test
     public void canPurgeExpiredApprovals() throws InterruptedException {
-        assertEquals(0, dao.getApprovalsForClient("c3").size());
-        assertEquals(0, dao.getApprovalsForUser("u3").size());
-        assertEquals(2, dao.getApprovalsForClient("c1").size());
-        assertEquals(2, dao.getApprovalsForUser("u1").size());
+        assertEquals(0, dao.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, dao.getApprovalsForUser("u3", IdentityZoneHolder.get().getId()).size());
+        assertEquals(2, dao.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size());
+        assertEquals(2, dao.getApprovalsForUser("u1", IdentityZoneHolder.get().getId()).size());
         addApproval("u3", "c3", "test1", 0, APPROVED, UAA);
         addApproval("u3", "c3", "test2", 0, DENIED, UAA);
         addApproval("u3", "c3", "test3", 0, APPROVED, UAA);
-        assertEquals(3, dao.getApprovalsForClient("c3").size());
-        assertEquals(3, dao.getApprovalsForUser("u3").size());
+        assertEquals(3, dao.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size());
+        assertEquals(3, dao.getApprovalsForUser("u3", IdentityZoneHolder.get().getId()).size());
 
         // On mysql, the expiry is rounded off to the nearest second so
         // the following assert could randomly fail.
         Thread.sleep(1500);
         dao.purgeExpiredApprovals();
-        assertEquals(0, dao.getApprovalsForClient("c3").size());
-        assertEquals(0, dao.getApprovalsForUser("u3").size());
-        assertEquals(2, dao.getApprovalsForClient("c1").size());
-        assertEquals(2, dao.getApprovalsForUser("u1").size());
+        assertEquals(0, dao.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, dao.getApprovalsForUser("u3", IdentityZoneHolder.get().getId()).size());
+        assertEquals(2, dao.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size());
+        assertEquals(2, dao.getApprovalsForUser("u1", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
@@ -403,7 +403,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         MockAuthentication authentication = new MockAuthentication();
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        dao.addApproval(approval);
+        dao.addApproval(approval, IdentityZoneHolder.get().getId());
 
         Assert.assertEquals(1, eventPublisher.getEventCount());
 
@@ -415,7 +415,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         approval.setStatus(DENIED);
 
         eventPublisher.clearEvents();
-        dao.addApproval(approval);
+        dao.addApproval(approval, IdentityZoneHolder.get().getId());
 
         Assert.assertEquals(1, eventPublisher.getEventCount());
 

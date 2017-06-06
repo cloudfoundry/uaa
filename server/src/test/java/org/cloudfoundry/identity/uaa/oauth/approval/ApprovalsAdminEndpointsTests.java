@@ -116,7 +116,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
             .setClientId(clientId)
             .setScope(scope)
             .setExpiresAt(Approval.timeFromNow(expiresIn))
-            .setStatus(status));
+            .setStatus(status), IdentityZoneHolder.get().getId());
     }
 
     private SecurityContextAccessor mockSecurityContextAccessor(String userName, String id) {
@@ -380,27 +380,27 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     }
 
     public void revokeApprovalsCountForUser(String userId) {
-        assertTrue(dao.revokeApprovalsForClient(userId));
+        assertTrue(dao.revokeApprovalsForClient(userId, IdentityZoneHolder.get().getId()));
     }
 
     public void revokeApprovalsCountForClient(String clientId) {
-        assertTrue(dao.revokeApprovalsForClient(clientId));
+        assertTrue(dao.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId()));
     }
 
     public void revokeApprovalsCountForClientAndUser(String clientId, String userId) {
-        assertTrue(dao.revokeApprovalsForClientAndUser(clientId, userId));
+        assertTrue(dao.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId()));
     }
 
     public int getApprovalsCountForUser(String userId) {
-        return dao.getApprovalsForUser(userId).size();
+        return dao.getApprovalsForUser(userId, IdentityZoneHolder.get().getId()).size();
     }
 
     public int getApprovalsCountForClient(String clientId) {
-        return dao.getApprovalsForClient(clientId).size();
+        return dao.getApprovalsForClient(clientId, IdentityZoneHolder.get().getId()).size();
     }
 
     public int getApprovalsCount(String clientId, String userId) {
-        return dao.getApprovals(userId, clientId).size();
+        return dao.getApprovals(userId, clientId, IdentityZoneHolder.get().getId()).size();
     }
 
     public void rebuildIndices() {

@@ -35,7 +35,7 @@ public class IdentityZoneEndpointClientRegistrationService {
         ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
         clientDetailsValidator.validate(clientDetails, Mode.DELETE);
         clientRegistrationService.removeClientDetails(clientId);
-        approvalStore.revokeApprovalsForClient(clientId);
+        approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
         return clientDetails;
     }
 }

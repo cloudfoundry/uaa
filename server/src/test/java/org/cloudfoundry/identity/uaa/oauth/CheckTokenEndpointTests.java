@@ -258,14 +258,14 @@ public class CheckTokenEndpointTests {
             .setScope("read")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
             .setScope("write")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setTokenPolicy(IdentityZoneHolder.get().getConfig().getTokenPolicy());
 
@@ -914,14 +914,14 @@ public class CheckTokenEndpointTests {
             .setScope("read")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
             .setScope("read")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.DENIED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals(null, result.getAuthorities());
     }
@@ -934,13 +934,13 @@ public class CheckTokenEndpointTests {
             .setClientId("client")
             .setScope("read")
             .setExpiresAt(new Date())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
             .setScope("read")
             .setExpiresAt(new Date())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals(null, result.getAuthorities());
     }

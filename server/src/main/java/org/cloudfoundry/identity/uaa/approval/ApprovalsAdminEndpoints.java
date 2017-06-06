@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -98,7 +99,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
                                        @RequestParam(required = false, defaultValue = "100") int count) {
         String userId = getCurrentUserId();
         logger.debug("Fetching all approvals for user: " + userId);
-        List<Approval> input = approvalStore.getApprovalsForUser(userId);
+        List<Approval> input = approvalStore.getApprovalsForUser(userId, IdentityZoneHolder.get().getId());
         List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
 
         // Find the clients for these approvals
@@ -150,7 +151,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
-        approvalStore.revokeApprovalsForUser(currentUserId);
+        approvalStore.revokeApprovalsForUser(currentUserId, IdentityZoneHolder.get().getId());
         List<Approval> result = new LinkedList<>();
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) &&  !isValidUser(approval.getUserId())) {
@@ -160,7 +161,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             } else {
                 approval.setUserId(currentUserId);
             }
-            if (approvalStore.addApproval(approval)) {
+            if (approvalStore.addApproval(approval, IdentityZoneHolder.get().getId())) {
                 result.add(approval);
             }
         }
@@ -174,7 +175,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         clientDetailsService.loadClientByClientId(clientId);
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
-        approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId);
+        approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
                 logger.warn(String.format("Error[1] %s attemting to update approvals for %s.", currentUserId, approval.getUserId()));
@@ -183,9 +184,9 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             } else {
                 approval.setUserId(currentUserId);
             }
-            approvalStore.addApproval(approval);
+            approvalStore.addApproval(approval, IdentityZoneHolder.get().getId());
         }
-        return approvalStore.getApprovals(currentUserId, clientId);
+        return approvalStore.getApprovals(currentUserId, clientId, IdentityZoneHolder.get().getId());
     }
 
     private boolean isValidUser(String userId) {
@@ -207,7 +208,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         clientDetailsService.loadClientByClientId(clientId);
         String userId = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + userId + " and client " + clientId);
-        approvalStore.revokeApprovalsForClientAndUser(clientId, userId);
+        approvalStore.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
         return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
     }
 

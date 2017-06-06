@@ -733,21 +733,21 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
                                       .setUserId(tokenSupport.userId)
                                       .setClientId(CLIENT_ID)
                                       .setScope(OPENID)
                                       .setExpiresAt(expiresAt.getTime())
                                       .setStatus(ApprovalStatus.APPROVED)
-                                      .setLastUpdatedAt(updatedAt.getTime()));
+                                      .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -872,7 +872,7 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
@@ -880,7 +880,7 @@ public class UaaTokenServicesTests {
             .setScope(OPENID)
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -938,7 +938,7 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -989,14 +989,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.DENIED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1201,14 +1201,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         // First Request
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
@@ -1253,13 +1253,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         // First Request
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1321,13 +1321,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -1366,13 +1366,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         // Back date the refresh token. Crude way to do this but i'm not sure of
@@ -1419,12 +1419,12 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         // Other scope is left unapproved
 
-        for(Approval approval : tokenSupport.approvalStore.getApprovals(tokenSupport.userId, CLIENT_ID)) {
-            tokenSupport.approvalStore.revokeApproval(approval);
+        for(Approval approval : tokenSupport.approvalStore.getApprovals(tokenSupport.userId, CLIENT_ID, IdentityZoneHolder.get().getId())) {
+            tokenSupport.approvalStore.revokeApproval(approval, IdentityZoneHolder.get().getId());
         }
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
@@ -1446,13 +1446,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1483,13 +1483,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.DENIED));
+            .setStatus(ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1520,7 +1520,7 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.DENIED));
+            .setStatus(ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1610,7 +1610,7 @@ public class UaaTokenServicesTests {
             .setScope(UAA_REFRESH_TOKEN)
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         tokenServices.setRestrictRefreshGrant(true);
         OAuth2AccessToken refresh_token = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(reducedScopeAuthorizationRequest, "refresh_token"));
@@ -1647,14 +1647,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         Approval approval = new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
@@ -1663,13 +1663,13 @@ public class UaaTokenServicesTests {
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(updatedAt.getTime());
         tokenSupport.approvalStore.addApproval(
-            approval);
+            approval, IdentityZoneHolder.get().getId());
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));
 
-        tokenSupport.approvalStore.revokeApproval(approval);
+        tokenSupport.approvalStore.revokeApproval(approval, IdentityZoneHolder.get().getId());
         try {
             tokenServices.readAccessToken(accessToken.getValue());
             fail("Approval has been revoked");
@@ -1698,14 +1698,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);

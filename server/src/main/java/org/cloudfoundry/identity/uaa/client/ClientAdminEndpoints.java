@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -447,7 +448,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     protected void deleteApprovals(String clientId) {
         if (approvalStore!=null) {
-            approvalStore.revokeApprovalsForClient(clientId);
+            approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
         } else {
             throw new UnsupportedOperationException("No approval store configured on "+getClass().getName());
         }

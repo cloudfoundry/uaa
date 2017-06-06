@@ -977,7 +977,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         approval.setUserId(user.getId());
         approval.setScope("openid");
         approval.setStatus(Approval.ApprovalStatus.APPROVED);
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
         assertEquals(1, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));
         testDeleteUserWithUaaAdminToken(user);
         assertEquals(0, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));
