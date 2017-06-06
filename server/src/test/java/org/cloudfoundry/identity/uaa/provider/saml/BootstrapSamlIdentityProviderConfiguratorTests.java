@@ -148,7 +148,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
 //        "      iconUrl: 'http://vsphere.local/iconurl.jpg'\n" +
         "    simplesamlphp-url:\n" +
         "      assertionConsumerIndex: 0\n" +
-        "      idpMetadata: http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php\n" +
+        "      idpMetadata: http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php\n" +
         "      metadataTrustCheck: false\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n"
 //        +"    incomplete-provider:\n" +

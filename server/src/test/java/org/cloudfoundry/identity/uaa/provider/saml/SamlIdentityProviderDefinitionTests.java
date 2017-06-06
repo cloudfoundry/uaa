@@ -124,7 +124,7 @@ public class SamlIdentityProviderDefinitionTests {
 
     @Test
     public void test_Get_URL_When_Valid() throws Exception {
-        definition.setMetaDataLocation("http://login.identity.cf-app.com/saml/metadata");
+        definition.setMetaDataLocation("http://login.uaa-acceptance.cf-app.com/saml/metadata");
         assertEquals(URL, definition.getType());
     }
 
