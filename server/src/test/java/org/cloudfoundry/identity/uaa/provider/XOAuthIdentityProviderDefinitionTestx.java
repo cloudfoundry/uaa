@@ -38,7 +38,7 @@ public class XOAuthIdentityProviderDefinitionTestx {
     private RawXOAuthIdentityProviderDefinition oauth;
 
 
-    private String baseExpect = "https://oidc10.identity.cf-app.com/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
+    private String baseExpect = "https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
     private String redirectUri;
     private MockHttpServletRequest request;
 
@@ -54,9 +54,9 @@ public class XOAuthIdentityProviderDefinitionTestx {
         request.setServerPort(8443);
 
         for (AbstractXOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
-            def.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
-            def.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
-            def.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_keys"));
+            def.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
+            def.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
+            def.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_keys"));
             def.setScopes(Arrays.asList("openid","password.write"));
             def.setRelyingPartyId("clientId");
             if (def == oidc) {

@@ -76,7 +76,7 @@ public class FixedHttpMetaDataProviderTest {
     @Test
     public void self_signed_fetch_fails_by_default() throws Exception {
         RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false));
-        setUp("https://login.identity.cf-app.com/saml/metadata", template);
+        setUp("https://login.uaa-acceptance.cf-app.com/saml/metadata", template);
         Object originalCache = FixedHttpMetaDataProvider.metadataCache;
         try {
             fixedHttpMetaDataProvider.fetchMetadata();
@@ -85,7 +85,7 @@ public class FixedHttpMetaDataProviderTest {
             assertEquals(SSLHandshakeException.class, x.getCause().getClass());
         }
         template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true));
-        setUp("https://login.identity.cf-app.com/saml/metadata", template);
+        setUp("https://login.uaa-acceptance.cf-app.com/saml/metadata", template);
         assertNotNull(fixedHttpMetaDataProvider.fetchMetadata());
         assertSame(originalCache, FixedHttpMetaDataProvider.metadataCache);
     }
@@ -93,7 +93,7 @@ public class FixedHttpMetaDataProviderTest {
     @Test
     public void testFetchMetadata_check_cache() throws Exception {
         RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true));
-        setUp("https://login.identity.cf-app.com:443/saml/metadata", template);
+        setUp("https://login.uaa-acceptance.cf-app.com:443/saml/metadata", template);
         assertEquals(0, FixedHttpMetaDataProvider.metadataCache.size());
         fixedHttpMetaDataProvider.fetchMetadata();
         assertEquals(1, FixedHttpMetaDataProvider.metadataCache.size());

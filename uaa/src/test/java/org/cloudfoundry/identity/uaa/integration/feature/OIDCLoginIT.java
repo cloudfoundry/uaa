@@ -108,7 +108,7 @@ public class OIDCLoginIT {
     private void doLogout() {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
-        webDriver.get("https://oidc10.identity.cf-app.com/logout.do");
+        webDriver.get("https://oidc10.uaa-acceptance.cf-app.com/logout.do");
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
     }
 
@@ -129,7 +129,7 @@ public class OIDCLoginIT {
         assertNotNull(beforeLogin.getValue());
 
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.uaa-acceptance.cf-app.com"));
 
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
@@ -158,7 +158,7 @@ public class OIDCLoginIT {
         createOIDCProviderWithRequestedScopes();
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.uaa-acceptance.cf-app.com"));
 
         webDriver.findElement(By.linkText("SAML Login")).click();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
@@ -202,7 +202,7 @@ public class OIDCLoginIT {
         webDriver.get(appUrl);
 
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.uaa-acceptance.cf-app.com"));
 
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
@@ -243,7 +243,7 @@ public class OIDCLoginIT {
 
     @Test
     public void scopesIncludedInAuthorizeRequest_When_Issuer_Set() throws Exception {
-        createOIDCProviderWithRequestedScopes("https://oidc10.identity.cf-app.com/oauth/token", "https://oidc10.identity.cf-app.com");
+        createOIDCProviderWithRequestedScopes("https://oidc10.uaa-acceptance.cf-app.com/oauth/token", "https://oidc10.uaa-acceptance.cf-app.com");
         try {
             webDriver.get(appUrl);
         } finally {
@@ -280,7 +280,7 @@ public class OIDCLoginIT {
     }
 
     private void createOIDCProviderWithRequestedScopes() throws Exception {
-        createOIDCProviderWithRequestedScopes(null, "https://oidc10.identity.cf-app.com");
+        createOIDCProviderWithRequestedScopes(null, "https://oidc10.uaa-acceptance.cf-app.com");
     }
     private void createOIDCProviderWithRequestedScopes(String issuer, final String urlBase) throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();

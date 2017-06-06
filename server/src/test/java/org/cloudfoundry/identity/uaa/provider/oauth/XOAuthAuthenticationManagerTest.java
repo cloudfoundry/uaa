@@ -157,7 +157,7 @@ public class XOAuthAuthenticationManagerTest {
             entry("sub", "12345"),
             entry("preferred_username", "marissa"),
             entry("origin", "uaa"),
-            entry("iss", "http://oidc10.identity.cf-app.com/oauth/token"),
+            entry("iss", "http://oidc10.uaa-acceptance.cf-app.com/oauth/token"),
             entry("given_name", "Marissa"),
             entry("client_id", "client"),
             entry("aud", Arrays.asList("identity", "another_trusted_client")),
@@ -180,13 +180,13 @@ public class XOAuthAuthenticationManagerTest {
         attributeMappings = new HashMap<>();
 
         config = new OIDCIdentityProviderDefinition()
-            .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
-            .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
+            .setAuthUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"))
+            .setTokenUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/oauth/token"))
             .setShowLinkText(true)
             .setLinkText("My OIDC Provider")
             .setRelyingPartyId("identity")
             .setRelyingPartySecret("identitysecret")
-            .setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"))
+            .setUserInfoUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/userinfo"))
             .setTokenKey("-----BEGIN PUBLIC KEY-----\n" +
                     "MFswDQYJKoZIhvcNAQEBBQADSgAwRwJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdp\n" +
                     "Y8Ada9pZfxXz1PZSqv9TPTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQAB\n" +
@@ -276,7 +276,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
         config.setTokenKey(null);
-        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        config.setTokenKeyUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/token_key"));
 
         KeyInfo key = new KeyInfo();
         key.setKeyId("wrongKey");
@@ -293,7 +293,7 @@ public class XOAuthAuthenticationManagerTest {
         String response = JsonUtils.writeValueAsString(verificationKeyResponse);
 
         mockToken();
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/token_key"))
+        mockUaaServer.expect(requestTo("http://oidc10.uaa-acceptance.cf-app.com/token_key"))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
@@ -405,7 +405,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void loginAndValidateSignatureUsingTokenKeyEndpoint() throws Exception {
-        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        config.setTokenKeyUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/token_key"));
         config.setTokenKey(null);
 
         KeyInfo key = new KeyInfo();
@@ -415,7 +415,7 @@ public class XOAuthAuthenticationManagerTest {
         String response = JsonUtils.writeValueAsString(verificationKeyResponse);
 
         mockToken();
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/token_key"))
+        mockUaaServer.expect(requestTo("http://oidc10.uaa-acceptance.cf-app.com/token_key"))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
@@ -551,7 +551,7 @@ public class XOAuthAuthenticationManagerTest {
 
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token")).andRespond(withServerError());
+        mockUaaServer.expect(requestTo("http://oidc10.uaa-acceptance.cf-app.com/oauth/token")).andRespond(withServerError());
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
@@ -561,7 +561,7 @@ public class XOAuthAuthenticationManagerTest {
 
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token")).andRespond(withBadRequest());
+        mockUaaServer.expect(requestTo("http://oidc10.uaa-acceptance.cf-app.com/oauth/token")).andRespond(withBadRequest());
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
@@ -588,7 +588,7 @@ public class XOAuthAuthenticationManagerTest {
 
     private void mockToken() throws MalformedURLException {
         String response = getIdTokenResponse();
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token"))
+        mockUaaServer.expect(requestTo("http://oidc10.uaa-acceptance.cf-app.com/oauth/token"))
             .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
             .andExpect(header("Accept", "application/json"))
             .andExpect(content().string(containsString("grant_type=authorization_code")))

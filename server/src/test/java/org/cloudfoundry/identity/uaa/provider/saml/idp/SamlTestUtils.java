@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;

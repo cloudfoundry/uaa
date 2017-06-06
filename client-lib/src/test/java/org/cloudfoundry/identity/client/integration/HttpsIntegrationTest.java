@@ -36,7 +36,7 @@ import static org.junit.Assert.fail;
 
 public class HttpsIntegrationTest {
 
-    public static String uaaURI = "https://login.identity.cf-app.com";
+    public static String uaaURI = "https://login.uaa-acceptance.cf-app.com";
 
     private UaaContextFactory factory;
 
@@ -48,7 +48,7 @@ public class HttpsIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        redirectUri = "https://uaa.identity.cf-app.com";
+        redirectUri = "https://uaa.uaa-acceptance.cf-app.com";
         clientId = "xxx";
         clientSecret = "xxx";
         factory =
