@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrapTests;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
@@ -44,6 +45,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +55,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.sql.DataSource;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
@@ -66,7 +70,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -695,6 +698,22 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         }
     }
 
+    @Test
+    public void testCreateUserWithBrokenConnection() throws SQLException {
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        DataSource ds = db.jdbcTemplate.getDataSource();
+        db.jdbcTemplate.setDataSource(null);
+        try {
+            db.createUser(user, "j7hyqpassX");
+        } catch (ScimException e) {
+            assertTrue(true); // ok
+        } catch (Throwable t) {
+            fail("Not a ScimException: "+t.getMessage());
+        } finally {
+            db.jdbcTemplate.setDataSource(ds);
+        }
+    }
 
     @Test
     public void testCreateUserCheckSalt() throws Exception {

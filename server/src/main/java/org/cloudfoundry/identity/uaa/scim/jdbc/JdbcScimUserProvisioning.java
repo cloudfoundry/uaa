@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -33,10 +34,10 @@ import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -185,6 +186,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         final String origin = user.getOrigin();
 
         try {
+            List<ScimUser> existingUsers = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + origin + "\"");
+            if ((existingUsers != null) && (existingUsers.size() > 0)) {
+                ScimUser existingUser = existingUsers.get(0);
+                Map<String,Object> userDetails = new HashMap<>();
+                userDetails.put("active", existingUser.isActive());
+                userDetails.put("verified", existingUser.isVerified());
+                userDetails.put("user_id", existingUser.getId());
+                throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+            }
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -219,13 +229,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 }
 
             });
-        } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"").get(0);
-            Map<String,Object> userDetails = new HashMap<>();
-            userDetails.put("active", existingUser.isActive());
-            userDetails.put("verified", existingUser.isVerified());
-            userDetails.put("user_id", existingUser.getId());
-            throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+        } catch (ScimResourceAlreadyExistsException e) {
+            logger.debug(e.getMessage());
+            throw e;
+        } catch (Throwable t) {
+            String message = "Creating new user failed";
+            logger.error(message, t);
+            throw new ScimException(message, t, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return retrieve(id);
     }
