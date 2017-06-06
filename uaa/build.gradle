@@ -73,6 +73,12 @@ test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
   systemProperty "mock.suite.test", "true"
+  if (System.getenv('TEST_PROXY_HOST') != null && System.getenv('TEST_PROXY_HOST').length() > 0) {
+    systemProperty "http.proxyHost", System.getenv('TEST_PROXY_HOST')
+    systemProperty "http.proxyPort", System.getenv('TEST_PROXY_PORT')
+    systemProperty "https.proxyHost", System.getenv('TEST_PROXY_HOST')
+    systemProperty "https.proxyPort", System.getenv('TEST_PROXY_PORT')
+  }
 }
 task customizeSlate(type: Copy) {
   from 'slate'
