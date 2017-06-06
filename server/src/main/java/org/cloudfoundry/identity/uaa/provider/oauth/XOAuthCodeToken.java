@@ -25,6 +25,8 @@ public class XOAuthCodeToken implements Authentication {
     private String redirectUrl;
     private String idToken;
     private String accessToken;
+    //DRE: Support for Facebook implementation of OAuth using signed_request
+    private String signedRequest;
     private UaaAuthenticationDetails details;
 
     public XOAuthCodeToken(String code, String origin, String redirectUrl) {
@@ -39,9 +41,10 @@ public class XOAuthCodeToken implements Authentication {
         this.accessToken = accessToken;
     }
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, UaaAuthenticationDetails details) {
+    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, UaaAuthenticationDetails details, String signedRequest) {
         this(code, origin, redirectUrl, idToken, accessToken);
         this.details = details;
+        this.signedRequest = signedRequest;
     }
 
     public String getCode() {
@@ -121,4 +124,14 @@ public class XOAuthCodeToken implements Authentication {
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
     }
+
+    public String getSignedRequest() {
+        return signedRequest;
+    }
+
+    public void setSignedRequest(String signedRequest) {
+        this.signedRequest = signedRequest;
+    }
+
+
 }
