@@ -105,11 +105,11 @@ public class UaaResetPasswordServiceTests {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
         when(codeStore.generateCode(eq("{\"user_id\":\"user-id-001\",\"username\":\"user@example.com\",\"passwordModifiedTime\":1234,\"client_id\":\"example\",\"redirect_uri\":\"redirect.example.com\"}"),
-                                    any(Timestamp.class), anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
+                                    any(Timestamp.class), anyString(), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
         ForgotPasswordInfo forgotPasswordInfo = uaaResetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com");
 
-        verify(codeStore).expireByIntent(captor.capture(), eq(IdentityZoneHolder.get().getId()));
+        verify(codeStore).expireByIntent(captor.capture(), anyString());
         assertEquals(UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX+user.getId(), captor.getValue());
         assertThat(forgotPasswordInfo.getUserId(), equalTo("user-id-001"));
         ExpiringCode resetPasswordCode = forgotPasswordInfo.getResetPasswordCode();
@@ -130,7 +130,7 @@ public class UaaResetPasswordServiceTests {
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
-        when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
+        when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
         uaaResetPasswordService.forgotPassword("user@example.com", "", "");
         ArgumentCaptor<ResetPasswordRequestEvent> captor = ArgumentCaptor.forClass(ResetPasswordRequestEvent.class);
@@ -147,8 +147,8 @@ public class UaaResetPasswordServiceTests {
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{}));
         when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""))).thenReturn(Arrays.asList(new ScimUser[]{user}));
-        when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
-        when(codeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
+        when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
+        when(codeStore.retrieveCode(anyString(), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
 
         try {
             uaaResetPasswordService.forgotPassword("user@example.com", "", "");
@@ -313,7 +313,7 @@ public class UaaResetPasswordServiceTests {
         when(scimUserProvisioning.retrieve(eq("usermans-id"))).thenReturn(user);
         ExpiringCode code = new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
                                              "{\"user_id\":\"usermans-id\",\"username\":\"userman\",\"passwordModifiedTime\":null,\"client_id\":\"" + clientId + "\",\"redirect_uri\":\"" + redirectUri + "\"}", null);
-        when(codeStore.retrieveCode(eq("secret_code"), eq(IdentityZoneHolder.get().getId()))).thenReturn(code);
+        when(codeStore.retrieveCode(eq("secret_code"), anyString())).thenReturn(code);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
         SecurityContextHolder.setContext(securityContext);

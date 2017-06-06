@@ -119,7 +119,7 @@ public class EmailAccountCreationServiceTests {
         String redirectUri = "";
         String data = setUpForSuccess(redirectUri);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
@@ -204,7 +204,7 @@ public class EmailAccountCreationServiceTests {
         user.setVerified(false);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
         when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setProtocol("http");
