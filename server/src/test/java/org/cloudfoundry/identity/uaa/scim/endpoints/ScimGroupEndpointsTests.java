@@ -109,7 +109,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         mm.setScimUserProvisioning(udao);
         mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
 
-        em = new JdbcScimGroupExternalMembershipManager(template, pagingListFactory);
+        em = new JdbcScimGroupExternalMembershipManager(template);
         em.setScimGroupProvisioning(dao);
 
         endpoints = new ScimGroupEndpoints(dao, mm);

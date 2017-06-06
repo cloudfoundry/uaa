@@ -194,7 +194,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Collection<GrantedAuthority> result = new LinkedList<>();
             for (GrantedAuthority authority : authorities ) {
                 String externalGroup = authority.getAuthority();
-                    for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin)) {
+                    for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
                         result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
                     }
             }

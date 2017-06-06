@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -40,7 +41,7 @@ public class LdapGroupMappingAuthorizationManager implements ExternalGroupMappin
         for (GrantedAuthority a : authorities) {
             if (a instanceof LdapAuthority) {
                 LdapAuthority la = (LdapAuthority)a;
-                List<ScimGroupExternalMember> members = extMbrMgr.getExternalGroupMapsByExternalGroup(la.getDn(), OriginKeys.LDAP);
+                List<ScimGroupExternalMember> members = extMbrMgr.getExternalGroupMapsByExternalGroup(la.getDn(), OriginKeys.LDAP, IdentityZoneHolder.get().getId());
                 for (ScimGroupExternalMember member : members) {
                     SimpleGrantedAuthority mapped = new SimpleGrantedAuthority(member.getDisplayName());
                     result.add(mapped);

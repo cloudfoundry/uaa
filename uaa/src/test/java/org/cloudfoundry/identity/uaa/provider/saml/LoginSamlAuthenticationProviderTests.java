@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -212,11 +213,11 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         membershipManager.setScimUserProvisioning(userProvisioning);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(userProvisioning, groupProvisioning, membershipManager, Collections.EMPTY_LIST);
 
-        externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
+        externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         externalManager.setScimGroupProvisioning(groupProvisioning);
-        externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML);
-        externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML);
-        externalManager.mapExternalGroup(uaaSamlTest.getId(), SAML_TEST, OriginKeys.SAML);
+        externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML, IdentityZoneHolder.get().getId());
+        externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML, IdentityZoneHolder.get().getId());
+        externalManager.mapExternalGroup(uaaSamlTest.getId(), SAML_TEST, OriginKeys.SAML, IdentityZoneHolder.get().getId());
 
         consumer = mock(WebSSOProfileConsumer.class);
         credential = getUserCredential("marissa-saml", "Marissa", "Bloggs", "marissa.bloggs@test.com", "1234567890");
@@ -398,8 +399,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     @Test
     public void externalGroup_NotMapped_ToScope() throws Exception {
         try {
-            externalManager.unmapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML);
-            externalManager.unmapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML);
+            externalManager.unmapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML, IdentityZoneHolder.get().getId());
+            externalManager.unmapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML, IdentityZoneHolder.get().getId());
             providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
             provider.setConfig(providerDefinition);
             providerProvisioning.update(provider);
@@ -412,8 +413,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
                     ))
             );
         } finally {
-            externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML);
-            externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML);
+            externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML, IdentityZoneHolder.get().getId());
+            externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML, IdentityZoneHolder.get().getId());
         }
     }
 

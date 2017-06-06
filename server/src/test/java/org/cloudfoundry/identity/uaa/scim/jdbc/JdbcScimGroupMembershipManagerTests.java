@@ -90,7 +90,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         dao.setScimGroupProvisioning(gdao);
         dao.setScimUserProvisioning(udao);
         dao.setDefaultUserGroups(Collections.singleton("uaa.user"));
-        egdao = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
+        egdao = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
 
         for (String id : Arrays.asList(zone.getId(), IdentityZone.getUaa().getId())) {
             String g1 = id.equals(zone.getId()) ? zone.getId()+"-"+"g1" : "g1";

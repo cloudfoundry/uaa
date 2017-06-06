@@ -106,7 +106,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
         this.membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
         this.membershipManager.setScimGroupProvisioning(this);
-        this.externalGroupMappingManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
+        this.externalGroupMappingManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         this.externalGroupMappingManager.setScimGroupProvisioning(this);
 
         Assert.notNull(jdbcTemplate);
@@ -255,7 +255,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public ScimGroup delete(String id, int version) throws ScimResourceNotFoundException {
         ScimGroup group = retrieve(id);
         membershipManager.removeMembersByGroupId(id);
-        externalGroupMappingManager.unmapAll(id);
+        externalGroupMappingManager.unmapAll(id, IdentityZoneHolder.get().getId());
         int deleted;
         if (version > 0) {
             deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, IdentityZoneHolder.get().getId(),version);

@@ -105,7 +105,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     private void addGroupMap(String groupId, String externalGroup, String origin) {
-        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin);
+        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin, IdentityZoneHolder.get().getId());
         logger.debug("adding external group mapping: " + externalGroupMapping);
     }
 }

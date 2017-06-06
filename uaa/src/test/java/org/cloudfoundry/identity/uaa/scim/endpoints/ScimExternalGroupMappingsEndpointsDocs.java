@@ -179,7 +179,6 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         createExternalGroupMappingHelper(group);
 
         Snippet requestParameters = requestParameters(
-                parameterWithName("filter").optional("").type(STRING).description("scim filter for groups over groupId, externalGroup and displayName"),
                 parameterWithName("startIndex").optional("1").type(NUMBER).description("display paged results beginning at specified index"),
                 parameterWithName("count").optional("100").type(NUMBER).description("number of results to return per page")
         );
@@ -204,7 +203,6 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
 
         MockHttpServletRequestBuilder get = get("/Groups/External")
                 .header("Authorization", "Bearer " + scimReadToken)
-                .param("filter", String.format("group_id eq \"%s\"", group.getId()))
                 .param("startIndex", "1")
                 .param("count", "50");
 
