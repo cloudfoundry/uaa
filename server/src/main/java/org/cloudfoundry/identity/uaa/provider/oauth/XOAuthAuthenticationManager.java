@@ -56,7 +56,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
+
 import java.net.MalformedURLException;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -385,7 +389,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
-            return "token";
+            if ("signed_request".equals(config.getResponseType()))
+                return "signed_request";
+            else
+                return "token";
         } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "id_token";
         } else {
@@ -407,12 +414,56 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return null;
         }
 
-        TokenValidation validation = validateToken(idToken, config);
-        logger.debug("Decoding id_token");
-        Jwt decodeIdToken = validation.getJwt();
-        logger.debug("Deserializing id_token claims");
+        if ("signed_request".equals(config.getResponseType())) {
+            String signedRequest = idToken;
+            String secret = config.getRelyingPartySecret();
+            logger.debug("Validating signed_request: " + signedRequest);
+            //split request into signature and data
+            String[] signedRequests = signedRequest.split("\\.", 2);
+            //parse signature
+            String signature = signedRequests[0];
+            //parse data and convert to json object
+            String data = signedRequests[1];
+            Map<String, Object> jsonData = null;
+            try {
+                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), "UTF-8"), new TypeReference<Map<String,Object>>() {});
+                //check signature algorithm
+                if(!jsonData.get("algorithm").equals("HMAC-SHA256")) {
+                    logger.debug("Unknown algorithm was used to sign request! No claims returned.");
+                    return null;
+                }
+                //check if data is signed correctly
+                if(!hmacSHA256(signedRequests[1], secret).equals(signature)) {
+                    logger.debug("Signature is not correct, possibly the data was tampered with! No claims returned.");
+                    return null;
+                }
+                //logger.debug("Deserializing id_token claims: " + decodeIdToken.getClaims());
+                return jsonData;
+            } catch (UnsupportedEncodingException e) {
+                logger.error(e);
+                return null;
+            } catch (Exception e) {
+                logger.error(e);
+                return null;
+            }
+        } else {
+            TokenValidation validation = validateToken(idToken, config);
+            logger.debug("Decoding id_token");
+            Jwt decodeIdToken = validation.getJwt();
+            logger.debug("Deserializing id_token claims");
 
-        return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>() {});
+            return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>() {});
+
+        }
+    }
+
+    //HmacSHA256 implementation
+    private String hmacSHA256(String data, String key) throws Exception {
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(secretKey);
+        byte[] hmacData = mac.doFinal(data.getBytes("UTF-8"));
+        return new String(Base64.encodeBase64URLSafe(hmacData), "UTF-8");
     }
 
     private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
@@ -475,11 +526,20 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             logger.debug("XOauthCodeToken contains id_token, not exchanging code.");
             return codeToken.getIdToken();
         }
+        if (StringUtils.hasText(codeToken.getSignedRequest()) && "signed_request".equals(getResponseType(config))) {
+            logger.debug("XOauthCodeToken contains signed_request, not exchanging code.");
+            return codeToken.getSignedRequest();
+        }
         MultiValueMap<String, String> body = new LinkedMaskingMultiValueMap<>("code");
         body.add("grant_type", "authorization_code");
         body.add("response_type", getResponseType(config));
         body.add("code", codeToken.getCode());
         body.add("redirect_uri", codeToken.getRedirectUrl());
+
+        //DRE: Add client_id and secret for Salesforce
+        logger.debug("Adding new client_id and client_secret for token exchange");
+        body.add("client_id", config.getRelyingPartyId());
+        body.add("client_secret", config.getRelyingPartySecret());
 
         HttpHeaders headers = new HttpHeaders();
 
@@ -514,7 +574,8 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                               }
                     );
             logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-            return responseEntity.getBody().get(ID_TOKEN);
+            //DRE: Read proper field from response depending on configuration (id_token, signed_request etc)
+            return responseEntity.getBody().get(getResponseType(config));
         } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;
         }
