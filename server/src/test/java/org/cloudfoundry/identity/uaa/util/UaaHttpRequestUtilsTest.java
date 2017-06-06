@@ -20,6 +20,6 @@ public class UaaHttpRequestUtilsTest {
     public void skipSslValidation() {
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.setRequestFactory(getNoValidatingClientHttpRequestFactory());
-        Assert.assertEquals(OK, restTemplate.getForEntity("https://login.identity.cf-app.com/info", Map.class).getStatusCode());
+        Assert.assertEquals(OK, restTemplate.getForEntity("https://login.uaa-acceptance.cf-app.com/info", Map.class).getStatusCode());
     }
 }

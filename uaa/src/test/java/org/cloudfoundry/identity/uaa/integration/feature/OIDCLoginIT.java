@@ -77,7 +77,7 @@ public class OIDCLoginIT {
     @After
     public void logout() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        webDriver.get("https://oidc10.identity.cf-app.com/logout.do");
+        webDriver.get("https://oidc10.uaa-acceptance.cf-app.com/logout.do");
         screenShootRule.setWebDriver(webDriver);
     }
 
@@ -91,7 +91,7 @@ public class OIDCLoginIT {
         createOIDCProviderWithRequestedScopes();
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.uaa-acceptance.cf-app.com"));
 
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
@@ -107,7 +107,7 @@ public class OIDCLoginIT {
         webDriver.get(appUrl);
 
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.uaa-acceptance.cf-app.com"));
 
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
@@ -127,7 +127,7 @@ public class OIDCLoginIT {
 
     @Test
     public void scopesIncludedInAuthorizeRequest_When_Issuer_Set() throws Exception {
-        createOIDCProviderWithRequestedScopes("https://oidc10.identity.cf-app.com/oauth/token");
+        createOIDCProviderWithRequestedScopes("https://oidc10.uaa-acceptance.cf-app.com/oauth/token");
         try {
             webDriver.get(appUrl);
         } finally {
@@ -145,9 +145,9 @@ public class OIDCLoginIT {
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
-        config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));
+        config.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
+        config.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);

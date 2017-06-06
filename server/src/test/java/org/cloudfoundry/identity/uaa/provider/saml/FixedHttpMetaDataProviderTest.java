@@ -81,7 +81,7 @@ public class FixedHttpMetaDataProviderTest {
 
     @Test
     public void testFetchMetadata() throws Exception {
-        setUp("https://login.identity.cf-app.com:443/saml/metadata");
+        setUp("https://login.uaa-acceptance.cf-app.com:443/saml/metadata");
         assertEquals(0, FixedHttpMetaDataProvider.metadataCache.size());
         fixedHttpMetaDataProvider.fetchMetadata();
         assertEquals(1, FixedHttpMetaDataProvider.metadataCache.size());
@@ -137,7 +137,7 @@ public class FixedHttpMetaDataProviderTest {
         //Ensure no proxy is set
         clearSystemProxyConfig(true);
 
-        testProxy(443,"login.identity.cf-app.com", "https://login.identity.cf-app.com:443/saml/metadata");
+        testProxy(443,"login.uaa-acceptance.cf-app.com", "https://login.uaa-acceptance.cf-app.com:443/saml/metadata");
 
         //restore proxy settings
         setSystemProxy(systemProxyConfig, true);
@@ -150,7 +150,7 @@ public class FixedHttpMetaDataProviderTest {
         //Ensure no proxy is set
         clearSystemProxyConfig(false);
 
-        testProxy(80,"login.identity.cf-app.com", "http://login.identity.cf-app.com:80/saml/metadata");
+        testProxy(80,"login.uaa-acceptance.cf-app.com", "http://login.uaa-acceptance.cf-app.com:80/saml/metadata");
 
         //restore proxy settings
         setSystemProxy(systemProxyConfig, false);
@@ -162,18 +162,18 @@ public class FixedHttpMetaDataProviderTest {
         ProxyConfig systemProxyConfig = getSystemProxyConfig(true);
         try {
             setSystemProxy(new ProxyConfig("localhost", "8080"), true);
-            testProxy(8080, "localhost", "https://login.identity.cf-app.com:443/saml/metadata");
+            testProxy(8080, "localhost", "https://login.uaa-acceptance.cf-app.com:443/saml/metadata");
         } finally {
             setSystemProxy(systemProxyConfig, true);
         }
     }
-    
+
     @Test
     public void test_Http_Proxy_As_System_Properties() throws Exception  {
         ProxyConfig systemProxyConfig = getSystemProxyConfig(false);
         try {
             setSystemProxy(new ProxyConfig("localhost", "8081"), false);
-            testProxy(8081, "localhost", "http://login.identity.cf-app.com:80/saml/metadata");
+            testProxy(8081, "localhost", "http://login.uaa-acceptance.cf-app.com:80/saml/metadata");
         } finally {
             setSystemProxy(systemProxyConfig, false);
         }

@@ -686,9 +686,9 @@ public class IntegrationTestUtils {
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
-        config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));
+        config.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
+        config.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);
