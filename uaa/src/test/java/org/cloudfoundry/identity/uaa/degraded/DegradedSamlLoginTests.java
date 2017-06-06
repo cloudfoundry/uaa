@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -19,11 +18,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.logging.LogEntry;
-import org.openqa.selenium.support.ui.ExpectedCondition;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +36,11 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -56,6 +52,12 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPON
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class DegradedSamlLoginTests {
 
+    private static final String SAML_USERNAME = "samluser1";
+    private static final String SAML_PASSWORD = "samluser1";
+    private static final String ZONE_AUTHCODE_CLIENT_ID = "exampleClient";
+    private static final String ZONE_AUTHCODE_CLIENT_SECRET = "secret";
+    public static final String ZONE_ADMIN = "admin";
+    public static final String ZONE_ADMINSECRET = "adminsecret";
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
@@ -69,15 +71,12 @@ public class DegradedSamlLoginTests {
     private final static String zoneSubdomain = "test-app-zone";
     private String baseUrl;
     private String zoneAdminToken;
-    private String samlUsername = "samluser1";
-    private String samlPassword = "samluser1";
-    private String zoneAuthcodeClientId = "exampleClient";
-    private String zoneAuthcodeClientSecret = "secret";
+
 
     @Before
     public void setup() throws Exception {
         baseUrl = "http://" + zoneSubdomain + ".localhost:8080/uaa";
-        zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, ZONE_ADMIN, ZONE_ADMINSECRET);
 
         screenShootRule.setWebDriver(webDriver);
     }
@@ -143,8 +142,75 @@ public class DegradedSamlLoginTests {
     }
 
     @Test
+    public void testPasswordTokenAndCheckToken() throws Exception {
+        MultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+        postBody.add("username", "marissa");
+        postBody.add("password", "koala");
+        postBody.add(GRANT_TYPE, "password");
+        postBody.add(RESPONSE_TYPE, "token");
+        postBody.add("token_format", "opaque");
+
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE);
+        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE);
+        headers.set("Authorization", getAuthorizationHeader("app", "appclientsecret"));
+
+        ResponseEntity<Map> tokenResponse = new RestTemplate().exchange("http://localhost:8080/uaa" + "/oauth/token", HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), Map.class);
+        assertThat(tokenResponse.getStatusCode().value(), Matchers.equalTo(200));
+
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("token", accessToken.getValue());
+
+        ResponseEntity<Map> checkTokenResponse = new RestTemplate().exchange("http://localhost:8080/uaa" + "/check_token", HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
+        assertEquals(checkTokenResponse.getStatusCode(), HttpStatus.OK);
+        logger.info("check token response: " + checkTokenResponse.getBody());
+        assertEquals("marissa", checkTokenResponse.getBody().get("user_name"));
+    }
+
+    @Test
+    public void testImplicitTokenAndCheckToken() throws Exception {
+        webDriver.get("http://localhost:8080/uaa" + "/oauth/authorize?client_id=cf&response_type=token&redirect_uri=http://localhost:5000/cf");
+
+        assertThat(webDriver.getCurrentUrl(), Matchers.containsString("login"));
+        logger.info(webDriver.getCurrentUrl());
+        webDriver.findElement(By.xpath("//title[contains(text(), 'Predix')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys("marissa");
+        webDriver.findElement(By.name("password")).sendKeys("koala");
+        webDriver.findElement(By.xpath("//input[@type='submit']")).click();
+
+        //Ensure the browser/webdriver processes all the flows
+        webDriver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
+        //Get the http archive logs
+        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
+        logger.info("Entries:"+harLogEntries.size());
+        LogEntry logEntry = harLogEntries.get(0);
+
+        String requestUrl = getRequestUrlFromHarLogEntry(logEntry);
+        logger.info("request url: " + requestUrl);
+        assertThat(requestUrl, Matchers.startsWith("http://localhost:5000/cf#token_type=bearer&access_token="));
+        String tokenprefixedString = requestUrl.split("access_token=")[1];
+        String accessToken = tokenprefixedString.split("&")[0];
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("token", accessToken);
+
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE);
+        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE);
+        headers.set("Authorization", getAuthorizationHeader("app", "appclientsecret"));
+
+        ResponseEntity<Map> checkTokenResponse = new RestTemplate().exchange("http://localhost:8080/uaa" + "/check_token", HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
+        assertEquals(checkTokenResponse.getStatusCode(), HttpStatus.OK);
+        logger.info("check token response: " + checkTokenResponse.getBody());
+        assertEquals("marissa", checkTokenResponse.getBody().get("user_name"));
+    }
+
+    @Test
     public void testOidcSamlAuthcodeTokenAndCheckToken() throws Exception {
-        testOidcSamlAuthcodeTokenAndCheckToken("/oauth/authorize?client_id=" + zoneAuthcodeClientId + "&response_type=code");
+        testOidcSamlAuthcodeTokenAndCheckToken("/oauth/authorize?client_id=" + ZONE_AUTHCODE_CLIENT_ID + "&response_type=code");
     }
 
     private void testOidcSamlAuthcodeTokenAndCheckToken(String firstUrl) throws Exception {
@@ -155,16 +221,17 @@ public class DegradedSamlLoginTests {
         //idp_discovery in test-platform-zone
         assertThat(webDriver.getCurrentUrl(), Matchers.containsString("test-platform-zone"));
         webDriver.findElement(By.name("email")).clear();
-        webDriver.findElement(By.name("email")).sendKeys(samlUsername + "@ge.com");
+        webDriver.findElement(By.name("email")).sendKeys(SAML_USERNAME + "@ge.com");
         webDriver.findElement(By.name("commit")).click();
         logger.info(webDriver.getCurrentUrl());
         webDriver.findElement(By.xpath("//h1[contains(text(), 'test-saml-zone')]"));
         webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(samlUsername);
-        webDriver.findElement(By.name("password")).sendKeys(samlPassword);
+        webDriver.findElement(By.name("username")).sendKeys(SAML_USERNAME);
+        webDriver.findElement(By.name("password")).sendKeys(SAML_PASSWORD);
         webDriver.findElement(By.xpath("//input[@type='submit']")).click();
 
-        Thread.sleep(1000);
+        //Ensure the browser/webdriver processes all the flows
+        webDriver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
         List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
         LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
 
@@ -175,8 +242,8 @@ public class DegradedSamlLoginTests {
         logger.info("AuthCode is: ",authcode);
 
         MultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
-        postBody.add(CLIENT_ID, zoneAuthcodeClientId);
-        postBody.add(CLIENT_SECRET, zoneAuthcodeClientSecret);
+        postBody.add(CLIENT_ID, ZONE_AUTHCODE_CLIENT_ID);
+        postBody.add(CLIENT_SECRET, ZONE_AUTHCODE_CLIENT_SECRET);
         postBody.add("code", authcode);
         postBody.add(GRANT_TYPE, "authorization_code");
         postBody.add(RESPONSE_TYPE, "token");
@@ -189,17 +256,16 @@ public class DegradedSamlLoginTests {
         assertThat(tokenResponse.getStatusCode().value(), Matchers.equalTo(200));
 
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
-        Map<String, String> body = tokenResponse.getBody();
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", accessToken.getValue());
 
-        headers.set("Authorization", getAuthorizationHeader("admin", "adminsecret"));
+        headers.set("Authorization", getAuthorizationHeader(ZONE_ADMIN, ZONE_ADMINSECRET));
 
         ResponseEntity<Map> checkTokenResponse = new RestTemplate().exchange(baseUrl + "/check_token", HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
         assertEquals(checkTokenResponse.getStatusCode(), HttpStatus.OK);
         logger.info("check token response: " + checkTokenResponse.getBody());
-        assertEquals(samlUsername, checkTokenResponse.getBody().get("user_name"));
+        assertEquals(SAML_USERNAME, checkTokenResponse.getBody().get("user_name"));
 
     }
 
@@ -223,13 +289,10 @@ public class DegradedSamlLoginTests {
 
     private boolean findZoneInUaa() {
         RestTemplate zoneAdminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret"));
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], ZONE_ADMIN, ZONE_ADMINSECRET));
         ResponseEntity<String> responseEntity = zoneAdminClient.getForEntity(baseUrl + "/login", String.class);
 
         logger.info("response body: " + responseEntity.getStatusCode());
         return responseEntity.getStatusCode() == HttpStatus.OK;
     }
-
-
-
 }
