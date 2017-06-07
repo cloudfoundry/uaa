@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -160,7 +161,7 @@ public class UserTokenGranterTest {
         assertSame(token, result);
         assertEquals(refreshToken.getValue(), result.getAdditionalInformation().get(JTI));
         assertNull(result.getValue());
-        verify(tokenStore).delete(eq(tokenId), anyInt());
+        verify(tokenStore).delete(eq(tokenId), anyInt(), eq(IdentityZoneHolder.get().getId()));
     }
 
     @Test

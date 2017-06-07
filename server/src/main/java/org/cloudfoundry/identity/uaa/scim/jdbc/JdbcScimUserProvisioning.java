@@ -137,7 +137,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public ScimUser retrieve(String id) {
+    public ScimUser retrieve(String id, String zoneId) {
         try {
             ScimUser u = jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id, IdentityZoneHolder.get().getId());
             return u;
@@ -157,7 +157,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public List<ScimUser> retrieveAll() {
+    public List<ScimUser> retrieveAll(String zoneId) {
         return query("id pr", "created", true);
     }
 
@@ -174,7 +174,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public ScimUser create(final ScimUser user) {
+    public ScimUser create(final ScimUser user, String zoneId) {
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
@@ -227,7 +227,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             userDetails.put("user_id", existingUser.getId());
             throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
         }
-        return retrieve(id);
+        return retrieve(id, IdentityZoneHolder.get().getId());
     }
 
     protected Timestamp getPasswordLastModifiedTimestamp(Timestamp t) {
@@ -240,7 +240,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public ScimUser createUser(ScimUser user, final String password) throws InvalidPasswordException,
                     InvalidScimResourceException {
         user.setPassword(passwordEncoder.encode(password));
-        return create(user);
+        return create(user, IdentityZoneHolder.get().getId());
     }
 
     private String extractPhoneNumber(final ScimUser user) {
@@ -252,12 +252,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
+    public ScimUser update(final String id, final ScimUser user, String zoneId) throws InvalidScimResourceException {
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
         user.setOrigin(origin);
         ScimUtils.validate(user);
-        final String zoneId = IdentityZoneHolder.get().getId();
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
@@ -280,7 +279,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 ps.setString(pos++, zoneId);
             }
         });
-        ScimUser result = retrieve(id);
+        ScimUser result = retrieve(id, IdentityZoneHolder.get().getId());
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                             "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id,
@@ -359,8 +358,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public ScimUser delete(String id, int version) {
-        ScimUser user = retrieve(id);
+    public ScimUser delete(String id, int version, String zoneId) {
+        ScimUser user = retrieve(id, IdentityZoneHolder.get().getId());
         return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version, IdentityZoneHolder.get().getId());
     }
 
@@ -397,7 +396,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         else {
             updated = jdbcTemplate.update(VERIFY_USER_SQL + " and version=?", true, id, IdentityZoneHolder.get().getId(), version);
         }
-        ScimUser user = retrieve(id);
+        ScimUser user = retrieve(id, IdentityZoneHolder.get().getId());
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                             "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),

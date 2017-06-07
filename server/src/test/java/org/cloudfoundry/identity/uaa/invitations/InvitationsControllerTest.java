@@ -289,7 +289,7 @@ public class InvitationsControllerTest {
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
 
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(invitedUser);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(invitedUser);
         when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
@@ -303,7 +303,7 @@ public class InvitationsControllerTest {
 
         verify(ldapActual).authenticate(anyObject());
         ArgumentCaptor<ScimUser> userArgumentCaptor = ArgumentCaptor.forClass(ScimUser.class);
-        verify(scimUserProvisioning).update(anyString(), userArgumentCaptor.capture());
+        verify(scimUserProvisioning).update(anyString(), userArgumentCaptor.capture(), eq(IdentityZoneHolder.get().getId()));
         ScimUser value = userArgumentCaptor.getValue();
         assertEquals("test-ldap-user", value.getUserName());
         assertEquals("user@example.com", value.getPrimaryEmail());
@@ -354,7 +354,7 @@ public class InvitationsControllerTest {
 
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(invitedUser);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(invitedUser);
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")

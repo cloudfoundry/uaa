@@ -89,7 +89,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(password);
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         updatePasswordAndPublishEvent(scimUserProvisioning, uaaUser, authentication, password);
@@ -113,7 +113,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         clientId = change.getClientId();
         redirectUri = change.getRedirectUri();
 
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         try {

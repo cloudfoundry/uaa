@@ -226,7 +226,7 @@ public class EmailAccountCreationServiceTests {
         setUpForSuccess("");
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
 
         ClientDetails client = mock(ClientDetails.class);
@@ -249,7 +249,7 @@ public class EmailAccountCreationServiceTests {
         setUpForSuccess("http://redirect.uri/");
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
 
         ClientDetails client = mock(ClientDetails.class);
@@ -266,7 +266,7 @@ public class EmailAccountCreationServiceTests {
 
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         doThrow(new NoSuchClientException("Client not found")).when(clientDetailsService).loadClientByClientId(anyString());
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
@@ -279,7 +279,7 @@ public class EmailAccountCreationServiceTests {
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(details);
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
@@ -295,7 +295,7 @@ public class EmailAccountCreationServiceTests {
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(details);
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");

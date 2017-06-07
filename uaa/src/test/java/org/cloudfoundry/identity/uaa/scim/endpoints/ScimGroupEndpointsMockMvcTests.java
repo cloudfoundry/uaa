@@ -1318,7 +1318,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 ScimGroup group;
                 if (scimGroups==null || scimGroups.isEmpty()) {
                     group = new ScimGroup(null, groupName,IdentityZoneHolder.get().getId());
-                    group = groupRepository.create(group);
+                    group = groupRepository.create(group, IdentityZoneHolder.get().getId());
                     scimUserGroup = new ScimUser.Group(group.getId(), groupName);
                 } else {
                     group = scimGroups.get(0);
@@ -1348,7 +1348,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             if (zone != null) {
                 IdentityZoneHolder.set(zone);
             }
-            newGroup = groupRepository.create(newGroup);
+            newGroup = groupRepository.create(newGroup, IdentityZoneHolder.get().getId());
             ephemeralResources.add(new String[] {newGroup.getId(), "GROUP"});
 
             Collection<ScimUser.Group> scimUserGroups = new LinkedList<>();
@@ -1358,7 +1358,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 ScimGroup group;
                 if (scimGroups==null || scimGroups.isEmpty()) {
                     group = new ScimGroup(null, groupName,IdentityZoneHolder.get().getId());
-                    group = groupRepository.create(group);
+                    group = groupRepository.create(group, IdentityZoneHolder.get().getId());
                     scimUserGroup = new ScimUser.Group(group.getId(), groupName);
                 } else {
                     group = scimGroups.get(0);

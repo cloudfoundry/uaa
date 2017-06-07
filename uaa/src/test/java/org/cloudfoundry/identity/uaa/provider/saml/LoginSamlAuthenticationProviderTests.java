@@ -204,9 +204,9 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
         ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
 
-        uaaSamlUser = groupProvisioning.create(new ScimGroup(null,UAA_SAML_USER, IdentityZone.getUaa().getId()));
-        uaaSamlAdmin = groupProvisioning.create(new ScimGroup(null,UAA_SAML_ADMIN, IdentityZone.getUaa().getId()));
-        uaaSamlTest = groupProvisioning.create(new ScimGroup(null,UAA_SAML_TEST, IdentityZone.getUaa().getId()));
+        uaaSamlUser = groupProvisioning.create(new ScimGroup(null,UAA_SAML_USER, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
+        uaaSamlAdmin = groupProvisioning.create(new ScimGroup(null,UAA_SAML_ADMIN, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
+        uaaSamlTest = groupProvisioning.create(new ScimGroup(null,UAA_SAML_TEST, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
 
         JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
@@ -500,7 +500,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         invitedUser.setVerified(false);
         invitedUser.setPrimaryEmail("marissa.invited@test.org");
         invitedUser.setOrigin(OriginKeys.UAA);
-        ScimUser scimUser = userProvisioning.create(invitedUser);
+        ScimUser scimUser = userProvisioning.create(invitedUser, IdentityZoneHolder.get().getId());
 
         RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
         attributes.setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);

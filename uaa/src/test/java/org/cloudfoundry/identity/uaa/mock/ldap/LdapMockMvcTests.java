@@ -1252,7 +1252,7 @@ public class LdapMockMvcTests  {
             ScimGroup group = new ScimGroup(internalName);
             group.setZoneId(zone.getId());
             try {
-                group = gp.create(group);
+                group = gp.create(group, IdentityZoneHolder.get().getId());
             } catch (ScimResourceAlreadyExistsException e) {
                 String filter = "displayName eq \""+internalName+"\"";
                 group = gp.query(filter).get(0);

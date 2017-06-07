@@ -68,7 +68,7 @@ import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -226,19 +226,19 @@ public class TokenTestSupport {
         clientDetailsService.setClientDetailsStore(clientDetailsMap);
 
         tokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
+        when(tokenProvisioning.create(any(), anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
             RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
             tokens.put(arg.getTokenId(), arg);
             return arg;
         });
-        when(tokenProvisioning.update(anyString(), anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
+        when(tokenProvisioning.update(anyString(), any(), anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
             String id = (String)invocation.getArguments()[0];
             RevocableToken arg = (RevocableToken)invocation.getArguments()[1];
             arg.setTokenId(id);
             tokens.put(arg.getTokenId(), arg);
             return arg;
         });
-        when(tokenProvisioning.retrieve(anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
+        when(tokenProvisioning.retrieve(anyString(), anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
             String id = (String)invocation.getArguments()[0];
             RevocableToken result = tokens.get(id);
             if (result==null) {

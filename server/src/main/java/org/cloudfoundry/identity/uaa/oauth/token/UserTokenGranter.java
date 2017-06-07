@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -114,7 +115,7 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         //ensure that the ID is that of the refresh token
         token.getAdditionalInformation().put(ClaimConstants.JTI, token.getRefreshToken().getValue());
         //delete the access token from token store
-        tokenStore.delete(id, 0);
+        tokenStore.delete(id, 0, IdentityZoneHolder.get().getId());
         return token;
     }
 

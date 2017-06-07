@@ -99,9 +99,9 @@ public class EmailInvitationsServiceTests {
     public void acceptInvitationNoClientId() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
@@ -131,7 +131,7 @@ public class EmailInvitationsServiceTests {
     public void acceptInvitation_withoutPasswordUpdate() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
 
         Map<String,String> userData = new HashMap<>();
@@ -149,8 +149,8 @@ public class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(OriginKeys.UAA);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         doThrow(new NoSuchClientException("Client not found")).when(clientDetailsService).loadClientByClientId("client-not-found");
 
         Map<String,String> userData = new HashMap<>();
@@ -171,9 +171,10 @@ public class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
 
         Map<String,String> userData = new HashMap<>();
@@ -181,7 +182,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, "acmeClientId");
         userData.put(REDIRECT_URI, "http://example.com/redirect/");
-        when(expiringCodeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
@@ -196,8 +197,8 @@ public class EmailInvitationsServiceTests {
         user.setOrigin(UAA);
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
@@ -224,7 +225,7 @@ public class EmailInvitationsServiceTests {
         userBeforeAccept.setOrigin(OriginKeys.SAML);
 
         when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userBeforeAccept);
-        when(scimUserProvisioning.retrieve(eq(userId))).thenReturn(userBeforeAccept);
+        when(scimUserProvisioning.retrieve(eq(userId), eq(IdentityZoneHolder.get().getId()))).thenReturn(userBeforeAccept);
 
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);

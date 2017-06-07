@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -99,7 +100,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
                 usergroups.add(g.get(0));
             } else { // default group must exist, hence if not already present,
                 // create it
-                usergroups.add(groupProvisioning.create(new ScimGroup(null, name, IdentityZone.getUaa().getId())));
+                usergroups.add(groupProvisioning.create(new ScimGroup(null, name, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId()));
             }
         }
         defaultUserGroups.put(IdentityZone.getUaa().getId(), usergroups);
@@ -183,10 +184,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (includeEntities) {
             for (ScimGroupMember member : result) {
                 if (member.getType().equals(ScimGroupMember.Type.USER)) {
-                    ScimUser user = userProvisioning.retrieve(member.getMemberId());
+                    ScimUser user = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
                     member.setEntity(user);
                 } else if (member.getType().equals(ScimGroupMember.Type.GROUP)) {
-                    ScimGroup group = groupProvisioning.retrieve(member.getMemberId());
+                    ScimGroup group = groupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
                     member.setEntity(group);
                 }
             }
@@ -226,7 +227,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         for (String groupId : groupIds) {
             ScimGroup group;
             try {
-                group = groupProvisioning.retrieve(groupId);
+                group = groupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
             } catch (ScimResourceNotFoundException ex) {
                 continue;
             }
@@ -411,7 +412,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     private boolean isUser(String uuid) {
         try {
-            userProvisioning.retrieve(uuid);
+            userProvisioning.retrieve(uuid, IdentityZoneHolder.get().getId());
             return true;
         } catch (ScimResourceNotFoundException ex) {
             return false;
@@ -431,14 +432,14 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
         // check if the group exists and the member-id is a valid group or user
         // id
-        ScimGroup group = groupProvisioning.retrieve(groupId); // this will throw a ScimException
+        ScimGroup group = groupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId()); // this will throw a ScimException
         String memberZoneId;
                                              // if the group does not exist
         // this will throw a ScimException if the group or user does not exist
         if (member.getType() == ScimGroupMember.Type.GROUP) {
-            memberZoneId = groupProvisioning.retrieve(member.getMemberId()).getZoneId();
+            memberZoneId = groupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
         } else {
-            memberZoneId = userProvisioning.retrieve(member.getMemberId()).getZoneId();
+            memberZoneId = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
         }
         if (!memberZoneId.equals(group.getZoneId())) {
             throw new ScimResourceConstraintFailedException("The zone of the group and the member must be the same.");

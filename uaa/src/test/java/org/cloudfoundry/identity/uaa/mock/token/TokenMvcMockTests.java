@@ -445,18 +445,18 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
         ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        ScimUser scimUser = provisioning.retrieve(user.getId());
+        ScimUser scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
 
         doPasswordGrant(username, SECRET, "cf", "", status().isOk());
-        scimUser = provisioning.retrieve(user.getId());
+        scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNotNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
 
         long lastLogonTime = scimUser.getLastLogonTime();
         doPasswordGrant(username, SECRET, "cf", "", status().isOk());
-        scimUser = provisioning.retrieve(user.getId());
+        scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNotNull(scimUser.getLastLogonTime());
         assertNotNull(scimUser.getPreviousLogonTime());
         assertEquals(lastLogonTime, (long)scimUser.getPreviousLogonTime());
@@ -2510,7 +2510,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         );
 
         if (token.length()<=36) {
-            token = getWebApplicationContext().getBean(JdbcRevocableTokenProvisioning.class).retrieve(token).getValue();
+            token = getWebApplicationContext().getBean(JdbcRevocableTokenProvisioning.class).retrieve(token, IdentityZoneHolder.get().getId()).getValue();
         }
 
         Jwt tokenJwt = JwtHelper.decode(token);
@@ -3401,7 +3401,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                     .header("Authorization", "Bearer " + clientToken))
                     .andExpect(status().isOk());
 
-            tokenProvisioning.retrieve(jti);
+            tokenProvisioning.retrieve(jti, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
         } finally {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
@@ -3459,7 +3459,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
 
         try {
-            tokenProvisioning.retrieve(tokenToBeRevoked);
+            tokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
             fail("Token should have been deleted");
         } catch (EmptyResultDataAccessException e) {
             //expected
@@ -3526,7 +3526,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk());
 
         try {
-            tokenProvisioning.retrieve(opaqueUserToken);
+            tokenProvisioning.retrieve(opaqueUserToken, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
         }
     }
@@ -3891,7 +3891,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String zoneadmingroup = "zones."+ generator.generate()+".admin";
         ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
-        group = groupProvisioning.create(group);
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
         ScimGroupMember member = new ScimGroupMember(user.getId());
         groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
@@ -3960,7 +3960,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String token = (String)tokenResponse.get(tokenKey);
         assertThat("Token must be shorter than 37 characters", token.length(), lessThanOrEqualTo(36));
 
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(token);
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(token, IdentityZoneHolder.get().getId());
         assertNotNull("Token should have been stored in the DB", revocableToken);
 
         Jwt jwt = JwtHelper.decode(revocableToken.getValue());
@@ -4040,7 +4040,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String tokenId = (String) claims.get(JTI);
 
         IdentityZoneHolder.set(zone);
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(tokenId);
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(tokenId, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertNotNull("Token should have been stored in the DB", revocableToken);
 
@@ -4071,7 +4071,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull("Revocable claim must exist", claims.get(ClaimConstants.REVOCABLE));
         assertTrue("Token revocable claim must be set to true", (Boolean)claims.get(ClaimConstants.REVOCABLE));
 
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(JTI));
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(JTI), IdentityZoneHolder.get().getId());
         assertNotNull("Token should have been stored in the DB", revocableToken);
     }
 

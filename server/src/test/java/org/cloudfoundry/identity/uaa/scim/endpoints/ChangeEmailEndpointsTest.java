@@ -67,7 +67,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
         ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
         userChangingEmail.setOrigin("test");
         userChangingEmail.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(userChangingEmail);
 
         MockHttpServletRequestBuilder post = post("/email_verifications")
             .contentType(APPLICATION_JSON)
@@ -85,7 +85,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
         ScimUser userChangingEmail = new ScimUser("id001", "user@example.com", null, null);
         userChangingEmail.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(userChangingEmail);
 
         ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
         when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
@@ -110,14 +110,14 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
         additionalInformation.put(ChangeEmailEndpoints.CHANGE_EMAIL_REDIRECT_URL, "app_callback_url");
         clientDetails.setAdditionalInformation(additionalInformation);
 
-        when(clientDetailsService.retrieve("app"))
+        when(clientDetailsService.retrieve("app", IdentityZoneHolder.get().getId()))
             .thenReturn(clientDetails);
 
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName("user@example.com");
         scimUser.setPrimaryEmail("user@example.com");
 
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
 
         mockMvc.perform(post("/email_changes")
             .contentType(APPLICATION_JSON)
@@ -130,7 +130,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
             .andExpect(MockMvcResultMatchers.status().isOk());
 
         ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
-        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture());
+        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture(), eq(IdentityZoneHolder.get().getId()));
         Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
         Assert.assertEquals("new@example.com", user.getValue().getUserName());
 
@@ -150,7 +150,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
         scimUser.setUserName("username");
         scimUser.setPrimaryEmail("user@example.com");
 
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
 
         mockMvc.perform(post("/email_changes")
             .contentType(APPLICATION_JSON)
@@ -159,7 +159,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
             .andExpect(MockMvcResultMatchers.status().isOk());
 
         ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
-        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture());
+        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture(), eq(IdentityZoneHolder.get().getId()));
 
         Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
         Assert.assertEquals("username", user.getValue().getUserName());

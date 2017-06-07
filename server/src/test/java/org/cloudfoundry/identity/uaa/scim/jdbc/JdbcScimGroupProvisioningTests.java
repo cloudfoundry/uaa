@@ -101,7 +101,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canRetrieveGroups() throws Exception {
-        List<ScimGroup> groups = dao.retrieveAll();
+        List<ScimGroup> groups = dao.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(3, groups.size());
         for (ScimGroup g : groups) {
             validateGroup(g, null, IdentityZoneHolder.get().getId());
@@ -155,13 +155,13 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canRetrieveGroup() throws Exception {
-        ScimGroup group = dao.retrieve("g1");
+        ScimGroup group = dao.retrieve("g1", IdentityZoneHolder.get().getId());
         validateGroup(group, "uaa.user", IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotRetrieveNonExistentGroup() {
-        dao.retrieve("invalidgroup");
+        dao.retrieve("invalidgroup", IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -171,7 +171,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
         ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
-        g = dao.create(g);
+        g = dao.create(g, IdentityZoneHolder.get().getId());
         validateGroupCount(4);
         validateGroup(g, "test.1", IdentityZoneHolder.get().getId(), "description-create");
     }
@@ -196,7 +196,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canUpdateGroup() throws Exception {
-        ScimGroup g = dao.retrieve("g1");
+        ScimGroup g = dao.retrieve("g1", IdentityZoneHolder.get().getId());
         assertEquals("uaa.user", g.getDisplayName());
 
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
@@ -205,9 +205,9 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         g.setDisplayName("uaa.none");
         g.setDescription("description-update");
 
-        dao.update("g1", g);
+        dao.update("g1", g, IdentityZoneHolder.get().getId());
 
-        g = dao.retrieve("g1");
+        g = dao.retrieve("g1", IdentityZoneHolder.get().getId());
         validateGroup(g, "uaa.none", IdentityZoneHolder.get().getId(), "description-update");
     }
 
@@ -217,7 +217,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         addUserToGroup(g1.getId(), "mary@example.com");
         ScimGroupMember bill = addUserToGroup(g2.getId(), "bill@example.com");
 
-        dao.delete("g1", 0);
+        dao.delete("g1", 0, IdentityZoneHolder.get().getId());
         validateGroupCount(2);
         List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select "+MEMBERSHIP_FIELDS+" from "+MEMBERSHIP_TABLE,
                                                                         new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
@@ -231,7 +231,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     public void deleteGroupWithNestedMembers() {
         ScimGroup appUsers = addGroup("appuser", "app.user");
         addGroupToGroup(appUsers.getId(), g1.getId());
-        dao.delete(appUsers.getId(), 0);
+        dao.delete(appUsers.getId(), 0, IdentityZoneHolder.get().getId());
 
         List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select "+MEMBERSHIP_FIELDS+" from "+MEMBERSHIP_TABLE,
                                                                         new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
@@ -266,21 +266,21 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
                             0,
                             IdentityZoneHolder.get().getId());
 
-        return dao.retrieve(id);
+        return dao.retrieve(id, IdentityZoneHolder.get().getId());
     }
 
     private ScimGroupMember<ScimUser> addUserToGroup(String groupId, String username) {
         String userId = UUID.randomUUID().toString();
         ScimUser scimUser = new ScimUser(userId, username, username, username);
         scimUser.setZoneId(OriginKeys.UAA);
-        when(users.retrieve(userId)).thenReturn(scimUser);
+        when(users.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(scimUser);
         ScimGroupMember<ScimUser> member = new ScimGroupMember<>(scimUser);
         memberships.addMember(groupId, member, IdentityZoneHolder.get().getId());
         return member;
     }
 
     private ScimGroupMember addGroupToGroup(String parentGroupId, String childGroupId) {
-        ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId));
+        ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId, IdentityZoneHolder.get().getId()));
         memberships.addMember(parentGroupId, member, IdentityZoneHolder.get().getId());
         return member;
     }

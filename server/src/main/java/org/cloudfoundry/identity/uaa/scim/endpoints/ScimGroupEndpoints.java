@@ -318,7 +318,7 @@ public class ScimGroupEndpoints {
     @ResponseBody
     public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
         logger.debug("retrieving group with id: " + groupId);
-        ScimGroup group = dao.retrieve(groupId);
+        ScimGroup group = dao.retrieve(groupId, IdentityZoneHolder.get().getId());
         group.setMembers(membershipManager.getMembers(groupId, false, IdentityZoneHolder.get().getId()));
         addETagHeader(httpServletResponse, group);
         return group;
@@ -329,14 +329,14 @@ public class ScimGroupEndpoints {
     @ResponseBody
     public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
         group.setZoneId(IdentityZoneHolder.get().getId());
-        ScimGroup created = dao.create(group);
+        ScimGroup created = dao.create(group, IdentityZoneHolder.get().getId());
         if (group.getMembers() != null) {
             for (ScimGroupMember member : group.getMembers()) {
                 try {
                     membershipManager.addMember(created.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (ScimException ex) {
                     logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + created.getId(), ex);
-                    dao.delete(created.getId(), created.getVersion());
+                    dao.delete(created.getId(), created.getVersion(), IdentityZoneHolder.get().getId());
                     throw new InvalidScimResourceException("Invalid group member: " + member.getMemberId());
                 }
             }
@@ -360,7 +360,7 @@ public class ScimGroupEndpoints {
         ScimGroup existing = getGroup(groupId, httpServletResponse);
         try {
             group.setZoneId(IdentityZoneHolder.get().getId());
-            ScimGroup updated = dao.update(groupId, group);
+            ScimGroup updated = dao.update(groupId, group, IdentityZoneHolder.get().getId());
             if (group.getMembers() != null && group.getMembers().size() > 0) {
                 membershipManager.updateOrAddMembers(updated.getId(), group.getMembers(), IdentityZoneHolder.get().getId());
             } else {
@@ -373,13 +373,13 @@ public class ScimGroupEndpoints {
             logger.error("Error updating group, restoring to previous state");
             // restore to correct state before reporting error
             existing.setVersion(getVersion(groupId, "*"));
-            dao.update(groupId, existing);
+            dao.update(groupId, existing, IdentityZoneHolder.get().getId());
             throw new ScimException(ex.getMessage(), ex, HttpStatus.CONFLICT);
         } catch (ScimResourceNotFoundException ex) {
             logger.error("Error updating group, restoring to previous state: " + existing);
             // restore to correct state before reporting error
             existing.setVersion(getVersion(groupId, "*"));
-            dao.update(groupId, existing);
+            dao.update(groupId, existing, IdentityZoneHolder.get().getId());
             throw new ScimException(ex.getMessage(), ex, HttpStatus.BAD_REQUEST);
         }
     }
@@ -411,7 +411,7 @@ public class ScimGroupEndpoints {
         try {
             membershipManager.removeMembersByGroupId(groupId, IdentityZoneHolder.get().getId());
             membershipManager.removeMembersByMemberId(groupId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
-            dao.delete(groupId, getVersion(groupId, etag));
+            dao.delete(groupId, getVersion(groupId, etag), IdentityZoneHolder.get().getId());
         } catch (IncorrectResultSizeDataAccessException ex) {
             logger.debug("error deleting group", ex);
             throw new ScimException("error deleting group: " + groupId, ex, HttpStatus.CONFLICT);
@@ -499,7 +499,7 @@ public class ScimGroupEndpoints {
     public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId,
           @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
           @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
-        dao.retrieve(groupId);
+        dao.retrieve(groupId, IdentityZoneHolder.get().getId());
         List<ScimGroupMember> members = membershipManager.getMembers(groupId, returnEntities, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
@@ -556,7 +556,7 @@ public class ScimGroupEndpoints {
             value = value.substring(0, value.length() - 1);
         }
         if (value.equals("*")) {
-            return dao.retrieve(groupId).getVersion();
+            return dao.retrieve(groupId, IdentityZoneHolder.get().getId()).getVersion();
         }
         try {
             return Integer.valueOf(value);

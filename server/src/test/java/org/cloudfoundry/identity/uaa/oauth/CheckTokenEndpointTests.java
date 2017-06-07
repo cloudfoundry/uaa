@@ -228,12 +228,12 @@ public class CheckTokenEndpointTests {
         tokenProvisioning = mock(RevocableTokenProvisioning.class);
         if (opaque) {
             tokenMap = new HashMap<>();
-            when(tokenProvisioning.create(any())).thenAnswer(invocation -> {
+            when(tokenProvisioning.create(any(), anyString())).thenAnswer(invocation -> {
                 RevocableToken token = (RevocableToken) invocation.getArguments()[0];
                 tokenMap.put(token.getTokenId(), token);
                 return token;
             });
-            when(tokenProvisioning.retrieve(anyString())).thenAnswer(invocation -> {
+            when(tokenProvisioning.retrieve(anyString(), anyString())).thenAnswer(invocation -> {
                 String id = (String) invocation.getArguments()[0];
                 return tokenMap.get(id);
             });
@@ -828,7 +828,7 @@ public class CheckTokenEndpointTests {
     @Test(expected = TokenRevokedException.class)
     public void revokedToken_ThrowsTokenRevokedException() throws Exception {
         setUp();
-        when(tokenProvisioning.retrieve(anyString())).thenThrow(new EmptyResultDataAccessException(1));
+        when(tokenProvisioning.retrieve(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
 
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(true);
         setAccessToken(tokenServices.createAccessToken(authentication));

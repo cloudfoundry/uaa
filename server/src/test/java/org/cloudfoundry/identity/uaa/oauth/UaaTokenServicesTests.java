@@ -132,6 +132,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -208,7 +209,7 @@ public class UaaTokenServicesTests {
                                                                           true);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(2)).create(rt.capture());
+        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertThat(rt.getAllValues().size(), equalTo(2));
         assertNotNull(rt.getAllValues().get(0));
@@ -233,8 +234,8 @@ public class UaaTokenServicesTests {
                 true,
                 true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId","userId");
-        verify(tokenProvisioning, times(2)).create(rt.capture());
+        verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
+        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -251,8 +252,9 @@ public class UaaTokenServicesTests {
                 true,
                 true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString());
-        verify(tokenProvisioning, times(2)).create(rt.capture());
+        String currentZoneId = IdentityZoneHolder.get().getId();
+        verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
+        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -270,7 +272,7 @@ public class UaaTokenServicesTests {
                                                                           false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, never()).create(rt.capture());
+        verify(tokenProvisioning, never()).create(rt.capture(), anyString());
         assertEquals(persistToken.getValue(), result.getValue());
         assertEquals("refresh-token-value", result.getRefreshToken().getValue());
     }
@@ -288,7 +290,7 @@ public class UaaTokenServicesTests {
                                                                           false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).create(rt.capture());
+        verify(tokenProvisioning, times(1)).create(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertEquals(1, rt.getAllValues().size());
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, rt.getAllValues().get(0).getResponseType());
@@ -1818,11 +1820,11 @@ public class UaaTokenServicesTests {
         assertThat("Opaque access token must be shorter than 37 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
-        String accessTokenValue = tokenProvisioning.retrieve(composite.getValue()).getValue();
+        String accessTokenValue = tokenProvisioning.retrieve(composite.getValue(), IdentityZoneHolder.get().getId()).getValue();
         Map<String,Object> accessTokenClaims = tokenServices.validateToken(accessTokenValue).getClaims();
         assertEquals(true, accessTokenClaims.get(ClaimConstants.REVOCABLE));
 
-        String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue()).getValue();
+        String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue(), IdentityZoneHolder.get().getId()).getValue();
         Map<String,Object> refreshTokenClaims = tokenServices.validateToken(refreshTokenValue).getClaims();
         assertEquals(true, refreshTokenClaims.get(ClaimConstants.REVOCABLE));
 

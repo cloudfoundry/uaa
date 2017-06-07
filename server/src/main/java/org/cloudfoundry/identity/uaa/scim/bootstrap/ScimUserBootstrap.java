@@ -151,7 +151,7 @@ public class ScimUserBootstrap implements
 
         if (users.isEmpty() && StringUtils.hasText(user.getId())) {
             try {
-                users = Arrays.asList(scimUserProvisioning.retrieve(user.getId()));
+                users = Arrays.asList(scimUserProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId()));
             } catch (ScimResourceNotFoundException x) {
                 logger.debug("Unable to find scim user based on ID:"+user.getId());
             }
@@ -200,7 +200,7 @@ public class ScimUserBootstrap implements
 
         final ScimUser newScimUser = convertToScimUser(updatedUser);
         newScimUser.setVersion(existingUser.getVersion());
-        scimUserProvisioning.update(id, newScimUser);
+        scimUserProvisioning.update(id, newScimUser, IdentityZoneHolder.get().getId());
         if (OriginKeys.UAA.equals(newScimUser.getOrigin()) && hasText(updatedUser.getPassword())) { //password is not relevant for non UAA users
             scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
         }
@@ -288,7 +288,7 @@ public class ScimUserBootstrap implements
             return;
         } else if (g == null || g.isEmpty()) {
             group = new ScimGroup(null,gName,IdentityZoneHolder.get().getId());
-            group = scimGroupProvisioning.create(group);
+            group = scimGroupProvisioning.create(group, IdentityZoneHolder.get().getId());
         } else {
             group = g.get(0);
         }

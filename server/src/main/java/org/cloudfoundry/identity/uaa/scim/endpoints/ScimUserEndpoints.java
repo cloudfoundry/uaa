@@ -205,7 +205,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
     @ResponseBody
     public ScimUser getUser(@PathVariable String userId, HttpServletResponse response) {
-        ScimUser scimUser = syncApprovals(syncGroups(scimUserProvisioning.retrieve(userId)));
+        ScimUser scimUser = syncApprovals(syncGroups(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())));
         addETagHeader(response, scimUser);
         return scimUser;
     }
@@ -264,7 +264,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = getVersion(userId, etag);
         user.setVersion(version);
         try {
-            ScimUser updated = scimUserProvisioning.update(userId, user);
+            ScimUser updated = scimUserProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
             scimUpdates.incrementAndGet();
             ScimUser scimUser = syncApprovals(syncGroups(updated));
             addETagHeader(httpServletResponse, scimUser);
@@ -286,7 +286,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         int version = getVersion(userId, etag);
-        ScimUser existing = scimUserProvisioning.retrieve(userId);
+        ScimUser existing = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         try {
             existing.patch(patch);
             existing.setVersion(version);
@@ -311,7 +311,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         ScimUser user = getUser(userId, httpServletResponse);
         checkIsEditAllowed(user.getOrigin(), request);
         membershipManager.removeMembersByMemberId(userId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
-        scimUserProvisioning.delete(userId, version);
+        scimUserProvisioning.delete(userId, version, IdentityZoneHolder.get().getId());
         scimDeletes.incrementAndGet();
         if (publisher != null) {
             publisher.publishEvent(
@@ -342,7 +342,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         VerificationResponse responseBody = new VerificationResponse();
 
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         if (user.isVerified()) {
             throw new UserAlreadyVerifiedException();
         }
@@ -374,7 +374,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             value = value.substring(0, value.length() - 1);
         }
         if (value.equals("*")) {
-            return scimUserProvisioning.retrieve(userId).getVersion();
+            return scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId()).getVersion();
         }
         try {
             return Integer.valueOf(value);
@@ -441,7 +441,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
 
         if(!user.getOrigin().equals(OriginKeys.UAA)) {
             throw new IllegalArgumentException("Can only manage users from the internal user store.");

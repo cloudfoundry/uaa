@@ -101,7 +101,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
         ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        ScimUser scimUser = provisioning.retrieve(user.getId());
+        ScimUser scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
         return username;
@@ -205,7 +205,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
                 addMember(user, g);
             }
 
-            return userProvisioning.retrieve(user.getId());
+            return userProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.set(original);
         }
@@ -245,7 +245,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         if (exists.size() > 0) {
             return exists.get(0);
         } else {
-            return groupProvisioning.create(new ScimGroup(null,scope,zoneId));
+            return groupProvisioning.create(new ScimGroup(null,scope,zoneId), IdentityZoneHolder.get().getId());
         }
     }
 }

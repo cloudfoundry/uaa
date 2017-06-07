@@ -108,7 +108,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         }
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
-        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"));
+        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), IdentityZoneHolder.get().getId());
         user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 
         String clientId = data.get("client_id");

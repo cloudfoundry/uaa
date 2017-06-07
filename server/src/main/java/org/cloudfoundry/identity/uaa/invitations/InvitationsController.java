@@ -344,7 +344,7 @@ public class InvitationsController {
         try {
             authentication = authenticationManager.authenticate(token);
             Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
-            ScimUser user = userProvisioning.retrieve(data.get("user_id"));
+            ScimUser user = userProvisioning.retrieve(data.get("user_id"), IdentityZoneHolder.get().getId());
             if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
                 model.addAttribute("email", data.get("email"));
                 model.addAttribute("provider", OriginKeys.LDAP);
@@ -356,7 +356,7 @@ public class InvitationsController {
             if (authentication.isAuthenticated()) {
                 //change username from email to username
                 user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
-                userProvisioning.update(user.getId(), user);
+                userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
                 SecurityContextHolder.getContext().setAuthentication(zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token));
                 AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
                 return "redirect:" + accept.getRedirectUri();

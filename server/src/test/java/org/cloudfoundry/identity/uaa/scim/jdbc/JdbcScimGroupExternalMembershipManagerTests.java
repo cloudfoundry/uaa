@@ -92,13 +92,13 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     @Test
     public void deleteGroupAndMappings() {
         createGroupMapping();
-        gdao.delete("g1-"+IdentityZoneHolder.get().getId(), -1);
+        gdao.delete("g1-"+IdentityZoneHolder.get().getId(), -1, IdentityZoneHolder.get().getId());
         int mappingsCount = jdbcTemplate.queryForObject("select count(1) from " + JdbcScimGroupExternalMembershipManager.EXTERNAL_GROUP_MAPPING_TABLE, Integer.class);
         assertEquals(0, mappingsCount);
     }
 
     private void createGroupMapping() {
-        ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId());
+        ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
         assertNotNull(group);
 
         ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
@@ -173,7 +173,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void addMultipleExternalMappingsToGroup() {
-        ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId());
+        ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
         assertNotNull(group);
 
         {
@@ -217,7 +217,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     @Test
     public void addMultipleExternalMappingsToMultipleGroup() {
         {
-            ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId());
+            ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
             assertNotNull(group);
 
             {
@@ -241,7 +241,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             assertEquals(externalMappings.size(), 3);
         }
         {
-            ScimGroup group = gdao.retrieve("g2-"+IdentityZoneHolder.get().getId());
+            ScimGroup group = gdao.retrieve("g2-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
             assertNotNull(group);
 
             {
@@ -265,7 +265,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             assertEquals(externalMappings.size(), 3);
         }
         {
-            ScimGroup group = gdao.retrieve("g3-"+IdentityZoneHolder.get().getId());
+            ScimGroup group = gdao.retrieve("g3-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
             assertNotNull(group);
 
             {

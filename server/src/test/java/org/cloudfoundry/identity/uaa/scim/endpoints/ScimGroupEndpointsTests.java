@@ -150,7 +150,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
     private String addGroup(String name, List<ScimGroupMember> m) {
         ScimGroup g = new ScimGroup(null, name, IdentityZoneHolder.get().getId());
-        g = dao.create(g);
+        g = dao.create(g, IdentityZoneHolder.get().getId());
         for (ScimGroupMember member : m) {
             mm.addMember(g.getId(), member, IdentityZoneHolder.get().getId());
         }
@@ -163,7 +163,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
             id = userEndpoints.createUser(TestUtils.scimUserInstance(id), new MockHttpServletRequest(), new MockHttpServletResponse()).getId();
             userIds.add(id);
         } else {
-            id = dao.create(new ScimGroup(null, id, IdentityZoneHolder.get().getId())).getId();
+            id = dao.create(new ScimGroup(null, id, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId()).getId();
             groupIds.add(id);
         }
         return new ScimGroupMember(id, t, a);
@@ -171,7 +171,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
     private void deleteGroup(String name) {
         for (ScimGroup g : dao.query("displayName eq \"" + name + "\"")) {
-            dao.delete(g.getId(), g.getVersion());
+            dao.delete(g.getId(), g.getVersion(), IdentityZoneHolder.get().getId());
             mm.removeMembersByGroupId(g.getId(), IdentityZoneHolder.get().getId());
         }
     }
@@ -709,7 +709,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
         g1.setDescription("description");
 
-        g1 = dao.create(g1);
+        g1 = dao.create(g1, IdentityZoneHolder.get().getId());
 
         ScimGroup patch = new ScimGroup("NewName");
         patch.setId(g1.getId());
@@ -734,7 +734,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
         g1.setDescription("description");
 
-        g1 = dao.create(g1);
+        g1 = dao.create(g1, IdentityZoneHolder.get().getId());
 
         ScimGroup patch = new ScimGroup();
         assertEquals(null, g1.getMembers());
@@ -755,7 +755,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
         g1.setDescription("description");
 
-        g1 = dao.create(g1);
+        g1 = dao.create(g1, IdentityZoneHolder.get().getId());
 
         ScimGroup patch = new ScimGroup("NewName");
         patch.setId(g1.getId());

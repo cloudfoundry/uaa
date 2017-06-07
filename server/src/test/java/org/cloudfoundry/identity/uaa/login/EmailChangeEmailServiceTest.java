@@ -119,7 +119,7 @@ public class EmailChangeEmailServiceTest {
     public void beginEmailChangeWithUsernameConflict() throws Exception {
         ScimUser user = new ScimUser("user-001", "user@example.com", "test-name", "test-name");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
         when(scimUserProvisioning.query(anyString())).thenReturn(Collections.singletonList(new ScimUser()));
 
         emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null);
@@ -237,7 +237,7 @@ public class EmailChangeEmailServiceTest {
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", "user@example.com", "", "");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
+        when(scimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
 
         doThrow(new NoSuchClientException("no such client")).when(clientDetailsService).loadClientByClientId("invalid-client");
         Map<String, String> response = null;
@@ -278,7 +278,7 @@ public class EmailChangeEmailServiceTest {
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", username, "", "");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
+        when(scimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
 
         when(clientDetailsService.loadClientByClientId(clientId)).thenReturn(clientDetails);
 
@@ -287,7 +287,7 @@ public class EmailChangeEmailServiceTest {
         ScimUser updatedUser = new ScimUser("user-001", "new@example.com", "", "");
         user.setPrimaryEmail("new@example.com");
 
-        verify(scimUserProvisioning).update("user-001", updatedUser);
+        verify(scimUserProvisioning).update("user-001", updatedUser, IdentityZoneHolder.get().getId());
         return response;
     }
 
@@ -300,7 +300,7 @@ public class EmailChangeEmailServiceTest {
         codeData.put("redirect_uri", "http://app.com");
         codeData.put("email", "new@example.com");
 
-        when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
+        when(scimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
         when(scimUserProvisioning.query(anyString())).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));

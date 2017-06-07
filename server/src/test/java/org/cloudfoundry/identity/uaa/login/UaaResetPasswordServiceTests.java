@@ -193,7 +193,7 @@ public class UaaResetPasswordServiceTests {
         ExpiringCode expiringCode = new ExpiringCode("good_code",
             new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
         when(codeStore.retrieveCode("good_code", IdentityZoneHolder.get().getId())).thenReturn(expiringCode);
-        when(scimUserProvisioning.retrieve("user-id")).thenReturn(user);
+        when(scimUserProvisioning.retrieve("user-id", IdentityZoneHolder.get().getId())).thenReturn(user);
         when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld"))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         SecurityContext securityContext = mock(SecurityContext.class);
@@ -266,7 +266,7 @@ public class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser(userId, "username", "firstname", "lastname");
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
-        when(scimUserProvisioning.retrieve(userId)).thenReturn(user);
+        when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
         uaaResetPasswordService.resetUserPassword(userId, "password");
 
         verify(scimUserProvisioning, times(1)).updatePasswordChangeRequired(userId, false);
@@ -279,7 +279,7 @@ public class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser(userId, "username", "firstname", "lastname");
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
-        when(scimUserProvisioning.retrieve(userId)).thenReturn(user);
+        when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
         when(scimUserProvisioning.checkPasswordMatches("user-id", "password"))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         uaaResetPasswordService.resetUserPassword(userId, "password");
@@ -292,7 +292,7 @@ public class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser(userId, "username", "firstname", "lastname");
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
-        when(scimUserProvisioning.retrieve(userId)).thenReturn(user);
+        when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
         doThrow(new InvalidPasswordException("Password cannot contain whitespace characters.")).when(passwordValidator).validate("new password");
         expectedException.expect(InvalidPasswordException.class);
         expectedException.expectMessage("Password cannot contain whitespace characters.");
@@ -310,7 +310,8 @@ public class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser("usermans-id","userman","firstName","lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve(eq("usermans-id"))).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(eq("usermans-id"), eq(zoneId))).thenReturn(user);
         ExpiringCode code = new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
                                              "{\"user_id\":\"usermans-id\",\"username\":\"userman\",\"passwordModifiedTime\":null,\"client_id\":\"" + clientId + "\",\"redirect_uri\":\"" + redirectUri + "\"}", null);
         when(codeStore.retrieveCode(eq("secret_code"), anyString())).thenReturn(code);

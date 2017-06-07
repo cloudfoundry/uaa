@@ -187,7 +187,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             String description = groups.get(g.getDisplayName());
             if (StringUtils.hasText(description)) {
                 g.setDescription(description);
-                groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g));
+                groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g, IdentityZoneHolder.get().getId()));
             }
         }
 
@@ -266,7 +266,7 @@ public class ScimGroupBootstrap implements InitializingBean {
         logger.debug("adding group: " + name);
         ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
         try {
-            g = scimGroupProvisioning.create(g);
+            g = scimGroupProvisioning.create(g, IdentityZoneHolder.get().getId());
         } catch (ScimResourceAlreadyExistsException ex) {
             logger.debug("group " + g + " already exists, retrieving...");
             g = getGroup(name);

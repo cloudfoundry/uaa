@@ -753,10 +753,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setScope(scope)
                 .setValue(token.getValue());
             try {
-                tokenProvisioning.create(revocableAccessToken);
+                tokenProvisioning.create(revocableAccessToken, IdentityZoneHolder.get().getId());
             } catch (DuplicateKeyException updateInstead) {
                 //TODO this is an uninteded side effect of reusing access token IDs
-                tokenProvisioning.update(tokenId, revocableAccessToken);
+                tokenProvisioning.update(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
             }
         }
 
@@ -777,9 +777,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setValue(refreshToken.getValue());
             try {
                 if(refreshTokenUnique) {
-                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId);
+                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
                 }
-                tokenProvisioning.create(revocableRefreshToken);
+                tokenProvisioning.create(revocableRefreshToken, IdentityZoneHolder.get().getId());
             } catch (DuplicateKeyException ignore) {
                 //no need to store refresh tokens again
             }
@@ -1138,7 +1138,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (!UaaTokenUtils.isJwtToken(token)) {
             RevocableToken revocableToken;
             try {
-                 revocableToken = tokenProvisioning.retrieve(token);
+                 revocableToken = tokenProvisioning.retrieve(token, IdentityZoneHolder.get().getId());
             } catch(EmptyResultDataAccessException ex) {
                 throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect: " + token);
             }

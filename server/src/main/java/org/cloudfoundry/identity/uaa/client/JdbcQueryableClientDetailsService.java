@@ -75,29 +75,29 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     }
 
     @Override
-    public List<ClientDetails> retrieveAll() {
+    public List<ClientDetails> retrieveAll(String zoneId) {
         return delegate.listClientDetails();
     }
 
     @Override
-    public ClientDetails retrieve(String id) {
+    public ClientDetails retrieve(String id, String zoneId) {
         return delegate.loadClientByClientId(id);
     }
 
     @Override
-    public ClientDetails create(ClientDetails resource) {
+    public ClientDetails create(ClientDetails resource, String zoneId) {
         delegate.addClientDetails(resource);
         return delegate.loadClientByClientId(resource.getClientId());
     }
 
     @Override
-    public ClientDetails update(String id, ClientDetails resource) {
+    public ClientDetails update(String id, ClientDetails resource, String zoneId) {
         delegate.updateClientDetails(resource);
         return delegate.loadClientByClientId(id);
     }
 
     @Override
-    public ClientDetails delete(String id, int version) {
+    public ClientDetails delete(String id, int version, String zoneId) {
         ClientDetails client = delegate.loadClientByClientId(id);
         delegate.onApplicationEvent(new EntityDeletedEvent<ClientDetails>(client, SecurityContextHolder.getContext().getAuthentication()));
         return client;

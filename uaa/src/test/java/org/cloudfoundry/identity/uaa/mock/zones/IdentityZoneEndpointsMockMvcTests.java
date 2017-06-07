@@ -983,17 +983,17 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         ScimUser user = getScimUser();
         user.setOrigin(LOGIN_SERVER);
         user = userProvisioning.createUser(user, "");
-        assertNotNull(userProvisioning.retrieve(user.getId()));
+        assertNotNull(userProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId()));
         assertEquals(zone.getId(), user.getZoneId());
 
         //create group
         ScimGroup group = new ScimGroup("Delete Test Group");
         group.setZoneId(zone.getId());
-        group = groupProvisioning.create(group);
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
         membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER)), IdentityZoneHolder.get().getId());
         assertEquals(zone.getId(), group.getZoneId());
-        assertNotNull(groupProvisioning.retrieve(group.getId()));
-        assertEquals("Delete Test Group", groupProvisioning.retrieve(group.getId()).getDisplayName());
+        assertNotNull(groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId()));
+        assertEquals("Delete Test Group", groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId()).getDisplayName());
         assertEquals(1, membershipManager.getMembers(group.getId(), false, IdentityZoneHolder.get().getId()).size());
 
         //failed authenticated user

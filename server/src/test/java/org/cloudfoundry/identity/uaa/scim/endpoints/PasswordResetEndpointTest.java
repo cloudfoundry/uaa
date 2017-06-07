@@ -257,7 +257,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
         ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", AUTOLOGIN.name());
         when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()), anyString())).thenReturn(autologinCode);
 
@@ -303,7 +303,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
         scimUser.setVerified(false);
-        when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
 
         ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", AUTOLOGIN.name());
         when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()), anyString())).thenReturn(autologinCode);
@@ -369,7 +369,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.addEmail("user@example.com");
         scimUser.setVerified(true);
 
-        when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
         when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret")).thenReturn(true);
 
         MockHttpServletRequestBuilder post = post("/password_change")

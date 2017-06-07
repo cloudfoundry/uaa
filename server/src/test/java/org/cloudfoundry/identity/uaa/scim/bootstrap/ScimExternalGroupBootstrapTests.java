@@ -47,10 +47,10 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
-        assertEquals(0, gDB.retrieveAll().size());
+        assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
 
-        gDB.create(new ScimGroup(null, "acme", IdentityZone.getUaa().getId()));
-        gDB.create(new ScimGroup(null, "acme.dev", IdentityZone.getUaa().getId()));
+        gDB.create(new ScimGroup(null, "acme", IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
+        gDB.create(new ScimGroup(null, "acme.dev", IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
 
         bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
     }

@@ -54,7 +54,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
         String userId = emailChange.getUserId();
         String email = emailChange.getEmail();
 
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         if (user.getUserName().equals(user.getPrimaryEmail())) {
             List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"");
             if (!results.isEmpty()) {
@@ -79,19 +79,19 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
             Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             String userId = data.get("userId");
             String email = data.get("email");
-            ScimUser user = scimUserProvisioning.retrieve(userId);
+            ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
             if (user.getUserName().equals(user.getPrimaryEmail())) {
                 user.setUserName(email);
             }
             user.setPrimaryEmail(email);
 
-            scimUserProvisioning.update(userId, user);
+            scimUserProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
 
             String redirectLocation = null;
             String clientId = data.get("client_id");
 
             if (clientId != null && !clientId.equals("")) {
-                ClientDetails clientDetails = clientDetailsService.retrieve(clientId);
+                ClientDetails clientDetails = clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId());
                 redirectLocation = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
             }
 

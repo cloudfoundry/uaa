@@ -132,7 +132,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .andExpect(redirectedUrl("/"))
             .andReturn();
 
-        ScimUser userMarissa = getWebApplicationContext().getBean(ScimUserProvisioning.class).retrieve(users.get(0).getId());
+        ScimUser userMarissa = getWebApplicationContext().getBean(ScimUserProvisioning.class).retrieve(users.get(0).getId(), IdentityZoneHolder.get().getId());
         assertNotNull(userMarissa.getLastLogonTime());
         if(lastLogonBeforeReset != null) {
             assertTrue(userMarissa.getLastLogonTime() > lastLogonBeforeReset);
@@ -153,13 +153,13 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         String formerUsername = user.getUserName();
         user.setUserName("newusername");
-        user = userProvisioning.update(user.getId(), user);
+        user = userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
         try {
             getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
                 .andExpect(status().isUnprocessableEntity());
         } finally {
             user.setUserName(formerUsername);
-            userProvisioning.update(user.getId(), user);
+            userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
         }
     }
 

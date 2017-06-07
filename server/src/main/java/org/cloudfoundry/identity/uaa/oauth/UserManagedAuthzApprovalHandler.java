@@ -81,7 +81,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         // Factor in auto approved scopes
         Set<String> autoApprovedScopes = new HashSet<>();
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.retrieve(authorizationRequest.getClientId());
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.retrieve(authorizationRequest.getClientId(), IdentityZoneHolder.get().getId());
         if (client != null && requestedScopes != null) {
             autoApprovedScopes.addAll(client.getAutoApproveScopes());
             autoApprovedScopes = UaaTokenUtils.retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);

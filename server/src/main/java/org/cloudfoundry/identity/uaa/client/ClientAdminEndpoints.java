@@ -203,7 +203,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseBody
     public ClientDetails getClientDetails(@PathVariable String client) throws Exception {
         try {
-            return removeSecret(clientDetailsService.retrieve(client));
+            return removeSecret(clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId()));
         } catch (InvalidClientException e) {
             throw new NoSuchClientException("No such client: " + client);
         } catch (BadClientCredentialsException e) {
@@ -218,7 +218,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
-        ClientDetails ret = removeSecret(clientDetailsService.create(details));
+        ClientDetails ret = removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
 
         return ret;
     }
@@ -260,7 +260,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     protected ClientDetails[] doInsertClientDetails(ClientDetails[] details) {
         for (int i=0; i<details.length; i++) {
-            details[i] = clientDetailsService.create(details[i]);
+            details[i] = clientDetailsService.create(details[i], IdentityZoneHolder.get().getId());
             details[i] = removeSecret(details[i]);
         }
         return details;
@@ -330,14 +330,14 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         details = clientDetailsValidator.validate(details, Mode.MODIFY);
         clientRegistrationService.updateClientDetails(details);
         clientUpdates.incrementAndGet();
-        return removeSecret(clientDetailsService.retrieve(clientId));
+        return removeSecret(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
     }
 
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails removeClientDetails(@PathVariable String client) throws Exception {
-        ClientDetails details = clientDetailsService.retrieve(client);
+        ClientDetails details = clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId());
         doProcessDeletes(new ClientDetails[]{details});
         return removeSecret(details);
     }
@@ -349,7 +349,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) throws Exception {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
-            result[i] = clientDetailsService.retrieve(details[i].getClientId());
+            result[i] = clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId());
         }
         return doProcessDeletes(result);
     }
@@ -365,9 +365,9 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 ClientDetails client = clientDetailsValidator.validate(details[i], Mode.CREATE);
                 clientRegistrationService.addClientDetails(client);
                 clientUpdates.incrementAndGet();
-                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
+                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId()));
             } else if (ClientDetailsModification.DELETE.equals(details[i].getAction())) {
-                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
+                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId()));
                 doProcessDeletes(new ClientDetails[]{result[i]});
                 result[i].setApprovalsDeleted(true);
             } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
@@ -390,7 +390,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     }
 
     private ClientDetailsModification updateClientNotSecret(ClientDetailsModification c) {
-        ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId()));
+        ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId(), IdentityZoneHolder.get().getId()));
         ClientDetails client = clientDetailsValidator.validate(c, Mode.MODIFY);
         clientRegistrationService.updateClientDetails(client);
         clientUpdates.incrementAndGet();
@@ -419,7 +419,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         try {
             for (int i=0; i<change.length; i++) {
                 clientId = change[i].getClientId();
-                clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId));
+                clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
                 clientRegistrationService.updateClientSecret(clientId, change[i].getSecret());
                 if (!oldPasswordOk) {
@@ -506,7 +506,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
         ClientDetails clientDetails;
         try {
-            clientDetails = clientDetailsService.retrieve(client_id);
+            clientDetails = clientDetailsService.retrieve(client_id, IdentityZoneHolder.get().getId());
         } catch (InvalidClientException e) {
             throw new NoSuchClientException("No such client: " + client_id);
         }

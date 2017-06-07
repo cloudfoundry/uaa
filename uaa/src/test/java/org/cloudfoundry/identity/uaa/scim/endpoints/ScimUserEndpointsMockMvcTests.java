@@ -471,7 +471,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void verification_link_unverified_error() throws Exception {
         ScimUser user = setUpScimUser();
         user.setVerified(true);
-        usersRepository.update(user.getId(), user);
+        usersRepository.update(user.getId(), user, IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = setUpVerificationLinkRequest(user, scimCreateToken);
 

@@ -57,7 +57,7 @@ public class EmailInvitationsService implements InvitationsService {
         String clientId = userData.get(CLIENT_ID);
         String redirectUri = userData.get(REDIRECT_URI);
 
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
 
         user = scimUserProvisioning.verifyUser(userId, user.getVersion());
 

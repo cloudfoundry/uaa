@@ -82,7 +82,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         @SuppressWarnings("unchecked")
         QueryableResourceManager<ClientDetails> service = mock(QueryableResourceManager.class);
         BaseClientDetails details = mock(BaseClientDetails.class);
-        Mockito.when(service.retrieve(id)).thenReturn(details);
+        Mockito.when(service.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(details);
         Mockito.when(details.getScope()).thenReturn(new HashSet<>(Arrays.asList(scope)));
         Mockito.when(details.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
         return service;
