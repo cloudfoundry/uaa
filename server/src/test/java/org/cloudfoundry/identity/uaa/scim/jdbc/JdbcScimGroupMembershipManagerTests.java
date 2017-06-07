@@ -173,6 +173,30 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
+    public void delete_by_member() throws Exception {
+        addMember("g1", "m3", "USER", "READER", LDAP);
+        addMember("g1", "g2", "GROUP", "READER", LDAP);
+        addMember("g3", "m2", "USER", "READER,WRITER", UAA);
+        addMember("g2", "m3", "USER", "READER", UAA);
+        validateCount(4);
+        dao.removeMembersByMemberId("m3");
+        validateCount(2);
+    }
+
+    @Test
+    public void delete_by_member_and_origin() throws Exception {
+        addMember("g1", "m3", "USER", "READER", LDAP);
+        addMember("g1", "g2", "GROUP", "READER", LDAP);
+        addMember("g3", "m2", "USER", "READER,WRITER", UAA);
+        addMember("g2", "m3", "USER", "READER", UAA);
+        validateCount(4);
+        dao.removeMembersByMemberId("m3", "non-existent-origin");
+        validateCount(4);
+        dao.removeMembersByMemberId("m3", LDAP);
+        validateCount(3);
+    }
+
+    @Test
     public void canQuery_Filter_Has_ZoneIn_Effect() throws Exception {
         addMembers();
         validateCount(4);

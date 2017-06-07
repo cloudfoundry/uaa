@@ -78,6 +78,8 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
 
     public static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id=? and identity_zone_id=?",MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
+    public static final String DELETE_MEMBERS_FROM_ORIGIN_SQL = String.format("delete from %s where member_id=? and origin = ? and identity_zone_id=?", MEMBERSHIP_TABLE);
+
     public static final String DELETE_MEMBER_SQL = String.format("delete from %s where member_id=? and group_id = ? and identity_zone_id=?",MEMBERSHIP_TABLE);
 
     public static final String DELETE_MEMBERS_IN_GROUP_SQL = String.format("delete from %s where group_id=? and identity_zone_id=?",MEMBERSHIP_TABLE);
@@ -405,22 +407,40 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
         int deleted = 0;
         String sql = DELETE_MEMBER_IN_GROUPS_SQL_GROUP;
         if (isUser(memberId)) {
-               sql = DELETE_MEMBER_IN_GROUPS_SQL_USER;
+            sql = DELETE_MEMBER_IN_GROUPS_SQL_USER;
         }
         deleted = jdbcTemplate.update(sql, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-            ps.setString(1, memberId);
-            ps.setString(2, IdentityZoneHolder.get().getId());
+                ps.setString(1, memberId);
+                ps.setString(2, IdentityZoneHolder.get().getId());
             }
         });
 
         int expectedDelete = isUser(memberId) ? groups.size() - getDefaultUserGroups(IdentityZoneHolder.get()).size() : groups.size();
         if (deleted != expectedDelete) {
             throw new IncorrectResultSizeDataAccessException("unexpected number of members removed", expectedDelete,
-                            deleted);
+                                                             deleted);
         }
 
+        return groups;
+    }
+
+    @Override
+    public Set<ScimGroup> removeMembersByMemberId(final String memberId, final String origin) throws ScimResourceNotFoundException {
+        Set<ScimGroup> groups = getGroupsWithMember(memberId, false);
+        logger.debug("removing " + memberId + " from groups: " + groups);
+        int deleted = 0;
+        String sql = DELETE_MEMBERS_FROM_ORIGIN_SQL;
+        deleted = jdbcTemplate.update(sql, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                ps.setString(1, memberId);
+                ps.setString(2, origin);
+                ps.setString(3, IdentityZoneHolder.get().getId());
+            }
+        });
+        logger.debug(String.format("Deleted %s memberships for member %s", deleted, memberId));
         return groups;
     }
 
