@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
+import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.DefaultConfigurationTestSuite;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
@@ -74,7 +75,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import static java.util.Collections.EMPTY_LIST;
@@ -265,7 +265,9 @@ public class LdapMockMvcTests  {
             .andReturn();
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
-
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+        code = new InMemoryExpiringCodeStore().extractCode(code);
+        IdentityZoneHolder.clear();
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
                                  .session(session)
@@ -306,7 +308,9 @@ public class LdapMockMvcTests  {
             .andReturn();
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
-
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+        code = new InMemoryExpiringCodeStore().extractCode(code);
+        IdentityZoneHolder.clear();
         session = (MockHttpSession) result.getRequest().getSession(false);
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
                                  .session(session)

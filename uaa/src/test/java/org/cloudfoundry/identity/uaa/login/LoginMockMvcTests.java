@@ -1647,7 +1647,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         inviteContext.setAuthentication(inviteToken);
         inviteSession.setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
 
-        ExpiringCode code = getWebApplicationContext().getBean(ExpiringCodeStore.class).generateCode("{ \"origin\" : \"uaa\"}", new Timestamp(System.currentTimeMillis() + 1000 * 60), null);
+        Map<String, String> codeData = new HashMap();
+        codeData.put("user_id", ((UaaPrincipal)marissaContext.getAuthentication().getPrincipal()).getId());
+        codeData.put("email", ((UaaPrincipal)marissaContext.getAuthentication().getPrincipal()).getEmail());
+        codeData.put("origin", OriginKeys.UAA);
+
+        ExpiringCode code = getWebApplicationContext().getBean(ExpiringCodeStore.class).generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 1000 * 60), null);
 
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")

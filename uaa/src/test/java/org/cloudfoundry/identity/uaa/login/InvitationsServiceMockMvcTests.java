@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
@@ -53,15 +54,18 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
 
@@ -227,6 +231,55 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void invalid_code() throws Exception {
+        String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
+        String invalid = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
+        URL inviteLink = inviteUser(email, userInviteToken, null, clientId, OriginKeys.UAA);
+        URL invalidLink = inviteUser(invalid, userInviteToken, null, clientId, OriginKeys.UAA);
+
+        assertFalse("User should not be verified", queryUserForField(email, "verified", Boolean.class));
+        assertEquals(OriginKeys.UAA, queryUserForField(email, OriginKeys.ORIGIN, String.class));
+
+        String code = extractInvitationCode(inviteLink.toString());
+        String invalidCode = extractInvitationCode(invalidLink.toString());
+
+        MvcResult result = getMockMvc().perform(get("/invitations/accept")
+            .param("code", code)
+            .accept(MediaType.TEXT_HTML)
+        )
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("Email: " + email)))
+            .andReturn();
+
+        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        result = getMockMvc().perform(
+            post("/invitations/accept.do")
+                .session(session)
+                .param("password", "s3cret")
+                .param("password_confirmation", "s3cret")
+                .param("code",invalidCode)
+                .with(csrf())
+        )
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(model().attribute("error_message_code", "code_expired"))
+            .andExpect(view().name("invitations/accept_invite"))
+            .andReturn();
+
+        assertFalse("User should be not yet be verified", queryUserForField(email, "verified", Boolean.class));
+        assertNull(session.getAttribute("SPRING_SECURITY_CONTEXT"));
+
+        session = (MockHttpSession) result.getRequest().getSession(false);
+        //not logged in anymore
+        getMockMvc().perform(
+            get("/profile")
+                .session(session)
+                .accept(MediaType.TEXT_HTML)
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
     public void accept_invitation_sets_your_password() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
         URL inviteLink = inviteUser(email, userInviteToken, null, clientId, OriginKeys.UAA);
@@ -244,6 +297,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
+        code = new InMemoryExpiringCodeStore().extractCode(code);
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = getMockMvc().perform(
             post("/invitations/accept.do")
