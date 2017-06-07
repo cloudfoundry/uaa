@@ -1328,7 +1328,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 ScimGroupMembershipManager scimGroupMembershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
                 ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
                 try {
-                    scimGroupMembershipManager.addMember(group.getId(), member);
+                    scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (MemberAlreadyExistsException x) {}
             }
         } finally {
@@ -1368,7 +1368,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 ScimGroupMembershipManager scimGroupMembershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
                 ScimGroupMember member = new ScimGroupMember(newGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.READER));
                 try {
-                    scimGroupMembershipManager.addMember(group.getId(), member);
+                    scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (MemberAlreadyExistsException x) {}
             }
         } finally {

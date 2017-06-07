@@ -275,13 +275,13 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         scimUser.setZoneId(OriginKeys.UAA);
         when(users.retrieve(userId)).thenReturn(scimUser);
         ScimGroupMember<ScimUser> member = new ScimGroupMember<>(scimUser);
-        memberships.addMember(groupId, member);
+        memberships.addMember(groupId, member, IdentityZoneHolder.get().getId());
         return member;
     }
 
     private ScimGroupMember addGroupToGroup(String parentGroupId, String childGroupId) {
         ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId));
-        memberships.addMember(parentGroupId, member);
+        memberships.addMember(parentGroupId, member, IdentityZoneHolder.get().getId());
         return member;
     }
 

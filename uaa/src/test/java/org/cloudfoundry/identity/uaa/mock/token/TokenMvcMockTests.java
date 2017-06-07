@@ -602,7 +602,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"");
         assertEquals(1, groups.size());
-        getWebApplicationContext().getBean(ScimGroupMembershipManager.class).removeMemberById(groups.get(0).getId(), scimUser.getId());
+        getWebApplicationContext().getBean(ScimGroupMembershipManager.class).removeMemberById(groups.get(0).getId(), scimUser.getId(), IdentityZoneHolder.get().getId());
 
         getMockMvc().perform(
             post("/oauth/token")
@@ -3893,7 +3893,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
         group = groupProvisioning.create(group);
         ScimGroupMember member = new ScimGroupMember(user.getId());
-        groupMembershipManager.addMember(group.getId(),member);
+        groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
         MockHttpSession session = getAuthenticatedSession(user);
 

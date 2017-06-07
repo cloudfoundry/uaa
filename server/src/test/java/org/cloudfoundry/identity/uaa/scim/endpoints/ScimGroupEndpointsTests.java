@@ -152,7 +152,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         ScimGroup g = new ScimGroup(null, name, IdentityZoneHolder.get().getId());
         g = dao.create(g);
         for (ScimGroupMember member : m) {
-            mm.addMember(g.getId(), member);
+            mm.addMember(g.getId(), member, IdentityZoneHolder.get().getId());
         }
         return g.getId();
     }
@@ -172,7 +172,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     private void deleteGroup(String name) {
         for (ScimGroup g : dao.query("displayName eq \"" + name + "\"")) {
             dao.delete(g.getId(), g.getVersion());
-            mm.removeMembersByGroupId(g.getId());
+            mm.removeMembersByGroupId(g.getId(), IdentityZoneHolder.get().getId());
         }
     }
 

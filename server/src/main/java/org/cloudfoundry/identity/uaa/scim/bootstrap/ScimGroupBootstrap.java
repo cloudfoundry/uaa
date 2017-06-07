@@ -204,7 +204,7 @@ public class ScimGroupBootstrap implements InitializingBean {
 
         for (ScimGroupMember member : members) {
             try {
-                membershipManager.addMember(group.getId(), member);
+                membershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
             } catch (MemberAlreadyExistsException ex) {
                 logger.debug(member.getMemberId() + " already is member of group " + name);
             }
@@ -255,7 +255,7 @@ public class ScimGroupBootstrap implements InitializingBean {
         List<ScimGroup> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name));
         if (g != null && !g.isEmpty()) {
             ScimGroup gr = g.get(0);
-            gr.setMembers(membershipManager.getMembers(gr.getId(), false));
+            gr.setMembers(membershipManager.getMembers(gr.getId(), false, IdentityZoneHolder.get().getId()));
             return gr;
         }
         logger.debug("could not find group with name");

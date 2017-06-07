@@ -690,7 +690,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setScimGroupMembershipManager(mm);
     }
@@ -701,7 +701,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setScimGroupMembershipManager(mm);
     }

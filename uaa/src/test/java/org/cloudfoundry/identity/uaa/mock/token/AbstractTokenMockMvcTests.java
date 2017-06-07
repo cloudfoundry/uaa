@@ -216,8 +216,8 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             return user;
         }
 
-        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true);
+        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false, IdentityZoneHolder.get().getId());
+        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZoneHolder.get().getId());
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {
@@ -234,7 +234,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     protected ScimGroupMember addMember(ScimUser user, ScimGroup group) {
         ScimGroupMember gm = new ScimGroupMember(user.getId());
         try {
-            return groupMembershipManager.addMember(group.getId(), gm);
+            return groupMembershipManager.addMember(group.getId(), gm, IdentityZoneHolder.get().getId());
         }catch (MemberAlreadyExistsException x) {
             return gm;
         }

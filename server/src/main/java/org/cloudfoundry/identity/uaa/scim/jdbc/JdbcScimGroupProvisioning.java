@@ -254,7 +254,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup delete(String id, int version) throws ScimResourceNotFoundException {
         ScimGroup group = retrieve(id);
-        membershipManager.removeMembersByGroupId(id);
+        membershipManager.removeMembersByGroupId(id, IdentityZoneHolder.get().getId());
         externalGroupMappingManager.unmapAll(id, IdentityZoneHolder.get().getId());
         int deleted;
         if (version > 0) {

@@ -131,7 +131,7 @@ public class ScimGroupEndpoints {
         boolean needMore = response.size() < expectedResponseSize;
         while (needMore && startIndex <= input.size()) {
             for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
-                group.setMembers(membershipManager.getMembers(group.getId(), false));
+                group.setMembers(membershipManager.getMembers(group.getId(), false, IdentityZoneHolder.get().getId()));
                 response.add(group);
                 needMore = response.size() < expectedResponseSize;
                 if (!needMore) {
@@ -319,7 +319,7 @@ public class ScimGroupEndpoints {
     public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
         logger.debug("retrieving group with id: " + groupId);
         ScimGroup group = dao.retrieve(groupId);
-        group.setMembers(membershipManager.getMembers(groupId, false));
+        group.setMembers(membershipManager.getMembers(groupId, false, IdentityZoneHolder.get().getId()));
         addETagHeader(httpServletResponse, group);
         return group;
     }
@@ -333,7 +333,7 @@ public class ScimGroupEndpoints {
         if (group.getMembers() != null) {
             for (ScimGroupMember member : group.getMembers()) {
                 try {
-                    membershipManager.addMember(created.getId(), member);
+                    membershipManager.addMember(created.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (ScimException ex) {
                     logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + created.getId(), ex);
                     dao.delete(created.getId(), created.getVersion());
@@ -341,7 +341,7 @@ public class ScimGroupEndpoints {
                 }
             }
         }
-        created.setMembers(membershipManager.getMembers(created.getId(), false));
+        created.setMembers(membershipManager.getMembers(created.getId(), false, IdentityZoneHolder.get().getId()));
         addETagHeader(httpServletResponse, created);
         return created;
     }
@@ -362,11 +362,11 @@ public class ScimGroupEndpoints {
             group.setZoneId(IdentityZoneHolder.get().getId());
             ScimGroup updated = dao.update(groupId, group);
             if (group.getMembers() != null && group.getMembers().size() > 0) {
-                membershipManager.updateOrAddMembers(updated.getId(), group.getMembers());
+                membershipManager.updateOrAddMembers(updated.getId(), group.getMembers(), IdentityZoneHolder.get().getId());
             } else {
-                membershipManager.removeMembersByGroupId(updated.getId());
+                membershipManager.removeMembersByGroupId(updated.getId(), IdentityZoneHolder.get().getId());
             }
-            updated.setMembers(membershipManager.getMembers(updated.getId(), false));
+            updated.setMembers(membershipManager.getMembers(updated.getId(), false, IdentityZoneHolder.get().getId()));
             addETagHeader(httpServletResponse, updated);
             return updated;
         } catch (IncorrectResultSizeDataAccessException ex) {
@@ -409,8 +409,8 @@ public class ScimGroupEndpoints {
         ScimGroup group = getGroup(groupId, httpServletResponse);
         logger.debug("deleting group: " + group);
         try {
-            membershipManager.removeMembersByGroupId(groupId);
-            membershipManager.removeMembersByMemberId(groupId);
+            membershipManager.removeMembersByGroupId(groupId, IdentityZoneHolder.get().getId());
+            membershipManager.removeMembersByMemberId(groupId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
             dao.delete(groupId, getVersion(groupId, etag));
         } catch (IncorrectResultSizeDataAccessException ex) {
             logger.debug("error deleting group", ex);
@@ -491,7 +491,7 @@ public class ScimGroupEndpoints {
 
     @RequestMapping("/Groups/{groupId}/members/{memberId}")
     public ResponseEntity<ScimGroupMember> getGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
-        ScimGroupMember membership = membershipManager.getMemberById(groupId, memberId);
+        ScimGroupMember membership = membershipManager.getMemberById(groupId, memberId, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(membership, HttpStatus.OK);
     }
 
@@ -500,7 +500,7 @@ public class ScimGroupEndpoints {
           @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
           @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
         dao.retrieve(groupId);
-        List<ScimGroupMember> members = membershipManager.getMembers(groupId, returnEntities);
+        List<ScimGroupMember> members = membershipManager.getMembers(groupId, returnEntities, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
 
@@ -508,7 +508,7 @@ public class ScimGroupEndpoints {
     @ResponseBody
     @Deprecated
     public ScimGroupMember editMemberInGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
-        return membershipManager.updateMember(groupId, member);
+        return membershipManager.updateMember(groupId, member, IdentityZoneHolder.get().getId());
     }
 
     @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.POST)
@@ -516,13 +516,13 @@ public class ScimGroupEndpoints {
     @ResponseBody
     public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
 
-        return membershipManager.addMember(groupId, member);
+        return membershipManager.addMember(groupId, member, IdentityZoneHolder.get().getId());
     }
     @RequestMapping(value = "/Groups/{groupId}/members/{memberId}", method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
-        ScimGroupMember membership = membershipManager.removeMemberById(groupId, memberId);
+        ScimGroupMember membership = membershipManager.removeMemberById(groupId, memberId, IdentityZoneHolder.get().getId());
         return membership;
     }
 
