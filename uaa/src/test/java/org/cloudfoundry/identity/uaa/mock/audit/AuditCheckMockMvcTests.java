@@ -88,6 +88,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -216,7 +217,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(eventType, event.getAuditEvent().getType());
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
-        verify(mockAuditService, atLeast(1)).log(captor.capture());
+        verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
         List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType()== eventType).collect(Collectors.toList());
         assertNotNull(auditEvents);
         assertEquals(1, auditEvents.size());
@@ -410,7 +411,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         }
 
         //after we reach our max attempts, 5, the system stops logging them until the period is over
-        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis()-10000);
+        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis()-10000, IdentityZoneHolder.get().getId());
         assertEquals(5, events.size());
     }
 
@@ -954,7 +955,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     public void verifyGroupAuditData(ScimGroup group, AuditEventType eventType) {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
-        verify(mockAuditService, atLeast(1)).log(captor.capture());
+        verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
         List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType()== eventType).collect(Collectors.toList());
         assertNotNull(auditEvents);
         assertEquals(1, auditEvents.size());
