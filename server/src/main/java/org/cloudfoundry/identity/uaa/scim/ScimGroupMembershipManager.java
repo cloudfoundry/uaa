@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.cloudfoundry.identity.uaa.resources.Queryable;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -20,7 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import java.util.List;
 import java.util.Set;
 
-public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
+public interface ScimGroupMembershipManager  {
 
     /**
      * Add a member to a group
@@ -39,11 +38,10 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * Retrieve all members of a group
      *
      * @param groupId
-     * @param filter
      * @param includeEntities @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId, String filter, boolean includeEntities)
+    List<ScimGroupMember> getMembers(String groupId, boolean includeEntities)
         throws ScimResourceNotFoundException;
 
     /**
@@ -133,5 +131,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
     Set<ScimGroup> removeMembersByMemberId(String memberId) throws ScimResourceNotFoundException;
 
     Set<ScimGroup> removeMembersByMemberId(String memberId, String origin) throws ScimResourceNotFoundException;
+
+    void deleteMembersByOrigin(String origin) throws ScimResourceNotFoundException;
 
 }

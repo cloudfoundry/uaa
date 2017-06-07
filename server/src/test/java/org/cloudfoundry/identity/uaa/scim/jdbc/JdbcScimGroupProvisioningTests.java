@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -37,6 +36,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_FIELDS;
+import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_TABLE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -61,7 +62,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Before
     public void initJdbcScimGroupProvisioningTests() {
-        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()));
+        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate);
         dao = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
         memberships.setScimGroupProvisioning(dao);
         users = mock(ScimUserProvisioning.class);
@@ -218,7 +219,8 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
         dao.delete("g1", 0);
         validateGroupCount(2);
-        List<ScimGroupMember> remainingMemberships = memberships.query("");
+        List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select "+MEMBERSHIP_FIELDS+" from "+MEMBERSHIP_TABLE,
+                                                                        new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
         assertEquals(1, remainingMemberships.size());
         ScimGroupMember survivor = remainingMemberships.get(0);
         assertThat(survivor.getType(), is(ScimGroupMember.Type.USER));
@@ -231,7 +233,8 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         addGroupToGroup(appUsers.getId(), g1.getId());
         dao.delete(appUsers.getId(), 0);
 
-        List<ScimGroupMember> remainingMemberships = memberships.query("");
+        List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select "+MEMBERSHIP_FIELDS+" from "+MEMBERSHIP_TABLE,
+                                                                        new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
         assertEquals(0, remainingMemberships.size());
     }
 

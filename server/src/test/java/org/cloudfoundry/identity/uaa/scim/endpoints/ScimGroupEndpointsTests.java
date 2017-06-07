@@ -104,7 +104,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, LimitSqlAdapterFactory.getLimitSqlAdapter());
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
-        mm = new JdbcScimGroupMembershipManager(template, pagingListFactory);
+        mm = new JdbcScimGroupMembershipManager(template);
         mm.setScimGroupProvisioning(dao);
         mm.setScimUserProvisioning(udao);
         mm.setDefaultUserGroups(Collections.singleton("uaa.user"));

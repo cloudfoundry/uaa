@@ -87,7 +87,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
         db = spy(new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory));
         gdb = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        mdb = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
+        mdb = new JdbcScimGroupMembershipManager(jdbcTemplate);
         mdb.setScimUserProvisioning(db);
         mdb.setScimGroupProvisioning(gdb);
         userEndpoints = new ScimUserEndpoints();

@@ -34,8 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -56,7 +54,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(template, pagingListFactory);
-        mDB = new JdbcScimGroupMembershipManager(template, pagingListFactory);
+        mDB = new JdbcScimGroupMembershipManager(template);
         mDB.setScimGroupProvisioning(gDB);
         mDB.setScimUserProvisioning(uDB);
 

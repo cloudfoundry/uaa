@@ -255,7 +255,7 @@ public class ScimGroupBootstrap implements InitializingBean {
         List<ScimGroup> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name));
         if (g != null && !g.isEmpty()) {
             ScimGroup gr = g.get(0);
-            gr.setMembers(membershipManager.getMembers(gr.getId(), null, false));
+            gr.setMembers(membershipManager.getMembers(gr.getId(), false));
             return gr;
         }
         logger.debug("could not find group with name");

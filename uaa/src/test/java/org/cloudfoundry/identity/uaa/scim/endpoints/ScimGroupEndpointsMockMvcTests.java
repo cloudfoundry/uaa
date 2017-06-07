@@ -949,43 +949,14 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andReturn();
         String responseContent = mvcResult.getResponse().getContentAsString();
-        List<Object> listMembers = JsonUtils.readValue(responseContent, new TypeReference<List<Object>>() {});
+        List<Object> listMembers = JsonUtils.readValue(responseContent, new TypeReference<List<Object>>() {
+        });
         Set<String> retrievedMembers = listMembers.stream().map(o -> JsonUtils.writeValueAsString(o)).collect(Collectors.toSet());
 
         Matcher<Iterable<? extends String>> containsExpectedMembers = containsInAnyOrder(
             JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup)),
             JsonUtils.writeValueAsString(new ScimGroupMember(secondUser)),
             JsonUtils.writeValueAsString(new ScimGroupMember(scimUser))
-        );
-
-        Assert.assertThat(retrievedMembers, containsExpectedMembers);
-    }
-
-    @Test
-    public void get_filtered_group_memberships() throws Exception {
-        String groupName = "random." + new RandomValueStringGenerator().generate();
-        ScimGroup group = new ScimGroup(groupName);
-        group = MockMvcUtils.createGroup(getMockMvc(), scimWriteToken, group);
-        String groupId = getGroupId(groupName);
-        assertEquals(group.getId(), groupId);
-
-        scimUser = createUserAndAddToGroups(IdentityZone.getUaa(), new HashSet(Arrays.asList(groupName)));
-
-        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
-        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
-
-        MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
-            .header("Authorization", "Bearer " + scimReadToken)
-            .param("filter", "member_type eq 'GROUP'");
-        MvcResult mvcResult = getMockMvc().perform(get)
-            .andExpect(status().isOk())
-            .andReturn();
-        String responseContent = mvcResult.getResponse().getContentAsString();
-        List<Object> listMembers = JsonUtils.readValue(responseContent, new TypeReference<List<Object>>() {});
-        Set<String> retrievedMembers = listMembers.stream().map(o -> JsonUtils.writeValueAsString(o)).collect(Collectors.toSet());
-
-        Matcher<Iterable<? extends String>> containsExpectedMembers = containsInAnyOrder(
-            JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.MEMBER)))
         );
 
         Assert.assertThat(retrievedMembers, containsExpectedMembers);

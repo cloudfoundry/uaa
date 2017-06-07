@@ -994,7 +994,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(zone.getId(), group.getZoneId());
         assertNotNull(groupProvisioning.retrieve(group.getId()));
         assertEquals("Delete Test Group", groupProvisioning.retrieve(group.getId()).getDisplayName());
-        assertEquals(1, membershipManager.getMembers(group.getId(), null, false).size());
+        assertEquals(1, membershipManager.getMembers(group.getId(), false).size());
 
         //failed authenticated user
         getMockMvc().perform(

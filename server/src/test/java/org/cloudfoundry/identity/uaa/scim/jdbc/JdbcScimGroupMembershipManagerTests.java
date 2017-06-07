@@ -86,7 +86,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
         gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
 
-        dao = new JdbcScimGroupMembershipManager(template, pagingListFactory);
+        dao = new JdbcScimGroupMembershipManager(template);
         dao.setScimGroupProvisioning(gdao);
         dao.setScimUserProvisioning(udao);
         dao.setDefaultUserGroups(Collections.singleton("uaa.user"));
@@ -196,65 +196,29 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         validateCount(3);
     }
 
-    @Test
-    public void canQuery_Filter_Has_ZoneIn_Effect() throws Exception {
-        addMembers();
-        validateCount(4);
-        String id = generator.generate();
-        IdentityZone zone = MultitenancyFixture.identityZone(id,id);
-        IdentityZoneHolder.set(zone);
-        assertEquals(0,dao.query("origin eq \"" + OriginKeys.UAA + "\"").size());
-        IdentityZoneHolder.clear();
-        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"").size());
-        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"", "member_id", true).size());
-        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"", "1,2", true).size());
-        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"", "origin", true).size());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void cannotQuery_Filter_Has_Unknown_Sort() throws Exception {
-        dao.query("origin eq \"" + OriginKeys.UAA + "\"", "unknown,origin", true);
-    }
-
 
     @Test
-    public void canDeleteWithFilter1() throws Exception {
+    public void canDeleteWithOrigin() throws Exception {
         addMembers();
         validateCount(4);
-        dao.delete("origin eq \"" + OriginKeys.UAA + "\"");
+        dao.deleteMembersByOrigin(OriginKeys.UAA);
         validateCount(0);
     }
 
     @Test
-    public void canDeleteWithFilter2() throws Exception {
+    public void canDeleteWithOrigin2() throws Exception {
         addMembers();
         validateCount(4);
-        dao.delete("origin eq \""+ OriginKeys.ORIGIN +"\"");
+        dao.deleteMembersByOrigin(OriginKeys.ORIGIN);
         validateCount(4);
     }
 
     @Test
-    public void canDeleteWithFilter3() throws Exception {
+    public void canDeleteWithOrigin3() throws Exception {
         addMembers();
         validateCount(4);
-        dao.delete("member_id eq \"m3\" and origin eq \""+ OriginKeys.UAA +"\"");
+        dao.removeMembersByMemberId("m3",  OriginKeys.UAA);
         validateCount(2);
-    }
-
-    @Test
-    public void canDeleteWithFilter4() throws Exception {
-        addMembers();
-        validateCount(4);
-        dao.delete("member_id sw \"m\" and origin eq \""+ OriginKeys.UAA +"\"");
-        validateCount(1);
-    }
-
-    @Test
-    public void canDeleteWithFilter5() throws Exception {
-        addMembers();
-        validateCount(4);
-        dao.delete("member_id sw \"m\" and origin eq \""+ OriginKeys.LDAP +"\"");
-        validateCount(4);
     }
 
     @Test
@@ -264,7 +228,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         validateCount(4);
         IdentityZone zone = MultitenancyFixture.identityZone(id,id);
         IdentityZoneHolder.set(zone);
-        dao.delete("member_id eq \"m3\" and origin eq \"" + OriginKeys.UAA + "\"");
+        dao.removeMembersByMemberId("m3", OriginKeys.UAA);
         IdentityZoneHolder.clear();
         validateCount(4);
     }
@@ -476,11 +440,11 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMember("g1", "g2", "GROUP", "READER");
         addMember("g3", "m2", "USER", "READER,WRITER");
 
-        List<ScimGroupMember> members = dao.getMembers("g1", null, false);
+        List<ScimGroupMember> members = dao.getMembers("g1", false);
         assertNotNull(members);
         assertEquals(2, members.size());
 
-        members = dao.getMembers("g2", null, false);
+        members = dao.getMembers("g2", false);
         assertNotNull(members);
         assertEquals(0, members.size());
 
@@ -492,7 +456,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMember("g1", "g2", "GROUP", "READER");
         addMember("g3", "m2", "USER", "READER,WRITER");
         IdentityZoneHolder.set(MultitenancyFixture.identityZone(generator.generate(), generator.generate()));
-        assertEquals(0, dao.getMembers("g1", null, false).size());
+        assertEquals(0, dao.getMembers("g1", false).size());
     }
 
     @Test
@@ -501,7 +465,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMember("g1", "g2", "GROUP", "member");
         addMember("g1", "m2", "USER", "READER,write");
 
-        List<ScimGroupMember> members = dao.getMembers("g1", null, false);
+        List<ScimGroupMember> members = dao.getMembers("g1", false);
         assertNotNull(members);
         assertEquals(3, members.size());
         List<ScimGroupMember> readers = new ArrayList<ScimGroupMember>(), writers = new ArrayList<ScimGroupMember>();

@@ -104,7 +104,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 
-        this.membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
+        this.membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
         this.membershipManager.setScimGroupProvisioning(this);
         this.externalGroupMappingManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         this.externalGroupMappingManager.setScimGroupProvisioning(this);

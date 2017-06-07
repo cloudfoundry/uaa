@@ -190,7 +190,7 @@ public class ScimUserEndpointsTests {
             .when(mockPasswordValidator).validate(eq(""));
         endpoints.setPasswordValidator(mockPasswordValidator);
 
-        mm = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
+        mm = new JdbcScimGroupMembershipManager(jdbcTemplate);
         mm.setScimUserProvisioning(dao);
         JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mm.setScimGroupProvisioning(gdao);

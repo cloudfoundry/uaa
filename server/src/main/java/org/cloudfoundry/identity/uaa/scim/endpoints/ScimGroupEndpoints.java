@@ -131,7 +131,7 @@ public class ScimGroupEndpoints {
         boolean needMore = response.size() < expectedResponseSize;
         while (needMore && startIndex <= input.size()) {
             for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
-                group.setMembers(membershipManager.getMembers(group.getId(), null, false));
+                group.setMembers(membershipManager.getMembers(group.getId(), false));
                 response.add(group);
                 needMore = response.size() < expectedResponseSize;
                 if (!needMore) {
@@ -319,7 +319,7 @@ public class ScimGroupEndpoints {
     public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
         logger.debug("retrieving group with id: " + groupId);
         ScimGroup group = dao.retrieve(groupId);
-        group.setMembers(membershipManager.getMembers(groupId, null, false));
+        group.setMembers(membershipManager.getMembers(groupId, false));
         addETagHeader(httpServletResponse, group);
         return group;
     }
@@ -341,7 +341,7 @@ public class ScimGroupEndpoints {
                 }
             }
         }
-        created.setMembers(membershipManager.getMembers(created.getId(), null, false));
+        created.setMembers(membershipManager.getMembers(created.getId(), false));
         addETagHeader(httpServletResponse, created);
         return created;
     }
@@ -366,7 +366,7 @@ public class ScimGroupEndpoints {
             } else {
                 membershipManager.removeMembersByGroupId(updated.getId());
             }
-            updated.setMembers(membershipManager.getMembers(updated.getId(), null, false));
+            updated.setMembers(membershipManager.getMembers(updated.getId(), false));
             addETagHeader(httpServletResponse, updated);
             return updated;
         } catch (IncorrectResultSizeDataAccessException ex) {
@@ -498,9 +498,9 @@ public class ScimGroupEndpoints {
     @RequestMapping("/Groups/{groupId}/members")
     public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId,
           @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
-          @RequestParam(required = false, defaultValue = "") String filter) {
+          @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
         dao.retrieve(groupId);
-        List<ScimGroupMember> members = membershipManager.getMembers(groupId, filter, returnEntities);
+        List<ScimGroupMember> members = membershipManager.getMembers(groupId, returnEntities);
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
 

@@ -252,7 +252,7 @@ public class ScimUserBootstrap implements
             //delete previous membership relation ships
             String origin = exEvent.getUser().getOrigin();
             if (!OriginKeys.UAA.equals(origin)) {//only delete non UAA relationships
-                membershipManager.delete("member_id eq \""+event.getUser().getId()+"\" and origin eq \""+origin+"\"");
+                membershipManager.removeMembersByMemberId(event.getUser().getId(), origin);
             }
             for (GrantedAuthority authority : exEvent.getExternalAuthorities()) {
                 addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
