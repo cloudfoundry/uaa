@@ -96,6 +96,24 @@ public class DegradedSamlLoginTests {
         }
     }
 
+    @Test
+    public void testGetTokenKey() throws Exception {
+        RestTemplate restTemplate = new RestTemplate();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.set("Authorization", getAuthorizationHeader("app", "appclientsecret"));
+        HttpEntity getHeaders = new HttpEntity(headers);
+        ResponseEntity<Map> tokenKeyGet = restTemplate.exchange(
+                "http://localhost:8080/uaa" + "/token_key",
+                HttpMethod.GET,
+                getHeaders,
+                Map.class
+        );
+        assertEquals(HttpStatus.OK, tokenKeyGet.getStatusCode());
+        assertEquals("MAC", tokenKeyGet.getBody().get("kty"));
+        assertEquals("HS256", tokenKeyGet.getBody().get("alg"));
+    }
+
 
     @Test
     public void testIdpsReadOnly() throws Exception {
