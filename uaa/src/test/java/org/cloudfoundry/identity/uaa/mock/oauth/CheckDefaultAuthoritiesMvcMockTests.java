@@ -12,22 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
-import java.util.Set;
-
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
+
+import java.util.Set;
 
 public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest {
 
-    ClientRegistrationService clientRegistrationService;
+    ClientServicesExtension clientRegistrationService;
     private Set<String> defaultAuthorities;
 
     @Before
     public void setUp() throws Exception {
-        clientRegistrationService = getWebApplicationContext().getBean(ClientRegistrationService.class);
+        clientRegistrationService = getWebApplicationContext().getBean(ClientServicesExtension.class);
 
         defaultAuthorities = (Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities");
     }

@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
@@ -48,10 +49,8 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.net.URISyntaxException;
@@ -88,7 +87,7 @@ public class CheckTokenEndpointTests {
 
     private UaaTokenServices tokenServices = new UaaTokenServices();
 
-    private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+    private InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
 
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
 
@@ -105,7 +104,7 @@ public class CheckTokenEndpointTests {
 
     private BaseClientDetails defaultClient;
 
-    private Map<String, ? extends ClientDetails> clientDetailsStore;
+    private Map<String, BaseClientDetails> clientDetailsStore;
     private List<GrantedAuthority> userAuthorities;
     private final IdentityZoneProvisioning zoneProvisioning = mock(IdentityZoneProvisioning.class);
 
@@ -117,6 +116,8 @@ public class CheckTokenEndpointTests {
     public ExpectedException exception = ExpectedException.none();
 
     private MockHttpServletRequest request = new MockHttpServletRequest();
+
+    IdentityZone zone;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -199,7 +200,7 @@ public class CheckTokenEndpointTests {
 
     public void setUp(boolean opaque) throws URISyntaxException {
         defaultZone = IdentityZone.getUaa();
-
+        zone = MultitenancyFixture.identityZone("id", "subdomain");
         userAuthorities = new ArrayList<>();
         userAuthorities.add(new SimpleGrantedAuthority("read"));
         userAuthorities.add(new SimpleGrantedAuthority("write"));
@@ -275,7 +276,8 @@ public class CheckTokenEndpointTests {
                 "client",
                 defaultClient
             );
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(zone.getId(), clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setIssuer("http://localhost:8080/uaa");
@@ -305,9 +307,9 @@ public class CheckTokenEndpointTests {
         BaseClientDetails theclient = new BaseClientDetails("client", "zones", "zones.*.admin", "authorization_code, password",
             "scim.read, scim.write", "http://localhost:8080/uaa");
         theclient.setAutoApproveScopes(Arrays.asList("zones.*.admin"));
-        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", theclient);
+        Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", theclient);
 
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
 
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("zones.myzone.admin"));
@@ -535,7 +537,7 @@ public class CheckTokenEndpointTests {
             "client",
             defaultClient
         );
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
@@ -546,7 +548,7 @@ public class CheckTokenEndpointTests {
             "client",
             defaultClient
         );
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         mockUserDatabase(userId, user);
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
             Collections.singleton("scim.read")).createOAuth2Request(), null);
@@ -626,7 +628,6 @@ public class CheckTokenEndpointTests {
     @Test
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
-            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
             IdentityZoneHolder.set(zone);
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
@@ -645,7 +646,6 @@ public class CheckTokenEndpointTests {
         setAccessToken(tokenServices.createAccessToken(authentication));
 
         try {
-            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
             zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("testKey",
                 "-----BEGIN RSA PRIVATE KEY-----\n" +
                     "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
@@ -671,7 +671,6 @@ public class CheckTokenEndpointTests {
     public void testZoneValidatesTokenSignedWithOwnKey() throws Exception {
 
         try {
-            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
             zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
                 "-----BEGIN RSA PRIVATE KEY-----\n" +
                     "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
@@ -750,8 +749,6 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testDefaultZoneRejectsTokenSignedWithOtherZoneKey() throws Exception {
-
-        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
             "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
@@ -895,8 +892,8 @@ public class CheckTokenEndpointTests {
         BaseClientDetails clientDetails = new BaseClientDetails("client", "scim, cc", "read, write",
             "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
         clientDetails.setAccessTokenValiditySeconds(1);
-        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
         setAccessToken(tokenServices.createAccessToken(authentication));
         Thread.sleep(1000);

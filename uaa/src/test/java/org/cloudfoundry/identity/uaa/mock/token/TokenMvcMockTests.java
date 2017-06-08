@@ -3237,7 +3237,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String access_token = (String) bodyMap.get("access_token");
         assertNotNull(access_token);
 
-        clientDetailsService.addClientSecret(clientId, "newSecret");
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
         getMockMvc().perform(post("/check_token")
             .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
             .param("token", access_token))
@@ -3251,7 +3251,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
-        clientDetailsService.addClientSecret(clientId, "newSecret");
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
 
         for (String secret : Arrays.asList(SECRET, "newSecret")) {
             String body = getMockMvc().perform(post("/oauth/token")
@@ -3294,8 +3294,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String access_token = (String) bodyMap.get("access_token");
         assertNotNull(access_token);
 
-        clientDetailsService.addClientSecret(clientId, "newSecret");
-        clientDetailsService.deleteClientSecret(clientId);
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
+        clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         MockHttpServletResponse response = getMockMvc().perform(post("/check_token")
                                                                     .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
@@ -3313,7 +3313,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        clientDetailsService.addClientSecret(clientId, "newSecret");
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
 
         String body = getMockMvc().perform(post("/oauth/token")
                                                .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -3329,7 +3329,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(access_token);
 
 
-        clientDetailsService.deleteClientSecret(clientId);
+        clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         getMockMvc().perform(post("/check_token")
             .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
@@ -3342,8 +3342,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        clientDetailsService.addClientSecret(clientId, "newSecret");
-        clientDetailsService.deleteClientSecret(clientId);
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
+        clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         String body = getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)

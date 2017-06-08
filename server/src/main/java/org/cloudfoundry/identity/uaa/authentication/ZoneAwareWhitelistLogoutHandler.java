@@ -15,23 +15,22 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
 
-    private final ClientDetailsService clientDetailsService;
+    private final ClientServicesExtension clientDetailsService;
 
-    public ZoneAwareWhitelistLogoutHandler(ClientDetailsService clientDetailsService) {
+    public ZoneAwareWhitelistLogoutHandler(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

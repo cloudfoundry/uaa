@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,13 +52,13 @@ public class InvitationsEndpoint {
 
     private ScimUserProvisioning users;
     private IdentityProviderProvisioning providers;
-    private ClientDetailsService clients;
+    private ClientServicesExtension clients;
     private ExpiringCodeStore expiringCodeStore;
     private Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
 
     public InvitationsEndpoint(ScimUserProvisioning users,
                                IdentityProviderProvisioning providers,
-                               ClientDetailsService clients,
+                               ClientServicesExtension clients,
                                ExpiringCodeStore expiringCodeStore) {
         this.users = users;
         this.providers = providers;
@@ -91,7 +91,7 @@ public class InvitationsEndpoint {
         ClientDetails client = null;
 
         if (!hasText(subdomainHeader) && !hasText(zoneIdHeader)) {
-            client = clients.loadClientByClientId(clientId);
+            client = clients.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         }
 
         for (String email : invitations.getEmails()) {

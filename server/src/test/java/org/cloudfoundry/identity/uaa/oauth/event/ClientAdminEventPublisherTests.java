@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,8 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth.event;
 
-import java.util.Arrays;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
@@ -23,6 +21,7 @@ import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,18 +31,19 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+
+import java.util.Arrays;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAdminEventPublisherTests {
 
-    private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
+    private ClientServicesExtension clientDetailsService = Mockito.mock(ClientServicesExtension.class);
 
     private ClientAdminEventPublisher subject = new ClientAdminEventPublisher(clientDetailsService);
 

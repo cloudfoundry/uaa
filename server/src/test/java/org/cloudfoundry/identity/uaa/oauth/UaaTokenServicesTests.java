@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2RefreshTokenMatc
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -55,7 +56,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -302,7 +302,7 @@ public class UaaTokenServicesTests {
     @Test
     public void null_issuer_should_fail() throws URISyntaxException {
         tokenServices = new UaaTokenServices();
-        tokenServices.setClientDetailsService(mock(ClientDetailsService.class));
+        tokenServices.setClientDetailsService(mock(ClientServicesExtension.class));
         try {
             tokenServices.afterPropertiesSet();
             fail();
@@ -468,6 +468,7 @@ public class UaaTokenServicesTests {
                 IdentityZoneConfiguration.class
             )
         );
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
         IdentityZoneHolder.set(identityZone);
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -492,6 +493,7 @@ public class UaaTokenServicesTests {
 
     private IdentityZone getIdentityZone(String subdomain) {
         IdentityZone identityZone = new IdentityZone();
+        identityZone.setId(subdomain);
         identityZone.setSubdomain(subdomain);
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
@@ -705,6 +707,7 @@ public class UaaTokenServicesTests {
                 IdentityZoneConfiguration.class
             )
         );
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
         IdentityZoneHolder.set(identityZone);
 
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
@@ -766,7 +769,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApproved() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(singleton("true"));
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         // NO APPROVALS REQUIRED
 
@@ -813,7 +819,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApprovedDowngradedRequest() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(singleton("true"));
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         // NO APPROVALS REQUIRED
 
@@ -860,7 +869,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApproved() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(tokenSupport.readScope);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -926,7 +938,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantNoScopesAutoApprovedIncompleteApprovals() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(Arrays.asList());
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -977,7 +992,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApprovedButApprovalDenied() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(tokenSupport.requestedAuthScopes);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -1148,7 +1166,10 @@ public class UaaTokenServicesTests {
                 IdentityZoneConfiguration.class
             )
         );
+        tokenSupport.copyClients(IdentityZone.getUaa().getId(), identityZone.getId());
         IdentityZoneHolder.set(identityZone);
+
+
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1295,7 +1316,10 @@ public class UaaTokenServicesTests {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAccessTokenValiditySeconds(3600);
         clientDetails.setRefreshTokenValiditySeconds(36000);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1380,7 +1404,10 @@ public class UaaTokenServicesTests {
         // Back date the refresh token. Crude way to do this but i'm not sure of
         // another
         clientDetails.setRefreshTokenValiditySeconds(-36000);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1757,7 +1784,7 @@ public class UaaTokenServicesTests {
     public void validate_token_client_gone() throws Exception {
         expectedEx.expect(InvalidTokenException.class);
         expectedEx.expectMessage("Invalid client ID "+tokenSupport.defaultClient.getClientId());
-        test_validateToken_method(ignore -> tokenSupport.clientDetailsService.setClientDetailsStore(emptyMap()));
+        test_validateToken_method(ignore -> tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), emptyMap()));
     }
 
     @Test
@@ -1878,7 +1905,10 @@ public class UaaTokenServicesTests {
     public void testLoadAuthenticationWithAnExpiredToken() throws InterruptedException {
         BaseClientDetails shortExpiryClient = tokenSupport.defaultClient;
         shortExpiryClient.setAccessTokenValiditySeconds(1);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, shortExpiryClient));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, shortExpiryClient)
+        );
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));

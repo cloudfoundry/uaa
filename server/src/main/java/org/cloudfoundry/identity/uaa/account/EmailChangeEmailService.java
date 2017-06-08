@@ -23,10 +23,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
@@ -48,11 +48,15 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final MessageService messageService;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore codeStore;
-    private final ClientDetailsService clientDetailsService;
+    private final ClientServicesExtension clientDetailsService;
     private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
     public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
 
-    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore codeStore, ClientDetailsService clientDetailsService) {
+    public EmailChangeEmailService(TemplateEngine templateEngine,
+                                   MessageService messageService,
+                                   ScimUserProvisioning scimUserProvisioning,
+                                   ExpiringCodeStore codeStore,
+                                   ClientServicesExtension clientDetailsService) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.scimUserProvisioning = scimUserProvisioning;
@@ -116,7 +120,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
             String redirectUri = codeData.get("redirect_uri") == null ? "" : codeData.get("redirect_uri");
 
             try {
-                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                 Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                         clientDetails.getRegisteredRedirectUri();
                 String changeEmailRedirectUrl = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);

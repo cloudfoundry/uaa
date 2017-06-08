@@ -19,6 +19,8 @@ import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -142,10 +144,10 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         autoApproveList.removeIf(s -> slatedForDeletion.contains(s));
         for (String clientId : autoApproveList) {
             try {
-                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId);
+                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaa().getId());
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
                 logger.debug("Adding autoapprove flag to client: " + clientId);
-                clientRegistrationService.updateClientDetails(base);
+                clientRegistrationService.updateClientDetails(base, IdentityZone.getUaa().getId());
             } catch (NoSuchClientException n) {
                 logger.debug("Client not found, unable to set autoapprove: " + clientId);
             }
@@ -213,13 +215,13 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
             client.setAdditionalInformation(info);
             try {
-                clientRegistrationService.addClientDetails(client);
+                clientRegistrationService.addClientDetails(client, IdentityZone.getUaa().getId());
             } catch (ClientAlreadyExistsException e) {
                 if (override == null || override) {
                     logger.debug("Overriding client details for " + clientId);
-                    clientRegistrationService.updateClientDetails(client);
+                    clientRegistrationService.updateClientDetails(client, IdentityZone.getUaa().getId());
                     if (StringUtils.hasText(client.getClientSecret()) && didPasswordChange(clientId, client.getClientSecret())) {
-                        clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
+                        clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaa().getId());
                     }
                 } else {
                     // ignore it
@@ -234,7 +236,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             }
 
             ClientMetadata clientMetadata = buildClientMetadata(map, clientId);
-            clientMetadataProvisioning.update(clientMetadata);
+            clientMetadataProvisioning.update(clientMetadata, IdentityZoneHolder.get().getId());
         }
     }
 
@@ -264,7 +266,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
     protected boolean didPasswordChange(String clientId, String rawPassword) {
         if (getPasswordEncoder()!=null) {
-            ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId);
+            ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             String existingPasswordHash = existing.getClientSecret();
             return !getPasswordEncoder().matches(rawPassword, existingPasswordHash);
         } else {
@@ -285,7 +287,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         Authentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
         for (String clientId : ofNullable(clientsToDelete).orElse(emptyList())) {
             try {
-                ClientDetails client = clientRegistrationService.loadClientByClientId(clientId);
+                ClientDetails client = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                 logger.debug("Deleting client from manifest:"+clientId);
                 EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth);
                 publish(delete);

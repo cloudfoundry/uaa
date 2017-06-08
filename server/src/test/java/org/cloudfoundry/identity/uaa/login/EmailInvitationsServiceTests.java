@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -20,7 +21,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
@@ -78,7 +78,7 @@ public class EmailInvitationsServiceTests {
     ScimUserProvisioning scimUserProvisioning;
 
     @Autowired
-    ClientDetailsService clientDetailsService;
+    ClientServicesExtension clientDetailsService;
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
@@ -275,8 +275,8 @@ public class EmailInvitationsServiceTests {
         }
 
         @Bean
-        ClientDetailsService clientDetailsService() {
-            return mock(ClientDetailsService.class);
+        ClientServicesExtension clientDetailsService() {
+            return mock(ClientServicesExtension.class);
         }
 
         @Bean

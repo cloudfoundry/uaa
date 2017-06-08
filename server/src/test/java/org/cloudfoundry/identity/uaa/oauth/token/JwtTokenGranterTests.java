@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -30,7 +31,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
@@ -45,6 +45,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -65,14 +66,14 @@ public class JwtTokenGranterTests {
     private UaaOauth2Authentication authentication;
     private UaaAuthentication uaaAuthentication;
     private AuthorizationServerTokenServices tokenServices;
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private Map<String, String> requestParameters;
 
     @Before
     public void setUp() throws Exception {
         tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(ClientDetailsService.class);
+        clientDetailsService = mock(ClientServicesExtension.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         granter = spy(new JwtTokenGranter(tokenServices, clientDetailsService, requestFactory));
         tokenRequest = new TokenRequest(Collections.emptyMap(), "client_ID", Collections.emptySet(), GRANT_TYPE_JWT_BEARER);
@@ -100,7 +101,7 @@ public class JwtTokenGranterTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         client = new BaseClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
-        when(clientDetailsService.loadClientByClientId(eq(client.getClientId()))).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), anyString())).thenReturn(client);
         requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, client.getClientId());
         requestParameters.put(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);

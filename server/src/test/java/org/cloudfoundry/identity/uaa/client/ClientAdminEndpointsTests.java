@@ -555,7 +555,7 @@ public class ClientAdminEndpointsTests {
         change.setChangeMode(ADD);
 
         endpoints.changeSecret(detail.getClientId(), change);
-        verify(clientRegistrationService).addClientSecret(detail.getClientId(), "newpassword");
+        verify(clientRegistrationService).addClientSecret(detail.getClientId(), "newpassword", IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -592,7 +592,7 @@ public class ClientAdminEndpointsTests {
         change.setChangeMode(DELETE);
 
         endpoints.changeSecret(detail.getClientId(), change);
-        verify(clientRegistrationService).deleteClientSecret(detail.getClientId());
+        verify(clientRegistrationService).deleteClientSecret(detail.getClientId(), IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -958,7 +958,7 @@ public class ClientAdminEndpointsTests {
         ClientDetails result = endpoints.updateClientDetails(detail, input.getClientId());
         assertNull(result.getClientSecret());
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
-        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture());
+        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture(), anyString());
         BaseClientDetails updated = clientCaptor.getValue();
         assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
         assertTrue(updated.isAutoApprove("foo.read"));
@@ -979,7 +979,7 @@ public class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         ClientDetails result = endpoints.updateClientDetails(detail, input.getClientId());
         assertNull(result.getClientSecret());
-        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture());
+        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture(), anyString());
         BaseClientDetails updated = clientCaptor.getValue();
         assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
         assertTrue(updated.isAutoApprove("foo.read"));

@@ -51,6 +51,7 @@ import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.After;
@@ -66,7 +67,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -108,7 +108,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
-    private ClientRegistrationService clientRegistrationService;
+    private ClientServicesExtension clientRegistrationService;
     private UaaTestAccounts testAccounts;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener2;
     private ApplicationListener<AbstractUaaEvent> listener2;
@@ -127,7 +127,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        clientRegistrationService = getWebApplicationContext().getBean(ClientRegistrationService.class);
+        clientRegistrationService = getWebApplicationContext().getBean(ClientServicesExtension.class);
         originalLoginClient = ((MultitenantJdbcClientDetailsService)clientRegistrationService).loadClientByClientId("login");
         testAccounts = UaaTestAccounts.standard(null);
         mockAuditService = mock(UaaAuditService.class);

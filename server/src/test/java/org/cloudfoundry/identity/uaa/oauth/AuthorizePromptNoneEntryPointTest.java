@@ -15,6 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,7 +26,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
@@ -58,7 +59,7 @@ public class AuthorizePromptNoneEntryPointTest {
     private BaseClientDetails client;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
     private RedirectResolver redirectResolver;
 
     private final String responseType;
@@ -88,11 +89,12 @@ public class AuthorizePromptNoneEntryPointTest {
     @Before
     public void setup() {
         client = new BaseClientDetails("id", "", "openid", "authorization_code", "", redirectUrl);
-        clientDetailsService = mock(ClientDetailsService.class);
+        clientDetailsService = mock(ClientServicesExtension.class);
         redirectResolver = mock(RedirectResolver.class);
         failureHandler = mock(AuthenticationFailureHandler.class);
 
-        when(clientDetailsService.loadClientByClientId(eq(client.getClientId()))).thenReturn(client);
+        String zoneID = IdentityZoneHolder.get().getId();
+        when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), eq(zoneID))).thenReturn(client);
         when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
         when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(""));
 
@@ -121,7 +123,7 @@ public class AuthorizePromptNoneEntryPointTest {
     @Test
     public void test_client_not_found() throws Exception {
         reset(clientDetailsService);
-        when(clientDetailsService.loadClientByClientId(anyString())).thenThrow(new NoSuchClientException("not found"));
+        when(clientDetailsService.loadClientByClientId(anyString(), anyString())).thenThrow(new NoSuchClientException("not found"));
         entryPoint.commence(request, response, authException);
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
     }

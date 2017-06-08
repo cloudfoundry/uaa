@@ -16,12 +16,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.util.Base64Utils;
@@ -44,24 +43,20 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
 
     private static final String CLIENT_METADATA_FIELDS = "client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, additional_information, created_by";
     private static final String CLIENT_METADATA_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where client_id=? and identity_zone_id=?";
-    //private static final String CLIENT_METADATAS_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where identity_zone_id=? and ((app_launch_url is not null and char_length(app_launch_url)>0) or (app_icon is not null and octet_length(app_icon)>0))";
     private static final String CLIENT_METADATAS_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where identity_zone_id=? and (app_launch_url is not null or app_icon is not null)";
     private static final String CLIENT_METADATA_UPDATE_FIELDS = "show_on_home_page, app_launch_url, app_icon";
     private static final String CLIENT_METADATA_UPDATE = "update oauth_client_details set " + CLIENT_METADATA_UPDATE_FIELDS.replace(",", "=?,") + "=?" + " where client_id=? and identity_zone_id=?";
 
     private JdbcTemplate template;
-    private ClientDetailsService clientDetailsService;
-    private ClientRegistrationService clientRegistrationService;
+    private ClientServicesExtension clientDetailsService;
     private final RowMapper<ClientMetadata> mapper = new ClientMetadataRowMapper();
 
-    JdbcClientMetadataProvisioning(ClientDetailsService clientDetailsService,
-                                   ClientRegistrationService clientRegistrationService,
+    JdbcClientMetadataProvisioning(ClientServicesExtension clientDetailsService,
                                    JdbcTemplate template) {
         Assert.notNull(template);
         Assert.notNull(clientDetailsService);
         this.template = template;
         this.clientDetailsService = clientDetailsService;
-        this.clientRegistrationService = clientRegistrationService;
     }
 
     public void setTemplate(JdbcTemplate template) {
@@ -69,22 +64,22 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     }
 
     @Override
-    public List<ClientMetadata> retrieveAll() {
+    public List<ClientMetadata> retrieveAll(String zoneId) {
         logger.debug("Retrieving UI details for all client");
-        return template.query(CLIENT_METADATAS_QUERY, mapper, IdentityZoneHolder.get().getId());
+        return template.query(CLIENT_METADATAS_QUERY, mapper, zoneId);
     }
 
     @Override
-    public ClientMetadata retrieve(String clientId) {
+    public ClientMetadata retrieve(String clientId, String zoneId) {
         logger.debug("Retrieving UI details for client: " + clientId);
-        return template.queryForObject(CLIENT_METADATA_QUERY, mapper, clientId, IdentityZoneHolder.get().getId());
+        return template.queryForObject(CLIENT_METADATA_QUERY, mapper, clientId, zoneId);
     }
 
     @Override
-    public ClientMetadata update(ClientMetadata resource) {
+    public ClientMetadata update(ClientMetadata resource, String zoneId) {
         logger.debug("Updating metadata for client: " + resource.getClientId());
 
-        updateClientNameIfNotEmpty(resource);
+        updateClientNameIfNotEmpty(resource, IdentityZoneHolder.get().getId());
         int updated = template.update(CLIENT_METADATA_UPDATE, ps -> {
             int pos = 1;
             ps.setBoolean(pos++, resource.isShowOnHomePage());
@@ -98,23 +93,22 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
                 ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[]{}), 0);
             }
             ps.setString(pos++, resource.getClientId());
-            String zone = IdentityZoneHolder.get().getId();
-            ps.setString(pos++, zone);
+            ps.setString(pos++, zoneId);
         });
 
-        ClientMetadata resultingClientMetadata = retrieve(resource.getClientId());
+        ClientMetadata resultingClientMetadata = retrieve(resource.getClientId(), zoneId);
 
         if (updated > 1) { throw new IncorrectResultSizeDataAccessException(1); }
 
         return resultingClientMetadata;
     }
 
-    protected void updateClientNameIfNotEmpty(ClientMetadata resource) {
+    protected void updateClientNameIfNotEmpty(ClientMetadata resource, String zoneId) {
         //we don't remove it, only set values
         if (hasText(resource.getClientName())) {
-            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(resource.getClientId());
+            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(resource.getClientId(), zoneId);
             client.addAdditionalInformation(CLIENT_NAME, resource.getClientName());
-            clientRegistrationService.updateClientDetails(client);
+            clientDetailsService.updateClientDetails(client, zoneId);
         }
     }
 

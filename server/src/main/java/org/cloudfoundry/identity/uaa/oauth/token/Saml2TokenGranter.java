@@ -17,12 +17,12 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
@@ -38,7 +38,7 @@ public class Saml2TokenGranter extends AbstractTokenGranter {
 
 
     public Saml2TokenGranter(AuthorizationServerTokenServices tokenServices,
-                             ClientDetailsService clientDetailsService,
+                             ClientServicesExtension clientDetailsService,
                              OAuth2RequestFactory requestFactory) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_SAML2_BEARER);
     }

@@ -14,14 +14,16 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -31,7 +33,6 @@ import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientE
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
@@ -64,7 +65,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
  */
 public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
-    private final ClientDetailsService clientDetailsService;
+    private final ClientServicesExtension clientDetailsService;
 
     private Map<String, String> scopeToResource = Collections.singletonMap("openid", "openid");
 
@@ -88,7 +89,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private IdentityProviderProvisioning providerProvisioning;
 
-    public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService,
+    public UaaAuthorizationRequestManager(ClientServicesExtension clientDetailsService,
                                           UaaUserDatabase userDatabase,
                                           IdentityProviderProvisioning providerProvisioning) {
         this.clientDetailsService = clientDetailsService;
@@ -158,7 +159,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters) {
 
         String clientId = authorizationParameters.get("client_id");
-        BaseClientDetails clientDetails = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId);
+        BaseClientDetails clientDetails = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
@@ -359,7 +360,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             clientId = authenticatedClient.getClientId();
         } else {
             if (TokenConstants.GRANT_TYPE_USER_TOKEN.equals(grantType)) {
-                targetClient = clientDetailsService.loadClientByClientId(clientId);
+                targetClient = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                 requestParameters.put(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID, authenticatedClient.getClientId());
             } else if (!clientId.equals(authenticatedClient.getClientId())) {
                 // otherwise, make sure that they match
