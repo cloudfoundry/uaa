@@ -418,6 +418,12 @@ tasks.coveralls {
   description = 'Uploads the aggregated coverage report to Coveralls'
 }
 
+task setupDegradedTest(type: Exec, dependsOn: cargoStartLocal) {
+  workingDir 'scripts'
+  commandLine './setupDegradedTests.sh'
+  finalizedBy 'cargoStopLocal'
+}
+
 
 // Log timings per task.
 class TimingsListener implements TaskExecutionListener, BuildListener, org.gradle.api.tasks.testing.TestListener {

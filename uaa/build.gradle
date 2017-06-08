@@ -93,6 +93,7 @@ test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
   exclude '**/*AT.class'
+  exclude 'org/cloudfoundry/identity/uaa/degraded/*.class'
   systemProperty 'java.io.tmpdir', '/tmp'
   systemProperty "mock.suite.test", "true"
 }
@@ -110,6 +111,8 @@ task(slate, type: Exec) {
   executable 'bundle'
   args 'exec', 'middleman', 'build', '--verbose'
 }
+
+
 generateDocs {
   dependsOn slate
 }
@@ -124,6 +127,12 @@ integrationTest {
 
 task acceptanceTest(type: Test) {
   include "org/cloudfoundry/identity/uaa/acceptance/*.class"
+}
+
+task degradedTest(type: Test) {
+  dependsOn rootProject.cargoStartLocal
+  finalizedBy rootProject.cargoStopLocal
+  include "org/cloudfoundry/identity/uaa/degraded/*.class"
 }
 
 

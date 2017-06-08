@@ -240,15 +240,17 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}" />
                 <entry value-ref="corsFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}" />
-                <entry value-ref="identityZoneResolvingFilter"
+                <entry value-ref="degradedModeUaaFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
+                <entry value-ref="identityZoneResolvingFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
                 <entry value-ref="logFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}" />
-                <entry value-ref="meteringFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}" />
+                <entry value-ref="meteringFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(7)}" />
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -515,5 +517,20 @@
     </bean>
 
     <import resource="classpath:META-INF/spring/tasks.xml"/>
+
+    <beans profile="degraded">
+        <util:set id="degradedModeEndpoints">
+            <value>/oauth/token</value>
+            <value>/check_token</value>
+            <value>/login.do</value>
+            <value>/login/idp_discovery</value>
+        </util:set>
+        <bean id="degradedModeUaaFilter" class="org.cloudfoundry.identity.uaa.mode.degraded.DegradedModeUaaFilter">
+            <property name="permittedEndpoints" ref="degradedModeEndpoints"/>
+        </bean>
+    </beans>
+    <beans profile="!degraded">
+        <bean id="degradedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter" />
+    </beans>
 
 </beans>
