@@ -79,7 +79,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     public static final String ALL_GROUPS = String.format("select %s from %s", GROUP_FIELDS, GROUP_TABLE);
 
-    public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=? and identity_zone_id=?", GROUP_TABLE);
+    public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=?", GROUP_TABLE);
 
     public static final String DELETE_GROUP_BY_ZONE = String.format("delete from %s where identity_zone_id=?", GROUP_TABLE);
     public static final String DELETE_GROUP_MEMBERSHIP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?)", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
@@ -250,9 +250,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         externalGroupMappingManager.unmapAll(id);
         int deleted;
         if (version > 0) {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, IdentityZoneHolder.get().getId(),version);
+            deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, version);
         } else {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL, id, IdentityZoneHolder.get().getId());
+            deleted = jdbcTemplate.update(DELETE_GROUP_SQL, id);
         }
         if (deleted != 1) {
             throw new IncorrectResultSizeDataAccessException(1, deleted);
