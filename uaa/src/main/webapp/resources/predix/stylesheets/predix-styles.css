@@ -56,22 +56,19 @@ html {
   max-width: none !important;
   height: 100%;
   width: 100%;
-  min-height: auto !important; }
-  @media (max-width: 51.13333rem) {
-    html {
-      overflow: auto; } }
+  min-height: 100% !important;
+  overflow: auto; }
 
 hr {
   margin-top: 5rem; }
 
 body {
-  height: 100%;
   width: 100%;
   padding: 0;
   font-size: 1rem;
   max-width: none !important;
   position: relative;
-  min-height: auto !important; }
+  min-height: 100% !important; }
 
 .brand {
   display: block;
@@ -177,8 +174,7 @@ h1 {
   -webkit-box-pack: center;
       -ms-flex-pack: center;
           justify-content: center;
-  margin: 0;
-  min-height: auto !important; }
+  margin: 0; }
   @media (max-width: 31.93333rem) {
     .predix-uaa {
       -webkit-box-pack: initial;
@@ -189,6 +185,7 @@ h1 {
   .predix-uaa__wrap {
     max-width: 80em;
     margin: 1rem;
+    margin-bottom: 2rem;
     min-width: 330px; }
     @media (max-width: 51.13333rem) {
       .predix-uaa__wrap {

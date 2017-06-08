@@ -54,10 +54,8 @@ html {
 	max-width : none !important;
 	height    : 100%;
 	width     : 100%;
-	min-height: auto !important;
-	@include sm-down() {
-		overflow: auto;
-	}
+	min-height: 100% !important;
+	overflow: auto;
 }
 
 hr {
@@ -65,13 +63,12 @@ hr {
 }
 
 body {
-	height   : 100%;
 	width    : 100%;
 	padding  : 0;
 	font-size: 1rem;
 	max-width: none !important;
 	position : relative;
-	min-height: auto !important;
+	min-height: 100% !important;
 }
 
 
@@ -186,7 +183,6 @@ h1 {
 	align-items           : center;
 	justify-content       : center;
 	margin                : 0;
-	min-height: auto !important;
 	@include xs-down() {
 		justify-content: initial;
 	}
@@ -200,6 +196,7 @@ h1 {
 	&__wrap {
 		max-width: 80em;
 		margin   : 1rem;
+		margin-bottom: 2rem;
 		min-width: 330px;
 		@include sm-down() {
 			min-width: 300px;
