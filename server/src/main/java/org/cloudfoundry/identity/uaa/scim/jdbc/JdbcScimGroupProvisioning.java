@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -43,7 +42,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -81,7 +79,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     public static final String ALL_GROUPS = String.format("select %s from %s", GROUP_FIELDS, GROUP_TABLE);
 
-    public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=? and identity_zone_id=?", GROUP_TABLE);
+    public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=?", GROUP_TABLE);
 
     public static final String DELETE_GROUP_BY_ZONE = String.format("delete from %s where identity_zone_id=?", GROUP_TABLE);
     public static final String DELETE_GROUP_MEMBERSHIP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?)", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
@@ -252,9 +250,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         externalGroupMappingManager.unmapAll(id);
         int deleted;
         if (version > 0) {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, IdentityZoneHolder.get().getId(),version);
+            deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, version);
         } else {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL, id, IdentityZoneHolder.get().getId());
+            deleted = jdbcTemplate.update(DELETE_GROUP_SQL, id);
         }
         if (deleted != 1) {
             throw new IncorrectResultSizeDataAccessException(1, deleted);
