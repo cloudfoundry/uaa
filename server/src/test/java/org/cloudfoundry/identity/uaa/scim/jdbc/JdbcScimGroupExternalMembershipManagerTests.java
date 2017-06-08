@@ -97,6 +97,13 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
         assertEquals(0, mappingsCount);
     }
 
+    @Test
+    public void test_group_mapping() throws Exception {
+        createGroupMapping();
+        assertEquals(1, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin,IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin,"id").size());
+    }
+
     private void createGroupMapping() {
         ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
         assertNotNull(group);
