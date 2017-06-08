@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -63,7 +64,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
@@ -149,7 +149,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private UaaUserDatabase userDatabase = null;
 
-    private ClientDetailsService clientDetailsService = null;
+    private ClientServicesExtension clientDetailsService = null;
 
     private String issuer = null;
 
@@ -248,7 +248,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // TODO: Need to add a lookup by id so that the refresh token does not
         // need to contain a name
         UaaUser user = userDatabase.retrieveUserById(userid);
-        ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+        ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
         Integer refreshTokenIssuedAt = (Integer) claims.get(IAT);
         long refreshTokenIssueDate = refreshTokenIssuedAt.longValue() * 1000l;
@@ -363,7 +363,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // auto approved, not expired,
         // not DENIED and not approved more recently than when this access token
         // was issued.
-        List<Approval> approvals = approvalStore.getApprovals(userid, clientId);
+        List<Approval> approvals = approvalStore.getApprovals(userid, clientId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED) {
                 if (!approval.isCurrentlyActive()) {
@@ -620,7 +620,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> authenticationMethods = null;
         Set<String> authNContextClassRef = null;
 
-        ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getOAuth2Request().getClientId());
+        ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getOAuth2Request().getClientId(), IdentityZoneHolder.get().getId());
         Collection<GrantedAuthority> clientScopes = null;
 
         // Clients should really by different kinds of users
@@ -753,10 +753,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setScope(scope)
                 .setValue(token.getValue());
             try {
-                tokenProvisioning.create(revocableAccessToken);
+                tokenProvisioning.create(revocableAccessToken, IdentityZoneHolder.get().getId());
             } catch (DuplicateKeyException updateInstead) {
                 //TODO this is an uninteded side effect of reusing access token IDs
-                tokenProvisioning.update(tokenId, revocableAccessToken);
+                tokenProvisioning.update(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
             }
         }
 
@@ -777,9 +777,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setValue(refreshToken.getValue());
             try {
                 if(refreshTokenUnique) {
-                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId);
+                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
                 }
-                tokenProvisioning.create(revocableRefreshToken);
+                tokenProvisioning.create(revocableRefreshToken, IdentityZoneHolder.get().getId());
             } catch (DuplicateKeyException ignore) {
                 //no need to store refresh tokens again
             }
@@ -995,7 +995,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      * @return the refresh token validity period in seconds
      */
     protected int getRefreshTokenValiditySeconds(OAuth2Request authorizationRequest) {
-        ClientDetails client = clientDetailsService.loadClientByClientId(authorizationRequest.getClientId());
+        ClientDetails client = clientDetailsService.loadClientByClientId(authorizationRequest.getClientId(), IdentityZoneHolder.get().getId());
         Integer validity = client.getRefreshTokenValiditySeconds();
         if (validity != null) {
             return validity;
@@ -1109,7 +1109,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             token.setScope(new HashSet<>(scopes));
         }
         String clientId = (String) claims.get(CID);
-        ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+        ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = (String)claims.get(USER_ID);
         // Only check user access tokens
         if (null != userId) {
@@ -1138,7 +1138,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (!UaaTokenUtils.isJwtToken(token)) {
             RevocableToken revocableToken;
             try {
-                 revocableToken = tokenProvisioning.retrieve(token);
+                 revocableToken = tokenProvisioning.retrieve(token, IdentityZoneHolder.get().getId());
             } catch(EmptyResultDataAccessException ex) {
                 throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect: " + token);
             }
@@ -1178,7 +1178,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         ClientDetails client;
         try {
-            client = clientDetailsService.loadClientByClientId(clientId);
+            client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         } catch (NoSuchClientException x) {
             //happens if the client is deleted and token exist
             throw new InvalidTokenException("Invalid client ID "+clientId);
@@ -1239,7 +1239,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

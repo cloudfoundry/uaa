@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -64,32 +63,31 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     }
 
     @Override
-    public List<RevocableToken> retrieveAll() {
+    public List<RevocableToken> retrieveAll(String zoneId) {
         return null;
     }
 
 
-    public RevocableToken retrieve(String id, boolean checkExpired) {
+    public RevocableToken retrieve(String id, boolean checkExpired, String zoneId) {
         if (checkExpired) {
             checkExpired();
         }
-        RevocableToken result = template.queryForObject(GET_QUERY, rowMapper, id, IdentityZoneHolder.get().getId());
+        RevocableToken result = template.queryForObject(GET_QUERY, rowMapper, id, zoneId);
         if (checkExpired && result.getExpiresAt() < System.currentTimeMillis()) {
-            delete(id, 0);
+            delete(id, 0, zoneId);
             throw new EmptyResultDataAccessException("Token expired.", 1);
         }
         return result;
     }
 
     @Override
-    public RevocableToken retrieve(String id) {
-        return retrieve(id, true);
+    public RevocableToken retrieve(String id, String zoneId) {
+        return retrieve(id, true, zoneId);
     }
 
 
     @Override
-    public int deleteRefreshTokensForClientAndUserId(String clientId, String userId) {
-        String zoneId = IdentityZoneHolder.get().getId();
+    public int deleteRefreshTokensForClientAndUserId(String clientId, String userId, String zoneId) {
         int deleted_rows = template.update(DELETE_REFRESH_TOKEN_QUERY, userId, clientId, zoneId);
         return deleted_rows;
     }
@@ -97,9 +95,8 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
 
 
     @Override
-    public RevocableToken create(RevocableToken t) {
+    public RevocableToken create(RevocableToken t, String zoneId) {
         checkExpired();
-        String zoneId = IdentityZoneHolder.get().getId();
         template.update(INSERT_QUERY,
                         t.getTokenId(),
                         t.getClientId(),
@@ -111,12 +108,11 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
                         t.getScope(),
                         t.getValue(),
                         zoneId);
-        return retrieve(t.getTokenId(), false);
+        return retrieve(t.getTokenId(), false, zoneId);
     }
 
     @Override
-    public RevocableToken update(String id, RevocableToken t) {
-        String zoneId = IdentityZoneHolder.get().getId();
+    public RevocableToken update(String id, RevocableToken t, String zoneId) {
         template.update(UPDATE_QUERY,
                         t.getClientId(),
                         t.getUserId(),
@@ -128,19 +124,19 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
                         t.getValue(),
                         id,
                         zoneId);
-        return retrieve(id, false);
+        return retrieve(id, false, zoneId);
     }
 
     @Override
-    public RevocableToken delete(String id, int version) {
-        RevocableToken previous = retrieve(id, false);
-        template.update(DELETE_QUERY, id, IdentityZoneHolder.get().getId());
+    public RevocableToken delete(String id, int version, String zoneId) {
+        RevocableToken previous = retrieve(id, false, zoneId);
+        template.update(DELETE_QUERY, id, zoneId);
         return previous;
     }
 
     @Override
     public int deleteByIdentityZone(String zoneId) {
-        return template.update(DELETE_BY_ZONE_QUERY, IdentityZoneHolder.get().getId());
+        return template.update(DELETE_BY_ZONE_QUERY, zoneId);
     }
 
     @Override
@@ -164,21 +160,21 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     }
 
     @Override
-    public List<RevocableToken> getUserTokens(String userId) {
-        return template.query(GET_BY_USER_QUERY, rowMapper, userId, IdentityZoneHolder.get().getId());
+    public List<RevocableToken> getUserTokens(String userId, String zoneId) {
+        return template.query(GET_BY_USER_QUERY, rowMapper, userId, zoneId);
     }
 
     @Override
-    public List<RevocableToken> getUserTokens(String userId, String clientId) {
+    public List<RevocableToken> getUserTokens(String userId, String clientId, String zoneId) {
         if (isEmpty(clientId)) {
             throw new NullPointerException("Client ID can not be null when retrieving tokens.");
         }
-        return getUserTokens(userId).stream().filter(r -> clientId.equals(r.getClientId())).collect(Collectors.toList());
+        return getUserTokens(userId, zoneId).stream().filter(r -> clientId.equals(r.getClientId())).collect(Collectors.toList());
     }
 
     @Override
-    public List<RevocableToken> getClientTokens(String clientId) {
-        return template.query(GET_BY_CLIENT_QUERY, rowMapper, clientId, IdentityZoneHolder.get().getId());
+    public List<RevocableToken> getClientTokens(String clientId, String zoneId) {
+        return template.query(GET_BY_CLIENT_QUERY, rowMapper, clientId, zoneId);
     }
 
     public long getExpirationCheckInterval() {

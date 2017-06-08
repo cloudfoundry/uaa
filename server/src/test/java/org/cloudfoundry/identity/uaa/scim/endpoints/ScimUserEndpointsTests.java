@@ -190,7 +190,7 @@ public class ScimUserEndpointsTests {
             .when(mockPasswordValidator).validate(eq(""));
         endpoints.setPasswordValidator(mockPasswordValidator);
 
-        mm = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
+        mm = new JdbcScimGroupMembershipManager(jdbcTemplate);
         mm.setScimUserProvisioning(dao);
         JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mm.setScimGroupProvisioning(gdao);
@@ -353,13 +353,13 @@ public class ScimUserEndpointsTests {
             .setClientId("c1")
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.APPROVED));
+            .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         am.addApproval(new Approval()
             .setUserId(created.getId())
             .setClientId("c1")
             .setScope("s2")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.DENIED));
+            .setStatus(Approval.ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
 
         created.setApprovals(Collections.singleton(new Approval()
             .setUserId("vidya")
@@ -380,13 +380,13 @@ public class ScimUserEndpointsTests {
             .setClientId("c1")
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.APPROVED));
+            .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         am.addApproval(new Approval()
             .setUserId(joel.getId())
             .setClientId("c1")
             .setScope("s2")
             .setExpiresAt(Approval.timeFromNow(6000))
-            .setStatus(Approval.ApprovalStatus.DENIED));
+            .setStatus(Approval.ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
 
         assertEquals(2, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
     }
@@ -690,7 +690,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setScimGroupMembershipManager(mm);
     }
@@ -701,7 +701,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setScimGroupMembershipManager(mm);
     }
@@ -723,7 +723,7 @@ public class ScimUserEndpointsTests {
         endpoints.setApprovalStore(mockApprovalStore);
 
         endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString());
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setApprovalStore(am);
     }
@@ -734,7 +734,7 @@ public class ScimUserEndpointsTests {
         endpoints.setApprovalStore(mockApprovalStore);
 
         endpoints.findUsers("approvals", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString());
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
 
         endpoints.setApprovalStore(am);
     }

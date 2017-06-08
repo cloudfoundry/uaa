@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
@@ -336,7 +337,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                 .setUserId(user.getId())
                 .setExpiresAt(new Date(System.currentTimeMillis() + 10000))
                 .setScope("scim.read")
-                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId()
         );
     }
 
@@ -491,7 +492,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
         user.setGroups(Collections.emptyList());
 
         getMockMvc().perform(
@@ -530,7 +531,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
         user.setGroups(Collections.emptyList());
 
         getMockMvc().perform(
@@ -567,7 +568,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
 
         getMockMvc().perform(
             RestDocumentationRequestBuilders.delete("/Users/{userId}", user.getId())
@@ -604,7 +605,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
 
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());

@@ -17,6 +17,8 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -140,7 +142,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         String clientId;
         try {
             clientId = parameters.get("client_id");
-            client = getClientDetailsService().loadClientByClientId(clientId);
+            client = getClientServiceExtention().loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         }
         catch (NoSuchClientException x) {
             throw new InvalidClientException(x.getMessage());
@@ -614,8 +616,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         try {
             authorizationRequest = getAuthorizationRequestForError(webRequest);
             String requestedRedirectParam = authorizationRequest.getRequestParameters().get(OAuth2Utils.REDIRECT_URI);
-            String requestedRedirect = redirectResolver.resolveRedirect(requestedRedirectParam,
-                getClientDetailsService().loadClientByClientId(authorizationRequest.getClientId()));
+            String requestedRedirect =
+                redirectResolver.resolveRedirect(
+                    requestedRedirectParam,
+                getClientServiceExtention().loadClientByClientId(authorizationRequest.getClientId(), IdentityZoneHolder.get().getId()));
             authorizationRequest.setRedirectUri(requestedRedirect);
             String redirect = getUnsuccessfulRedirect(authorizationRequest, translate.getBody(), authorizationRequest
                 .getResponseTypes().contains("token"));
@@ -653,5 +657,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             return getDefaultOAuth2RequestFactory().createAuthorizationRequest(parameters);
         }
 
+    }
+
+    protected ClientServicesExtension getClientServiceExtention() {
+        return (ClientServicesExtension )super.getClientDetailsService();
+    }
+
+
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+        super.setClientDetailsService(clientDetailsService);
     }
 }

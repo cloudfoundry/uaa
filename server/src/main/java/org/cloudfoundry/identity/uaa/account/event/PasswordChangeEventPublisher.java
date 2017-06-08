@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Email;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
@@ -65,7 +66,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         try {
             // If the request came in for a user by id we should be able to
             // retrieve the username
-            ScimUser scimUser = dao.retrieve(userId);
+            ScimUser scimUser = dao.retrieve(userId, IdentityZoneHolder.get().getId());
             Date today = new Date();
             if (scimUser != null) {
                 return new UaaUser(

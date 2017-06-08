@@ -15,6 +15,8 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,7 +24,6 @@ import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
@@ -37,11 +38,11 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 
 public class UserTokenGranter  extends AbstractTokenGranter {
 
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
     private RevocableTokenProvisioning tokenStore;
 
     public UserTokenGranter(AuthorizationServerTokenServices tokenServices,
-                            ClientDetailsService clientDetailsService,
+                            ClientServicesExtension clientDetailsService,
                             OAuth2RequestFactory requestFactory,
                             RevocableTokenProvisioning tokenStore) {
         super(tokenServices, clientDetailsService, requestFactory, TokenConstants.GRANT_TYPE_USER_TOKEN);
@@ -89,11 +90,11 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         }
 
         //5. requesting client must have user_token grant type
-        ClientDetails requesting = clientDetailsService.loadClientByClientId(request.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID));
+        ClientDetails requesting = clientDetailsService.loadClientByClientId(request.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID), IdentityZoneHolder.get().getId());
         super.validateGrantType(GRANT_TYPE_USER_TOKEN, requesting);
 
         //6. receiving client must have refresh_token grant type
-        ClientDetails receiving = clientDetailsService.loadClientByClientId(request.getRequestParameters().get(CLIENT_ID));
+        ClientDetails receiving = clientDetailsService.loadClientByClientId(request.getRequestParameters().get(CLIENT_ID), IdentityZoneHolder.get().getId());
         super.validateGrantType(GRANT_TYPE_REFRESH_TOKEN, receiving);
 
         return oauth2Authentication.getUserAuthentication();
@@ -114,13 +115,13 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         //ensure that the ID is that of the refresh token
         token.getAdditionalInformation().put(ClaimConstants.JTI, token.getRefreshToken().getValue());
         //delete the access token from token store
-        tokenStore.delete(id, 0);
+        tokenStore.delete(id, 0, IdentityZoneHolder.get().getId());
         return token;
     }
 
     @Override
     protected OAuth2AccessToken getAccessToken(ClientDetails client, TokenRequest tokenRequest) {
-        ClientDetails receivingClient = clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID));
+        ClientDetails receivingClient = clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID), IdentityZoneHolder.get().getId());
         return prepareForSerialization((DefaultOAuth2AccessToken) super.getAccessToken(receivingClient, tokenRequest));
     }
 }

@@ -11,10 +11,11 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -41,11 +42,11 @@ public class EmailInvitationsService implements InvitationsService {
     private ExpiringCodeStore expiringCodeStore;
 
     @Autowired
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
 
     @Override
     public AcceptedInvitation acceptInvitation(String code, String password) {
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
 
         if ((null == expiringCode) || (null != expiringCode.getIntent() && !INVITATION.name().equals(expiringCode.getIntent()))) {
             throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
@@ -56,7 +57,7 @@ public class EmailInvitationsService implements InvitationsService {
         String clientId = userData.get(CLIENT_ID);
         String redirectUri = userData.get(REDIRECT_URI);
 
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
 
         user = scimUserProvisioning.verifyUser(userId, user.getVersion());
 
@@ -69,7 +70,7 @@ public class EmailInvitationsService implements InvitationsService {
 
         String redirectLocation = "/home";
         try {
-            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
             redirectLocation = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
         } catch (NoSuchClientException x) {

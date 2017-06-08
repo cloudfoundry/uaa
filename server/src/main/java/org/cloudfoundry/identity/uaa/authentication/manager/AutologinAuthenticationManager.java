@@ -28,13 +28,14 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 
 import java.util.Map;
@@ -48,14 +49,14 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
     private Log logger = LogFactory.getLog(getClass());
 
     private ExpiringCodeStore codeStore;
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
     private UaaUserDatabase userDatabase;
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.codeStore= expiringCodeStore;
     }
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -64,7 +65,7 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
     }
 
     public ExpiringCode doRetrieveCode(String code) {
-        return codeStore.retrieveCode(code);
+        return codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
     }
 
 
@@ -104,7 +105,7 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
         }
 
         try {
-            clientDetailsService.loadClientByClientId(clientId);
+            clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         } catch (NoSuchClientException x) {
             throw new BadCredentialsException("Cannot redeem provided code for user, client is missing");
         }

@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim.remote;
 
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,13 +59,13 @@ public class RemoteScimUserProvisioningTests {
 
     @Test
     public void testRetrieveUser() {
-        service.retrieve("1234");
+        service.retrieve("1234", IdentityZoneHolder.get().getId());
         Mockito.verify(restTemplate).getForObject("http://base/User/{id}", ScimUser.class, "1234");
     }
 
     @Test
     public void testRetrieveUsers() {
-        service.retrieveAll();
+        service.retrieveAll(IdentityZoneHolder.get().getId());
         Mockito.verify(restTemplate).getForObject("http://base/Users", List.class);
     }
 
@@ -90,7 +91,7 @@ public class RemoteScimUserProvisioningTests {
 
     @Test
     public void testUpdateUser() {
-        service.update("1234", user);
+        service.update("1234", user, IdentityZoneHolder.get().getId());
         Mockito.verify(restTemplate).put("http://base/User/{id}", user, "1234");
     }
 
@@ -103,7 +104,7 @@ public class RemoteScimUserProvisioningTests {
                                         Matchers.argThat(new HttpHeadersMatcher()), Matchers.eq(ScimUser.class),
                                         Matchers.eq("1234")))
                         .thenReturn(new ResponseEntity<ScimUser>(user, HttpStatus.OK));
-        service.delete("1234", 123456789);
+        service.delete("1234", 123456789, IdentityZoneHolder.get().getId());
     }
 
     @Test

@@ -101,7 +101,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
         ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        ScimUser scimUser = provisioning.retrieve(user.getId());
+        ScimUser scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
         return username;
@@ -205,7 +205,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
                 addMember(user, g);
             }
 
-            return userProvisioning.retrieve(user.getId());
+            return userProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.set(original);
         }
@@ -216,8 +216,8 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             return user;
         }
 
-        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true);
+        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false, IdentityZoneHolder.get().getId());
+        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZoneHolder.get().getId());
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {
@@ -234,7 +234,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     protected ScimGroupMember addMember(ScimUser user, ScimGroup group) {
         ScimGroupMember gm = new ScimGroupMember(user.getId());
         try {
-            return groupMembershipManager.addMember(group.getId(), gm);
+            return groupMembershipManager.addMember(group.getId(), gm, IdentityZoneHolder.get().getId());
         }catch (MemberAlreadyExistsException x) {
             return gm;
         }
@@ -245,7 +245,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         if (exists.size() > 0) {
             return exists.get(0);
         } else {
-            return groupProvisioning.create(new ScimGroup(null,scope,zoneId));
+            return groupProvisioning.create(new ScimGroup(null,scope,zoneId), IdentityZoneHolder.get().getId());
         }
     }
 }

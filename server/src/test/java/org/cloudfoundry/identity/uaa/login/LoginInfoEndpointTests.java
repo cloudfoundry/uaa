@@ -23,16 +23,17 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -46,7 +47,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -614,7 +614,7 @@ public class LoginInfoEndpointTests {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
         when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
 
         // mock SamlIdentityProviderConfigurator
@@ -651,7 +651,7 @@ public class LoginInfoEndpointTests {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
         when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
 
         // mock SamlIdentityProviderConfigurator
@@ -683,8 +683,8 @@ public class LoginInfoEndpointTests {
 
         // mock Client service
         BaseClientDetails clientDetails = new BaseClientDetails();
-        ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
-        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId(eq("client-id"), anyString())).thenReturn(clientDetails);
 
         IdentityZone zone = MultitenancyFixture.identityZone("other-zone", "other-zone");
         IdentityZoneHolder.set(zone);
@@ -709,7 +709,7 @@ public class LoginInfoEndpointTests {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
         when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
 
         List<IdentityProvider> clientAllowedIdps = new LinkedList<>();

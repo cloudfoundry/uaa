@@ -20,9 +20,10 @@ import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -45,10 +46,10 @@ public class ProfileController {
     protected static Log logger = LogFactory.getLog(ProfileController.class);
 
     private final ApprovalsService approvalsService;
-    private final ClientDetailsService clientDetailsService;
+    private final ClientServicesExtension clientDetailsService;
 
     public ProfileController(ApprovalsService approvalsService,
-                             ClientDetailsService clientDetailsService) {
+                             ClientServicesExtension clientDetailsService) {
         this.approvalsService = approvalsService;
         this.clientDetailsService = clientDetailsService;
     }
@@ -69,7 +70,7 @@ public class ProfileController {
     protected Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
         Map<String, String> clientNames = new LinkedHashMap<>();
         for (String clientId : approvals.keySet()) {
-            ClientDetails details = clientDetailsService.loadClientByClientId(clientId);
+            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             String name = details.getClientId();
             if (details.getAdditionalInformation()!=null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME)!=null) {
                 name = (String)details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);

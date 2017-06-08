@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -35,18 +34,14 @@ public class JdbcAuditService implements UaaAuditService {
     }
 
     @Override
-    public List<AuditEvent> find(String principal, long after) {
-        return find(principal, after, IdentityZoneHolder.get().getId());
-    }
-
-    public List<AuditEvent> find(String principalId, long after, String identityZoneId) {
+    public List<AuditEvent> find(String principalId, long after, String zoneId) {
         return template.query("select event_type, principal_id, origin, event_data, created, identity_zone_id from sec_audit where " +
             "principal_id=? and identity_zone_id=? and created > ? order by created desc", new AuditEventRowMapper(), principalId
-            , identityZoneId, new Timestamp(after));
+            , zoneId, new Timestamp(after));
     }
 
     @Override
-    public void log(AuditEvent auditEvent) {
+    public void log(AuditEvent auditEvent, String zoneId) {
         String origin = auditEvent.getOrigin();
         String data = auditEvent.getData();
         origin = origin == null ? "" : origin;
@@ -55,7 +50,7 @@ public class JdbcAuditService implements UaaAuditService {
         data = data.length() > 255 ? data.substring(0, 255) : data;
         template.update("insert into sec_audit (principal_id, event_type, origin, event_data, identity_zone_id) values (?,?,?,?,?)",
                         auditEvent.getPrincipalId(), auditEvent.getType().getCode(), origin,
-                        data, auditEvent.getIdentityZoneId());
+                        data, zoneId);
     }
 
     private class AuditEventRowMapper implements RowMapper<AuditEvent> {

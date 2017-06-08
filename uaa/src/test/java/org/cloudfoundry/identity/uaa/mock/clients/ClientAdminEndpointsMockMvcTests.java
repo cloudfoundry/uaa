@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1600,7 +1601,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
         JdbcApprovalStore endpoint = getWebApplicationContext().getBean(JdbcApprovalStore.class);
-        return endpoint.getApprovalsForClient(clientId).toArray(new Approval[0]);
+        return endpoint.getApprovalsForClient(clientId, IdentityZoneHolder.get().getId()).toArray(new Approval[0]);
     }
 
 

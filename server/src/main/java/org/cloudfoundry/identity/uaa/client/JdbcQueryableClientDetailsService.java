@@ -75,31 +75,31 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     }
 
     @Override
-    public List<ClientDetails> retrieveAll() {
-        return delegate.listClientDetails();
+    public List<ClientDetails> retrieveAll(String zoneId) {
+        return delegate.listClientDetails(zoneId);
     }
 
     @Override
-    public ClientDetails retrieve(String id) {
-        return delegate.loadClientByClientId(id);
+    public ClientDetails retrieve(String id, String zoneId) {
+        return delegate.loadClientByClientId(id, zoneId);
     }
 
     @Override
-    public ClientDetails create(ClientDetails resource) {
-        delegate.addClientDetails(resource);
-        return delegate.loadClientByClientId(resource.getClientId());
+    public ClientDetails create(ClientDetails resource, String zoneId) {
+        delegate.addClientDetails(resource, zoneId);
+        return delegate.loadClientByClientId(resource.getClientId(), zoneId);
     }
 
     @Override
-    public ClientDetails update(String id, ClientDetails resource) {
-        delegate.updateClientDetails(resource);
-        return delegate.loadClientByClientId(id);
+    public ClientDetails update(String id, ClientDetails resource, String zoneId) {
+        delegate.updateClientDetails(resource, zoneId);
+        return delegate.loadClientByClientId(id, zoneId);
     }
 
     @Override
-    public ClientDetails delete(String id, int version) {
-        ClientDetails client = delegate.loadClientByClientId(id);
-        delegate.onApplicationEvent(new EntityDeletedEvent<ClientDetails>(client, SecurityContextHolder.getContext().getAuthentication()));
+    public ClientDetails delete(String id, int version, String zoneId) {
+        ClientDetails client = delegate.loadClientByClientId(id, zoneId);
+        delegate.onApplicationEvent(new EntityDeletedEvent<>(client, SecurityContextHolder.getContext().getAuthentication()));
         return client;
     }
 

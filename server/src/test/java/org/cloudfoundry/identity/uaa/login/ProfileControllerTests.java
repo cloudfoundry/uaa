@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.account.ProfileController;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Assert;
@@ -243,12 +244,12 @@ public class ProfileControllerTests extends TestClassNullifier {
         }
 
         @Bean
-        ClientDetailsService clientService() {
-            return Mockito.mock(ClientDetailsService.class);
+        ClientServicesExtension clientService() {
+            return Mockito.mock(ClientServicesExtension.class);
         }
 
         @Bean
-        ProfileController profileController(ApprovalsService approvalsService, ClientDetailsService clientDetailsService) {
+        ProfileController profileController(ApprovalsService approvalsService, ClientServicesExtension clientDetailsService) {
             return new ProfileController(approvalsService, clientDetailsService);
         }
     }
