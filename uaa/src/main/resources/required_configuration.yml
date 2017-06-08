@@ -44,3 +44,5 @@ LOGIN_SECRET: loginsecret
 jwt:
   token:
     signing-key: tokenKey
+
+NUREGO_API_URL: https://am-staging.nurego.com
