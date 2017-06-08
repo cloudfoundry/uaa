@@ -1333,23 +1333,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
-        definition.setTokenKey("key");
-        definition.setRelyingPartyId("uaa");
-        definition.setRelyingPartySecret("secret");
-        definition.setShowLinkText(false);
-        definition.setScopes(asList("openid", "roles"));
-        definition.setResponseType("code id_token");
-        String oauthAlias = "login-oauth-" + generator.generate();
-
-        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
-        oauthIdentityProvider.setConfig(definition);
-        oauthIdentityProvider.setActive(true);
-
-        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+        String oauthAlias = createOIDCProviderInZone(identityZone, zoneAdminToken, null);
 
         IdentityZoneHolder.set(identityZone);
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
@@ -1368,6 +1352,63 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                         )
                 );
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void xOAuthRedirectOnlyOneProviderWithDiscoveryUrl() throws Exception {
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        String oauthAlias = createOIDCProviderInZone(identityZone, zoneAdminToken, "https://accounts.google.com/.well-known/openid-configuration");
+
+        IdentityZoneHolder.set(identityZone);
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
+        IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        uaaIdentityProvider.setActive(false);
+        identityProviderProvisioning.update(uaaIdentityProvider);
+
+        getMockMvc().perform(get("/login").accept(TEXT_HTML)
+            .servletPath("/login")
+            .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
+            .andExpect(
+                header()
+                    .string("Location",
+                        startsWith("https://accounts.google.com/o/oauth2/v2/auth?client_id=uaa&response_type=code+id_token&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
+                    )
+            );
+        IdentityZoneHolder.clear();
+    }
+
+    private String createOIDCProviderInZone(IdentityZone identityZone, String zoneAdminToken, String discoveryUrl) throws Exception {
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+
+
+        if(StringUtils.hasText(discoveryUrl)) {
+            definition.setDiscoveryUrl(new URL(discoveryUrl));
+        } else {
+            definition.setAuthUrl(new URL("http://auth.url"));
+            definition.setTokenUrl(new URL("http://token.url"));
+        }
+        definition.setTokenKey("key");
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        definition.setScopes(asList("openid", "roles"));
+        definition.setResponseType("code id_token");
+        String oauthAlias = "login-oauth-" + generator.generate();
+
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        oauthIdentityProvider.setConfig(definition);
+        oauthIdentityProvider.setActive(true);
+
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+        return oauthAlias;
     }
 
     @Test

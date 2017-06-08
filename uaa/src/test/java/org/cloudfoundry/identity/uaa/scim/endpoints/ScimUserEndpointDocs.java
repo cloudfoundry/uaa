@@ -666,7 +666,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                     ),
                     requestFields(
-                        fieldWithPath("oldPassword").required().description("Old password.").type(STRING),
+                        fieldWithPath("oldPassword").required().description("Old password. Optional when resetting another users password as an admin with uaa.admin scope").type(STRING),
                         fieldWithPath("password").required().description("New password.").type(STRING)
                     ),
                     responseFields(
