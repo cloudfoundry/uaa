@@ -120,7 +120,7 @@ public abstract class UaaUrlUtils {
 
     public static String getBaseURL(HttpServletRequest request) {
         //returns scheme, host and context path
-        //for example http://localhost:8080/uaa or http://login.identity.cf-app.com
+        //for example http://localhost:8080/uaa or http://login.uaa-acceptance.cf-app.com
         String requestURL = request.getRequestURL().toString();
         return hasText(request.getServletPath()) ?
             requestURL.substring(0, requestURL.lastIndexOf(request.getServletPath())) :

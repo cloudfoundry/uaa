@@ -89,7 +89,7 @@ public class HomeController {
         }
         model.addAttribute("principal", principal);
         List<TileData> tiles = new ArrayList<>();
-        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
+        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         clientMetadataList.stream()
             .filter(clientMetadata -> clientMetadata.isShowOnHomePage())
             .map(data -> new TileData(

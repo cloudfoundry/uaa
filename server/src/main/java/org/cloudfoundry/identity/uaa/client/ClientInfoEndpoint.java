@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,32 +12,33 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import java.security.Principal;
-import java.util.Collections;
-
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.security.Principal;
+import java.util.Collections;
+
 /**
  * Controller which allows clients to inspect their own registration data.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
 public class ClientInfoEndpoint implements InitializingBean {
 
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
 
     /**
      * @param clientDetailsService the clientDetailsService to set
      */
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -51,7 +52,7 @@ public class ClientInfoEndpoint implements InitializingBean {
     public ClientDetails clientinfo(Principal principal) {
 
         String clientId = principal.getName();
-        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
+        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId()));
         client.setClientSecret(null);
         client.setAdditionalInformation(Collections.<String, Object> emptyMap());
         return client;

@@ -53,8 +53,8 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     @Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                        { InMemoryExpiringCodeStore.class }, { JdbcExpiringCodeStore.class },
+        return Arrays.asList(new Object[][]{
+            {InMemoryExpiringCodeStore.class}, {JdbcExpiringCodeStore.class},
         });
     }
 
@@ -86,7 +86,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     public void testGenerateCode() throws Exception {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(data, expiresAt, null);
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
 
         Assert.assertNotNull(expiringCode);
 
@@ -102,14 +102,14 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     public void testGenerateCodeWithNullData() throws Exception {
         String data = null;
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        expiringCodeStore.generateCode(data, expiresAt, null);
+        expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = NullPointerException.class)
     public void testGenerateCodeWithNullExpiresAt() throws Exception {
         String data = "{}";
         Timestamp expiresAt = null;
-        expiringCodeStore.generateCode(data, expiresAt, null);
+        expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -118,7 +118,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         when(timeService.getCurrentTimeMillis()).thenReturn(now);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(now - 60000);
-        expiringCodeStore.generateCode(data, expiresAt, null);
+        expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = DataIntegrityViolationException.class)
@@ -129,34 +129,34 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        expiringCodeStore.generateCode(data, expiresAt, null);
-        expiringCodeStore.generateCode(data, expiresAt, null);
+        expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
+        expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
     }
 
     @Test
     public void testRetrieveCode() throws Exception {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null);
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
 
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId());
 
         Assert.assertEquals(generatedCode, retrievedCode);
 
-        Assert.assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode()));
+        Assert.assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
     public void testRetrieveCode_In_Another_Zone() throws Exception {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null);
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
 
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("other","other"));
-        Assert.assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode()));
+        Assert.assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId()));
 
         IdentityZoneHolder.clear();
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId());
         Assert.assertEquals(generatedCode, retrievedCode);
 
 
@@ -164,14 +164,14 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     @Test
     public void testRetrieveCodeWithCodeNotFound() throws Exception {
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode("unknown");
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode("unknown", IdentityZoneHolder.get().getId());
 
         Assert.assertNull(retrievedCode);
     }
 
     @Test(expected = NullPointerException.class)
     public void testRetrieveCodeWithNullCode() throws Exception {
-        expiringCodeStore.retrieveCode(null);
+        expiringCodeStore.retrieveCode(null, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -180,9 +180,9 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         Arrays.fill(oneMb, 'a');
         String aaaString = new String(oneMb);
         ExpiringCode expiringCode = expiringCodeStore.generateCode(aaaString, new Timestamp(
-                        System.currentTimeMillis() + 60000), null);
+                        System.currentTimeMillis() + 60000), null, IdentityZoneHolder.get().getId());
         String code = expiringCode.getCode();
-        ExpiringCode actualCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode actualCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Assert.assertEquals(expiringCode, actualCode);
     }
 
@@ -192,27 +192,27 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         when(timeService.getCurrentTimeMillis()).thenReturn(generationTime);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(generationTime);
-        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null);
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
 
         long expirationTime = 200000L;
         when(timeService.getCurrentTimeMillis()).thenReturn(expirationTime);
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId());
         Assert.assertNull(retrievedCode);
     }
 
     @Test
     public void testExpireCodeByIntent() throws Exception {
-        ExpiringCode code = expiringCodeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 60000), "Test Intent");
+        ExpiringCode code = expiringCodeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 60000), "Test Intent", IdentityZoneHolder.get().getId());
 
         Assert.assertEquals(1, countCodes());
 
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("id","id"));
-        expiringCodeStore.expireByIntent("Test Intent");
+        expiringCodeStore.expireByIntent("Test Intent", IdentityZoneHolder.get().getId());
         Assert.assertEquals(1, countCodes());
 
         IdentityZoneHolder.clear();
-        expiringCodeStore.expireByIntent("Test Intent");
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(code.getCode());
+        expiringCodeStore.expireByIntent("Test Intent", IdentityZoneHolder.get().getId());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(code.getCode(), IdentityZoneHolder.get().getId());
         Assert.assertEquals(0, countCodes());
         Assert.assertNull(retrievedCode);
     }
@@ -226,7 +226,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
             try {
                 String data = "{}";
                 Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
-                ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null);
+                ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
                 Assert.fail("Database is down, should not generate a code");
             } catch (DataAccessException x) {
 

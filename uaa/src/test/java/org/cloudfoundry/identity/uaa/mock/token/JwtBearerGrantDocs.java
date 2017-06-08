@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Test;
 import org.springframework.restdocs.headers.RequestHeadersSnippet;
 import org.springframework.restdocs.snippet.Snippet;
@@ -32,6 +33,8 @@ import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
 
@@ -62,7 +65,10 @@ public class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
                 .optional()
         );
 
-        setup_auth0_jwt_bearer_grant()
+        IdentityZone defaultZone = IdentityZone.getUaa();
+        perform_grant_in_zone(defaultZone, getUaaIdToken(originZone.getIdentityZone(), originClient, originUser), getTokenVerificationKey(originZone.getIdentityZone()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.access_token").isNotEmpty())
             .andDo(
                 document(
                     "{ClassName}/{methodName}",
@@ -72,5 +78,6 @@ public class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
                     responseFields
                 )
             );
+
     }
 }

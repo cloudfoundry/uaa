@@ -62,7 +62,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(email, password, passwordConfirmation);
         ExpiringCode expiringCode = null;
         try {
-            expiringCode = expiringCodeStore.retrieveCode(code);
+            expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
             validation.throwIfNotValid();
             if (expiringCode == null) {
                 throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
@@ -90,7 +90,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void refreshCode(HttpServletRequest request, ExpiringCode expiringCode) {
-        ExpiringCode newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + 1000 * 60 * 10), expiringCode.getIntent());
+        ExpiringCode newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + 1000 * 60 * 10), expiringCode.getIntent(), IdentityZoneHolder.get().getId());
         request.setAttribute("code", newCode.getCode());
     }
 

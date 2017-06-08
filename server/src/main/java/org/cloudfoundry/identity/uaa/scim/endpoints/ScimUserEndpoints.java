@@ -205,7 +205,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
     @ResponseBody
     public ScimUser getUser(@PathVariable String userId, HttpServletResponse response) {
-        ScimUser scimUser = syncApprovals(syncGroups(scimUserProvisioning.retrieve(userId)));
+        ScimUser scimUser = syncApprovals(syncGroups(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())));
         addETagHeader(response, scimUser);
         return scimUser;
     }
@@ -239,7 +239,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (user.getApprovals()!=null) {
             for (Approval approval : user.getApprovals()) {
                 approval.setUserId(scimUser.getId());
-                approvalStore.addApproval(approval);
+                approvalStore.addApproval(approval, IdentityZoneHolder.get().getId());
             }
         }
         scimUser = syncApprovals(syncGroups(scimUser));
@@ -264,7 +264,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = getVersion(userId, etag);
         user.setVersion(version);
         try {
-            ScimUser updated = scimUserProvisioning.update(userId, user);
+            ScimUser updated = scimUserProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
             scimUpdates.incrementAndGet();
             ScimUser scimUser = syncApprovals(syncGroups(updated));
             addETagHeader(httpServletResponse, scimUser);
@@ -286,7 +286,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         int version = getVersion(userId, etag);
-        ScimUser existing = scimUserProvisioning.retrieve(userId);
+        ScimUser existing = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         try {
             existing.patch(patch);
             existing.setVersion(version);
@@ -310,8 +310,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
         checkIsEditAllowed(user.getOrigin(), request);
-        membershipManager.removeMembersByMemberId(userId);
-        scimUserProvisioning.delete(userId, version);
+        membershipManager.removeMembersByMemberId(userId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+        scimUserProvisioning.delete(userId, version, IdentityZoneHolder.get().getId());
         scimDeletes.incrementAndGet();
         if (publisher != null) {
             publisher.publishEvent(
@@ -342,7 +342,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         VerificationResponse responseBody = new VerificationResponse();
 
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         if (user.isVerified()) {
             throw new UserAlreadyVerifiedException();
         }
@@ -374,7 +374,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             value = value.substring(0, value.length() - 1);
         }
         if (value.equals("*")) {
-            return scimUserProvisioning.retrieve(userId).getVersion();
+            return scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId()).getVersion();
         }
         try {
             return Integer.valueOf(value);
@@ -441,7 +441,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
 
         if(!user.getOrigin().equals(OriginKeys.UAA)) {
             throw new IllegalArgumentException("Can only manage users from the internal user store.");
@@ -469,8 +469,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             return user;
         }
 
-        Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
+        Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false, IdentityZoneHolder.get().getId());
+        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true, IdentityZoneHolder.get().getId());
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {
@@ -488,7 +488,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (user == null || approvalStore == null) {
             return user;
         }
-        Set<Approval> approvals = new HashSet<Approval>(approvalStore.getApprovalsForUser(user.getId()));
+        Set<Approval> approvals = new HashSet<Approval>(approvalStore.getApprovalsForUser(user.getId(), IdentityZoneHolder.get().getId()));
         Set<Approval> active = new HashSet<Approval>(approvals);
         for (Approval approval : approvals) {
             if (!approval.isCurrentlyActive()) {

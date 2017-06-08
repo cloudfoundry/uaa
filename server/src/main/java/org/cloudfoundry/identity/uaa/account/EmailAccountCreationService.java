@@ -15,10 +15,10 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -47,7 +47,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final MessageService messageService;
     private final ExpiringCodeStore codeStore;
     private final ScimUserProvisioning scimUserProvisioning;
-    private final ClientDetailsService clientDetailsService;
+    private final ClientServicesExtension clientDetailsService;
     private final PasswordValidator passwordValidator;
 
     public EmailAccountCreationService(
@@ -55,7 +55,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             MessageService messageService,
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,
-            ClientDetailsService clientDetailsService,
+            ClientServicesExtension clientDetailsService,
             PasswordValidator passwordValidator) {
 
         this.templateEngine = templateEngine;
@@ -102,13 +102,13 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     @Override
     public AccountCreationResponse completeActivation(String code) throws IOException {
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if ((null == expiringCode) || ((null != expiringCode.getIntent()) && !REGISTRATION.name().equals(expiringCode.getIntent()))) {
             throw new HttpClientErrorException(BAD_REQUEST);
         }
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
-        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"));
+        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), IdentityZoneHolder.get().getId());
         user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 
         String clientId = data.get("client_id");
@@ -121,7 +121,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private String getRedirect(String clientId, String redirectUri) throws IOException {
         if (clientId != null) {
             try {
-                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
                 Set<String> registeredRedirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                         clientDetails.getRegisteredRedirectUri();

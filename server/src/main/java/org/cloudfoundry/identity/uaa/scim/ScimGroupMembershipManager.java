@@ -12,123 +12,136 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.List;
-import java.util.Set;
-
-import org.cloudfoundry.identity.uaa.resources.Queryable;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 
-public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
+import java.util.List;
+import java.util.Set;
+
+public interface ScimGroupMembershipManager  {
 
     /**
      * Add a member to a group
      *
      * @param groupId id of a valid group that already exists.
-     * @param member membership info for enrolling an existing scim object (user
-     *            or group) in the group
+     * @param member  membership info for enrolling an existing scim object (user
+     *                or group) in the group
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      * @throws org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
      */
-    ScimGroupMember addMember(String groupId, ScimGroupMember member) throws ScimResourceNotFoundException,
-                    MemberAlreadyExistsException;
+    ScimGroupMember addMember(String groupId, ScimGroupMember member, final String zoneId)
+        throws ScimResourceNotFoundException, MemberAlreadyExistsException;
 
     /**
      * Retrieve all members of a group
      *
      * @param groupId
-     * @param filter
-     *@param includeEntities  @return
+     * @param includeEntities @return
+     * @param zoneId
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId, String filter, boolean includeEntities) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> getMembers(String groupId, boolean includeEntities, String zoneId)
+        throws ScimResourceNotFoundException;
 
     /**
      * Retrieve members that have the specified authority on the group
      *
      * @param groupId
      * @param permission
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId, ScimGroupMember.Role permission)
-                    throws ScimResourceNotFoundException;
+    List<ScimGroupMember> getMembers(String groupId, ScimGroupMember.Role permission, final String zoneId)
+        throws ScimResourceNotFoundException;
 
     /**
      * Retrieve all groups that the given member belongs to
      *
      * @param memberId
      * @param transitive true means indirect/transitive membership is also
-     *            processed (nested groups)
+     *                   processed (nested groups)
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      */
-    Set<ScimGroup> getGroupsWithMember(String memberId, boolean transitive) throws ScimResourceNotFoundException;
+    Set<ScimGroup> getGroupsWithMember(String memberId, boolean transitive, String zoneId) throws ScimResourceNotFoundException;
 
     /**
      * Retrieve a particular member's membership details
      *
      * @param groupId
      * @param memberId
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      * @throws MemberNotFoundException
      */
-    ScimGroupMember getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException, MemberNotFoundException;
+    ScimGroupMember getMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException, MemberNotFoundException;
 
     /**
      * Update a particular member's membership details
      *
      * @param groupId
      * @param member
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      * @throws MemberNotFoundException
      */
-    ScimGroupMember updateMember(String groupId, ScimGroupMember member) throws ScimResourceNotFoundException,
-                    MemberNotFoundException;
+    ScimGroupMember updateMember(String groupId, ScimGroupMember member, final String zoneId) throws ScimResourceNotFoundException,
+        MemberNotFoundException;
 
     /**
      * Replace the members of the given group with the supplied member-list
      *
      * @param groupId
      * @param members
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members, String zoneId) throws ScimResourceNotFoundException;
 
     /**
      * Revoke membership of a member
      *
      * @param groupId
      * @param memberId
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      * @throws MemberNotFoundException
      */
-    ScimGroupMember removeMemberById(String groupId, String memberId) throws ScimResourceNotFoundException,
-                    MemberNotFoundException;
+    ScimGroupMember removeMemberById(String groupId, String memberId, final String zoneId) throws ScimResourceNotFoundException,
+        MemberNotFoundException;
 
     /**
      * Empty the group, i.e revoke the membership of ALL members of a given
      * group
      *
      * @param groupId
+     * @param zoneID
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> removeMembersByGroupId(String groupId) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> removeMembersByGroupId(String groupId, final String zoneID) throws ScimResourceNotFoundException;
 
     /**
      * Revoke membership of given member from ALL groups
      *
      * @param memberId
+     * @param zoneId
      * @return
      * @throws ScimResourceNotFoundException
      */
-    Set<ScimGroup> removeMembersByMemberId(String memberId) throws ScimResourceNotFoundException;
+    Set<ScimGroup> removeMembersByMemberId(String memberId, final String zoneId) throws ScimResourceNotFoundException;
+
+    Set<ScimGroup> removeMembersByMemberId(String memberId, String origin, final String zoneId) throws ScimResourceNotFoundException;
+
+    void deleteMembersByOrigin(String origin, String zoneId) throws ScimResourceNotFoundException;
 
 }

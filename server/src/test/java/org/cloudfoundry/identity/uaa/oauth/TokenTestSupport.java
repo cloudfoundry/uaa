@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.mockito.stubbing.Answer;
 import org.opensaml.saml2.core.AuthnContext;
@@ -52,7 +53,6 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
 import java.util.Arrays;
@@ -68,7 +68,7 @@ import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -150,7 +150,7 @@ public class TokenTestSupport {
 
     Authentication defaultUserAuthentication;
 
-    InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+    InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
 
     ApprovalStore approvalStore = new InMemoryApprovalStore();
     MockAuthentication mockAuthentication;
@@ -223,22 +223,22 @@ public class TokenTestSupport {
         clientDetailsMap.put(CLIENT_ID, defaultClient);
         clientDetailsMap.put(CLIENT_ID_NO_REFRESH_TOKEN_GRANT, clientWithoutRefreshToken);
 
-        clientDetailsService.setClientDetailsStore(clientDetailsMap);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsMap);
 
         tokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
+        when(tokenProvisioning.create(any(), anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
             RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
             tokens.put(arg.getTokenId(), arg);
             return arg;
         });
-        when(tokenProvisioning.update(anyString(), anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
+        when(tokenProvisioning.update(anyString(), any(), anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
             String id = (String)invocation.getArguments()[0];
             RevocableToken arg = (RevocableToken)invocation.getArguments()[1];
             arg.setTokenId(id);
             tokens.put(arg.getTokenId(), arg);
             return arg;
         });
-        when(tokenProvisioning.retrieve(anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
+        when(tokenProvisioning.retrieve(anyString(), anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
             String id = (String)invocation.getArguments()[0];
             RevocableToken result = tokens.get(id);
             if (result==null) {
@@ -306,5 +306,13 @@ public class TokenTestSupport {
         Jwt idToken = JwtHelper.decode(accessToken.getIdTokenValue());
         idToken.verifySignature(verifier);
         return idToken;
+    }
+
+    public InMemoryClientServicesExtentions getClientDetailsService() {
+        return clientDetailsService;
+    }
+
+    public void copyClients(String fromZoneId, String toZoneId) {
+        getClientDetailsService().setClientDetailsStore(toZoneId, getClientDetailsService().getInMemoryService(fromZoneId));
     }
 }

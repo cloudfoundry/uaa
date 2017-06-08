@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -155,7 +156,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             String callerId = securityContextAccessor.getClientId();
             ClientDetails caller = null;
             try {
-                caller = clientDetailsService.retrieve(callerId);
+                caller = clientDetailsService.retrieve(callerId, IdentityZoneHolder.get().getId());
             } catch (Exception e) {
                 // best effort to get the caller, but the caller might not belong to this zone.
             }

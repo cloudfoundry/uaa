@@ -67,7 +67,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     protected ScimGroup addGroup(String groupName) {
         ScimGroup group = new ScimGroup(null,groupName,IdentityZoneHolder.get().getId());
         try {
-            return getScimGroupProvisioning().create(group);
+            return getScimGroupProvisioning().create(group, IdentityZoneHolder.get().getId());
         } catch (ScimResourceAlreadyExistsException x) {
             List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, groupName, IdentityZoneHolder.get().getId()));
             if (groups != null && groups.size() > 0) {
@@ -105,7 +105,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     private void addGroupMap(String groupId, String externalGroup, String origin) {
-        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin);
+        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin, IdentityZoneHolder.get().getId());
         logger.debug("adding external group mapping: " + externalGroupMapping);
     }
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -26,7 +26,7 @@ import org.springframework.jmx.support.MetricType;
  * through the logger.
  * <p>
  * Also accumulates count data for exposure through /varz
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -99,12 +99,12 @@ public class LoggingAuditService implements UaaAuditService {
     }
 
     @Override
-    public List<AuditEvent> find(String principal, long after) {
+    public List<AuditEvent> find(String principal, long after, String zoneId) {
         throw new UnsupportedOperationException("This implementation does not store data");
     }
 
     @Override
-    public void log(AuditEvent auditEvent) {
+    public void log(AuditEvent auditEvent, String zoneId) {
         updateCounters(auditEvent);
         log(String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s]", auditEvent.getType().name(), auditEvent.getData(),
                         auditEvent.getPrincipalId(), auditEvent.getOrigin(), auditEvent.getIdentityZoneId()));

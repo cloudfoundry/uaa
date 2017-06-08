@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2RefreshTokenMatc
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -55,7 +56,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -132,6 +132,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -208,7 +209,7 @@ public class UaaTokenServicesTests {
                                                                           true);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(2)).create(rt.capture());
+        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertThat(rt.getAllValues().size(), equalTo(2));
         assertNotNull(rt.getAllValues().get(0));
@@ -233,8 +234,8 @@ public class UaaTokenServicesTests {
                 true,
                 true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId","userId");
-        verify(tokenProvisioning, times(2)).create(rt.capture());
+        verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
+        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -251,8 +252,9 @@ public class UaaTokenServicesTests {
                 true,
                 true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString());
-        verify(tokenProvisioning, times(2)).create(rt.capture());
+        String currentZoneId = IdentityZoneHolder.get().getId();
+        verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
+        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -270,7 +272,7 @@ public class UaaTokenServicesTests {
                                                                           false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, never()).create(rt.capture());
+        verify(tokenProvisioning, never()).create(rt.capture(), anyString());
         assertEquals(persistToken.getValue(), result.getValue());
         assertEquals("refresh-token-value", result.getRefreshToken().getValue());
     }
@@ -288,7 +290,7 @@ public class UaaTokenServicesTests {
                                                                           false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).create(rt.capture());
+        verify(tokenProvisioning, times(1)).create(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertEquals(1, rt.getAllValues().size());
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, rt.getAllValues().get(0).getResponseType());
@@ -300,7 +302,7 @@ public class UaaTokenServicesTests {
     @Test
     public void null_issuer_should_fail() throws URISyntaxException {
         tokenServices = new UaaTokenServices();
-        tokenServices.setClientDetailsService(mock(ClientDetailsService.class));
+        tokenServices.setClientDetailsService(mock(ClientServicesExtension.class));
         try {
             tokenServices.afterPropertiesSet();
             fail();
@@ -466,6 +468,7 @@ public class UaaTokenServicesTests {
                 IdentityZoneConfiguration.class
             )
         );
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
         IdentityZoneHolder.set(identityZone);
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -490,6 +493,7 @@ public class UaaTokenServicesTests {
 
     private IdentityZone getIdentityZone(String subdomain) {
         IdentityZone identityZone = new IdentityZone();
+        identityZone.setId(subdomain);
         identityZone.setSubdomain(subdomain);
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
@@ -703,6 +707,7 @@ public class UaaTokenServicesTests {
                 IdentityZoneConfiguration.class
             )
         );
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
         IdentityZoneHolder.set(identityZone);
 
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
@@ -733,21 +738,21 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
                                       .setUserId(tokenSupport.userId)
                                       .setClientId(CLIENT_ID)
                                       .setScope(OPENID)
                                       .setExpiresAt(expiresAt.getTime())
                                       .setStatus(ApprovalStatus.APPROVED)
-                                      .setLastUpdatedAt(updatedAt.getTime()));
+                                      .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -764,7 +769,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApproved() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(singleton("true"));
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         // NO APPROVALS REQUIRED
 
@@ -811,7 +819,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApprovedDowngradedRequest() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(singleton("true"));
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         // NO APPROVALS REQUIRED
 
@@ -858,7 +869,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApproved() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(tokenSupport.readScope);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -872,7 +886,7 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
@@ -880,7 +894,7 @@ public class UaaTokenServicesTests {
             .setScope(OPENID)
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -924,7 +938,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantNoScopesAutoApprovedIncompleteApprovals() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(Arrays.asList());
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -938,7 +955,7 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -975,7 +992,10 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApprovedButApprovalDenied() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(tokenSupport.requestedAuthScopes);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -989,14 +1009,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.DENIED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1146,7 +1166,10 @@ public class UaaTokenServicesTests {
                 IdentityZoneConfiguration.class
             )
         );
+        tokenSupport.copyClients(IdentityZone.getUaa().getId(), identityZone.getId());
         IdentityZoneHolder.set(identityZone);
+
+
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1201,14 +1224,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         // First Request
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
@@ -1253,13 +1276,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         // First Request
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1293,7 +1316,10 @@ public class UaaTokenServicesTests {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAccessTokenValiditySeconds(3600);
         clientDetails.setRefreshTokenValiditySeconds(36000);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1321,13 +1347,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -1366,19 +1392,22 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         // Back date the refresh token. Crude way to do this but i'm not sure of
         // another
         clientDetails.setRefreshTokenValiditySeconds(-36000);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, clientDetails)
+        );
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1419,12 +1448,12 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         // Other scope is left unapproved
 
-        for(Approval approval : tokenSupport.approvalStore.getApprovals(tokenSupport.userId, CLIENT_ID)) {
-            tokenSupport.approvalStore.revokeApproval(approval);
+        for(Approval approval : tokenSupport.approvalStore.getApprovals(tokenSupport.userId, CLIENT_ID, IdentityZoneHolder.get().getId())) {
+            tokenSupport.approvalStore.revokeApproval(approval, IdentityZoneHolder.get().getId());
         }
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
@@ -1446,13 +1475,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1483,13 +1512,13 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.DENIED));
+            .setStatus(ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1520,7 +1549,7 @@ public class UaaTokenServicesTests {
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.DENIED));
+            .setStatus(ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1610,7 +1639,7 @@ public class UaaTokenServicesTests {
             .setScope(UAA_REFRESH_TOKEN)
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         tokenServices.setRestrictRefreshGrant(true);
         OAuth2AccessToken refresh_token = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(reducedScopeAuthorizationRequest, "refresh_token"));
@@ -1647,14 +1676,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         Approval approval = new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
@@ -1663,13 +1692,13 @@ public class UaaTokenServicesTests {
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(updatedAt.getTime());
         tokenSupport.approvalStore.addApproval(
-            approval);
+            approval, IdentityZoneHolder.get().getId());
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));
 
-        tokenSupport.approvalStore.revokeApproval(approval);
+        tokenSupport.approvalStore.revokeApproval(approval, IdentityZoneHolder.get().getId());
         try {
             tokenServices.readAccessToken(accessToken.getValue());
             fail("Approval has been revoked");
@@ -1698,14 +1727,14 @@ public class UaaTokenServicesTests {
             .setScope(tokenSupport.readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
         tokenSupport.approvalStore.addApproval(new Approval()
             .setUserId(tokenSupport.userId)
             .setClientId(CLIENT_ID)
             .setScope(tokenSupport.writeScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()));
+            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -1755,7 +1784,7 @@ public class UaaTokenServicesTests {
     public void validate_token_client_gone() throws Exception {
         expectedEx.expect(InvalidTokenException.class);
         expectedEx.expectMessage("Invalid client ID "+tokenSupport.defaultClient.getClientId());
-        test_validateToken_method(ignore -> tokenSupport.clientDetailsService.setClientDetailsStore(emptyMap()));
+        test_validateToken_method(ignore -> tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), emptyMap()));
     }
 
     @Test
@@ -1818,11 +1847,11 @@ public class UaaTokenServicesTests {
         assertThat("Opaque access token must be shorter than 37 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
-        String accessTokenValue = tokenProvisioning.retrieve(composite.getValue()).getValue();
+        String accessTokenValue = tokenProvisioning.retrieve(composite.getValue(), IdentityZoneHolder.get().getId()).getValue();
         Map<String,Object> accessTokenClaims = tokenServices.validateToken(accessTokenValue).getClaims();
         assertEquals(true, accessTokenClaims.get(ClaimConstants.REVOCABLE));
 
-        String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue()).getValue();
+        String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue(), IdentityZoneHolder.get().getId()).getValue();
         Map<String,Object> refreshTokenClaims = tokenServices.validateToken(refreshTokenValue).getClaims();
         assertEquals(true, refreshTokenClaims.get(ClaimConstants.REVOCABLE));
 
@@ -1876,7 +1905,10 @@ public class UaaTokenServicesTests {
     public void testLoadAuthenticationWithAnExpiredToken() throws InterruptedException {
         BaseClientDetails shortExpiryClient = tokenSupport.defaultClient;
         shortExpiryClient.setAccessTokenValiditySeconds(1);
-        tokenSupport.clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, shortExpiryClient));
+        tokenSupport.clientDetailsService.setClientDetailsStore(
+            IdentityZoneHolder.get().getId(),
+            Collections.singletonMap(CLIENT_ID, shortExpiryClient)
+        );
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));

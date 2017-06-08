@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.After;
 import org.junit.Before;
@@ -49,7 +50,6 @@ import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
@@ -94,7 +94,7 @@ public class Saml2TokenGranterTest {
     private Saml2TokenGranter granter;
     private Saml2TokenGranter mockedgranter;
     private AuthorizationServerTokenServices tokenServices;
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private UaaOauth2Authentication authentication;
     private TokenRequest tokenRequest;
@@ -112,7 +112,7 @@ public class Saml2TokenGranterTest {
         try { DefaultBootstrap.bootstrap();
         } catch (ConfigurationException e) { }
         tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(ClientDetailsService.class);
+        clientDetailsService = mock(ClientServicesExtension.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
         samlcontext = mock(SAMLMessageContext.class);
@@ -132,8 +132,8 @@ public class Saml2TokenGranterTest {
         requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_SAML2_BEARER, null);
         receivingClient =  new BaseClientDetails("receivingId",null,"test.scope",GRANT_TYPE_SAML2_BEARER, null);
         passwordClient =  new BaseClientDetails("pwdId",null,"test.scope","password", null);
-        when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()))).thenReturn(requestingClient);
-        when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()))).thenReturn(receivingClient);
+        when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
+        when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()), anyString())).thenReturn(receivingClient);
         requestParameters = new HashMap<>();
         requestParameters.put(USER_TOKEN_REQUESTING_CLIENT_ID, requestingClient.getClientId());
         requestParameters.put(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);

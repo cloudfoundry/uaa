@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,22 +19,22 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Date;
 import java.util.List;
 
 /**
  * Remote implementation of
  * {@link org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning} using the
  * Scim endpoints on a remote server.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 @Deprecated
 public class RemoteScimUserProvisioning implements ScimUserProvisioning {
@@ -58,13 +58,13 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
-    public ScimUser retrieve(String id) throws ScimResourceNotFoundException {
+    public ScimUser retrieve(String id, String zoneId) throws ScimResourceNotFoundException {
         return restTemplate.getForObject(baseUrl + "/User/{id}", ScimUser.class, id);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<ScimUser> retrieveAll() {
+    public List<ScimUser> retrieveAll(String zoneId) {
         return restTemplate.getForObject(baseUrl + "/Users", List.class);
     }
 
@@ -83,7 +83,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
-    public ScimUser create(ScimUser user) {
+    public ScimUser create(ScimUser user, String zoneId) {
         return restTemplate.postForObject(baseUrl + "/User", user, ScimUser.class);
     }
 
@@ -91,11 +91,11 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException,
                     InvalidScimResourceException {
         user.setPassword(password);
-        return create(user);
+        return create(user, IdentityZoneHolder.get().getId());
     }
 
     @Override
-    public ScimUser update(String id, ScimUser user) throws InvalidScimResourceException, ScimResourceNotFoundException {
+    public ScimUser update(String id, ScimUser user, String zoneId) throws InvalidScimResourceException, ScimResourceNotFoundException {
         restTemplate.put(baseUrl + "/User/{id}", user, id);
         return user;
     }
@@ -139,7 +139,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
-    public ScimUser delete(String id, int version) throws ScimResourceNotFoundException {
+    public ScimUser delete(String id, int version, String zoneId) throws ScimResourceNotFoundException {
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Match", String.format("%d", version));
         return restTemplate.exchange(baseUrl + "/User/{id}", HttpMethod.DELETE, new HttpEntity<Void>(headers),

@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUserTestFactory;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +62,7 @@ public class PasswordChangeEventPublisherTests {
 
     @Test
     public void testPasswordChange() {
-        Mockito.when(scimUserProvisioning.retrieve("foo")).thenReturn(
+        Mockito.when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                         ScimUserTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
         subject.passwordChange("foo");
         Mockito.verify(publisher).publishEvent(Matchers.isA(PasswordChangeEvent.class));
@@ -69,7 +70,7 @@ public class PasswordChangeEventPublisherTests {
 
     @Test
     public void testPasswordChangeNoEmail() {
-        Mockito.when(scimUserProvisioning.retrieve("foo")).thenReturn(
+        Mockito.when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                         ScimUserTestFactory.getScimUser("joe", null, "Joe", "Schmo"));
         subject.passwordChange("foo");
         Mockito.verify(publisher).publishEvent(Matchers.isA(PasswordChangeEvent.class));
@@ -77,7 +78,7 @@ public class PasswordChangeEventPublisherTests {
 
     @Test
     public void testPasswordFailure() {
-        Mockito.when(scimUserProvisioning.retrieve("foo")).thenReturn(
+        Mockito.when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                         ScimUserTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
         Mockito.verify(publisher).publishEvent(Matchers.isA(PasswordChangeFailureEvent.class));
@@ -85,7 +86,7 @@ public class PasswordChangeEventPublisherTests {
 
     @Test
     public void testPasswordFailureNoUser() {
-        Mockito.when(scimUserProvisioning.retrieve("foo")).thenThrow(new ScimResourceNotFoundException("Not found"));
+        Mockito.when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenThrow(new ScimResourceNotFoundException("Not found"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
         Mockito.verify(publisher).publishEvent(Matchers.any(PasswordChangeFailureEvent.class));
     }

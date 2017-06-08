@@ -87,7 +87,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
         db = spy(new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory));
         gdb = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        mdb = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
+        mdb = new JdbcScimGroupMembershipManager(jdbcTemplate);
         mdb.setScimUserProvisioning(db);
         mdb.setScimGroupProvisioning(gdb);
         userEndpoints = new ScimUserEndpoints();
@@ -107,7 +107,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         canAddUsers(OriginKeys.UAA, IdentityZone.getUaa().getId());
         canAddUsers(OriginKeys.LDAP, IdentityZone.getUaa().getId());
         canAddUsers(OriginKeys.UAA, otherZone.getId()); //this is just an update of the same two users, zoneId is ignored
-        List<ScimUser> users = db.retrieveAll();
+        List<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(4, users.size());
         reset(db);
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
@@ -130,7 +130,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         assertNotNull(deleted);
         assertEquals(2, deleted.size());
         deleted.forEach(event -> assertEquals(OriginKeys.UAA, event.getDeleted().getOrigin()));
-        assertEquals(2, db.retrieveAll().size());
+        assertEquals(2, db.retrieveAll(IdentityZoneHolder.get().getId()).size());
     }
 
 
@@ -141,15 +141,15 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe, mabel));
         bootstrap.setUsersToDelete(Arrays.asList("joe", "mabel"));
         bootstrap.afterPropertiesSet();
-        verify(db, never()).create(any());
-        Collection<ScimUser> users = db.retrieveAll();
+        verify(db, never()).create(any(), IdentityZoneHolder.get().getId());
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(0, users.size());
     }
 
     @Test
     public void canAddUsers() throws Exception {
         canAddUsers(OriginKeys.UAA, IdentityZone.getUaa().getId());
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(2, users.size());
     }
 
@@ -167,7 +167,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
 
         bootstrap.afterPropertiesSet();
 
-        List<ScimUser> users = db.retrieveAll();
+        List<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
 
         ScimUser scimJoe = users.get(0);
         assertTrue(scimJoe.isVerified());
@@ -296,7 +296,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         assertEquals("Bloggs", users.iterator().next().getFamilyName());
         assertNotEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
@@ -315,7 +315,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(false);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         assertEquals("User", users.iterator().next().getFamilyName());
     }
@@ -334,7 +334,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         assertEquals("Bloggs", users.iterator().next().getFamilyName());
         assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
@@ -382,14 +382,14 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
     }
 
     protected void validateAuthoritiesCreated(String[] externalAuthorities, String[] userAuthorities, String origin, ScimUser created) {
-        Set<ScimGroup> groups = mdb.getGroupsWithMember(created.getId(),true);
+        Set<ScimGroup> groups = mdb.getGroupsWithMember(created.getId(), true, IdentityZoneHolder.get().getId());
         String[] expected = merge(externalAuthorities,userAuthorities);
         String[] actual = getGroupNames(groups);
         assertThat(actual, IsArrayContainingInAnyOrder.arrayContainingInAnyOrder(expected));
 
         List<String> external = Arrays.asList(externalAuthorities);
         for (ScimGroup g : groups) {
-            ScimGroupMember m = mdb.getMemberById(g.getId(), created.getId());
+            ScimGroupMember m = mdb.getMemberById(g.getId(), created.getId(), IdentityZoneHolder.get().getId());
             if (external.contains(g.getDisplayName())) {
                 assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", origin, m.getOrigin());
             } else {
@@ -484,7 +484,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         addIdentityProvider(jdbcTemplate,"newOrigin");
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user, user.modifySource("newOrigin", "")));
         bootstrap.afterPropertiesSet();
-        assertEquals(2, db.retrieveAll().size());
+        assertEquals(2, db.retrieveAll(IdentityZoneHolder.get().getId()).size());
     }
 
     private List<GrantedAuthority> getAuthorities(String[] auth) {

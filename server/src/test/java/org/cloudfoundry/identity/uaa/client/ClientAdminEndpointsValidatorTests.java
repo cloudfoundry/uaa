@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -74,8 +75,10 @@ public class ClientAdminEndpointsValidatorTests {
         SecurityContextAccessor accessor = mock(SecurityContextAccessor.class);
         when(accessor.isAdmin()).thenReturn(false);
         when(accessor.getScopes()).thenReturn(Arrays.asList("clients.write"));
-        when(accessor.getClientId()).thenReturn(caller.getClientId());
-        when(clientDetailsService.retrieve(eq(caller.getClientId()))).thenReturn(caller);
+        String clientId = caller.getClientId();
+        when(accessor.getClientId()).thenReturn(clientId);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(clientDetailsService.retrieve(eq(clientId), eq(zoneId))).thenReturn(caller);
         validator.setClientDetailsService(clientDetailsService);
         validator.setSecurityContextAccessor(accessor);
 

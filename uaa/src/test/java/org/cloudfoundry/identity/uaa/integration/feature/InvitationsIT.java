@@ -250,7 +250,7 @@ public class InvitationsIT {
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertTrue(user.isVerified());
 
-        webDriver.get("https://oidc10.identity.cf-app.com/logout.do");
+        webDriver.get("https://oidc10.uaa-acceptance.cf-app.com/logout.do");
         IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy-invite");
     }
 

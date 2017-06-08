@@ -65,14 +65,14 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
     @Test
     public void testQueryEquals() throws Exception {
         addClients();
-        assertEquals(4, service.retrieveAll().size());
+        assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(2, service.query("authorized_grant_types eq \"client_credentials\"").size());
     }
 
     @Test
     public void testQueryExists() throws Exception {
         addClients();
-        assertEquals(4, service.retrieveAll().size());
+        assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(4, service.query("scope pr").size());
     }
 

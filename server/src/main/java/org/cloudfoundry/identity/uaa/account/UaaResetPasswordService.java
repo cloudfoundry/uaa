@@ -30,6 +30,8 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -37,7 +39,6 @@ import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 
 import java.sql.Timestamp;
@@ -58,11 +59,14 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
     private final PasswordValidator passwordValidator;
-    private final ClientDetailsService clientDetailsService;
+    private final ClientServicesExtension clientDetailsService;
     private ResourcePropertySource resourcePropertySource;
     private ApplicationEventPublisher publisher;
 
-    public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, PasswordValidator passwordValidator, ClientDetailsService clientDetailsService,
+    public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning,
+                                   ExpiringCodeStore expiringCodeStore,
+                                   PasswordValidator passwordValidator,
+                                   ClientServicesExtension clientDetailsService,
                                    ResourcePropertySource resourcePropertySource) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
@@ -88,7 +92,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(password);
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         updatePasswordAndPublishEvent(scimUserProvisioning, uaaUser, authentication, password);
@@ -112,7 +116,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         clientId = change.getClientId();
         redirectUri = change.getRedirectUri();
 
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         try {
@@ -131,7 +135,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             String redirectLocation = "home";
             if (!isEmpty(clientId) && !isEmpty(redirectUri)) {
                 try {
-                    ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+                    ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                     Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                         clientDetails.getRegisteredRedirectUri();
                     String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
@@ -164,8 +168,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
         PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified(), clientId, redirectUri);
         String intent = FORGOT_PASSWORD_INTENT_PREFIX+scimUser.getId();
-        expiringCodeStore.expireByIntent(intent);
-        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), intent);
+        expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
+        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), intent, IdentityZoneHolder.get().getId());
         publish(new ResetPasswordRequestEvent(email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
         return new ForgotPasswordInfo(scimUser.getId(), code);
     }

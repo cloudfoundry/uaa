@@ -280,7 +280,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String code = getQueryStringParam(query, "code");
         assertThat(code, is(notNullValue()));
 
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
@@ -319,7 +319,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(code, is(notNullValue()));
 
         IdentityZoneHolder.set(zoneResult.getIdentityZone());
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
@@ -358,7 +358,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(code, is(notNullValue()));
 
         IdentityZoneHolder.set(zoneResult.getIdentityZone());
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
@@ -471,7 +471,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void verification_link_unverified_error() throws Exception {
         ScimUser user = setUpScimUser();
         user.setVerified(true);
-        usersRepository.update(user.getId(), user);
+        usersRepository.update(user.getId(), user, IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = setUpVerificationLinkRequest(user, scimCreateToken);
 
@@ -977,7 +977,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         approval.setUserId(user.getId());
         approval.setScope("openid");
         approval.setStatus(Approval.ApprovalStatus.APPROVED);
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
         assertEquals(1, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));
         testDeleteUserWithUaaAdminToken(user);
         assertEquals(0, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));

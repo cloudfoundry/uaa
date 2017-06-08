@@ -983,18 +983,18 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         ScimUser user = getScimUser();
         user.setOrigin(LOGIN_SERVER);
         user = userProvisioning.createUser(user, "");
-        assertNotNull(userProvisioning.retrieve(user.getId()));
+        assertNotNull(userProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId()));
         assertEquals(zone.getId(), user.getZoneId());
 
         //create group
         ScimGroup group = new ScimGroup("Delete Test Group");
         group.setZoneId(zone.getId());
-        group = groupProvisioning.create(group);
-        membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER)));
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
+        membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER)), IdentityZoneHolder.get().getId());
         assertEquals(zone.getId(), group.getZoneId());
-        assertNotNull(groupProvisioning.retrieve(group.getId()));
-        assertEquals("Delete Test Group", groupProvisioning.retrieve(group.getId()).getDisplayName());
-        assertEquals(1, membershipManager.getMembers(group.getId(), null, false).size());
+        assertNotNull(groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId()));
+        assertEquals("Delete Test Group", groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId()).getDisplayName());
+        assertEquals(1, membershipManager.getMembers(group.getId(), false, IdentityZoneHolder.get().getId()).size());
 
         //failed authenticated user
         getMockMvc().perform(
@@ -1012,8 +1012,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         //assertThat(template.queryForObject("select count(*) from sec_audit where identity_zone_id=?", new Object[] {user.getZoneId()}, Integer.class), greaterThan(0));
         //create an external group map
         IdentityZoneHolder.set(zone);
-        ScimGroupExternalMember externalMember = externalMembershipManager.mapExternalGroup(group.getId(), "externalDeleteGroup", LOGIN_SERVER);
-        assertEquals(1, externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER).size());
+        ScimGroupExternalMember externalMember = externalMembershipManager.mapExternalGroup(group.getId(), "externalDeleteGroup", LOGIN_SERVER, IdentityZoneHolder.get().getId());
+        assertEquals(1, externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId()).size());
         assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", new Object[]{LOGIN_SERVER}, Integer.class), is(1));
 
         //add user approvals
@@ -1022,9 +1022,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .setClientId(client.getClientId())
                 .setScope("openid")
                 .setStatus(Approval.ApprovalStatus.APPROVED)
-                .setUserId(user.getId())
+                .setUserId(user.getId()), IdentityZoneHolder.get().getId()
         );
-        assertEquals(1, approvalStore.getApprovals(user.getId(), client.getClientId()).size());
+        assertEquals(1, approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId()).size());
 
         //perform zone delete
         getMockMvc().perform(
@@ -1051,13 +1051,13 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
         assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", new Object[]{LOGIN_SERVER}, Integer.class), is(0));
         try {
-            externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER);
+            externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId());
             fail("no external groups should be found");
         } catch (ScimResourceNotFoundException e) {
         }
 
         assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[]{user.getId()}, Integer.class), is(0));
-        assertEquals(0, approvalStore.getApprovals(user.getId(), client.getClientId()).size());
+        assertEquals(0, approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId()).size());
 
 
     }

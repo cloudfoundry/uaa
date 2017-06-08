@@ -313,7 +313,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         Thread.sleep(10);
         db.changePassword(created.getId(), "j7hyqpassX", "j7hyqpassXXX");
 
-        user = db.retrieve(created.getId());
+        user = db.retrieve(created.getId(), IdentityZoneHolder.get().getId());
         assertNotNull(user.getPasswordLastModified());
         assertTrue(Math.abs(user.getMeta().getLastModified().getTime() - user.getPasswordLastModified().getTime()) < 1001);
     }
@@ -396,7 +396,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         String externalId2 = "testId2";
         created.setOrigin(origin2);
         created.setExternalId(externalId2);
-        ScimUser updated = db.update(created.getId(), created);
+        ScimUser updated = db.update(created.getId(), created, IdentityZoneHolder.get().getId());
         assertEquals(origin2, updated.getOrigin());
         assertEquals(externalId2, updated.getExternalId());
     }
@@ -437,7 +437,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
         JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory) {
             @Override
-            public ScimUser retrieve(String id) {
+            public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();
                 createdUserId.setId(id);
                 return createdUserId;
@@ -453,9 +453,9 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         nohbdy.setSalt("salt");
         nohbdy.setPassword(generator.generate());
         nohbdy.setOrigin(OriginKeys.UAA);
-        String createdUserId = noValidateProvisioning.create(nohbdy).getId();
+        String createdUserId = noValidateProvisioning.create(nohbdy, IdentityZoneHolder.get().getId()).getId();
 
-        db.retrieve(createdUserId);
+        db.retrieve(createdUserId, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -465,7 +465,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         jo.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
         jo.setSalt("salt");
 
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUser joe = db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
 
         // Can change username
         assertEquals("josephine", joe.getUserName());
@@ -484,7 +484,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         PhoneNumber emptyNumber = new PhoneNumber();
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(new ArrayList<PhoneNumber>());
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUser joe = db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -493,7 +493,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         PhoneNumber emptyNumber = new PhoneNumber();
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(Arrays.asList(emptyNumber));
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUser joe = db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -503,7 +503,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         emptyNumber.setValue(" ");
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(Arrays.asList(emptyNumber));
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUser joe = db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -512,7 +512,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         jo.addEmail("jo@blah.com");
         jo.setGroups(Collections.singleton(new Group(null, "dash/user")));
 
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUser joe = db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
 
         assertEquals(JOE_ID, joe.getId());
         assertNull(joe.getGroups());
@@ -523,15 +523,15 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
         jo.setVersion(1);
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUser joe = db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
         assertEquals("joe", joe.getUserName());
     }
 
     @Test(expected = InvalidScimResourceException.class)
     public void updateWithBadUsernameIsError() {
-        ScimUser jo = db.retrieve(JOE_ID);
+        ScimUser jo = db.retrieve(JOE_ID, IdentityZoneHolder.get().getId());
         jo.setUserName("jo$ephione");
-        db.update(JOE_ID, jo);
+        db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -539,7 +539,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
         jo.setOrigin(OriginKeys.LDAP);
         jo.addEmail("jo@blah.com");
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUser joe = db.update(JOE_ID, jo, IdentityZoneHolder.get().getId());
         assertEquals("jo$ephine", joe.getUserName());
         assertEquals(OriginKeys.LDAP, joe.getOrigin());
     }
@@ -580,20 +580,20 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canRetrieveExistingUser() {
-        ScimUser joe = db.retrieve(JOE_ID);
+        ScimUser joe = db.retrieve(JOE_ID, IdentityZoneHolder.get().getId());
         assertJoe(joe);
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotRetrieveNonexistentUser() {
-        ScimUser joe = db.retrieve("9999");
+        ScimUser joe = db.retrieve("9999", IdentityZoneHolder.get().getId());
         assertJoe(joe);
     }
 
     @Test
     public void canDeactivateExistingUser() {
         String tmpUserId = createUserForDelete();
-        ScimUser deletedUser = db.delete(tmpUserId, 0);
+        ScimUser deletedUser = db.delete(tmpUserId, 0, IdentityZoneHolder.get().getId());
         assertEquals(1, jdbcTemplate.queryForList("select * from users where id=? and active=?", tmpUserId, false).size());
         assertFalse(deletedUser.isActive());
         assertEquals(1, db.query("username eq \"" + tmpUserId + "\" and active eq false").size());
@@ -603,7 +603,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test(expected = ScimResourceAlreadyExistsException.class)
     public void cannotDeactivateExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
-        ScimUser deletedUser = db.delete(tmpUserId, 0);
+        ScimUser deletedUser = db.delete(tmpUserId, 0, IdentityZoneHolder.get().getId());
         deletedUser.setActive(true);
         try {
             db.createUser(deletedUser, "foobarspam1234");
@@ -615,20 +615,20 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotDeactivateNonexistentUser() {
-        ScimUser joe = db.delete("9999", 0);
+        ScimUser joe = db.delete("9999", 0, IdentityZoneHolder.get().getId());
         assertJoe(joe);
     }
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void deactivateWithWrongVersionIsError() {
-        ScimUser joe = db.delete(JOE_ID, 1);
+        ScimUser joe = db.delete(JOE_ID, 1, IdentityZoneHolder.get().getId());
         assertJoe(joe);
     }
 
     @Test
     public void canDeleteExistingUserThroughEvent() {
         String tmpUserId = createUserForDelete();
-        ScimUser user = db.retrieve(tmpUserId);
+        ScimUser user = db.retrieve(tmpUserId, IdentityZoneHolder.get().getId());
         db.setDeactivateOnDelete(false);
         db.onApplicationEvent(new EntityDeletedEvent<Object>(user, mock(Authentication.class)));
         assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
@@ -639,7 +639,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void canDeleteExistingUser() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
-        db.delete(tmpUserId, 0);
+        db.delete(tmpUserId, 0, IdentityZoneHolder.get().getId());
         assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
         assertEquals(0, db.query("username eq \"" + tmpUserId + "\"").size());
     }
@@ -649,7 +649,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void canDeleteExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
-        ScimUser deletedUser = db.delete(tmpUserId, 0);
+        ScimUser deletedUser = db.delete(tmpUserId, 0, IdentityZoneHolder.get().getId());
         assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
 
         deletedUser.setActive(true);
@@ -666,7 +666,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         String tmpUserIdString = createUserForDelete();
         boolean verified = jdbcTemplate.queryForObject(VERIFY_USER_SQL_FORMAT, Boolean.class, tmpUserIdString);
         assertFalse(verified);
-        ScimUser user = db.retrieve(tmpUserIdString);
+        ScimUser user = db.retrieve(tmpUserIdString, IdentityZoneHolder.get().getId());
         assertFalse(user.isVerified());
         removeUser(tmpUserIdString);
     }
@@ -682,7 +682,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         scimUser.setPassword("password");
 
         try {
-            db.create(scimUser);
+            db.create(scimUser, IdentityZoneHolder.get().getId());
             fail("Should have thrown an exception");
         } catch (ScimResourceAlreadyExistsException e) {
             Map<String,Object> userDetails = new HashMap<>();
@@ -705,11 +705,11 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         scimUser.setPassword("password");
         scimUser.setSalt("salt");
         scimUser.setOrigin(OriginKeys.UAA);
-        scimUser = db.create(scimUser);
+        scimUser = db.create(scimUser, IdentityZoneHolder.get().getId());
         assertNotNull(scimUser);
         assertEquals("salt", scimUser.getSalt());
         scimUser.setSalt("newsalt");
-        scimUser = db.update(scimUser.getId(), scimUser);
+        scimUser = db.update(scimUser.getId(), scimUser, IdentityZoneHolder.get().getId());
         assertNotNull(scimUser);
         assertEquals("newsalt", scimUser.getSalt());
     }
@@ -752,7 +752,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setPassword("password");
         scimUser.setOrigin(origin);
-        String userId2 = db.create(scimUser).getId();
+        String userId2 = db.create(scimUser, IdentityZoneHolder.get().getId()).getId();
         assertNotNull(userId2);
         assertNotEquals("cba09242-aa43-4247-9aa0-b5c75c281f94", userId2);
     }
@@ -772,7 +772,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void createUserWithNoZoneDefaultsToUAAZone() {
         String id = UUID.randomUUID().toString();
         jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, id, "test-username", "password", "test@email.com", "givenName", "familyName", "1234567890"));
-        ScimUser user = db.retrieve(id);
+        ScimUser user = db.retrieve(id, IdentityZoneHolder.get().getId());
         assertEquals("uaa", user.getZoneId());
         assertNull(user.getSalt());
     }
@@ -786,7 +786,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void testUpdatedVersionedUserVerified() {
         String tmpUserIdString = createUserForDelete();
-        ScimUser user = db.retrieve(tmpUserIdString);
+        ScimUser user = db.retrieve(tmpUserIdString, IdentityZoneHolder.get().getId());
         assertFalse(user.isVerified());
         user = db.verifyUser(tmpUserIdString, user.getVersion());
         assertTrue(user.isVerified());
@@ -796,10 +796,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void testUserVerifiedThroughUpdate() {
         String tmpUserIdString = createUserForDelete();
-        ScimUser user = db.retrieve(tmpUserIdString);
+        ScimUser user = db.retrieve(tmpUserIdString, IdentityZoneHolder.get().getId());
         assertFalse(user.isVerified());
         user.setVerified(true);
-        user = db.update(tmpUserIdString, user);
+        user = db.update(tmpUserIdString, user, IdentityZoneHolder.get().getId());
         assertTrue(user.isVerified());
         removeUser(tmpUserIdString);
     }
@@ -808,7 +808,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void testUserVerifiedInvalidUserId() {
         String tmpUserIdString = createUserForDelete();
         try {
-            ScimUser user = db.retrieve(tmpUserIdString);
+            ScimUser user = db.retrieve(tmpUserIdString, IdentityZoneHolder.get().getId());
             assertFalse(user.isVerified());
             user = db.verifyUser("-1-1-1", -1);
             assertTrue(user.isVerified());
@@ -821,10 +821,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void testUserUpdateInvalidUserId() {
         String tmpUserIdString = createUserForDelete();
         try {
-            ScimUser user = db.retrieve(tmpUserIdString);
+            ScimUser user = db.retrieve(tmpUserIdString, IdentityZoneHolder.get().getId());
             assertFalse(user.isVerified());
             user.setVerified(true);
-            user = db.update("-1-1-1", user);
+            user = db.update("-1-1-1", user, IdentityZoneHolder.get().getId());
             assertTrue(user.isVerified());
         } finally {
             removeUser(tmpUserIdString);
@@ -835,7 +835,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void testUpdatedIncorrectVersionUserVerified() {
         String tmpUserIdString = createUserForDelete();
         try {
-            ScimUser user = db.retrieve(tmpUserIdString);
+            ScimUser user = db.retrieve(tmpUserIdString, IdentityZoneHolder.get().getId());
             assertFalse(user.isVerified());
             user = db.verifyUser(tmpUserIdString, user.getVersion() + 50);
             assertTrue(user.isVerified());
@@ -847,20 +847,20 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotDeleteNonexistentUser() {
         db.setDeactivateOnDelete(false);
-        ScimUser joe = db.delete("9999", 0);
+        ScimUser joe = db.delete("9999", 0, IdentityZoneHolder.get().getId());
         assertJoe(joe);
     }
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void deleteWithWrongVersionIsError() {
         db.setDeactivateOnDelete(false);
-        ScimUser joe = db.delete(JOE_ID, 1);
+        ScimUser joe = db.delete(JOE_ID, 1, IdentityZoneHolder.get().getId());
         assertJoe(joe);
     }
 
     @Test
     public void canRetrieveUsers() {
-        assertTrue(2 <= db.retrieveAll().size());
+        assertTrue(2 <= db.retrieveAll(IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
@@ -1047,11 +1047,11 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test
     public void updateLastLogonTime() {
-        ScimUser user = db.retrieve(JOE_ID);
+        ScimUser user = db.retrieve(JOE_ID, IdentityZoneHolder.get().getId());
         Long timeStampBeforeUpdate = user.getLastLogonTime();
         assertNull(timeStampBeforeUpdate);
         db.updateLastLogonTime(JOE_ID);
-        user = db.retrieve(JOE_ID);
+        user = db.retrieve(JOE_ID, IdentityZoneHolder.get().getId());
         assertNotNull(user.getLastLogonTime());
     }
 
