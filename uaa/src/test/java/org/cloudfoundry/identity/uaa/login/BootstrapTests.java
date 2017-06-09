@@ -672,7 +672,7 @@ public class BootstrapTests {
     @Test
     public void testLegacySamlHttpMetaUrl() throws Exception {
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php");
+        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php");
         System.setProperty("login.idpEntityAlias", "testIDPFile");
 
         context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
@@ -716,7 +716,7 @@ public class BootstrapTests {
     public void testLegacySamlProfileHttpsMetaUrl() throws Exception {
         System.setProperty("login.saml.metadataTrustCheck", "false");
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.identity.cf-app.com:80/saml2/idp/metadata.php");
+        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.uaa-acceptance.cf-app.com:80/saml2/idp/metadata.php");
         System.setProperty("login.idpEntityAlias", "testIDPUrl");
 
         context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
@@ -737,7 +737,7 @@ public class BootstrapTests {
     @Test
     public void testLegacySamlProfileHttpsMetaUrlWithoutPort() throws Exception {
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php");
+        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php");
         System.setProperty("login.idpEntityAlias", "testIDPUrl");
 
         context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
