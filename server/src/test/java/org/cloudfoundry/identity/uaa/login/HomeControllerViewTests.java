@@ -215,10 +215,15 @@ public class HomeControllerViewTests extends TestClassNullifier {
             clientMetadataDoesNotExist.setClientId("client-3");
             clientMetadataDoesNotExist.setShowOnHomePage(false);
 
+            ClientMetadata clientMetadataNoAppLaunchUrl = new ClientMetadata();
+            clientMetadataNoAppLaunchUrl.setClientId("client-4");
+            clientMetadataNoAppLaunchUrl.setShowOnHomePage(true);
+
             List<ClientMetadata> clientMetadataList = new ArrayList<>();
             clientMetadataList.add(clientMetadata1);
             clientMetadataList.add(clientMetadata2);
             clientMetadataList.add(clientMetadataDoesNotExist);
+            clientMetadataList.add(clientMetadataNoAppLaunchUrl);
 
             JdbcClientMetadataProvisioning clientMetadata = mock(JdbcClientMetadataProvisioning.class);
             when(clientMetadata.retrieveAll(anyString())).thenReturn(clientMetadataList);
