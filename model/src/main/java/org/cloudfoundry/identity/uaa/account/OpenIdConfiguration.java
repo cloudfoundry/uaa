@@ -61,7 +61,7 @@ public class OpenIdConfiguration {
         this.issuer = issuer;
         this.authUrl = contextPath + "/oauth/authorize";
         this.tokenUrl = contextPath + "/oauth/token";
-        this.userInfoUrl = contextPath + "/userInfo";
+        this.userInfoUrl = contextPath + "/userinfo";
         this.jwksUri = contextPath + "/token_keys";
     }
 

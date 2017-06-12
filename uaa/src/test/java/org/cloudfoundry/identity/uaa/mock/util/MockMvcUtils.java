@@ -110,6 +110,7 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -520,6 +521,17 @@ public final class MockMvcUtils {
 
     public static IdentityZone updateIdentityZone(IdentityZone zone, ApplicationContext context) {
         return context.getBean(IdentityZoneProvisioning.class).update(zone);
+    }
+
+    public static void deleteIdentityZone(String zoneId, MockMvc mockMvc) throws Exception {
+        String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
+            "zones.write,scim.zones", null);
+
+        mockMvc.perform(delete("/identity-zones/" + zoneId)
+            .header("Authorization", "Bearer " + identityToken)
+            .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk());
     }
 
     public static IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
