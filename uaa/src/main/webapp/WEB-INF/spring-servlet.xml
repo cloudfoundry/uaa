@@ -118,10 +118,10 @@
                            @config['cors']['default']['allowed']['origins']}"/>
 
         <property name="corsAllowedHeaders"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
-                           @config['cors']['default']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
-                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
-                           @config['cors']['default']['allowed']['headers']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language','Origin') :
+                           @config['cors']['default']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language','Origin') :
+                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language','Origin') :
+                           @config['cors']['default']['allowed']['headers']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language','Origin') :
                            @config['cors']['default']['allowed']['headers']}"/>
 
         <property name="corsAllowedMethods"

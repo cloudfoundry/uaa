@@ -132,6 +132,7 @@ import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_LANGUAGE;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpHeaders.ORIGIN;
 
 public class BootstrapTests {
 
@@ -367,7 +368,7 @@ public class BootstrapTests {
         assertEquals(1, corFilter.getDefaultConfiguration().getAllowedUriPatterns().size());
 
         assertThat(corFilter.getXhrConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION, CorsFilter.X_REQUESTED_WITH));
-        assertThat(corFilter.getDefaultConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION));
+        assertThat(corFilter.getDefaultConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION, ORIGIN));
 
         assertThat(corFilter.getXhrConfiguration().getAllowedOrigins(), containsInAnyOrder(".*"));
         assertThat(corFilter.getDefaultConfiguration().getAllowedOrigins(), containsInAnyOrder(".*"));
