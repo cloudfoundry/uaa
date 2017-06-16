@@ -62,6 +62,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public SamlIdentityProviderDefinition clone() {
         List<String> emailDomain = getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null;
         List<String> externalGroupsWhitelist = getExternalGroupsWhitelist() != null ? new ArrayList<>(getExternalGroupsWhitelist()) : null;
+        List<String> authnContext = getAuthnContext() != null ? new ArrayList<>(getAuthnContext()) : null;
         Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap(getAttributeMappings()) : null;
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation(metaDataLocation);

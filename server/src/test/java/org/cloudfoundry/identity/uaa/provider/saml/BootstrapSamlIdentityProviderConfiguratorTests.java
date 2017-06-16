@@ -151,7 +151,12 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
         "      assertionConsumerIndex: 0\n" +
         "      idpMetadata: http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php\n" +
         "      metadataTrustCheck: false\n" +
-        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n"
+        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+        "    custom-authncontext:\n" +
+        "      authnContext: [\"custom-context\", \"another-context\"]\n" +
+        "      idpMetadata: |\n" +
+        "        " + testXmlFileData.replace("\n","\n        ") + "\n"
+
 //        +"    incomplete-provider:\n" +
 //        "      idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam\n"
         ;
@@ -198,14 +203,14 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
     public void testAddProviderDefinition() throws Exception {
         bootstrap.setIdentityProviders(sampleData);
         bootstrap.afterPropertiesSet();
-        testGetIdentityProviderDefinitions(3, false);
+        testGetIdentityProviderDefinitions(4, false);
     }
 
 
 
     @Test
     public void testGetIdentityProviderDefinitions() throws Exception {
-        testGetIdentityProviderDefinitions(3);
+        testGetIdentityProviderDefinitions(4);
     }
 
     protected void testGetIdentityProviderDefinitions(int count) throws Exception {
@@ -236,6 +241,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                     assertTrue(idp.isMetadataTrustCheck());
                     assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));
                     assertTrue(idp.isStoreCustomAttributes());
+                    assertTrue(idp.getAuthnContext().isEmpty());
                     break;
                 }
                 case "okta-local-2" : {
@@ -270,6 +276,13 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                     assertFalse(idp.isStoreCustomAttributes());
                     break;
                 }
+                case "custom-authncontext" : {
+                    assertEquals(2, idp.getAuthnContext().size());
+                    assertEquals("custom-context", idp.getAuthnContext().get(0));
+                    assertEquals("another-context", idp.getAuthnContext().get(1));
+                    break;
+                }
+
                 default:
                     fail();
             }
@@ -282,12 +295,12 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
         bootstrap.setLegacyIdpIdentityAlias("okta-local-3");
         bootstrap.setLegacyShowSamlLink(true);
         bootstrap.setLegacyNameId("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
-        testGetIdentityProviderDefinitions(4);
+        testGetIdentityProviderDefinitions(5);
     }
 
     @Test
     public void testGetIdentityProviders() throws Exception {
-        testGetIdentityProviderDefinitions(3);
+        testGetIdentityProviderDefinitions(4);
     }
 
 

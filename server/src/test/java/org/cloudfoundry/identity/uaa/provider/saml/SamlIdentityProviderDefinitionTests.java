@@ -192,6 +192,18 @@ public class SamlIdentityProviderDefinitionTests {
         assertEquals("test.com", def.getEmailDomain().get(0));
     }
 
+    @Test
+    public void testDefaultAuthnContext() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        assertTrue(def.getAuthnContext().isEmpty());
+    }
+
+    @Test
+    public void testSetAuthnContext() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setAuthnContext(Arrays.asList("a-custom-context"));
+        assertEquals("a-custom-context", def.getAuthnContext().get(0));
+    }
 
     @Test
     public void testGetSocketFactoryClassName() throws Exception {
