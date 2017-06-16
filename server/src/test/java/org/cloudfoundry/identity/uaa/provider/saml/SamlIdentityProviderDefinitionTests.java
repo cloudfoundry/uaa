@@ -195,7 +195,7 @@ public class SamlIdentityProviderDefinitionTests {
     @Test
     public void testDefaultAuthnContext() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        assertTrue(def.getAuthnContext().isEmpty());
+        assertEquals(null, def.getAuthnContext());
     }
 
     @Test

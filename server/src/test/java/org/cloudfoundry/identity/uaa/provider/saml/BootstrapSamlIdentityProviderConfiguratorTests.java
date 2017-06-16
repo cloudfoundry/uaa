@@ -241,7 +241,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                     assertTrue(idp.isMetadataTrustCheck());
                     assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));
                     assertTrue(idp.isStoreCustomAttributes());
-                    assertTrue(idp.getAuthnContext().isEmpty());
+                    assertEquals(null, idp.getAuthnContext());
                     break;
                 }
                 case "okta-local-2" : {

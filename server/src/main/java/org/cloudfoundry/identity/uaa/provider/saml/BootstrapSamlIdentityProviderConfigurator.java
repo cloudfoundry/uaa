@@ -123,7 +123,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             Boolean skipSslValidation = (Boolean)((Map)entry.getValue()).get("skipSslValidation");
             Boolean storeCustomAttributes = (Boolean)((Map)entry.getValue()).get(STORE_CUSTOM_ATTRIBUTES_NAME);
-            List<String> authnContext = (List<String>) saml.getOrDefault("authnContext", Collections.<String>emptyList());
+            List<String> authnContext = (List<String>) saml.get("authnContext");
 
             if (storeCustomAttributes == null) {
                 storeCustomAttributes = true; //default value
