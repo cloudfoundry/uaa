@@ -123,6 +123,8 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             Boolean skipSslValidation = (Boolean)((Map)entry.getValue()).get("skipSslValidation");
             Boolean storeCustomAttributes = (Boolean)((Map)entry.getValue()).get(STORE_CUSTOM_ATTRIBUTES_NAME);
+            List<String> authnContext = (List<String>) saml.getOrDefault("authnContext", Collections.<String>emptyList());
+
             if (storeCustomAttributes == null) {
                 storeCustomAttributes = true; //default value
             }
@@ -165,6 +167,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             def.setZoneId(hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
             def.setSkipSslValidation(skipSslValidation);
+            def.setAuthnContext(authnContext);
             toBeFetchedProviders.add(def);
         }
     }

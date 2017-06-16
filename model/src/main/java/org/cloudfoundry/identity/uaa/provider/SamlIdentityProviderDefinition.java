@@ -55,6 +55,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String iconUrl;
     private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
     private boolean skipSslValidation = false;
+    private List<String> authnContext;
 
     public SamlIdentityProviderDefinition() {}
 
@@ -82,6 +83,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setSocketFactoryClassName(getSocketFactoryClassName());
         def.setSkipSslValidation(isSkipSslValidation());
         def.setStoreCustomAttributes(isStoreCustomAttributes());
+        def.setAuthnContext(authnContext);
         return def;
     }
 
@@ -145,6 +147,15 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     public SamlIdentityProviderDefinition setNameID(String nameID) {
         this.nameID = nameID;
+        return this;
+    }
+
+    public List<String> getAuthnContext() {
+        return authnContext;
+    }
+
+    public SamlIdentityProviderDefinition setAuthnContext(List<String> authnContext) {
+        this.authnContext = authnContext;
         return this;
     }
 
