@@ -12,17 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeTrue;
-
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -34,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -70,7 +66,18 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate2;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key1;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -495,19 +502,31 @@ public class SamlLoginWithLocalIdpIT {
         String idpZoneId = "testzone1";
         String spZoneId = "testzone2";
 
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret"));
-        RestTemplate identityClient = IntegrationTestUtils
-                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(baseUrl,
-                        new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
+        RestTemplate adminClient =
+            IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(
+                    baseUrl, new String[0], "admin", "adminsecret")
+            );
+
+        RestTemplate identityClient =
+            IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(
+                    baseUrl,new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+            );
 
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId);
         String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
-        ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail,
-                true);
+        ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
         IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
-        String idpZoneAdminToken = IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
-                UaaTestAccounts.standard(serverRunning), "identity", "identitysecret", idpZoneAdminEmail, "secr3T");
+        String idpZoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(
+                serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                idpZoneAdminEmail,
+                "secr3T"
+            );
 
         String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
@@ -515,15 +534,35 @@ public class SamlLoginWithLocalIdpIT {
 
         SamlConfig samlConfig = new SamlConfig();
         samlConfig.setWantAssertionSigned(true);
+        samlConfig.addAndActivateKey("key-1", new SamlKey(key1, passphrase1, certificate1));
+        samlConfig.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setSamlConfig(samlConfig);
-        IdentityZone spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config );
+        IdentityZone spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config);
+        assertEquals(2, spZone.getConfig().getSamlConfig().getKeys().size());
+        assertEquals("key-1", spZone.getConfig().getSamlConfig().getActiveKeyId());
+
         String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
-        ScimUser spZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, spZoneAdminEmail, "firstname", "lastname", spZoneAdminEmail,
-                true);
+        ScimUser spZoneAdminUser = IntegrationTestUtils.createUser(
+            adminClient,
+            baseUrl,
+            spZoneAdminEmail,
+            "firstname",
+            "lastname",
+            spZoneAdminEmail,
+            true
+        );
         IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
-        String spZoneAdminToken = IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
-                UaaTestAccounts.standard(serverRunning), "identity", "identitysecret", spZoneAdminEmail, "secr3T");
+        String spZoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(
+                serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                spZoneAdminEmail,
+                "secr3T"
+            );
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
@@ -546,8 +585,51 @@ public class SamlLoginWithLocalIdpIT {
         sp.setName("Local SAML SP for testzone2");
         sp = createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
 
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+
+        //change the active key
+        spZone.getConfig().getSamlConfig().setActiveKeyId("key-2");
+        spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, spZone.getConfig());
+        assertEquals(2, spZone.getConfig().getSamlConfig().getKeys().size());
+        assertEquals("key-2", spZone.getConfig().getSamlConfig().getActiveKeyId());
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+
+        //remove the inactive key
+        spZone.getConfig().getSamlConfig().removeKey("key-1");
+        spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, spZone.getConfig());
+        assertEquals(1, spZone.getConfig().getSamlConfig().getKeys().size());
+        assertEquals("key-2", spZone.getConfig().getSamlConfig().getActiveKeyId());
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");
+
+        // disable the provider
+        idp.setActive(false);
+        idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
+        assertNotNull(idp.getId());
+        webDriver.get(spZoneUrl + "/login");
+        Assert.assertEquals(spZone.getName(), webDriver.getTitle());
+        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
+        assertNotNull(elements);
+        assertEquals(0, elements.size());
+
+        // enable the provider
+        idp.setActive(true);
+        idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
+        assertNotNull(idp.getId());
+        webDriver.get(spZoneUrl + "/login");
+        Assert.assertEquals(spZone.getName(), webDriver.getTitle());
+        elements = webDriver
+            .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
+        assertNotNull(elements);
+        assertEquals(1, elements.size());
+    }
+
+    public void performLogin(String idpZoneId, String idpZoneUserEmail, String idpZoneUrl, IdentityZone spZone, String spZoneUrl, SamlIdentityProviderDefinition samlIdentityProviderDefinition) {
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(spZoneUrl + "/logout.do");
+        webDriver.get(idpZoneUrl+ "/logout.do");
         webDriver.get(spZoneUrl + "/");
         Assert.assertEquals(spZone.getName(), webDriver.getTitle());
         Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
@@ -555,7 +637,7 @@ public class SamlLoginWithLocalIdpIT {
         assertNotNull(beforeLogin.getValue());
 
         List<WebElement> elements = webDriver
-                .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
+            .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         assertNotNull(elements);
         assertEquals(1, elements.size());
 
@@ -574,31 +656,6 @@ public class SamlLoginWithLocalIdpIT {
         assertNotNull(afterLogin);
         assertNotNull(afterLogin.getValue());
         assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
-
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(spZoneUrl + "/logout.do");
-
-        // disable the provider
-        idp.setActive(false);
-        idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
-        assertNotNull(idp.getId());
-        webDriver.get(spZoneUrl + "/login");
-        Assert.assertEquals(spZone.getName(), webDriver.getTitle());
-        elements = webDriver
-                .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
-        assertNotNull(elements);
-        assertEquals(0, elements.size());
-
-        // enable the provider
-        idp.setActive(true);
-        idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
-        assertNotNull(idp.getId());
-        webDriver.get(spZoneUrl + "/login");
-        Assert.assertEquals(spZone.getName(), webDriver.getTitle());
-        elements = webDriver
-                .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
-        assertNotNull(elements);
-        assertEquals(1, elements.size());
     }
 
     private void createZoneUser(String idpZoneId, String zoneAdminToken, String zoneUserEmail, String zoneUrl) throws Exception {

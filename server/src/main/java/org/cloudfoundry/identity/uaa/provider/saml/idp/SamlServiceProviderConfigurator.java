@@ -1,6 +1,7 @@
-/*******************************************************************************
+/*
+ * ****************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -9,13 +10,16 @@
  *     separate copyright notices and license terms. Your use of these
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+ * ****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.provider.saml.ConfigMetadataProvider;
@@ -38,26 +42,20 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 /**
  * Holds internal state of available SAML Service Providers.
  */
 public class SamlServiceProviderConfigurator {
+    private static final Log logger = LogFactory.getLog(SamlServiceProviderConfigurator.class);
 
-    private final Map<IdentityZone, Map<String, SamlServiceProviderHolder>> zoneServiceProviders = new HashMap<>();
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
+
+
+    private SamlServiceProviderProvisioning providerProvisioning;
+
     private Set<String> supportedNameIDs = new HashSet<>(Arrays.asList(NameIDType.EMAIL, NameIDType.PERSISTENT,
             NameIDType.UNSPECIFIED));
     private UrlContentCache contentCache;
@@ -119,33 +117,21 @@ public class SamlServiceProviderConfigurator {
     }
 
     public List<SamlServiceProviderHolder> getSamlServiceProviders() {
-        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
-                IdentityZoneHolder.get());
-        return Collections.unmodifiableList(new ArrayList<>(serviceProviders.values()));
+        return getSamlServiceProvidersForZone(IdentityZoneHolder.get());
     }
 
     public List<SamlServiceProviderHolder> getSamlServiceProvidersForZone(IdentityZone zone) {
-        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
-        return Collections.unmodifiableList(new ArrayList<>(serviceProviders.values()));
-    }
-
-    public Map<String, SamlServiceProviderHolder> getSamlServiceProviderMapForZone(IdentityZone zone) {
-        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
-        return Collections.unmodifiableMap(serviceProviders);
-    }
-
-    private Map<String, SamlServiceProviderHolder> getOrCreateSamlServiceProviderMapForZone(IdentityZone zone) {
-        Map<String, SamlServiceProviderHolder> serviceProviders = zoneServiceProviders.get(zone);
-        if (serviceProviders == null) {
-            synchronized (zoneServiceProviders) {
-                serviceProviders = zoneServiceProviders.get(zone);
-                if (serviceProviders == null) {
-                    serviceProviders = new HashMap<>();
-                    zoneServiceProviders.put(zone, serviceProviders);
-                }
+        List<SamlServiceProviderHolder> result = new LinkedList<>();
+        for (SamlServiceProvider provider: providerProvisioning.retrieveActive(zone.getId())) {
+            try {
+                SamlServiceProviderHolder samlServiceProviderHolder =
+                        new SamlServiceProviderHolder(getExtendedMetadataDelegate(provider), provider);
+                result.add(samlServiceProviderHolder);
+            }catch(MetadataProviderException e) {
+                logger.error("Unable to configure SAML SP Metadata for ServiceProvider:" + provider.getEntityId(), e);
             }
         }
-        return serviceProviders;
+        return Collections.unmodifiableList(result);
     }
 
     /**
@@ -153,16 +139,14 @@ public class SamlServiceProviderConfigurator {
      *
      * @param provider
      *            - the provider to be added
-     * @return an array consisting of {provider-added, provider-deleted} where
-     *         provider-deleted may be null
      * @throws MetadataProviderException
      *             if the system fails to fetch meta data for this provider
      */
-    public ExtendedMetadataDelegate[] addSamlServiceProvider(SamlServiceProvider provider) throws MetadataProviderException {
-        return addSamlServiceProvider(provider, IdentityZoneHolder.get());
+    public void validateSamlServiceProvider(SamlServiceProvider provider) throws MetadataProviderException {
+        validateSamlServiceProvider(provider, IdentityZoneHolder.get());
     }
 
-    synchronized ExtendedMetadataDelegate[] addSamlServiceProvider(SamlServiceProvider provider, IdentityZone zone)
+    synchronized void validateSamlServiceProvider(SamlServiceProvider provider, IdentityZone zone)
             throws MetadataProviderException {
 
         if (provider == null) {
@@ -201,33 +185,7 @@ public class SamlServiceProviderConfigurator {
                                 + provider.getEntityId());
             }
         }
-        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
-
-        ExtendedMetadataDelegate deleted = null;
-        if (serviceProviders.containsKey(provider.getEntityId())) {
-            deleted = serviceProviders.remove(provider.getEntityId()).getExtendedMetadataDelegate();
-        }
-
-        SamlServiceProviderHolder holder = new SamlServiceProviderHolder(added, provider);
-        serviceProviders.put(provider.getEntityId(), holder);
-        return new ExtendedMetadataDelegate[] { added, deleted };
-    }
-
-    public synchronized ExtendedMetadataDelegate removeSamlServiceProvider(String entityId) {
-        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
-                IdentityZoneHolder.get());
-
-        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.remove(entityId);
-        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
-    }
-
-    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(String entityId)
-            throws MetadataProviderException {
-        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
-                IdentityZoneHolder.get());
-
-        SamlServiceProviderHolder samlServiceProviderHolder =  serviceProviders.get(entityId);
-        return samlServiceProviderHolder == null ? null : samlServiceProviderHolder.getExtendedMetadataDelegate();
+        List<SamlServiceProviderHolder> serviceProviders = getSamlServiceProvidersForZone(zone);
 
     }
 
@@ -311,6 +269,10 @@ public class SamlServiceProviderConfigurator {
         }
         return uri;
     }
+
+    public SamlServiceProviderProvisioning getProviderProvisioning() { return providerProvisioning; }
+
+    public void setProviderProvisioning(SamlServiceProviderProvisioning providerProvisioning) { this.providerProvisioning = providerProvisioning; }
 
     public HttpClientParams getClientParams() {
         return clientParams;

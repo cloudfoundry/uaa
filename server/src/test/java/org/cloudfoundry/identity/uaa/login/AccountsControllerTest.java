@@ -13,12 +13,16 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.home.BuildInfo;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.AccountsController;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.home.BuildInfo;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.junit.After;
 import org.junit.Before;
@@ -30,12 +34,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -43,10 +49,15 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -66,6 +77,9 @@ public class AccountsControllerTest extends TestClassNullifier {
 
     @Autowired
     AccountCreationService accountCreationService;
+
+    @Autowired
+    IdentityProviderProvisioning identityProviderProvisioning;
 
     private MockMvc mockMvc;
 
@@ -106,6 +120,28 @@ public class AccountsControllerTest extends TestClassNullifier {
             .andExpect(redirectedUrl("accounts/email_sent"));
 
         Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
+    }
+
+    @Test
+    public void testAttemptCreateAccountWithEmailDomainRestriction() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        MockHttpServletRequestBuilder post = post("/create_account.do")
+            .session(session)
+            .param("email", "user1@example.com")
+            .param("password", "password")
+            .param("password_confirmation", "password")
+            .param("client_id", "app")
+            .param("redirect_uri", "http://example.com/redirect");
+        IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
+        oidcProvider.getConfig().setAuthUrl(new URL("http://localhost:8080/uaa/idp_login"));
+        oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
+        when(identityProviderProvisioning.retrieveAll(true, OriginKeys.UAA)).thenReturn(Collections.singletonList(oidcProvider));
+
+        mockMvc.perform(post)
+            .andExpect(view().name("accounts/new_activation_email"))
+            .andExpect(model().attribute("error_message_code", "other_idp"));
+
+        Mockito.verify(accountCreationService, times(0)).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
     }
 
     @Test
@@ -173,7 +209,7 @@ public class AccountsControllerTest extends TestClassNullifier {
 
     @Test
     public void testVerifyUser() throws Exception {
-        Mockito.when(accountCreationService.completeActivation("the_secret_code"))
+        when(accountCreationService.completeActivation("the_secret_code"))
             .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
 
         MockHttpServletRequestBuilder get = get("/verify_user")
@@ -213,12 +249,17 @@ public class AccountsControllerTest extends TestClassNullifier {
 
         @Bean
         AccountCreationService accountCreationService() {
-            return Mockito.mock(AccountCreationService.class);
+            return mock(AccountCreationService.class);
         }
 
         @Bean
-        AccountsController accountsController(AccountCreationService accountCreationService) {
-            return new AccountsController(accountCreationService);
+        IdentityProviderProvisioning identityProviderProvisioning() {
+            return mock(JdbcIdentityProviderProvisioning.class);
+        }
+
+        @Bean
+        AccountsController accountsController(AccountCreationService accountCreationService, IdentityProviderProvisioning identityProviderProvisioning) {
+            return new AccountsController(accountCreationService, identityProviderProvisioning);
         }
     }
 }

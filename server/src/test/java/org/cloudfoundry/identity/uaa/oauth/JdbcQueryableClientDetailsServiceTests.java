@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -37,7 +37,7 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
         IdentityZoneHolder.clear();
 
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
-        delegate = new MultitenantJdbcClientDetailsService(dataSource);
+        delegate = new MultitenantJdbcClientDetailsService(jdbcTemplate);
         service = new JdbcQueryableClientDetailsService(delegate, jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate,
                 limitSqlAdapter));
 
@@ -75,7 +75,7 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
         assertEquals(4, service.retrieveAll().size());
         assertEquals(4, service.query("scope pr").size());
     }
-    
+
     @Test
     public void testQueryEqualsInAnotherZone() throws Exception {
         testQueryEquals();
@@ -83,7 +83,7 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
         testQueryEquals();
         assertEquals(8,delegate.getTotalCount());
     }
-    
+
     @Test
     public void testQueryExistsInAnotherZone() throws Exception {
         testQueryExists();

@@ -16,6 +16,7 @@ Please refer to 'https://accounts.google.com/.well-known/openid-configuration' f
           type: oidc1.0
           authUrl: https://accounts.google.com/o/oauth2/v2/auth
           tokenUrl: https://www.googleapis.com/oauth2/v4/token
+          tokenKeyUrl: https://www.googleapis.com/oauth2/v3/certs
           issuer: https://accounts.google.com
           redirectUrl: http://localhost:8080/uaa
           scopes:

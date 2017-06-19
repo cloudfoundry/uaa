@@ -38,7 +38,7 @@ dependencies {
   runtime group: 'org.springframework.retry', name: 'spring-retry', version:parent.springRetryVersion
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
   runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
-  runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
+  runtime group: 'org.postgresql', name: 'postgresql', version:parent.postgresqlVersion
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   runtime group: 'com.ge.predix', name: 'spring-log-filter', version:'1.1.0'
 
@@ -80,10 +80,11 @@ dependencies {
   testCompile group: 'org.skyscreamer', name:'jsonassert', version: '0.9.0'
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
   testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
-  testCompile group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion
+  testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
+  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
+  testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
   testCompile group: 'com.nurego', name: 'nurego-java', version:'1.0.18'
-  testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
 }
 ext {
   snippetsDir = file('build/generated-snippets')
@@ -97,19 +98,33 @@ test {
   systemProperty 'java.io.tmpdir', '/tmp'
   systemProperty "mock.suite.test", "true"
 }
+task customizeSlate(type: Copy) {
+  from 'slate'
+  from 'slateCustomizations'
+  into 'build/slate'
+}
 task docsTestRestDocs(type: Test) {
   include '**/DefaultDocsTestSuite.class'
 }
 task(bundleInstall, type: Exec) {
-  workingDir file('slate')
+  dependsOn 'customizeSlate'
+  workingDir file('build/slate')
   executable 'bundle'
   args 'install'
 }
+
+task(deleteDefaultContent, type: Delete) {
+    delete 'build/slate/source/index.html.md'
+}
+
 task(slate, type: Exec) {
-  dependsOn 'bundleInstall', 'docsTestRestDocs'
-  workingDir file('slate')
+  dependsOn 'customizeSlate', 'deleteDefaultContent', 'bundleInstall', 'docsTestRestDocs'
+
+  workingDir file('build/slate')
   executable 'bundle'
-  args 'exec', 'middleman', 'build', '--verbose'
+  args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs'
+//  executable 'echo'
+//  args 'hello', 'world'
 }
 
 

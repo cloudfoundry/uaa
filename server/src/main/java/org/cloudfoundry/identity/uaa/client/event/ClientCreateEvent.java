@@ -13,15 +13,10 @@
 
 package org.cloudfoundry.identity.uaa.client.event;
 
-import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
-/**
- * @author Dave Syer
- *
- */
 public class ClientCreateEvent extends AbstractClientAdminEvent {
 
     public ClientCreateEvent(ClientDetails client, Authentication principal) {
@@ -29,9 +24,7 @@ public class ClientCreateEvent extends AbstractClientAdminEvent {
     }
 
     @Override
-    public AuditEvent getAuditEvent() {
-        return createAuditRecord(getClient().getClientId(), AuditEventType.ClientCreateSuccess,
-                        getOrigin(getPrincipal()));
+    AuditEventType getAuditEventType() {
+        return AuditEventType.ClientCreateSuccess;
     }
-
 }

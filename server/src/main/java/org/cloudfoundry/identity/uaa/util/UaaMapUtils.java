@@ -20,12 +20,20 @@ import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
+import org.springframework.util.StringUtils;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
+import static java.util.Map.Entry.comparingByKey;
 
 public class UaaMapUtils {
 
@@ -103,5 +111,60 @@ public class UaaMapUtils {
 
     public static <K, V> Map.Entry<K, V> entry(K key, V value) {
         return new AbstractMap.SimpleEntry<>(key, value);
+    }
+
+    public static <K extends Comparable<? super K>, V extends Object> Map<K, V> sortByKeys(Map<K,V> map) {
+        List<Entry<K, V>> sortedEntries = map
+            .entrySet()
+            .stream()
+            .sorted(comparingByKey())
+            .collect(Collectors.toList());
+        LinkedHashMap<K, V> result = new LinkedHashMap<>();
+        for (Map.Entry<K, V> entry : sortedEntries) {
+            Object value = entry.getValue();
+            if (value instanceof Map) {
+                value = sortByKeys((Map) value);
+            }
+            result.put(entry.getKey(), (V)value);
+        }
+        return result;
+    }
+
+    public static <K extends Comparable<? super K>, V extends Object> String prettyPrintYaml(Map<K,V> map) {
+        DumperOptions dump = new DumperOptions();
+        dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        dump.setPrettyFlow(true);
+        dump.setIndent(2);
+        dump.setCanonical(false);
+        dump.setExplicitStart(true);
+        Yaml yaml = new Yaml(dump);
+        return yaml.dump(sortByKeys(map));
+    }
+
+    /**
+     * Hide the values in a config map (e.g. for logging).
+     *
+     * @param map a map with String keys (e.g. Properties) and String or nested
+     *            map values
+     * @return new properties with no plaintext passwords and secrets
+     */
+    public static Map<String, ?> redactValues(Map<String, ?> map) {
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        result.putAll(map);
+        for (String key : map.keySet()) {
+            Object value = map.get(key);
+            if (value == null) {
+                result.put(key, value);
+             } else if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, ?> bare = (Map<String, ?>) value;
+                result.put(key, redactValues(bare));
+            } else if (value instanceof String && StringUtils.isEmpty(value)){
+                result.put(key, "");
+            } else {
+                result.put(key, "<redacted>");
+            }
+        }
+        return result;
     }
 }

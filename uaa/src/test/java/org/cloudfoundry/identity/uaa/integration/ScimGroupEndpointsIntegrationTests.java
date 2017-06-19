@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
@@ -57,6 +59,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -399,7 +402,7 @@ public class ScimGroupEndpointsIntegrationTests {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         HttpHeaders headers = getAuthenticatedHeaders(token);
         BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password",
-                        "scim.read,scim.write");
+                        "scim.read,scim.write","http://redirect.uri");
         client.setClientSecret(secret);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -466,25 +469,25 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     private OAuth2AccessToken getAccessToken(String clientId, String clientSecret, String username, String password) throws URISyntaxException {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+        BasicCookieStore cookies = new BasicCookieStore();
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
                         .queryParam("state", "mystateid").queryParam("client_id", clientId)
-                        .queryParam("redirect_uri", "http://anywhere.com").build();
+                        .queryParam("redirect_uri", "http://redirect.uri").build();
         ResponseEntity<Void> result = serverRunning.createRestTemplate().exchange(
-            uri.toString(), HttpMethod.GET, new HttpEntity<>(null, headers),
+            uri.toString(), HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
             Void.class);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
-        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
         // should be directed to the login screen...
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
@@ -492,7 +495,8 @@ public class ScimGroupEndpointsIntegrationTests {
 
         if (response.getHeaders().containsKey("Set-Cookie")) {
             String cookie = response.getHeaders().getFirst("Set-Cookie");
-            headers.add("Cookie", cookie);
+            int nameLength = cookie.indexOf('=');
+            cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
         }
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -501,21 +505,28 @@ public class ScimGroupEndpointsIntegrationTests {
         formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
 
         // Should be redirected to the original URL, but now authenticated
-        result = serverRunning.postForResponse("/login.do", headers, formData);
+        result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
-        headers.remove("Cookie");
+        cookies.clear();
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
         response = serverRunning.createRestTemplate().exchange(
             new URI(result.getHeaders().getLocation().toString()),
             HttpMethod.GET,
-            new HttpEntity<>(null,headers),
+            new HttpEntity<>(null, getHeaders(cookies)),
             String.class);
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+            }
+        }
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
@@ -524,7 +535,7 @@ public class ScimGroupEndpointsIntegrationTests {
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add("scope.0", "scope." + CFID);
-            result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
+            result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();
         }
@@ -533,11 +544,11 @@ public class ScimGroupEndpointsIntegrationTests {
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = response.getHeaders().getLocation().toString();
         }
-        assertTrue("Wrong location: " + location, location.matches("http://anywhere.com" + ".*code=.+"));
+        assertTrue("Wrong location: " + location, location.matches("http://redirect.uri" + ".*code=.+"));
 
         formData.clear();
         formData.add("client_id", clientId);
-        formData.add("redirect_uri", "http://anywhere.com");
+        formData.add("redirect_uri", "http://redirect.uri");
         formData.add("grant_type", "authorization_code");
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();

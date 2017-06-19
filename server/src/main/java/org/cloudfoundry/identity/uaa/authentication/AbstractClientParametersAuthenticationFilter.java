@@ -16,8 +16,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
-import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy.Result;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -59,8 +57,6 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     protected AuthenticationManager clientAuthenticationManager;
 
     protected AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
-    
-    protected CommonLoginPolicy loginPolicy;
 
     public AuthenticationManager getClientAuthenticationManager() {
         return clientAuthenticationManager;
@@ -68,14 +64,6 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
 
     public void setClientAuthenticationManager(AuthenticationManager clientAuthenticationManager) {
         this.clientAuthenticationManager = clientAuthenticationManager;
-    }
-
-    public CommonLoginPolicy getLoginPolicy() {
-        return loginPolicy;
-    }
-
-    public void setLoginPolicy(CommonLoginPolicy loginPolicy) {
-        this.loginPolicy = loginPolicy;
     }
 
     /**
@@ -128,14 +116,6 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     }
 
     private Authentication performClientAuthentication(HttpServletRequest req, Map<String, String> loginInfo, String clientId) {
-        if(clientId != null){
-            Result policyResult = loginPolicy.isAllowed(clientId);
-            if(!policyResult.isAllowed()){
-                throw new ClientLockoutException("Client " + clientId + " has "
-                        + policyResult.getFailureCount() + " failed authentications within the last checking period.");
-            }
-        }
-
         String clientSecret = loginInfo.get(CLIENT_SECRET);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId, clientSecret);
         authentication.setDetails(new UaaAuthenticationDetails(req, clientId));

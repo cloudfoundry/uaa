@@ -17,7 +17,14 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.EntityDescriptor;
+import org.opensaml.saml2.metadata.IDPSSODescriptor;
+import org.opensaml.xml.security.credential.UsageType;
+import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.util.SAMLUtil;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ZoneAwareIdpMetadataGenerator extends IdpMetadataGenerator {
 
@@ -82,6 +89,22 @@ public class ZoneAwareIdpMetadataGenerator extends IdpMetadataGenerator {
     public EntityDescriptor generateMetadata() {
         EntityDescriptor result = super.generateMetadata();
         result.setID(SAMLUtil.getNCNameString(result.getEntityID()));
+        return result;
+    }
+
+    @Override
+    protected IDPSSODescriptor buildIDPSSODescriptor(String entityBaseURL, String entityAlias, boolean wantAuthnRequestSigned, Collection<String> includedNameID) {
+        IDPSSODescriptor result = super.buildIDPSSODescriptor(entityBaseURL, entityAlias, wantAuthnRequestSigned, includedNameID);
+        //metadata should not contain inactive keys
+        KeyManager samlSPKeyManager = IdentityZoneHolder.getSamlSPKeyManager();
+        if (samlSPKeyManager != null && samlSPKeyManager.getAvailableCredentials()!=null) {
+            Set<String> allKeyAliases = new HashSet(samlSPKeyManager.getAvailableCredentials());
+            String activeKeyAlias = samlSPKeyManager.getDefaultCredentialName();
+            allKeyAliases.remove(activeKeyAlias);
+            for (String keyAlias : allKeyAliases) {
+                result.getKeyDescriptors().add(getKeyDescriptor(UsageType.SIGNING, getServerKeyInfo(keyAlias)));
+            }
+        }//add inactive keys as signing verification keys
         return result;
     }
 }

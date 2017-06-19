@@ -1,5 +1,3 @@
-package org.cloudfoundry.identity.uaa.zone;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
@@ -12,10 +10,9 @@ package org.cloudfoundry.identity.uaa.zone;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public interface IdentityZoneConfigurationValidator {
-    IdentityZoneConfiguration validate(IdentityZoneConfiguration config, Mode mode) throws InvalidIdentityZoneConfigurationException;
+package org.cloudfoundry.identity.uaa.zone;
 
-    enum Mode {
-        CREATE, MODIFY, DELETE
-    }
+
+public interface IdentityZoneConfigurationValidator {
+    IdentityZoneConfiguration validate(IdentityZoneConfiguration config, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException;
 }

@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -51,11 +52,13 @@ import org.springframework.security.providers.ExpiringUsernameAuthenticationToke
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
+import org.springframework.ui.Model;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,6 +69,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -122,7 +126,6 @@ public class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, mock(UrlContentCache.class), mock(RestTemplateFactory.class));
-
     }
 
     @After
@@ -130,6 +133,8 @@ public class LoginInfoEndpointTests {
         IdentityZoneHolder.clear();
         IdentityZoneHolder.get().setConfig(originalConfiguration);
     }
+
+
 
     @Test
     public void testLoginReturnsSystemZone() throws Exception {
@@ -172,13 +177,14 @@ public class LoginInfoEndpointTests {
         savedAccount.setEmail("bob@example.com");
         savedAccount.setUserId("xxxx");
         savedAccount.setOrigin("uaa");
-        Cookie cookie1 = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
+
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
         savedAccount.setUsername("tim");
         savedAccount.setEmail("tim@example.org");
         savedAccount.setUserId("zzzz");
         savedAccount.setOrigin("ldap");
-        Cookie cookie2 = new Cookie("Saved-Account-zzzz", JsonUtils.writeValueAsString(savedAccount));
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
         request.setCookies(cookie1, cookie2);
         endpoint.loginForHtml(model, null, request);
@@ -204,6 +210,68 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void testSavedAccountsEncodedAndUnEncoded() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        assertThat(model, not(hasKey("savedAccounts")));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bill");
+        savedAccount.setEmail("bill@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        // write Cookie1 without URLencode into value, situation before this correction
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
+
+        savedAccount.setUsername("bill");
+        savedAccount.setEmail("bill@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        // write Cookie2 with URLencode into value, situation after this correction
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        request.setCookies(cookie1, cookie2);
+        endpoint.loginForHtml(model, null, request);
+
+        assertThat(model, hasKey("savedAccounts"));
+        assertThat(model.get("savedAccounts"), instanceOf(List.class));
+        List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) model.get("savedAccounts");
+        assertThat(savedAccounts, hasSize(2));
+        // evaluate that both cookies can be parsed out has have same values
+        SavedAccountOption savedAccount0 = savedAccounts.get(0);
+        assertThat(savedAccount0, notNullValue());
+        assertEquals("bill", savedAccount0.getUsername());
+        assertEquals("bill@example.com", savedAccount0.getEmail());
+        assertEquals("uaa", savedAccount0.getOrigin());
+        assertEquals("xxxx", savedAccount0.getUserId());
+
+        SavedAccountOption savedAccount1 = savedAccounts.get(1);
+        assertThat(savedAccount1, notNullValue());
+        assertEquals("bill", savedAccount1.getUsername());
+        assertEquals("bill@example.com", savedAccount1.getEmail());
+        assertEquals("uaa", savedAccount1.getOrigin());
+        assertEquals("xxxx", savedAccount1.getUserId());
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void testSavedAccountsInvalidCookie() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        assertThat(model, not(hasKey("savedAccounts")));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", "%2");
+
+        request.setCookies(cookie1);
+        endpoint.loginForHtml(model, null, request);
+    }
+
+    @Test
     public void testLoginReturnsOtherZone() throws Exception {
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
@@ -223,15 +291,52 @@ public class LoginInfoEndpointTests {
         zone.setName("some_other_zone");
         zone.setId("some_id");
         zone.setSubdomain(zone.getName());
+        IdentityZoneConfiguration config = zone.getConfig();
         IdentityZoneHolder.set(zone);
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
+        validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", model);
+        validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", endpoint.getSelfServiceLinks());
+
+        //null config
+        zone.setConfig(null);
+        validateSelfServiceLinks("/create_account", "/forgot_password", endpoint.getSelfServiceLinks());
+
+        //null config with globals
+        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup").setPasswd("/passwd")));
+        validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
+
+        //null links with globals
+        IdentityZoneConfiguration otherConfig = new IdentityZoneConfiguration(null);
+        otherConfig.getLinks().setSelfService(new Links.SelfService().setSignup(null).setPasswd(null));
+        validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
+
+        //null links with globals using variables
+        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}")));
+        validateSelfServiceLinks("/signup?domain="+zone.getSubdomain(), "/passwd?id="+zone.getId(), endpoint.getSelfServiceLinks());
+
+        //zone config overrides global
+        zone.setConfig(config);
+        validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", endpoint.getSelfServiceLinks());
+
+        //zone config supports variables too
+        config.getLinks().getSelfService().setSignup("/local_signup?domain={zone.subdomain}");
+        config.getLinks().getSelfService().setPasswd("/local_passwd?id={zone.id}");
+        validateSelfServiceLinks("/local_signup?domain="+zone.getSubdomain(), "/local_passwd?id="+zone.getId(), endpoint.getSelfServiceLinks());
+    }
+
+    public void validateSelfServiceLinks(String signup, String passwd, Model model) {
+        Map<String, String> links = (Map<String, String>) model.asMap().get("links");
+        validateSelfServiceLinks(signup, passwd, links);
+    }
+
+    public void validateSelfServiceLinks(String signup, String passwd, Map<String,String> links) {
+        assertEquals(signup, links.get("createAccountLink"));
+        assertEquals(passwd, links.get("forgotPasswordLink"));
         //json links
-        assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("register"));
-        assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
+        assertEquals(signup, links.get("register"));
+        assertEquals(passwd, links.get("passwd"));
     }
 
     @Test

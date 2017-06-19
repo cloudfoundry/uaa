@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
@@ -29,6 +31,7 @@ import org.springframework.util.MultiValueMap;
 import java.net.URI;
 import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -42,6 +45,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ImplicitTokenGrantIntegrationTests {
 
+    private static final String REDIRECT_URL_PATTERN = "http://localhost:8080/redirect/cf#token_type=.+access_token=.+";
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -53,7 +57,7 @@ public class ImplicitTokenGrantIntegrationTests {
     private String implicitUrl() {
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
                         .queryParam("client_id", "cf")
-                        .queryParam("redirect_uri", "https://uaa.cloudfoundry.com/redirect/cf")
+                        .queryParam("redirect_uri", "http://localhost:8080/redirect/cf")
                         .queryParam("scope", "cloud_controller.read").build();
         return uri.toString();
     }
@@ -89,7 +93,7 @@ public class ImplicitTokenGrantIntegrationTests {
 
         assertNotNull(result.getHeaders().getLocation());
         assertTrue(result.getHeaders().getLocation().toString()
-            .matches("https://uaa.cloudfoundry.com/redirect/cf#token_type=.+access_token=.+"));
+            .matches(REDIRECT_URL_PATTERN));
 
     }
 
@@ -109,29 +113,30 @@ public class ImplicitTokenGrantIntegrationTests {
         URI location = result.getHeaders().getLocation();
         assertNotNull(location);
         assertTrue("Wrong location: " + location, location.toString()
-            .matches("https://uaa.cloudfoundry.com/redirect/cf#token_type=.+access_token=.+"));
+            .matches(REDIRECT_URL_PATTERN));
 
     }
 
     @Test
     public void authzWithIntermediateFormLoginSucceeds() throws Exception {
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
+        BasicCookieStore cookies = new BasicCookieStore();
 
-        ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl(), headers);
+        ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl(), getHeaders(cookies));
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
-        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
         if (response.getHeaders().containsKey("Set-Cookie")) {
-            for (String c : response.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", c);
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
         // should be directed to the login screen...
@@ -147,14 +152,14 @@ public class ImplicitTokenGrantIntegrationTests {
         formData.add("password", testAccounts.getPassword());
         formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
 
-        result = serverRunning.postForRedirect(location, headers, formData);
+        result = serverRunning.postForRedirect(location, getHeaders(cookies), formData);
 
         // System.err.println(result.getStatusCode());
         // System.err.println(result.getHeaders());
 
         assertNotNull(result.getHeaders().getLocation());
         assertTrue(result.getHeaders().getLocation().toString()
-            .matches("https://uaa.cloudfoundry.com/redirect/cf#token_type=.+access_token=.+"));
+            .matches(REDIRECT_URL_PATTERN));
     }
 
 }

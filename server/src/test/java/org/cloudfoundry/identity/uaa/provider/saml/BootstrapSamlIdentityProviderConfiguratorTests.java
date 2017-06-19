@@ -100,6 +100,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
 
     public static String sampleYaml = "  providers:\n" +
         "    okta-local:\n" +
+        "      storeCustomAttributes: true\n" +
         "      idpMetadata: |\n" +
         "        " + testXmlFileData.replace("\n","\n        ") + "\n"+
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
@@ -290,6 +291,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
     public void testSetAddShadowUserOnLoginFromYaml() throws Exception {
         String yaml = "  providers:\n" +
             "    provider-without-shadow-user-definition:\n" +
+            "      storeCustomAttributes: true\n" +
             "      idpMetadata: |\n" +
             "        <?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "        <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"provider1\">" +
@@ -300,6 +302,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
             "        </md:EntityDescriptor>\n" +
             "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
             "    provider-with-shadow-users-enabled:\n" +
+            "      storeCustomAttributes: false\n" +
             "      idpMetadata: |\n" +
             "        <?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "        <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"provider2\">" +
@@ -329,14 +332,17 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
             switch (def.getIdpEntityAlias()) {
                 case "provider-without-shadow-user-definition" : {
                     assertTrue("If not specified, addShadowUserOnLogin is set to true", def.isAddShadowUserOnLogin());
+                    assertTrue("Override store custom attributes to true", def.isStoreCustomAttributes());
                     break;
                 }
                 case "provider-with-shadow-users-enabled" : {
                     assertTrue("addShadowUserOnLogin can be set to true", def.isAddShadowUserOnLogin());
+                    assertFalse("Default store custom attributes is false", def.isStoreCustomAttributes());
                     break;
                 }
                 case "provider-with-shadow-user-disabled" : {
                     assertFalse("addShadowUserOnLogin can be set to false", def.isAddShadowUserOnLogin());
+                    assertFalse("Default store custom attributes is false", def.isStoreCustomAttributes());
                     break;
                 }
                 default: fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));

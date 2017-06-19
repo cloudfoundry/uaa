@@ -14,15 +14,23 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 
@@ -33,27 +41,33 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ClientAdminBootstrap implements InitializingBean {
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
+
+public class ClientAdminBootstrap implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
 
     private static Log logger = LogFactory.getLog(ClientAdminBootstrap.class);
 
     private Map<String, Map<String, Object>> clients = new HashMap<String, Map<String, Object>>();
 
+    private List<String> clientsToDelete = null;
+
     private Collection<String> autoApproveClients = Collections.emptySet();
 
-    private ClientRegistrationService clientRegistrationService;
+    private ClientServicesExtension clientRegistrationService;
 
     private ClientMetadataProvisioning clientMetadataProvisioning;
-
-    private String domain = "cloudfoundry\\.com";
 
     private boolean defaultOverride = true;
 
     private final PasswordEncoder passwordEncoder;
+
+    private ApplicationEventPublisher publisher;
 
     public ClientAdminBootstrap(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
@@ -73,19 +87,6 @@ public class ClientAdminBootstrap implements InitializingBean {
         this.defaultOverride = defaultOverride;
     }
 
-    /**
-     * The domain suffix (default "cloudfoundry.com") used to detect http
-     * redirects. If an http callback in this domain
-     * is found in a client registration and there is no corresponding value
-     * with https as well, then the https value
-     * will be added.
-     *
-     * @param domain the domain to set
-     */
-    public void setDomain(String domain) {
-        this.domain = domain.replace(".", "\\.");
-    }
-
     public PasswordEncoder getPasswordEncoder() {
         return passwordEncoder;
     }
@@ -99,6 +100,10 @@ public class ClientAdminBootstrap implements InitializingBean {
         } else {
             this.clients = new HashMap<>(clients);
         }
+    }
+
+    public void setClientsToDelete(List<String> clientsToDelete) {
+        this.clientsToDelete = clientsToDelete;
     }
 
     /**
@@ -117,66 +122,33 @@ public class ClientAdminBootstrap implements InitializingBean {
     /**
      * @param clientRegistrationService the clientRegistrationService to set
      */
-    public void setClientRegistrationService(ClientRegistrationService clientRegistrationService) {
+    public void setClientRegistrationService(ClientServicesExtension clientRegistrationService) {
         this.clientRegistrationService = clientRegistrationService;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        addHttpsCallbacks();
         addNewClients();
-        updateAutoApprovClients();
+        updateAutoApproveClients();
     }
 
     /**
      * Explicitly override autoapprove in all clients that were provided in the
      * whitelist.
      */
-    private void updateAutoApprovClients() {
-
-        List<ClientDetails> clients = clientRegistrationService.listClientDetails();
-
-        for (ClientDetails client : clients) {
-            if (!autoApproveClients.contains(client.getClientId())) {
-                continue;
+    private void updateAutoApproveClients() {
+        List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
+        Collection<String> autoApproveList = new LinkedList(ofNullable(autoApproveClients).orElse(emptyList()));
+        autoApproveList.removeIf(s -> slatedForDeletion.contains(s));
+        for (String clientId : autoApproveList) {
+            try {
+                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId);
+                base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+                logger.debug("Adding autoapprove flag to client: " + clientId);
+                clientRegistrationService.updateClientDetails(base);
+            } catch (NoSuchClientException n) {
+                logger.debug("Client not found, unable to set autoapprove: " + clientId);
             }
-            BaseClientDetails base = new BaseClientDetails(client);
-            Map<String, Object> info = new HashMap<String, Object>(client.getAdditionalInformation());
-            info.put(ClientConstants.AUTO_APPROVE, true);
-            base.setAdditionalInformation(info);
-            logger.debug("Adding autoapprove flag: " + base);
-            clientRegistrationService.updateClientDetails(base);
-        }
-
-    }
-
-    /**
-     * Make sure all cloudfoundry.com callbacks are https
-     */
-    private void addHttpsCallbacks() {
-        List<ClientDetails> clients = clientRegistrationService.listClientDetails();
-
-        for (ClientDetails client : clients) {
-            Set<String> registeredRedirectUri = client.getRegisteredRedirectUri();
-            if (registeredRedirectUri == null || registeredRedirectUri.isEmpty()) {
-                continue;
-            }
-            Set<String> uris = new HashSet<String>(registeredRedirectUri);
-            boolean newItems = false;
-            for (String uri : registeredRedirectUri) {
-                if (uri.matches("^http://[^/]*\\." + domain + ".*")) {
-                    newItems = true;
-                    uris.remove(uri);
-                    uris.add("https" + uri.substring("http".length()));
-                }
-            }
-            if (!newItems) {
-                continue;
-            }
-            BaseClientDetails newClient = new BaseClientDetails(client);
-            newClient.setRegisteredRedirectUri(uris);
-            logger.debug("Adding https callback: " + newClient);
-            clientRegistrationService.updateClientDetails(newClient);
         }
     }
 
@@ -195,9 +167,16 @@ public class ClientAdminBootstrap implements InitializingBean {
     }
 
     private void addNewClients() throws Exception {
-        for (Map.Entry<String, Map<String, Object>> entry : clients.entrySet()) {
+        List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
+        Set<Map.Entry<String, Map<String, Object>>> entries = clients.entrySet();
+        entries.removeIf(entry -> slatedForDeletion.contains(entry.getKey()));
+        for (Map.Entry<String, Map<String, Object>> entry : entries) {
             String clientId = entry.getKey();
+
             Map<String, Object> map = entry.getValue();
+            if(map.get("authorized-grant-types") == null) {
+                throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
+            }
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
                 (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                 (String) map.get("authorities"), getRedirectUris(map));
@@ -247,9 +226,20 @@ public class ClientAdminBootstrap implements InitializingBean {
                     logger.debug(e.getMessage());
                 }
             }
+
+            for (String s : Arrays.asList("authorization_code", "implicit")) {
+                if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
+                    throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL. ClientID: " + client.getClientId());
+                }
+            }
+
             ClientMetadata clientMetadata = buildClientMetadata(map, clientId);
             clientMetadataProvisioning.update(clientMetadata);
         }
+    }
+
+    private boolean isMissingRedirectUris(BaseClientDetails client) {
+        return client.getRegisteredRedirectUri() == null || client.getRegisteredRedirectUri().isEmpty();
     }
 
     private ClientMetadata buildClientMetadata(Map<String, Object> map, String clientId) {
@@ -273,8 +263,8 @@ public class ClientAdminBootstrap implements InitializingBean {
     }
 
     protected boolean didPasswordChange(String clientId, String rawPassword) {
-        if (getPasswordEncoder()!=null && clientRegistrationService instanceof ClientDetailsService) {
-            ClientDetails existing = ((ClientDetailsService)clientRegistrationService).loadClientByClientId(clientId);
+        if (getPasswordEncoder()!=null) {
+            ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId);
             String existingPasswordHash = existing.getClientSecret();
             return !getPasswordEncoder().matches(rawPassword, existingPasswordHash);
         } else {
@@ -288,5 +278,31 @@ public class ClientAdminBootstrap implements InitializingBean {
 
     public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
         this.clientMetadataProvisioning = clientMetadataProvisioning;
+    }
+
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        Authentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
+        for (String clientId : ofNullable(clientsToDelete).orElse(emptyList())) {
+            try {
+                ClientDetails client = clientRegistrationService.loadClientByClientId(clientId);
+                logger.debug("Deleting client from manifest:"+clientId);
+                EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth);
+                publish(delete);
+            } catch (NoSuchClientException e) {
+                logger.debug("Ignoring delete for non existent client:"+clientId);
+            }
+        }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
+
+    public void publish(ApplicationEvent event) {
+        if (publisher!=null) {
+            publisher.publishEvent(event);
+        }
     }
 }

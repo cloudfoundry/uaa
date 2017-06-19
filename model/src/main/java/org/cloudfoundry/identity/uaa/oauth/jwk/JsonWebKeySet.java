@@ -16,10 +16,7 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -36,9 +33,10 @@ public class JsonWebKeySet<T extends JsonWebKey> {
     public JsonWebKeySet(@JsonProperty("keys") List<T> keys) {
         Set<T> set = new LinkedHashSet<>();
         //rules for how to override duplicates
-        for (T t : keys) {
-            set.remove(t);
-            set.add(t);
+        for (T key : keys) {
+            if(key == null) continue;
+            set.remove(key);
+            set.add(key);
         }
         this.keys = new LinkedList(set);
     }

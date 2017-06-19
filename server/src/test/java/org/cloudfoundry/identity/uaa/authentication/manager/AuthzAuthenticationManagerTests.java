@@ -24,20 +24,22 @@ import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenti
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
@@ -53,6 +55,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -62,6 +65,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -82,13 +86,18 @@ public class AuthzAuthenticationManagerTests {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
+    private ArgumentCaptor<ApplicationEvent> eventCaptor;
 
     @Before
     public void setUp() throws Exception {
         user = new UaaUser(getPrototype());
         providerProvisioning = mock(IdentityProviderProvisioning.class);
         db = mock(UaaUserDatabase.class);
+
         publisher = mock(ApplicationEventPublisher.class);
+        eventCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        doNothing().when(publisher).publishEvent(eventCaptor.capture());
+
         mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(OriginKeys.UAA);
@@ -119,6 +128,10 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
         assertThat(((UaaAuthentication)result).getAuthenticationMethods(), containsInAnyOrder("pwd"));
+
+        ApplicationEvent event = eventCaptor.getValue();
+        assertThat(event, instanceOf(UserAuthenticationSuccessEvent.class));
+        assertEquals("auser", ((UserAuthenticationSuccessEvent)event).getUser().getUsername());
     }
 
     @Test(expected = PasswordExpiredException.class)

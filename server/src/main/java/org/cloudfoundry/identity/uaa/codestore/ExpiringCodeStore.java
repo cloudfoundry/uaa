@@ -56,12 +56,4 @@ public interface ExpiringCodeStore {
     default String zonifyCode(String code) {
         return code + "[zone[" + IdentityZoneHolder.get().getId()+"]]";
     }
-
-    default String extractCode(String zoneCode) {
-        int endIndex = zoneCode.indexOf("[zone[" + IdentityZoneHolder.get().getId()+"]]");
-        if (endIndex<0) {
-            return zoneCode;
-        }
-        return zoneCode.substring(0, endIndex);
-    }
 }

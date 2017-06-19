@@ -70,6 +70,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -176,6 +177,7 @@ public class OIDCLoginIT {
 
     public void updateProvider() {
         identityProvider = IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
+        assertNull(identityProvider.getConfig().getRelyingPartySecret());
     }
 
     public static boolean doesSupportZoneDNS() {
@@ -201,6 +203,11 @@ public class OIDCLoginIT {
 
     private void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
         login(zoneUrl, userName, password);
+
+        //Predix version does not have logout link
+        //webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        //webDriver.findElement(By.linkText("Sign Out")).click();
+        IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver);
     }
 
     private void login(String zoneUrl, String userName, String password) {
@@ -224,7 +231,6 @@ public class OIDCLoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(),
                 //Predix specific message on landing page.
                 Matchers.containsString("You should not see this page. Set up your redirect URI."));
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
     @Test
@@ -235,6 +241,14 @@ public class OIDCLoginIT {
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+    }
+
+    @Test
+    public void successfulLoginWithOIDCProviderSetsLastLogin() throws Exception {
+        login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        doLogout(zoneUrl);
+        login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
     }
 
     @Test

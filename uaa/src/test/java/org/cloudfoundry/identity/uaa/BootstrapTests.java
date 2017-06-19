@@ -12,7 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
+import java.io.IOException;
+import javax.servlet.RequestDispatcher;
+import javax.sql.DataSource;
+
 import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -24,7 +27,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
@@ -32,14 +34,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
-
-import javax.servlet.RequestDispatcher;
-import javax.sql.DataSource;
-import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -106,25 +103,12 @@ public class BootstrapTests {
                             ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
                                             .toString());
             ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
-            assertTrue(users.retrieveAll().size() > 0);
+            assertNotNull(users.query("username eq \"paul\"").get(0));
+            assertNotNull(users.query("username eq \"stefan\"").get(0));
         } finally {
             System.clearProperty(configVariable);
         }
     }
-
-    @Test
-    public void testLdapProfile() throws Exception {
-        context = getServletContext("ldap,default", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        AuthenticationManager authenticationManager = null;
-        try {
-            authenticationManager = context.getBean("zoneAwareAuthzAuthenticationManager", AuthenticationManager.class);
-        } catch (NoSuchBeanDefinitionException e) {
-        }
-        assertNotNull(authenticationManager);
-        assertEquals(DynamicZoneAwareAuthenticationManager.class, authenticationManager.getClass());
-    }
-
-
     private ConfigurableApplicationContext getServletContext(String... resources) {
         String environmentConfigLocations = "required_configuration.yml,${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml";
         String profiles = null;

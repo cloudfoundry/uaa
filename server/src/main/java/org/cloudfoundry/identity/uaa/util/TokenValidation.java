@@ -22,17 +22,16 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.Assert;
 
@@ -50,6 +49,9 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptySet;
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
@@ -58,6 +60,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
 public class TokenValidation {
     private static final Log logger = LogFactory.getLog(TokenValidation.class);
@@ -171,21 +174,8 @@ public class TokenValidation {
         return checkExpiry(Instant.now());
     }
 
-    public TokenValidation checkUser(UaaUser user) {
-        return checkUser(uid -> {
-            if (!equals(uid, user.getId())) {
-                throw new InvalidTokenException("Token does not have expected user ID.");
-            }
-            return user;
-        });
-    }
-
-    public TokenValidation checkUser(UaaUserDatabase userDb) {
-        return checkUser(userDb::retrieveUserById);
-    }
-
-    private TokenValidation checkUser(Function<String, UaaUser> getUser) {
-        if(!decoded || !UaaTokenUtils.isUserToken(claims)) {
+    protected TokenValidation checkUser(Function<String, UaaUser> getUser) {
+        if(!decoded || !isUserToken(claims)) {
             addError("Token is not a user token.");
             return this;
         }
@@ -265,14 +255,45 @@ public class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkClient(ClientDetails client) {
-        return checkClient(cid -> {
-            if (!equals(cid, client.getClientId())) { throw new InvalidTokenException("Token's client ID does not match expected value: " + client.getClientId()); }
-            return client;
-        });
+    public TokenValidation checkClientAndUser(ClientDetails client, UaaUser user) {
+        TokenValidation validation =
+            checkClient(
+                cid -> {
+                    if (!equals(cid, client.getClientId())) {
+                        throw new InvalidTokenException("Token's client ID does not match expected value: " + client.getClientId());
+                    }
+                    return client;
+                });
+        if (isUserToken(claims)) {
+            return validation
+                .checkUser(uid -> {
+                    if (user == null) {
+                        throw new InvalidTokenException("Unable to validate user, no user found.");
+                    } else {
+                        if (!equals(uid, user.getId())) {
+                            throw new InvalidTokenException("Token does not have expected user ID.");
+                        }
+                        return user;
+                    }
+                })
+                .checkRequiredUserGroups(
+                    ofNullable((Collection<String>) client.getAdditionalInformation().get(REQUIRED_USER_GROUPS)).orElse(emptySet()),
+                    AuthorityUtils.authorityListToSet(user.getAuthorities())
+                );
+
+        } else {
+            return validation;
+        }
     }
 
-    public TokenValidation checkClient(ClientDetailsService clientDetailsService) {
+    protected TokenValidation checkRequiredUserGroups(Collection<String> requiredGroups, Collection<String> userGroups) {
+        if (!UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups)) {
+            addError("User does not meet the client's required group criteria.");
+        }
+        return this;
+    }
+
+    protected TokenValidation checkClient(Function<String, ClientDetails> getClient) {
         if(!decoded || !claims.containsKey(CID)) {
             addError("Token bears no client ID.");
             return this;
@@ -292,12 +313,12 @@ public class TokenValidation {
         }
 
         try {
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+            ClientDetails client = getClient.apply(clientId);
 
             Collection<String> clientScopes;
             if (null == claims.get(USER_ID)) {
                 // for client credentials tokens, we want to validate the client scopes
-                clientScopes = Optional.ofNullable(client.getAuthorities())
+                clientScopes = ofNullable(client.getAuthorities())
                     .map(a -> a.stream()
                         .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.toList()))

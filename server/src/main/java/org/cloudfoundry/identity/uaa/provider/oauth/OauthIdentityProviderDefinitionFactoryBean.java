@@ -25,6 +25,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.springframework.util.StringUtils.hasText;
 
 public class OauthIdentityProviderDefinitionFactoryBean {
@@ -33,7 +34,7 @@ public class OauthIdentityProviderDefinitionFactoryBean {
     public OauthIdentityProviderDefinitionFactoryBean(Map<String, Map> definitions) {
         if (definitions != null) {
             for (String alias : definitions.keySet()) {
-                Map idpDefinitionMap = definitions.get(alias);
+                Map<String, Object> idpDefinitionMap = definitions.get(alias);
                 try {
                     String type = (String) idpDefinitionMap.get("type");
                     if(OAUTH20.equalsIgnoreCase(type)) {
@@ -58,13 +59,14 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         }
     }
 
-    private void setCommonProperties(Map idpDefinitionMap, AbstractXOAuthIdentityProviderDefinition idpDefinition) {
+    protected void setCommonProperties(Map<String, Object> idpDefinitionMap, AbstractXOAuthIdentityProviderDefinition idpDefinition) {
         idpDefinition.setLinkText((String)idpDefinitionMap.get("linkText"));
         idpDefinition.setRelyingPartyId((String) idpDefinitionMap.get("relyingPartyId"));
         idpDefinition.setRelyingPartySecret((String) idpDefinitionMap.get("relyingPartySecret"));
         idpDefinition.setEmailDomain((List<String>) idpDefinitionMap.get("emailDomain"));
         idpDefinition.setShowLinkText(idpDefinitionMap.get("showLinkText") == null ? true : (boolean) idpDefinitionMap.get("showLinkText"));
         idpDefinition.setAddShadowUserOnLogin(idpDefinitionMap.get("addShadowUserOnLogin") == null ? true : (boolean) idpDefinitionMap.get("addShadowUserOnLogin"));
+        idpDefinition.setStoreCustomAttributes(idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME) == null ? true : (boolean) idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME));
         idpDefinition.setSkipSslValidation(idpDefinitionMap.get("skipSslValidation") == null ? false : (boolean) idpDefinitionMap.get("skipSslValidation"));
         idpDefinition.setTokenKey((String) idpDefinitionMap.get("tokenKey"));
         idpDefinition.setIssuer((String) idpDefinitionMap.get("issuer"));
@@ -74,10 +76,15 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         if (hasText(responseType)) {
             idpDefinition.setResponseType(responseType);
         }
+        String discoveryUrl = (String) idpDefinitionMap.get("discoveryUrl");
         try {
-            idpDefinition.setAuthUrl(new URL((String)idpDefinitionMap.get("authUrl")));
-            idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String)idpDefinitionMap.get("tokenKeyUrl")));
-            idpDefinition.setTokenUrl(new URL((String)idpDefinitionMap.get("tokenUrl")));
+            if (hasText(discoveryUrl) && idpDefinition instanceof OIDCIdentityProviderDefinition) {
+                ((OIDCIdentityProviderDefinition) idpDefinition).setDiscoveryUrl(new URL(discoveryUrl));
+            } else {
+                idpDefinition.setAuthUrl(new URL((String) idpDefinitionMap.get("authUrl")));
+                idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String) idpDefinitionMap.get("tokenKeyUrl")));
+                idpDefinition.setTokenUrl(new URL((String) idpDefinitionMap.get("tokenUrl")));
+            }
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL is malformed.", e);
         }

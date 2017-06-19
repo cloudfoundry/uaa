@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -67,6 +68,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     private PasswordValidator passwordValidator;
     private ResetPasswordService resetPasswordService;
     private ClientDetailsService clientDetailsService;
+    private ResourcePropertySource resourcePropertySource;
     Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
 
     @Before
@@ -75,7 +77,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         expiringCodeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
         clientDetailsService = mock(ClientDetailsService.class);
-        resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService);
+        resourcePropertySource = mock(ResourcePropertySource.class);
+        resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService, resourcePropertySource);
         PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService);
         controller.setCodeStore(expiringCodeStore);
         controller.setMessageConverters(new HttpMessageConverter[] { new ExceptionReportHttpMessageConverter() });

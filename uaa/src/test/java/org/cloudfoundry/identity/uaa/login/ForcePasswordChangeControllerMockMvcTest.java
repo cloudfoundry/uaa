@@ -15,8 +15,10 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -24,13 +26,16 @@ import javax.servlet.http.Cookie;
 import java.net.URLEncoder;
 import java.util.Date;
 
+import static org.mockito.Matchers.contains;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContextTest {
     private ScimUser user;
@@ -77,10 +82,48 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
     }
 
     @Test
+    public void testHandleChangePasswordForUserWithInvalidPassword() throws Exception {
+        forcePasswordChangeForUser();
+        MockHttpSession session = new MockHttpSession();
+        Cookie cookie = new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1");
+
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        UaaIdentityProviderDefinition currentConfig = ((UaaIdentityProviderDefinition) identityProvider.getConfig());
+        PasswordPolicy passwordPolicy = new PasswordPolicy(15,20,0,0,0,0,0);
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
+        try {
+            identityProviderProvisioning.update(identityProvider);
+
+            MockHttpServletRequestBuilder invalidPost = post("/login.do")
+                .param("username", user.getUserName())
+                .param("password", "secret")
+                .session(session)
+                .cookie(cookie)
+                .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1");
+            getMockMvc().perform(invalidPost)
+                .andExpect(status().isFound());
+
+            MockHttpServletRequestBuilder validPost = post("/force_password_change")
+                .param("password", "test")
+                .param("password_confirmation", "test")
+                .session(session)
+                .cookie(cookie)
+                .with(csrf());
+            getMockMvc().perform(validPost)
+                .andExpect(view().name("force_password_change"))
+                .andExpect(model().attribute("message", "Password must be at least 15 characters in length."))
+                .andExpect(model().attribute("email", user.getPrimaryEmail()));
+        } finally {
+            identityProvider.setConfig(currentConfig);
+            identityProviderProvisioning.update(identityProvider);
+        }
+    }
+
+    @Test
     public void testHandleChangePasswordForSystemWideChange() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition currentConfig = ((UaaIdentityProviderDefinition) identityProvider.getConfig());
-        PasswordPolicy passwordPolicy = new PasswordPolicy(6,20,1,1,1,0,0);
+        PasswordPolicy passwordPolicy = new PasswordPolicy(4,20,0,0,0,0,0);
         passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
         identityProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
 

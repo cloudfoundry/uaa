@@ -12,14 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.security.Security;
 import java.security.cert.CertificateException;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.Test;
+import static org.junit.Assert.assertNotNull;
 
 
 public class KeyWithCertTest {
+
+    @BeforeClass
+    public static void addProvider() throws Exception {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     public static final String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
             "MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3\n" +
             "AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU\n" +
@@ -101,14 +110,16 @@ public class KeyWithCertTest {
 
     @Test(expected = CertificateException.class)
     public void test_invalid_cert() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
         new KeyWithCert(key, password, cert);
 
     }
     @Test()
     public void test_valid_cert() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
         new KeyWithCert(encryptedKey, password, goodCert);
     }
 
+    @Test()
+    public void cert_only() throws Exception {
+        assertNotNull(new KeyWithCert(goodCert).getCert());
+    }
 }

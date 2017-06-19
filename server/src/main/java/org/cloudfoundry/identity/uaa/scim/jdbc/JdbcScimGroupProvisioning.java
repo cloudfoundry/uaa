@@ -82,14 +82,22 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=?", GROUP_TABLE);
 
     public static final String DELETE_GROUP_BY_ZONE = String.format("delete from %s where identity_zone_id=?", GROUP_TABLE);
+    //TODO
     public static final String DELETE_GROUP_MEMBERSHIP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?)", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
+    //TODO
     public static final String DELETE_EXTERNAL_GROUP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?)", EXTERNAL_GROUP_TABLE, GROUP_TABLE);
 
+    //TODO
     public static final String DELETE_ZONE_ADMIN_MEMBERSHIP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id=? and displayName like ?)", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
+    //TODO
     public static final String DELETE_ZONE_ADMIN_GROUPS_BY_ZONE = String.format("delete from %s where identity_zone_id=? and displayName like ?", GROUP_TABLE);
 
+    //TODO
     public static final String DELETE_GROUP_MEMBERSHIP_BY_PROVIDER = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?) and origin = ?", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
+    //TODO
     public static final String DELETE_EXTERNAL_GROUP_BY_PROVIDER = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?) and origin = ?", EXTERNAL_GROUP_TABLE, GROUP_TABLE);
+    //TODO
+    public static final String DELETE_MEMBER_SQL = String.format("delete from %s where member_id=? and member_id in (select id from users where id=? and identity_zone_id=?)",GROUP_MEMBERSHIP_TABLE);
 
     private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
@@ -271,6 +279,19 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_PROVIDER, zoneId, origin);
+    }
+
+    @Override
+    public int deleteByClient(String clientId, String zoneId) {
+        //no op - nothing to do here
+        return 0;
+    }
+
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        int result = jdbcTemplate.update(DELETE_MEMBER_SQL, userId, userId, zoneId);
+
+        return result;
     }
 
     protected void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {

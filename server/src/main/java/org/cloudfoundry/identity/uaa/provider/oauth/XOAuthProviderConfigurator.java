@@ -16,6 +16,8 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -33,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -41,6 +42,8 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
 public class XOAuthProviderConfigurator implements IdentityProviderProvisioning {
+
+    private static Log log = LogFactory.getLog(XOAuthProviderConfigurator.class);
 
     private final IdentityProviderProvisioning providerProvisioning;
     private final UrlContentCache contentCache;
@@ -134,15 +137,22 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
         final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
-        return ofNullable(providers).orElse(emptyList()).stream()
+        List<IdentityProvider> overlayedProviders = new ArrayList<>();
+        ofNullable(providers).orElse(emptyList()).stream()
             .filter(p -> types.contains(p.getType()))
-            .map(p -> {
+            .forEach(p -> {
                 if (p.getType().equals(OIDC10)) {
-                    p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
+                    try {
+                        OIDCIdentityProviderDefinition overlayedDefinition = overlay((OIDCIdentityProviderDefinition) p.getConfig());
+                        p.setConfig(overlayedDefinition);
+                    } catch (Exception e) {
+                        log.error("Identity provider excluded from login page due to a problem.", e);
+                        return;
+                    }
                 }
-                return p;
-            })
-            .collect(Collectors.toList());
+                overlayedProviders.add(p);
+            });
+        return overlayedProviders;
     }
 
     @Override

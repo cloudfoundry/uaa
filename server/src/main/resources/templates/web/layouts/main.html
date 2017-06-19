@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3"
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
@@ -37,13 +38,24 @@
     <div class="predix-uaa__content" layout:fragment="page-content"></div>
   </div>
   <div class="footer">
-      <div class="copyright"
-           th:with="links=${branding.getFooterLinks() ?: @environment.getProperty('login.branding.footerLinks', Class.forName('java.util.Map'))}"
-           th:inline="text"
-           th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
-           [[${copyright}]]
-           <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
+    <div class="copyright" th:with="links=${branding.getFooterLinks()}"
+      th:inline="text"
+      th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
+      [[${copyright}]]
+      <th:block th:each="link,iter : ${links}">
+        <th:block th:if="${!iter.first}"> &mdash;</th:block>
+        <a href="/" th:href="${link.value}">[[${link.key}]]</a>
+      </th:block>
+      <div
+        th:if="${#authentication instanceof T(org.cloudfoundry.identity.uaa.authentication.UaaAuthentication)} ">
+        <div th:if="${#authentication.lastLoginSuccessTime} != null">
+          Last login <span id="last_login_time"></span>
+          <script type="text/javascript">
+                     document.getElementById("last_login_time").innerHTML = new Date([[${#authentication.lastLoginSuccessTime}]]).toLocaleString();
+          </script>
+        </div>
       </div>
+    </div>
   </div>
 
   <th:block th:with="code=${@environment.getProperty('analytics.code')},domain=${@environment.getProperty('analytics.domain')}">

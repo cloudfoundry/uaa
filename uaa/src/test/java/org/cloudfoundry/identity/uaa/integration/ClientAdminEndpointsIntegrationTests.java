@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -45,8 +45,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
+import static java.util.stream.Collectors.toList;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -70,6 +72,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     private OAuth2AccessToken token;
     private HttpHeaders headers;
+    private List<Approval> approvalList;
 
     @Before
     public void setUp() throws Exception {
@@ -122,6 +125,7 @@ public class ClientAdminEndpointsIntegrationTests {
             clients[i] = detailsModification;
             clients[i].setClientSecret("secret");
             clients[i].setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+            clients[i].setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         }
         ResponseEntity<ClientDetailsModification[]> result =
             serverRunning.getRestTemplate().exchange(
@@ -192,6 +196,7 @@ public class ClientAdminEndpointsIntegrationTests {
             clients[i] = new BaseClientDetails(ids[i], "", "foo,bar",grantTypes, "uaa.none");
             clients[i].setClientSecret("secret");
             clients[i].setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+            clients[i].setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         }
         clients[clients.length-1].setClientId(ids[0]);
         ResponseEntity<UaaException> result =
@@ -221,7 +226,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void implicitGrantClientWithoutSecretIsOk() throws Exception {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-                        "implicit", "uaa.none");
+                        "implicit", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 
@@ -231,7 +236,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void passwordGrantClientWithoutSecretIsOk() throws Exception {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-                        "password", "uaa.none");
+                        "password", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 
@@ -525,13 +530,14 @@ public class ClientAdminEndpointsIntegrationTests {
         HttpHeaders headers = getAuthenticatedHeaders(token);
 
         ResponseEntity<Approval[]> approvals =
-            serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/approvals?filter={filter}"),
+            serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/approvals"),
                 HttpMethod.GET,
-                new HttpEntity<Object>(headers),
+                new HttpEntity<>(headers),
                 Approval[].class,
                 filter);
         assertEquals(HttpStatus.OK, approvals.getStatusCode());
-        return approvals.getBody();
+        approvalList = Arrays.asList(approvals.getBody()).stream().filter(a -> clientId.equals(a.getClientId())).collect(toList());
+        return approvalList.toArray(new Approval[0]);
     }
 
 
@@ -583,6 +589,7 @@ public class ClientAdminEndpointsIntegrationTests {
         ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
+        client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
@@ -598,6 +605,7 @@ public class ClientAdminEndpointsIntegrationTests {
         ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+        client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                 HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());

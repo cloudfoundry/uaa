@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,16 +12,24 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client.event;
 
-import java.security.Principal;
-
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-/**
- * @author Dave Syer
- */
-abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+public abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
+
+    private BaseClientDetails nonExistent = new BaseClientDetails("non-existent","","","","");
 
     private ClientDetails client;
 
@@ -36,6 +44,28 @@ abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
 
     Principal getPrincipal() {
         return getAuthentication();
+    }
+
+    abstract AuditEventType getAuditEventType();
+
+    @Override
+    public AuditEvent getAuditEvent() {
+        ClientDetails clientDetails = Optional.ofNullable(getClient()).orElse(nonExistent);
+        Map<String, Object> auditData = new HashMap();
+        auditData.put("scopes", clientDetails.getScope());
+        List<String> authorities =
+            clientDetails
+            .getAuthorities()
+            .stream()
+            .map(a -> a.getAuthority())
+            .collect(Collectors.toList());
+        auditData.put("authorities", authorities);
+        return createAuditRecord(
+            clientDetails.getClientId(),
+            getAuditEventType(),
+            getOrigin(getPrincipal()),
+            JsonUtils.writeValueAsString(auditData)
+        );
     }
 
 }

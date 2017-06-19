@@ -8,12 +8,12 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 
 public class IdentityZoneEndpointClientRegistrationService {
-    
+
     private final ClientRegistrationService clientRegistrationService;
     private final ClientDetailsService clientDetailsService;
     private final ClientDetailsValidator clientDetailsValidator;
     private final ApprovalStore approvalStore;
-    
+
 
     public IdentityZoneEndpointClientRegistrationService(ClientRegistrationService clientRegistrationService,
             ClientDetailsService clientDetailsService, ClientDetailsValidator clientDetailsValidator,
@@ -30,12 +30,12 @@ public class IdentityZoneEndpointClientRegistrationService {
         clientRegistrationService.addClientDetails(validated);
         return validated;
     }
-    
+
     public ClientDetails deleteClient(String clientId) {
         ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
         clientDetailsValidator.validate(clientDetails, Mode.DELETE);
         clientRegistrationService.removeClientDetails(clientId);
-        approvalStore.revokeApprovals(String.format("client_id eq \"%s\"", clientId));
+        approvalStore.revokeApprovalsForClient(clientId);
         return clientDetails;
     }
 }

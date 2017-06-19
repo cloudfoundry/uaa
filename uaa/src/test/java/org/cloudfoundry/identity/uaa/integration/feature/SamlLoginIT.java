@@ -307,7 +307,22 @@ public class SamlLoginIT {
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
     }
 
-    @Test  
+    @Test
+    public void testSimpleSamlPhpLoginDisplaysLastLogin() throws Exception {
+        Long beforeTest = System.currentTimeMillis();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+        login(provider);
+        logout();
+        login(provider);
+
+        assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
+        Long afterTest = System.currentTimeMillis();
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+    }
+
+    @Test
     public void testSingleLogout() throws Exception {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
 
@@ -325,6 +340,7 @@ public class SamlLoginIT {
         //Predix branded UAA does not have the elements referenced below on the home page...
         /*webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
+        logout();
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
 
@@ -1439,5 +1455,21 @@ public class SamlLoginIT {
             definition
         );
     }
+
+    private void logout() {
+        webDriver.get(baseUrl + "/logout.do");
+    }
+
+    private void login(IdentityProvider<SamlIdentityProviderDefinition> provider) {
+        webDriver.get(baseUrl + "/login");
+        Assert.assertEquals("Predix", webDriver.getTitle());
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+    }
+
 
 }

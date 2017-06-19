@@ -297,7 +297,6 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
-        code = new InMemoryExpiringCodeStore().extractCode(code);
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = getMockMvc().perform(
             post("/invitations/accept.do")

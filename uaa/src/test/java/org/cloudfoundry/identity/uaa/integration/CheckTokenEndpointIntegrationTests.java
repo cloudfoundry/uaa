@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -36,6 +38,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -59,32 +62,31 @@ public class CheckTokenEndpointIntegrationTests {
     public void testDecodeToken() throws Exception {
 
         // TODO Fix to use json API rather than HTML
-        HttpHeaders headers = new HttpHeaders();
         // TODO: should be able to handle just TEXT_HTML
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+        BasicCookieStore cookies = new BasicCookieStore();
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
                         .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
                         .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
-        ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
+        ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), getHeaders(cookies));
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
-        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
 
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
         // should be directed to the login screen...
@@ -99,17 +101,23 @@ public class CheckTokenEndpointIntegrationTests {
         formData.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         // Should be redirected to the original URL, but now authenticated
-        result = serverRunning.postForResponse("/login.do", headers, formData);
+        result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-                headers.add("Cookie", cookie);
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
             }
         }
 
-        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
+        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), getHeaders(cookies));
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+            }
+        }
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
@@ -117,7 +125,7 @@ public class CheckTokenEndpointIntegrationTests {
             formData.clear();
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             formData.add(USER_OAUTH_APPROVAL, "true");
-            result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
+            result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();
         }
@@ -144,6 +152,7 @@ public class CheckTokenEndpointIntegrationTests {
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
 
+        HttpHeaders headers = new HttpHeaders();
         formData = new LinkedMultiValueMap<String, String>();
         headers.set("Authorization",
                         testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
