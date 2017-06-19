@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Claims {
 
     @JsonProperty(ClaimConstants.USER_ID)
@@ -310,6 +312,22 @@ public class Claims {
         this.userAttributes = userAttributes;
     }
 
+    public boolean isRevocable() {
+        return revocable;
+    }
+
+    public void setRevocable(boolean revocable) {
+        this.revocable = revocable;
+    }
+
+    public Map<String,String> getExtAttr() {
+        return extAttr;
+    }
+
+    public void setExtAttr(Map<String,String> extAttr) {
+        this.extAttr = extAttr;
+    }
+
     public Long getPreviousLogonTime() {
         return previousLogonTime;
     }
@@ -326,19 +344,4 @@ public class Claims {
         this.amr = amr;
     }
 
-    public boolean isRevocable() {
-        return revocable;
-    }
-
-    public void setRevocable(boolean revocable) {
-        this.revocable = revocable;
-    }
-
-    public Map<String,String> getExtAttr() {
-        return extAttr;
-    }
-
-    public void setExtAttr(Map<String,String> extAttr) {
-        this.extAttr = extAttr;
-    }
 }
