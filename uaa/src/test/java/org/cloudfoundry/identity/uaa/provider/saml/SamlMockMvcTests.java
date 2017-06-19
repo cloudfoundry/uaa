@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.NonSnarlIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -36,7 +36,8 @@ import static org.junit.Assert.assertTrue;
 
 public class SamlMockMvcTests extends InjectedMockContextTest {
 
-    private NonSnarlMetadataManager manager;
+    private NonSnarlMetadataManager spManager;
+    private NonSnarlIdpMetadataManager idpManager;
     String entityID;
     private String entityAlias;
     private IdentityZoneProvisioning zoneProvisioning;
@@ -44,7 +45,8 @@ public class SamlMockMvcTests extends InjectedMockContextTest {
     @Before
     public void setup() throws Exception {
         zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
-        manager = getWebApplicationContext().getBean(NonSnarlMetadataManager.class);
+        spManager = getWebApplicationContext().getBean(NonSnarlMetadataManager.class);
+        idpManager = getWebApplicationContext().getBean(NonSnarlIdpMetadataManager.class);
         entityID = getWebApplicationContext().getBean("samlEntityID", String.class);
         entityAlias = getWebApplicationContext().getBean("samlSPAlias", String.class);
     }
@@ -57,14 +59,14 @@ public class SamlMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void sp_initialized_in_non_snarl_metadata_manager() throws Exception {
-        ExtendedMetadataDelegate localServiceProvider = manager.getLocalServiceProvider();
+        ExtendedMetadataDelegate localServiceProvider = spManager.getLocalServiceProvider();
         assertNotNull(localServiceProvider);
         MetadataProvider provider = localServiceProvider.getDelegate();
         assertNotNull(provider);
         assertTrue(provider instanceof MetadataMemoryProvider);
-        String providerSpAlias = manager.getProviderSpAlias(localServiceProvider);
+        String providerSpAlias = spManager.getProviderSpAlias(localServiceProvider);
         assertEquals(entityAlias, providerSpAlias);
-        assertEquals(entityID, manager.getEntityIdForAlias(providerSpAlias));
+        assertEquals(entityID, spManager.getEntityIdForAlias(providerSpAlias));
     }
 
     @Test
@@ -77,21 +79,21 @@ public class SamlMockMvcTests extends InjectedMockContextTest {
             .setName(subdomain);
         zone = zoneProvisioning.create(zone);
         IdentityZoneHolder.set(zone);
-        ExtendedMetadataDelegate localServiceProvider = manager.getLocalServiceProvider();
+        ExtendedMetadataDelegate localServiceProvider = spManager.getLocalServiceProvider();
         assertNotNull(localServiceProvider);
         MetadataProvider provider = localServiceProvider.getDelegate();
         assertNotNull(provider);
         assertTrue(provider instanceof MetadataMemoryProvider);
-        String providerSpAlias = manager.getProviderSpAlias(localServiceProvider);
-        assertEquals(subdomain+"."+entityAlias, providerSpAlias);
-        assertEquals(addSubdomainToEntityId(entityID, subdomain), manager.getEntityIdForAlias(providerSpAlias));
+        String providerSpAlias = spManager.getProviderSpAlias(localServiceProvider);
+        assertEquals(subdomain + "." + entityAlias, providerSpAlias);
+        assertEquals(addSubdomainToEntityId(entityID, subdomain), spManager.getEntityIdForAlias(providerSpAlias));
     }
 
     public String addSubdomainToEntityId(String entityId, String subdomain) {
         if (UaaUrlUtils.isUrl(entityId)) {
             return UaaUrlUtils.addSubdomainToUrl(entityId, subdomain);
         } else {
-            return subdomain +"."+ entityId;
+            return subdomain + "." + entityId;
         }
     }
 

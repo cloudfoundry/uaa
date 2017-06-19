@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -34,11 +33,11 @@ import java.util.Date;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsBoolean;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsDate;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsInt;
@@ -131,10 +130,10 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = SAML;
                 if (StringUtils.hasText(getOriginKey())) {
-                    ((SamlIdentityProviderDefinition)config).setIdpEntityAlias(getOriginKey());
+                    ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(getOriginKey());
                 }
                 if (StringUtils.hasText(getIdentityZoneId())) {
-                    ((SamlIdentityProviderDefinition)config).setZoneId(getIdentityZoneId());
+                    ((SamlIdentityProviderDefinition) config).setZoneId(getIdentityZoneId());
                 }
             } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = UAA;
@@ -162,8 +161,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
     public IdentityProvider setOriginKey(String originKey) {
         this.originKey = originKey;
-        if (config!=null && config instanceof SamlIdentityProviderDefinition) {
-            ((SamlIdentityProviderDefinition)config).setIdpEntityAlias(originKey);
+        if (config != null && config instanceof SamlIdentityProviderDefinition) {
+            ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(originKey);
         }
 
         return this;
@@ -193,8 +192,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
     public IdentityProvider setIdentityZoneId(String identityZoneId) {
         this.identityZoneId = identityZoneId;
-        if (config!=null && config instanceof SamlIdentityProviderDefinition) {
-            ((SamlIdentityProviderDefinition)config).setZoneId(identityZoneId);
+        if (config != null && config instanceof SamlIdentityProviderDefinition) {
+            ((SamlIdentityProviderDefinition) config).setZoneId(identityZoneId);
         }
         return this;
     }
@@ -293,7 +292,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             gen.writeStartObject();
             gen.writeStringField(FIELD_TYPE, value.getType());
 
-            if(value.isSerializeConfigRaw()) {
+            if (value.isSerializeConfigRaw()) {
                 gen.writeObjectField(FIELD_CONFIG, value.getConfig());
             } else {
                 gen.writeStringField(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
@@ -310,13 +309,14 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         }
 
         public void writeDateField(String fieldName, Date value, JsonGenerator gen) throws IOException {
-            if (value!=null) {
+            if (value != null) {
                 gen.writeNumberField(fieldName, value.getTime());
             } else {
                 gen.writeNullField(fieldName);
             }
         }
     }
+
     public static class IdentityProviderDeserializer extends JsonDeserializer<IdentityProvider> {
         @Override
         public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
@@ -361,7 +361,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                 }
             }
             result.setConfig(definition);
-
+            result.setType(type);
             result.setId(getNodeAsString(node, FIELD_ID, null));
             result.setOriginKey(getNodeAsString(node, FIELD_ORIGIN_KEY, null));
             result.setName(getNodeAsString(node, FIELD_NAME, null));

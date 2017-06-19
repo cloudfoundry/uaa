@@ -44,10 +44,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
@@ -58,6 +55,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     private String clientAdminToken;
 
     private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client. To support secret rotation this can be space delimited string of two secrets.");
+    private static final FieldDescriptor actionField = fieldWithPath("action").constrained("Always required.").description("Set to `secret` to change client secret, `delete` to delete the client or `add` to add the client");
     private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`");
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id.");
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
@@ -68,11 +66,11 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     private static final FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
         fieldWithPath("client_id").required().description(clientIdDescription),
         fieldWithPath("authorized_grant_types").required().description("List of grant types that can be used to obtain a token with this client. Can include `authorization_code`, `password`, `implicit`, and/or `client_credentials`."),
+        fieldWithPath("redirect_uri").required().type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. Null/Empty value is forbidden."),
         fieldWithPath("scope").optional("uaa.none").type(ARRAY).description("Scopes allowed for the client"),
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
-        fieldWithPath("autoapprove").optional(Collections.emptySet()).type(ARRAY).description("Scopes that do not require user approval"),
-        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. A null value (not recommended) matches any uri."),
+        fieldWithPath("autoapprove").optional(Collections.emptySet()).type(Arrays.asList(BOOLEAN, ARRAY)).description("Scopes that do not require user approval"),
         fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
         fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
         fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
@@ -80,6 +78,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         fieldWithPath(ClientConstants.TOKEN_SALT).optional(null).type(STRING).description("A random string used to generate the client's revokation key. Change this value to revoke all active tokens for the client"),
         fieldWithPath(ClientConstants.CREATED_WITH).optional(null).type(STRING).description("What scope the bearer token had when client was created"),
         fieldWithPath(ClientConstants.APPROVALS_DELETED).optional(null).type(BOOLEAN).description("Were the approvals deleted for the client, and an audit event sent"),
+        fieldWithPath(ClientConstants.REQUIRED_USER_GROUPS).optional(null).type(ARRAY).description("A list of group names. If a user doesn't belong to all the required groups no tokens will be issued to this client for that user, regardless what scopes are being requested."),
     };
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
@@ -207,6 +206,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         updatedClientDetails.setScope(Arrays.asList("clients.new", "clients.autoapprove"));
         updatedClientDetails.setAutoApproveScopes(Arrays.asList("clients.autoapprove"));
         updatedClientDetails.setAuthorizedGrantTypes(createdClientDetails.getAuthorizedGrantTypes());
+        updatedClientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
 
         ResultActions resultActions = getMockMvc().perform(put("/oauth/clients/{client_id}", createdClientDetails.getClientId())
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -310,9 +310,18 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
             fieldsNoSecret,
             subFields("[]", clientSecretField)
         );
+        FieldDescriptor[] fieldsWithSecretAndAction = (FieldDescriptor[]) ArrayUtils.addAll(
+            fieldsWithSecret,
+            subFields("[]", actionField)
+        );
+
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(
             fieldsNoSecret,
             subFields("[]", lastModifiedField)
+        ));
+        Snippet responseFieldsWithAction = responseFields((FieldDescriptor[]) ArrayUtils.addAll(
+            fieldsNoSecret,
+            subFields("[]", lastModifiedField, actionField)
         ));
         createResultActions
             .andExpect(status().isCreated())
@@ -415,22 +424,16 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         modifyResultActions
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/modifyClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(authorizationHeader, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER),
-                    requestFields(
-                        fieldWithPath("[]").required().description("Modification objects which will each be processed."),
-                        fieldWithPath("[].client_id").required().description(clientIdDescription),
-                        fieldWithPath("[].action").required().description("Can be any of `add` to create a client, `delete` to delete a client, `update` to alter non-secret client information, `secret` to change the client secret, `update_secret` to alter all client information including the client_secret. For the fields needed to perform any of these actions, see the appropriate endpoint documentation.")
-                    ),
-                    responseFields((FieldDescriptor[]) ArrayUtils.addAll(
-                        fieldsNoSecret,
-                        subFields("[]",
-                            lastModifiedField,
-                            fieldWithPath("approvals_deleted").description("Indicates whether the approvals associated with the client were deleted as a result of this action"),
-                            fieldWithPath("action").description("The action that was specified and taken on the client")
-                        )
-                    ))
+                requestHeaders(
+                    authorizationHeader,
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                requestFields(fieldsWithSecretAndAction),
+                responseFieldsWithAction
                 )
             );
+
 
         //DELETE
 
@@ -472,7 +475,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
 
     private Map<String, Object> additionalInfo() {
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http*://ant.path.wildcard/**/passback/*"));
+        additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http://ant.path.wildcard/**/passback/*"));
         additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, "my-saml-provider"));
         additionalInformation.put(ClientConstants.CLIENT_NAME, "My Client Name");
         additionalInformation.put(ClientConstants.AUTO_APPROVE, true);

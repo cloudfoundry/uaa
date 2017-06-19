@@ -26,7 +26,11 @@ import javax.servlet.FilterChain;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertNotNull;
+<<<<<<< HEAD
 import static org.mockito.Matchers.any;
+=======
+import static org.mockito.ArgumentMatchers.any;
+>>>>>>> upstream/master
 
 public class HeaderFilterTest {
     @Test

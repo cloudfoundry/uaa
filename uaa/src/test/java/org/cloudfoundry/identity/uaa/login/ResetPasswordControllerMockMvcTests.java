@@ -183,9 +183,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
 
-        String renderedCode = findInRenderedPage(content, "\\<input type=\\\"hidden\\\" name=\\\"code\\\" value=\\\"(.*?)\\\" \\/\\>");
+        String renderedCode = findInRenderedPage(content, "\\<input type=\\\"hidden\\\" name=\\\"code\\\" value=\\\"(.*?)\\\"\\/\\>");
 
-        String renderedEmail = findInRenderedPage(content, "\\<input type=\\\"hidden\\\" name=\\\"email\\\" value=\\\"(.*?)\\\" \\/\\>");
+        String renderedEmail = findInRenderedPage(content, "\\<input type=\\\"hidden\\\" name=\\\"email\\\" value=\\\"(.*?)\\\"\\/\\>");
         assertEquals(renderedEmail, user.getPrimaryEmail());
 
 

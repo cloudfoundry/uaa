@@ -6,6 +6,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ExternalIdentityProviderDefinitionTest {
 
@@ -30,13 +31,13 @@ public class ExternalIdentityProviderDefinitionTest {
 
     @Test
     public void testDefaultValueForStoreCustomAttributes() {
-        assertFalse(definition.isStoreCustomAttributes());
+        assertTrue(definition.isStoreCustomAttributes());
     }
 
     @Test
     public void testEquals2() {
         ExternalIdentityProviderDefinition def = new ExternalIdentityProviderDefinition();
-        def.setStoreCustomAttributes(true);
+        def.setStoreCustomAttributes(false);
         assertFalse(definition.equals(def));
     }
 }

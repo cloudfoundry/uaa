@@ -164,5 +164,22 @@ public class InjectedMockContextTest implements Contextable {
             OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
             return oauthToken.accessToken;
         }
+
+        public String getUserOAuthAccessTokenForZone(String clientId, String clientSecret, String username, String password, String scope, String subdomain) throws Exception {
+            String basicDigestHeaderValue = "Basic "
+                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+            MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+                .header("Authorization", basicDigestHeaderValue)
+                .param("grant_type", "password")
+                .param("client_id", clientId)
+                .param("username", username)
+                .param("password", password)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.JWT.getStringValue())
+                .param("scope", scope);
+            oauthTokenPost.header("Host", subdomain+".localhost");
+            MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+            OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
+            return oauthToken.accessToken;
+        }
     }
 }

@@ -14,7 +14,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -32,19 +33,18 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
@@ -54,11 +54,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -66,8 +68,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class ClientAdminEndpointsTests {
 
@@ -96,6 +100,8 @@ public class ClientAdminEndpointsTests {
 
     private ClientAdminEndpointsValidator clientDetailsValidator = null;
 
+    private static final Set<String> SINGLE_REDIRECT_URL = Collections.singleton("http://redirect.url");
+
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
@@ -116,13 +122,13 @@ public class ClientAdminEndpointsTests {
 
     @Before
     public void setUp() throws Exception {
-        endpoints = new ClientAdminEndpoints();
+        endpoints = spy(new ClientAdminEndpoints());
 
         clientDetailsService = Mockito.mock(NoOpClientDetailsResourceManager.class);
         when(clientDetailsService.create(any(ClientDetails.class))).thenCallRealMethod();
         clientDetailsResourceMonitor = Mockito.mock(ResourceMonitor.class);
         securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
-        clientRegistrationService = Mockito.mock(ClientServicesExtension.class);
+        clientRegistrationService = Mockito.mock(ClientServicesExtension.class, withSettings().extraInterfaces(SystemDeletable.class));
         authenticationManager = Mockito.mock(AuthenticationManager.class);
         approvalStore = mock(ApprovalStore.class);
         clientDetailsValidator = new ClientAdminEndpointsValidator();
@@ -154,6 +160,7 @@ public class ClientAdminEndpointsTests {
         input.setClientId("foo");
         input.setClientSecret("secret");
         input.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
+        input.setRegisteredRedirectUri(SINGLE_REDIRECT_URL);
 
         for (int i=0; i<inputs.length; i++) {
             inputs[i] = new ClientDetailsModification();
@@ -180,7 +187,19 @@ public class ClientAdminEndpointsTests {
             details[i].setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         }
 
-
+        endpoints.setApplicationEventPublisher(
+            new ApplicationEventPublisher() {
+                @Override
+                public void publishEvent(ApplicationEvent event) {
+                    if (event instanceof EntityDeletedEvent) {
+                        ClientDetails client = (ClientDetails)((EntityDeletedEvent)event).getDeleted();
+                        clientRegistrationService.removeClientDetails(client.getClientId());
+                    }
+                }
+                @Override
+                public void publishEvent(Object event) {}
+            }
+        );
         endpoints.afterPropertiesSet();
     }
 
@@ -481,6 +500,7 @@ public class ClientAdminEndpointsTests {
         input.setScope(Arrays.asList("foo.write"));
         updated.setScope(input.getScope());
         updated.setClientSecret(null);
+        updated.setRegisteredRedirectUri(SINGLE_REDIRECT_URL);
         ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
         assertNull(result.getClientSecret());
         verify(clientRegistrationService).updateClientDetails(updated);
@@ -686,7 +706,14 @@ public class ClientAdminEndpointsTests {
         Mockito.when(clientDetailsService.retrieve("foo")).thenReturn(detail);
         ClientDetails result = endpoints.removeClientDetails("foo");
         assertNull(result.getClientSecret());
+        ArgumentCaptor<EntityDeletedEvent> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+        verify(endpoints).publish(captor.capture());
         verify(clientRegistrationService).removeClientDetails("foo");
+        assertNotNull(captor.getValue());
+        Object deleted = captor.getValue().getDeleted();
+        assertNotNull(deleted);
+        assertTrue(deleted instanceof ClientDetails);
+        assertEquals("foo", ((ClientDetails)deleted).getClientId());
     }
 
     @Test(expected = InvalidClientDetailsException.class)

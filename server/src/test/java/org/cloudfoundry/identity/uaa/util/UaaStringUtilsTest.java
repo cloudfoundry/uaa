@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,6 +17,7 @@ import java.util.regex.Pattern;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -40,6 +45,33 @@ public class UaaStringUtilsTest {
         map.put("submap", submap);
     }
 
+    @After
+    public void clear() {
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void non_null() throws Exception {
+        assertNull(UaaStringUtils.nonNull(null));
+        assertEquals("1", UaaStringUtils.nonNull("1"));
+        assertEquals("1", UaaStringUtils.nonNull(null,"1"));
+        assertEquals("1", UaaStringUtils.nonNull(null,null,"1"));
+        assertEquals("1", UaaStringUtils.nonNull(null,null, "1", "2"));
+        assertEquals("2", UaaStringUtils.nonNull(null,null, null, "2"));
+    }
+    @Test
+    public void replace_zone_variables() throws Exception {
+        test_replace_zone_variables(IdentityZone.getUaa());
+        IdentityZone zone = MultitenancyFixture.identityZone("otherId", "otherDomain");
+        test_replace_zone_variables(zone);
+    }
+
+    public void test_replace_zone_variables(IdentityZone zone) throws Exception {
+        String s = "https://{zone.subdomain}.domain.com/z/{zone.id}?id={zone.id}&domain={zone.subdomain}";
+        String expect = String.format("https://%s.domain.com/z/%s?id=%s&domain=%s", zone.getSubdomain(), zone.getId(), zone.getId(), zone.getSubdomain());
+        assertEquals(expect, UaaStringUtils.replaceZoneVariables(s, zone));
+    }
+
     @Test
     public void testCamelToUnderscore() throws Exception {
         assertEquals("test_camel_case", UaaStringUtils.camelToUnderscore("testCamelCase"));
@@ -63,15 +95,6 @@ public class UaaStringUtilsTest {
         checkPasswords(new HashMap(presult));
     }
 
-    @Test
-    public void testHideConfigValues() throws Exception {
-        Map<String,?> result = UaaStringUtils.redactValues(map);
-        checkRedacted(result);
-
-        Map presult = UaaStringUtils.redactValues(new HashMap(properties));
-        checkRedacted(presult);
-    }
-
     private void checkPasswords(Map<String,?> map) {
         for (String key : map.keySet()) {
             Object value = map.get(key);
@@ -79,17 +102,6 @@ public class UaaStringUtilsTest {
                 assertEquals("#", (String)value);
             } else if (value instanceof Map) {
                 checkPasswords((Map)value);
-            }
-        }
-    }
-
-    private void checkRedacted(Map<String,?> map) {
-        for (String key : map.keySet()) {
-            Object value = map.get(key);
-            if (value instanceof Map) {
-                checkRedacted((Map)value);
-            } else  {
-                assertEquals("<redacted>", value);
             }
         }
     }

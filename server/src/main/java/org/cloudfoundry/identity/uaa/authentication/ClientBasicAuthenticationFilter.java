@@ -12,20 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import java.io.IOException;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
-import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy.Result;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 
 /**
@@ -34,8 +31,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
  * to authenticate is locked out.
  */
 public class ClientBasicAuthenticationFilter extends BasicAuthenticationFilter {
-
-    protected LoginPolicy loginPolicy;
 
     public ClientBasicAuthenticationFilter(AuthenticationManager authenticationManager,
             AuthenticationEntryPoint authenticationEntryPoint) {
@@ -56,25 +51,12 @@ public class ClientBasicAuthenticationFilter extends BasicAuthenticationFilter {
 
             String[] decodedHeader = extractAndDecodeHeader(header, request);
             String clientId = decodedHeader[0];
-            Result policyResult = loginPolicy.isAllowed(clientId);
-            if(!policyResult.isAllowed()){
-                throw new ClientLockoutException("Client " + clientId + " has "
-                        + policyResult.getFailureCount() + " failed authentications within the last checking period.");
-            }
         } catch(BadCredentialsException e) {
             super.getAuthenticationEntryPoint().commence(request, response, e);
             return;
         }
         //call parent class to authenticate
         super.doFilterInternal(request, response, chain);
-    }
-
-    public LoginPolicy getLoginPolicy() {
-        return loginPolicy;
-    }
-
-    public void setLoginPolicy(LoginPolicy loginPolicy) {
-        this.loginPolicy = loginPolicy;
     }
 
     private String[] extractAndDecodeHeader(String header, HttpServletRequest request)

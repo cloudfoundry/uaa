@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -48,7 +47,6 @@ public class ProfileController {
     private final ApprovalsService approvalsService;
     private final ClientDetailsService clientDetailsService;
 
-    @Autowired
     public ProfileController(ApprovalsService approvalsService,
                              ClientDetailsService clientDetailsService) {
         this.approvalsService = approvalsService;
@@ -121,7 +119,6 @@ public class ProfileController {
         logger.debug("Unable to find client for approvals:"+nsce.getMessage());
         return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
     }
-
 
     private boolean isUaaManagedUser(Authentication authentication) {
         if (authentication.getPrincipal() instanceof UaaPrincipal) {

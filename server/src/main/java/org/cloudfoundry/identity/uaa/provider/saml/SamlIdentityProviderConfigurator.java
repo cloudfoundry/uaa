@@ -105,10 +105,9 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     /**
      * adds or replaces a SAML identity proviider
      * @param providerDefinition - the provider to be added
-     * @return an array consisting of {provider-added, provider-deleted} where provider-deleted may be null
      * @throws MetadataProviderException if the system fails to fetch meta data for this provider
      */
-    public synchronized ExtendedMetadataDelegate[] addSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
+    public synchronized void validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
         ExtendedMetadataDelegate added, deleted=null;
         if (providerDefinition==null) {
             throw new NullPointerException();
@@ -140,8 +139,6 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         if (entityIDexists) {
             throw new MetadataProviderException("Duplicate entity ID:"+entityIDToBeAdded);
         }
-
-        return new ExtendedMetadataDelegate[] {added, deleted};
     }
 
     public synchronized ExtendedMetadataDelegate removeIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) {

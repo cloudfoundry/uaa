@@ -45,7 +45,8 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
         ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
 
-        ExpiringCode duplicate = store.putIfAbsent(zonifyCode(code), expiringCode);
+        ExpiringCode duplicate = store.putIfAbsent(code + IdentityZoneHolder.get().getId(), expiringCode);
+
         if (duplicate != null) {
             throw new DataIntegrityViolationException("Duplicate code: " + code);
         }
@@ -59,7 +60,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
             throw new NullPointerException();
         }
 
-        ExpiringCode expiringCode = store.remove(zonifyCode(code));
+        ExpiringCode expiringCode = store.remove(code + IdentityZoneHolder.get().getId());
 
         if (expiringCode == null || isExpired(expiringCode)) {
             expiringCode = null;
@@ -80,8 +81,8 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     @Override
     public void expireByIntent(String intent) {
         Assert.hasText(intent);
-        String id = IdentityZoneHolder.get().getId();
-        store.entrySet().stream().filter(c -> c.getKey().contains(id) && intent.equals(c.getValue().getIntent())).forEach(c -> store.remove(c.getKey()));
+
+        store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + IdentityZoneHolder.get().getId()));
     }
 
     public InMemoryExpiringCodeStore setTimeService(TimeService timeService) {

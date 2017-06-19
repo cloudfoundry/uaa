@@ -13,21 +13,18 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
-import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.EMPTY_MAP;
 import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
@@ -36,7 +33,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
     private String homeRedirect = null;
-    private Map<String,String> selfServiceLinks;
+    private Map<String,Object> selfServiceLinks;
     private List<String> logoutRedirectWhitelist;
     private String logoutRedirectParameterName;
     private String logoutDefaultRedirectUrl;
@@ -46,6 +43,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpPrivateKey;
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
+
+    private Map<String, Map<String, String>> samlKeys;
+    private String activeKeyId;
+
     private boolean idpDiscoveryEnabled = false;
 
     private boolean accountChooserEnabled;
@@ -74,9 +75,16 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
 
+        samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
+        for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
+            SamlKey samlKey = new SamlKey(entry.getValue().get("key"), entry.getValue().get("passphrase"), entry.getValue().get("certificate"));
+            definition.getSamlConfig().addKey(entry.getKey(), samlKey);
+        }
+        definition.getSamlConfig().setActiveKeyId(this.activeKeyId);
+
         if (selfServiceLinks!=null) {
-            String signup = selfServiceLinks.get("signup");
-            String passwd = selfServiceLinks.get("passwd");
+            String signup = (String)selfServiceLinks.get("signup");
+            String passwd = (String)selfServiceLinks.get("passwd");
             if (hasText(signup)) {
                 definition.getLinks().getSelfService().setSignup(signup);
             }
@@ -108,6 +116,15 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     }
 
 
+    public IdentityZoneConfigurationBootstrap setSamlKeys(Map<String, Map<String, String>> samlKeys) {
+        this.samlKeys = samlKeys;
+        return this;
+    }
+
+    public IdentityZoneConfigurationBootstrap setActiveKeyId(String activeKeyId) {
+        this.activeKeyId = activeKeyId;
+        return this;
+    }
 
     public void setTokenPolicy(TokenPolicy tokenPolicy) {
         this.tokenPolicy = tokenPolicy;
@@ -118,14 +135,14 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     }
 
     public void setHomeRedirect(String homeRedirect) {
-        if ("null".equals(homeRedirect)) {
-            this.homeRedirect = null;
-        } else {
-            this.homeRedirect = homeRedirect;
-        }
+        this.homeRedirect = homeRedirect;
     }
 
-    public void setSelfServiceLinks(Map<String, String> links) {
+    public String getHomeRedirect() {
+        return homeRedirect;
+    }
+
+    public void setSelfServiceLinks(Map<String, Object> links) {
         this.selfServiceLinks = links;
     }
 

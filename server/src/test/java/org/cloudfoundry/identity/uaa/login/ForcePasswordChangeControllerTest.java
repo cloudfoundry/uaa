@@ -4,10 +4,10 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.context.ContextConfiguration;
@@ -27,11 +27,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = ThymeleafConfig.class)
+@ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
 
     private MockMvc mockMvc;
     private ResetPasswordService resetPasswordService;
+    private ResourcePropertySource resourcePropertySource;
     private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
 
     @Before
@@ -39,6 +40,8 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
         ForcePasswordChangeController controller = new ForcePasswordChangeController();
         resetPasswordService = mock(ResetPasswordService.class);
         controller.setResetPasswordService(resetPasswordService);
+        resourcePropertySource = mock(ResourcePropertySource.class);
+        controller.setResourcePropertySource(resourcePropertySource);
         successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
         controller.setSuccessHandler(successHandler);
         mockMvc = MockMvcBuilders
@@ -66,7 +69,6 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
         session.setAttribute(FORCE_PASSWORD_EXPIRED_USER, auth);
         return session;
     }
-
 
     @Test
     public void testRedirectToLogInIfPasswordIsNotExpired() throws Exception {
@@ -118,6 +120,7 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
     @Test
     public void testPasswordAndConfirmAreDifferent() throws Exception {
         MockHttpSession session = getMockHttpSessionWithUser();
+        when(resourcePropertySource.getProperty("force_password_change.form_error")).thenReturn("Passwords must match and not be empty.");
         mockMvc.perform(
             post("/force_password_change")
                 .session(session)

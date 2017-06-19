@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.scim.util;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
@@ -14,6 +17,9 @@ import java.net.URL;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
+
+import static org.springframework.util.StringUtils.hasText;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -92,5 +98,23 @@ public final class ScimUtils {
             logger.error(String.format("Unexpected error creating user verification URL from %s", url), mfue);
         }
         throw new IllegalStateException();
+    }
+
+    public static void validate(final ScimUser user) throws InvalidScimResourceException {
+        Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
+        if (!hasText(user.getUserName())) {
+            throw new InvalidScimResourceException("A username must be provided.");
+        }
+        if (OriginKeys.UAA.equals(user.getOrigin()) && !usernamePattern.matcher(user.getUserName()).matches()) {
+            throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
+        }
+        if (user.getEmails() == null || user.getEmails().size() != 1) {
+            throw new InvalidScimResourceException("Exactly one email must be provided.");
+        }
+        for (ScimUser.Email email : user.getEmails()) {
+            if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
+                throw new InvalidScimResourceException("An email must be provided.");
+            }
+        }
     }
 }

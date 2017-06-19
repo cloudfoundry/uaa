@@ -18,36 +18,46 @@ import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
+import java.lang.reflect.Method;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
+import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.INSERT_BARE_BONE_USER;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -56,6 +66,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
     private UaaTestAccounts testAccounts = null;
 
     private JdbcApprovalStore dao;
@@ -66,20 +80,20 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
     private ApprovalsAdminEndpoints endpoints;
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+    private Random random = new Random(System.currentTimeMillis());
 
     @Before
     public void initApprovalsAdminEndpointsTests() {
         testAccounts = UaaTestAccounts.standard(null);
-        String userId = testAccounts.getUserWithRandomID().getId();
-        userDao = new MockUaaUserDatabase(u -> u.withId(userId).withUsername(testAccounts.getUserName()).withEmail("marissa@test.com").withGivenName("Marissa").withFamilyName("Bloggs"));
+        String userId = testAccounts.addRandomUser(jdbcTemplate);
+
+        userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl());
+
         jdbcTemplate = new JdbcTemplate(dataSource);
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);
 
-        dao = new JdbcApprovalStore(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-                        new SimpleSearchQueryConverter());
+        dao = new JdbcApprovalStore(jdbcTemplate);
         endpoints = new ApprovalsAdminEndpoints();
         endpoints.setApprovalStore(dao);
         endpoints.setUaaUserDatabase(userDao);
@@ -93,6 +107,8 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
         endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getUsername(), marissa.getId()));
     }
+
+
 
     private void addApproval(String userName, String clientId, String scope, int expiresIn, ApprovalStatus status) {
         dao.addApproval(new Approval()
@@ -132,7 +148,6 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         exception.expectMessage("No client with requested id: invalid_id");
         endpoints.updateClientApprovals("invalid_id", new Approval[0]);
     }
-
 
     @Test
     public void canGetApprovals() {
@@ -340,4 +355,126 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         assertEquals("ok", endpoints.revokeApprovals("c1").getStatus());
         assertEquals(0, endpoints.getApprovals("user_id pr", 1, 100).size());
     }
+
+    @Test
+    @Ignore("Running locally only, to determine if the solution was feasible.")
+    public void performance_is_acceptable() throws Exception {
+        int max = 200000;
+        rebuildIndices();
+        int delta = 20;
+        for (int i = 0; i<delta; i++) {
+            int count = (max / delta);
+            int start = i*count;
+            doWithTiming("addUsers", start, count);
+            doWithTiming("addApprovals", start, start+count, 5);
+        }
+
+        assertThat(doWithTiming("getApprovalsCount", "user_id eq \"user-1000\""), lessThan(5d) );
+        assertThat(doWithTiming("getApprovalsCount", "client_id eq \"c1\""), lessThan(5d) );
+        dao.setHandleRevocationsAsExpiry(true);
+        assertThat(doWithTiming("revokeApprovalsCount", "user_id eq \"user-1000\""), lessThan(5d) );
+        assertThat(doWithTiming("revokeApprovalsCount", "client_id eq \"c1\""), lessThan(5d) );
+        dao.setHandleRevocationsAsExpiry(false);
+        assertThat(doWithTiming("revokeApprovalsCount", "user_id eq \"user-1001\""), lessThan(5d) );
+        assertThat(doWithTiming("revokeApprovalsCount", "client_id eq \"c2\""), lessThan(5d) );
+    }
+
+    public void revokeApprovalsCountForUser(String userId) {
+        assertTrue(dao.revokeApprovalsForClient(userId));
+    }
+
+    public void revokeApprovalsCountForClient(String clientId) {
+        assertTrue(dao.revokeApprovalsForClient(clientId));
+    }
+
+    public void revokeApprovalsCountForClientAndUser(String clientId, String userId) {
+        assertTrue(dao.revokeApprovalsForClientAndUser(clientId, userId));
+    }
+
+    public int getApprovalsCountForUser(String userId) {
+        return dao.getApprovalsForUser(userId).size();
+    }
+
+    public int getApprovalsCountForClient(String clientId) {
+        return dao.getApprovalsForClient(clientId).size();
+    }
+
+    public int getApprovalsCount(String clientId, String userId) {
+        return dao.getApprovals(userId, clientId).size();
+    }
+
+    public void rebuildIndices() {
+        sqlNoError("OPTIMIZE TABLE users");
+        sqlNoError("OPTIMIZE TABLE authz_approvals");
+        sqlNoError("REINDEX TABLE users");
+        sqlNoError("REINDEX TABLE authz_approvals");
+        sqlNoError("DBCC DBREINDEX ('users')");
+        sqlNoError("DBCC DBREINDEX ('authz_approvals')");
+    }
+
+    public void sqlNoError(String sql) {
+        try {
+            jdbcTemplate.update(sql);
+            System.err.println("Succeeded: "+sql);
+        } catch (Exception e) {
+            System.err.println("Failed: "+sql);
+        }
+    }
+
+
+    public double doWithTiming(String methodName, Object... args) throws Exception {
+        Method method = this.getClass().getMethod(methodName, Arrays.stream(args).map(a -> a.getClass()).collect(Collectors.toList()).toArray(new Class[0]));
+        double start = System.currentTimeMillis();
+        method.invoke(this, args);
+        double stop = System.currentTimeMillis();
+        double timing = (stop - start) / 1000d;
+        System.err.println(String.format("\nPerformed %s(%s) in %.4f seconds", methodName, Arrays.toString(args), timing));
+        return timing;
+    }
+
+
+
+    public void addUsers(final Integer startIndex, final Integer size) throws Exception {
+        jdbcTemplate.batchUpdate(INSERT_BARE_BONE_USER, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                String userId = "user-"+(i+startIndex);
+                int pos = 1;
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId);
+                ps.setString(pos++, userId + "@test.com");
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return size;
+            }
+        });
+    }
+
+
+    public void addApprovals(final Integer minUserId, final Integer maxUserId, final Integer countPerUser) throws Exception {
+        jdbcTemplate.batchUpdate("insert into authz_approvals (user_id, client_id, scope, expiresat, status, lastmodifiedat) values (?,?,?,?,?,?)", new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                int index = (i+minUserId) / countPerUser;
+                String userId = "user-"+(minUserId+index);
+                int pos = 1;
+                ps.setString(pos++, userId);
+                ps.setString(pos++, "c"+random.nextInt(200));
+                ps.setString(pos++, "uaa.user."+i);
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()+300000));
+                ps.setString(pos++, "APPROVED");
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+            }
+
+            @Override
+            public int getBatchSize() {
+                return (maxUserId - minUserId) * countPerUser;
+            }
+        });
+    }
+
 }

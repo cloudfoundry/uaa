@@ -1,3 +1,5 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -8,7 +10,7 @@ buildscript {
     mavenCentral()
     jcenter()
     maven {
-      url 'http://repo.spring.io/plugins-release'
+      url 'https://repo.spring.io/plugins-release'
     }
     maven {
       url 'https://plugins.gradle.org/m2/'
@@ -66,6 +68,9 @@ allprojects {
 
   repositories {
     mavenCentral()
+    maven {
+        url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
+    }
   }
 }
 
@@ -121,7 +126,6 @@ cargoRunLocal.dependsOn cleanCargoConfDir, assemble
 
 task run(dependsOn: cargoRunLocal)
 
-import org.apache.tools.ant.filters.ReplaceTokens
 task manifests(dependsOn: assemble, type: Copy) {
   from('uaa/src/test/resources/sample-manifests') {
     include '**/*.yml'
@@ -172,12 +176,11 @@ subprojects {
     archives javadocJar
   }
   repositories {
-    maven { url "http://maven.springframework.org/release" }
-    maven { url "http://maven.springframework.org/milestone" }
-    maven { url "http://maven.springframework.org/snapshot" }
-    maven { url "http://objectstyle.org/maven2/" }
-    maven { url "http://repo.springsource.org/ext-release-local" }
-    maven { url "http://repo.maven.apache.org/maven2" }
+    maven { url "https://repo.spring.io/release" }
+    maven { url "https://repo.spring.io/milestone" }
+    maven { url "https://repo.spring.io/snapshot" }
+    maven { url "https://repo.spring.io/ext-release-local" }
+    maven { url "https://repo.maven.apache.org/maven2" }
   }
 
   install {
@@ -271,7 +274,7 @@ cargo {
     }
 
     installer {
-      installUrl = 'http://repo2.maven.org/maven2/org/apache/tomcat/tomcat/' + tomcatVersion + '/tomcat-' + tomcatVersion + '.tar.gz'
+      installUrl = 'https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/' + tomcatVersion + '/tomcat-' + tomcatVersion + '.tar.gz'
       downloadDir = file("$buildDir/download")
       extractDir = file("$buildDir/extract")
     }
@@ -286,7 +289,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     }
 
     local {
-//      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+//      jvmArgs = jvmArgs + " -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
       systemProperties {
           //property 'uaa.allowUnverifiedUsers', 'false'

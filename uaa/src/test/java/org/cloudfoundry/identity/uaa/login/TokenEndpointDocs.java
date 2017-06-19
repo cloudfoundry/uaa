@@ -1,3 +1,17 @@
+/*
+ * ****************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ * ****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.ssl.Base64;
@@ -9,7 +23,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -95,13 +108,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         fieldWithPath("[].zoneId").type(STRING).description("The zone ID for the token"),
         fieldWithPath("[].tokenId").type(STRING).description("The unique ID for the token"),
         fieldWithPath("[].clientId").type(STRING).description("Client ID for this token, will always match the client_id claim in the access token used for this call"),
-        fieldWithPath("[].userId").type(STRING).description("User ID for this token, will always match the user_id claim in the access token used for this call"),
+        fieldWithPath("[].userId").optional().type(STRING).description("User ID for this token, will always match the user_id claim in the access token used for this call"),
         fieldWithPath("[].format").type(STRING).description("What format was requested, OPAQUE or JWT"),
         fieldWithPath("[].expiresAt").type(NUMBER).description("Epoch time - token expiration date"),
         fieldWithPath("[].issuedAt").type(NUMBER).description("Epoch time - token issue date"),
         fieldWithPath("[].scope").type(STRING).description("Comma separated list of scopes this token holds, up to 1000 characters"),
         fieldWithPath("[].responseType").type(STRING).description("response type requested during the token request, possible values ID_TOKEN, ACCESS_TOKEN, REFRESH_TOKEN"),
-        fieldWithPath("[].value").type(STRING).description("Access token value will always be null")
+        fieldWithPath("[].value").optional().type(STRING).description("Access token value will always be null")
     );
 
 
@@ -123,7 +136,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             "uaa.user"
         );
 
-        String redirect = "https://uaa.cloudfoundry.com/redirect/cf";
+        String redirect = "http://localhost/redirect/cf";
         MockHttpServletRequestBuilder getAuthCode = get("/oauth/authorize")
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(RESPONSE_TYPE, "code")
@@ -354,7 +367,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         IdentityZoneHolder.set(zone.getIdentityZone());
         getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
-        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
+//        getWebApplicationContext().getBean(ZoneAwareIdpMetadataManager.class).refreshAllProviders();
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
@@ -366,7 +379,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         //create client in default zone
         String clientId = "testclient"+ generator.generate();
-        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
+        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER+",password,refresh_token", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
 
 
         //String fullPath = "/uaa/oauth/token";
@@ -578,7 +591,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             "uaa.user"
         );
 
-        String redirect = "https://uaa.cloudfoundry.com/redirect/cf";
+        String redirect = "http://localhost/redirect/cf";
         MockHttpServletRequestBuilder getAuthCode = get("/oauth/authorize")
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(RESPONSE_TYPE, "code")
@@ -849,7 +862,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 "",
                 scopes,
                 grantTypes,
-                authorities);
+                authorities, "http://redirect.url");
         client.setClientSecret(SECRET);
         BaseClientDetails clientDetails = MockMvcUtils.createClient(getMockMvc(), token, client);
         clientDetails.setClientSecret(SECRET);

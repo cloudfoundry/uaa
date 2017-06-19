@@ -14,36 +14,34 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Test;
-import org.junit.runners.Parameterized;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.util.StringUtils;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-//@RunWith(Parameterized.class)
 public class RevocableTokenTableTest extends JdbcTestBase {
 
     private String springProfile;
     private String tableName = "revocable_tokens";
 
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
-        new TestColumn("token_id", "varchar", 36),
-        new TestColumn("client_id", "varchar", 255),
-        new TestColumn("user_id", "varchar", 36),
-        new TestColumn("format", "varchar", 255),
-        new TestColumn("response_type", "varchar", 25),
+        new TestColumn("token_id", "varchar/nvarchar", 36),
+        new TestColumn("client_id", "varchar/nvarchar", 255),
+        new TestColumn("user_id", "varchar/nvarchar", 36),
+        new TestColumn("format", "varchar/nvarchar", 255),
+        new TestColumn("response_type", "varchar/nvarchar", 25),
         new TestColumn("issued_at", "bigint/int8", 64),
         new TestColumn("expires_at", "bigint/int8", 64),
-        new TestColumn("scope", "varchar", 1000),
-        new TestColumn("data", "longvarchar/mediumtext", 0),
-        new TestColumn("identity_zone_id", "varchar", 36)
+        new TestColumn("scope", "varchar/nvarchar", 4000),
+        new TestColumn("data", "nvarchar/longvarchar/mediumtext", 0),
+        new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );
 
     private List<TestColumn> TEST_INDEX = Arrays.asList(
@@ -53,25 +51,11 @@ public class RevocableTokenTableTest extends JdbcTestBase {
 
     );
 
-//    public RevocableTokenTableTest(String springProfile, String tableName) {
-//        this.springProfile = springProfile;
-//        this.tableName = tableName;
-//    }
-
-    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {"hsqldb", "revocable_tokens"},
-            {"postgresql", "revocable_tokens"},
-            {"mysql", "revocable_tokens"}
-        });
-    }
-
     @Override
     public void setUp() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        if ( springProfile!=null ) {
-            environment.setActiveProfiles(springProfile);
+        if (System.getProperty("spring.profiles.active")!=null) {
+            environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
         }
         setUp(environment);
     }
@@ -82,7 +66,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
     public boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
-                return "varchar".equalsIgnoreCase(type) && !"data".equalsIgnoreCase(name) ?
+                return ("varchar".equalsIgnoreCase(type) || "nvarchar".equalsIgnoreCase(type)) && !"data".equalsIgnoreCase(name) ?
                     c.type.toLowerCase().contains(type.toLowerCase()) && c.size == size :
                     c.type.toLowerCase().contains(type.toLowerCase());
             }
@@ -102,9 +86,10 @@ public class RevocableTokenTableTest extends JdbcTestBase {
             while (rs.next()) {
                 String rstableName = rs.getString("TABLE_NAME");
                 String rscolumnName = rs.getString("COLUMN_NAME");
-                int columnSize = rs.getInt("COLUMN_SIZE");
+                int actualColumnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
-                    assertTrue("Testing column:"+rscolumnName, testColumn(rscolumnName, rs.getString("TYPE_NAME"), columnSize));
+                    String actualColumnType = rs.getString("TYPE_NAME");
+                    assertTrue("Testing column:"+rscolumnName, testColumn(rscolumnName, actualColumnType, actualColumnSize));
                     foundTable = true;
                     foundColumn++;
                 }

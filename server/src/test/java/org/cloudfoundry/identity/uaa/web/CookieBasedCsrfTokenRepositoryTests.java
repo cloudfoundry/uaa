@@ -17,16 +17,20 @@ package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.junit.Test;
+import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.DefaultCsrfToken;
 
 import javax.servlet.http.Cookie;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class CookieBasedCsrfTokenRepositoryTests {
@@ -76,6 +80,18 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertEquals(token.getToken(), saved.getToken());
         assertEquals(token.getHeaderName(), saved.getHeaderName());
         assertEquals(token.getParameterName(), saved.getParameterName());
+    }
+
+    @Test
+    public void testLoad_Token_During_Get() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setMethod(HttpMethod.GET.name());
+        request.setCookies(new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "should-be-removed"));
+
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+
+        CsrfToken csrfToken = repo.loadToken(request);
+        assertThat(csrfToken, nullValue());
     }
 
     @Test

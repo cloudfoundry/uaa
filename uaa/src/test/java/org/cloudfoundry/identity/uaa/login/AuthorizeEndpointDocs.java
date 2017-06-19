@@ -85,7 +85,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .param(RESPONSE_TYPE, "code")
             .param(CLIENT_ID, "login")
             .param(SCOPE, "openid oauth.approvals")
-            .param(REDIRECT_URI, "http://redirect.to/app")
+            .param(REDIRECT_URI, "http://localhost/app")
             .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -153,7 +153,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(RESPONSE_TYPE, "code")
             .param(CLIENT_ID, "login")
-            .param(REDIRECT_URI, "https://uaa.cloudfoundry.com/redirect/cf")
+            .param(REDIRECT_URI, "http://localhost/redirect/cf")
             .param(STATE, new RandomValueStringGenerator().generate());
 
         Snippet requestParameters = requestParameters(

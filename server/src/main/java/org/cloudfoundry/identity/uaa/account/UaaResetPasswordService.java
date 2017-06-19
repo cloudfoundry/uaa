@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -58,13 +59,16 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private final ExpiringCodeStore expiringCodeStore;
     private final PasswordValidator passwordValidator;
     private final ClientDetailsService clientDetailsService;
+    private ResourcePropertySource resourcePropertySource;
     private ApplicationEventPublisher publisher;
 
-    public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, PasswordValidator passwordValidator, ClientDetailsService clientDetailsService) {
+    public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, PasswordValidator passwordValidator, ClientDetailsService clientDetailsService,
+                                   ResourcePropertySource resourcePropertySource) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
         this.passwordValidator = passwordValidator;
         this.clientDetailsService = clientDetailsService;
+        this.resourcePropertySource = resourcePropertySource;
     }
 
     @Override
@@ -81,8 +85,9 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     @Override
     public void resetUserPassword(String userId, String password) {
         if (scimUserProvisioning.checkPasswordMatches(userId, password)) {
-            throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+            throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
         }
+        passwordValidator.validate(password);
         ScimUser user = scimUserProvisioning.retrieve(userId);
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
@@ -205,5 +210,4 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false);
         publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
     }
-
 }

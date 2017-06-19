@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
@@ -32,18 +34,26 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -55,7 +65,8 @@ import static org.springframework.util.StringUtils.isEmpty;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class ScimUserBootstrap implements InitializingBean, ApplicationListener<AuthEvent> {
+public class ScimUserBootstrap implements
+    InitializingBean, ApplicationListener<ApplicationEvent>, ApplicationEventPublisherAware {
 
     private static final Log logger = LogFactory.getLog(ScimUserBootstrap.class);
 
@@ -68,6 +79,10 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     private boolean override = false;
 
     private final Collection<UaaUser> users;
+
+    private List<String> usersToDelete;
+
+    private ApplicationEventPublisher publisher;
 
     /**
      * Flag to indicate that user accounts can be updated as well as created.
@@ -82,8 +97,10 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         return override;
     }
 
-    public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning,
-                    ScimGroupMembershipManager membershipManager, Collection<UaaUser> users) {
+    public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning,
+                             ScimGroupProvisioning scimGroupProvisioning,
+                             ScimGroupMembershipManager membershipManager,
+                             Collection<UaaUser> users) {
         Assert.notNull(scimUserProvisioning, "scimUserProvisioning cannot be null");
         Assert.notNull(scimGroupProvisioning, "scimGroupProvisioning cannont be null");
         Assert.notNull(membershipManager, "memberShipManager cannot be null");
@@ -94,10 +111,36 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         this.users = Collections.unmodifiableCollection(users);
     }
 
+    public void setUsersToDelete(List<String> usersToDelete) {
+        this.usersToDelete = usersToDelete;
+    }
+
     @Override
     public void afterPropertiesSet() throws Exception {
+        List<UaaUser> users = new LinkedList(ofNullable(this.users).orElse(emptyList()));
+        List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
+        users.removeIf(u -> deleteMe.contains(u.getUsername()));
         for (UaaUser u : users) {
             addUser(u);
+        }
+    }
+
+    public void deleteUsers(@NotNull  List<String> deleteList) throws Exception {
+        if (deleteList.size()==0) {
+            return;
+        }
+        StringBuilder filter = new StringBuilder();
+        for (int i = deleteList.size()-1; i>=0; i--) {
+            filter.append("username eq \"");
+            filter.append(deleteList.get(i));
+            filter.append("\"");
+            if (i>0) {
+                filter.append(" or ");
+            }
+        }
+        List<ScimUser> list = scimUserProvisioning.query("origin eq \"uaa\" and (" + filter.toString() + ")");
+        for (ScimUser delete : list) {
+            publish(new EntityDeletedEvent<>(delete, SystemAuthentication.SYSTEM_AUTHENTICATION));
         }
     }
 
@@ -181,6 +224,22 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     }
 
     @Override
+    public void onApplicationEvent(ApplicationEvent event) {
+        if (event instanceof AuthEvent) {
+            onApplicationEvent((AuthEvent)event);
+        } else if (event instanceof ContextRefreshedEvent) {
+            List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
+            try {
+                //we do delete users here, because only now are all components started
+                //and ready to receive events
+                deleteUsers(deleteMe);
+            } catch (Exception e) {
+                logger.warn("Unable to delete users from manifest.", e);
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public void onApplicationEvent(AuthEvent event) {
         if (event instanceof InvitedUserAuthenticatedEvent) {
             ScimUser user = getScimUser(event.getUser());
@@ -285,5 +344,16 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             groups.add(authority.toString());
         }
         return groups;
+    }
+
+    public void publish(ApplicationEvent event) {
+        if (publisher!=null) {
+            publisher.publishEvent(event);
+        }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        publisher = applicationEventPublisher;
     }
 }

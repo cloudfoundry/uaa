@@ -10,6 +10,14 @@ matrix:
       sudo: required
       language: java
       env:
+        - TESTENV=default
+        - TEST_COMMAND=generateDocs
+    - os: linux
+      dist: trusty
+      jdk: oraclejdk8
+      sudo: required
+      language: java
+      env:
         - TESTENV=sqlserver,default
         - TEST_COMMAND=cloudfoundry-identity-server:test
     - os: linux
@@ -141,11 +149,13 @@ install:
 - ./scripts/travis/install-ldap-certs.sh
 - ./scripts/ldap/install-ldap.sh ssl
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh; fi
-- $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV
 - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
+- sudo apt-get -qy install lsof
 script:
+- sudo lsof -i :33389 || echo "Nothing listening on port 33389"
+- sudo lsof -i :33636 || echo "Nothing listening on port 33636"
 - echo "Test env $TESTENV"
 - echo "Test cmd $TEST_COMMAND"
 - ./gradlew "-Dspring.profiles.active=$TESTENV" "$TEST_COMMAND"

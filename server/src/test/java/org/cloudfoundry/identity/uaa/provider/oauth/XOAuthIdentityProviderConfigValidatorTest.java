@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidator;
+import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,7 +11,7 @@ import java.net.URL;
 
 public class XOAuthIdentityProviderConfigValidatorTest {
     private AbstractXOAuthIdentityProviderDefinition definition;
-    private IdentityProviderConfigValidator validator;
+    private BaseIdentityProviderValidator validator;
 
     @Before
     public void setup() throws MalformedURLException {
@@ -93,7 +93,7 @@ public class XOAuthIdentityProviderConfigValidatorTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void configCannotBeNull() throws Exception {
-        validator.validate(null);
+        validator.validate((AbstractXOAuthIdentityProviderDefinition)null);
     }
 
     @Test(expected = IllegalArgumentException.class)

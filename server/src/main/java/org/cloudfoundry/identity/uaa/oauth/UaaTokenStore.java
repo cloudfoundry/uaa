@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -68,7 +69,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     protected static Log logger = LogFactory.getLog(UaaTokenStore.class);
 
     private static final String SQL_SELECT_STATEMENT = "select code, user_id, client_id, expiresat, created, authentication from oauth_code where code = ?";
-    private static final String SQL_INSERT_STATEMENT = "insert into oauth_code (code, user_id, client_id, expiresat, authentication) values (?, ?, ?, ?, ?)";
+    private static final String SQL_INSERT_STATEMENT = "insert into oauth_code (code, user_id, client_id, expiresat, authentication, identity_zone_id) values (?, ?, ?, ?, ?, ?)";
     private static final String SQL_DELETE_STATEMENT = "delete from oauth_code where code = ?";
     private static final String SQL_EXPIRE_STATEMENT = "delete from oauth_code where expiresat > 0 AND expiresat < ?";
     private static final String SQL_CLEAN_STATEMENT = "delete from oauth_code where created < ? and expiresat = 0";
@@ -104,8 +105,8 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 SqlLobValue data = new SqlLobValue(serializeOauth2Authentication(authentication));
                 int updated = template.update(
                     SQL_INSERT_STATEMENT,
-                    new Object[] {code, userId, clientId, expiresAt, data},
-                    new int[] {Types.VARCHAR,Types.VARCHAR, Types.VARCHAR, Types.NUMERIC, Types.BLOB}
+                    new Object[] {code, userId, clientId, expiresAt, data, IdentityZoneHolder.get().getId()},
+                    new int[] {Types.VARCHAR,Types.VARCHAR, Types.VARCHAR, Types.NUMERIC, Types.BLOB, Types.VARCHAR}
                 );
                 if (updated==0) {
                     throw new DataIntegrityViolationException("[oauth_code] Failed to insert code. Result was 0");

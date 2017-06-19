@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3"
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
@@ -7,7 +8,10 @@
                 companyName=${branding.getCompanyName() ?: 'Cloud Foundry'},
                 copyrightCompanyName=${branding.getCompanyName() ?: 'CloudFoundry.org Foundation, Inc. '},
                 copyrightFallback=${'Copyright &#169; ' + copyrightCompanyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.'},
-                copyright=${branding.getFooterLegalText() ?: copyrightFallback}" >
+                copyright=${branding.getFooterLegalText() ?: copyrightFallback},
+                brandingLogo=${branding.getProductLogo()},
+                fallbackLogo=${isUaa ? assetBaseUrl+'/images/product-logo.png' : null},
+                logo=${brandingLogo != null ? 'data:image/png;base64,'+#strings.replace(brandingLogo,T(java.lang.System).getProperty('line.separator'),'') : fallbackLogo}" >
 <head>
     <title th:text="${isUaa ? companyName : zoneName}" th:inline="text"></title>
     <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
@@ -20,7 +24,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
-    <style th:with="logo=${branding.getProductLogo()}" th:text="'.header-image {' + (|background-image: url(@{${logo != null ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : isUaa ? assetBaseUrl+'/images/product-logo.png' : null }});|) + '}'">
+    <style th:unless="${#strings.isEmpty(logo)}" th:text="'.header-image {' + (|background-image: url(@{${logo}});|) + '}'">
         .header-image {
             background-image: url(/resources/oss/images/product-logo.png);
         }
@@ -43,6 +47,14 @@
          th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
          [[${copyright}]]
          <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
+        <div th:if="${#authentication instanceof T(org.cloudfoundry.identity.uaa.authentication.UaaAuthentication)} ">
+            <div th:if="${#authentication.lastLoginSuccessTime} != null">
+                Last login <span id="last_login_time"></span>
+                <script type="text/javascript">
+                    document.getElementById("last_login_time").innerHTML = new Date([[${#authentication.lastLoginSuccessTime}]]).toLocaleString();
+                </script>
+            </div>
+        </div>
     </div>
 </div>
 

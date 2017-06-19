@@ -16,7 +16,7 @@
     xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:util="http://www.springframework.org/schema/util"
     xmlns:aop="http://www.springframework.org/schema/aop"
     xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd
         http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
@@ -147,6 +147,7 @@
         <property name="tokenGranter" ref="oauth2TokenGranter"/> <!--this bean created by <oauth:authorization-server/> -->
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
+        <property name="allowQueryString" ref="allowQueryStringForTokens"/>
     </bean>
 
     <bean id="uaaAuthorizationEndpoint" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint">
@@ -245,27 +246,11 @@
         <constructor-arg ref="clientAuthenticationManager" />
         <constructor-arg ref="basicAuthenticationEntryPoint" />
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
-        <property name="loginPolicy" ref="clientLoginPolicy"/>
     </bean>
 
     <bean id="clientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
-        <property name="loginPolicy" ref="clientLoginPolicy"/>
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>
-    </bean>
-
-    <bean id="clientLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
-        <constructor-arg index="0" ref="jdbcAuditService"/>
-        <constructor-arg index="1" ref="clientLockoutPolicyRetriever"/>
-        <constructor-arg index="2" value="ClientAuthenticationSuccess"/>
-        <constructor-arg index="3" value="ClientAuthenticationFailure"/>
-        <constructor-arg index="4" ref="timeService" />
-        <constructor-arg index="5" value="${authentication.policy.client.lockoutEnabled:false}" />
-    </bean>
-
-    <bean id="clientLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.ClientLockoutPolicyRetriever">
-        <property name="enabled" value="${authentication.policy.client.lockoutEnabled:false}" />
-        <property name="defaultLockoutPolicy" ref="defaultClientLockoutPolicy" />
     </bean>
 
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
@@ -456,12 +441,6 @@
     <bean id="userManagedApprovalHandler" class="org.cloudfoundry.identity.uaa.oauth.UserManagedAuthzApprovalHandler">
         <property name="clientDetailsService" ref="clientDetailsService" />
         <property name="approvalStore" ref="approvalStore" />
-    </bean>
-
-    <bean id="approvalStore" class="org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore">
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
-        <constructor-arg ref="scimUserQueryConverter"/>
     </bean>
 
     <bean id="authorizationRequestManager" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager">

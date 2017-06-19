@@ -1,3 +1,5 @@
+//= require ../lib/_jquery
+
 /*
 Copyright 2008-2013 Concur Technologies, Inc.
 
@@ -13,13 +15,14 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations
 under the License.
 */
-(function (global) {
+;(function () {
   'use strict';
 
   var languages = [];
 
-  global.setupLanguages = setupLanguages;
-  global.activateLanguage = activateLanguage;
+  window.setupLanguages = setupLanguages;
+  window.activateLanguage = activateLanguage;
+  window.getLanguageFromQueryString = getLanguageFromQueryString;
 
   function activateLanguage(language) {
     if (!language) return;
@@ -28,11 +31,13 @@ under the License.
     $(".lang-selector a").removeClass('active');
     $(".lang-selector a[data-language-name='" + language + "']").addClass('active');
     for (var i=0; i < languages.length; i++) {
-      $(".highlight." + languages[i]).hide();
+      $(".highlight.tab-" + languages[i]).hide();
+      $(".lang-specific." + languages[i]).hide();
     }
-    $(".highlight." + language).show();
+    $(".highlight.tab-" + language).show();
+    $(".lang-specific." + language).show();
 
-    global.toc.calculateHeights();
+    window.recacheHeights();
 
     // scroll to the new location of the position
     if ($(window.location.hash).get(0)) {
@@ -121,9 +126,7 @@ under the License.
     if (hash) {
       hash = hash.replace(/^#+/, '');
     }
-    if (history.pushState && location.protocol !== 'file:') {
-      history.pushState({}, '', '?' + generateNewQueryString(language) + '#' + hash);
-    }
+    history.pushState({}, '', '?' + generateNewQueryString(language) + '#' + hash);
 
     // save language as next default
     localStorage.setItem("language", language);
@@ -157,8 +160,5 @@ under the License.
       activateLanguage(language);
       return false;
     });
-    window.onpopstate = function() {
-      activateLanguage(getLanguageFromQueryString());
-    };
   });
-})(window);
+})();

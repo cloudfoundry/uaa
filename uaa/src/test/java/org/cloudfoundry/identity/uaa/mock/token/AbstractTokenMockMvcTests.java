@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
@@ -48,12 +49,13 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
+import static org.junit.Assert.assertNull;
 import static org.springframework.util.StringUtils.hasText;
 
 public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest {
 
     public static final String SECRET = "secret";
-    public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
+    public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code,refresh_token";
     public static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
     protected ClientServicesExtension clientDetailsService;
@@ -94,6 +96,17 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         tokenProvisioning = (RevocableTokenProvisioning) getWebApplicationContext().getBean("revocableTokenProvisioning");
     }
 
+    public String setUpUserForPasswordGrant() throws Exception {
+        String username = "testuser" + generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        ScimUser scimUser = provisioning.retrieve(user.getId());
+        assertNull(scimUser.getLastLogonTime());
+        assertNull(scimUser.getPreviousLogonTime());
+        return username;
+    }
+
     protected IdentityZone setupIdentityZone(String subdomain) {
         IdentityZone zone = new IdentityZone();
         zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
@@ -130,6 +143,9 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, null);
     }
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, zone, Collections.emptyMap());
+    }
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String,Object> additionalInfo) {
         IdentityZone original = IdentityZoneHolder.get();
         if (zone!=null) {
             IdentityZoneHolder.set(zone);
@@ -144,6 +160,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         if (allowedIdps!=null && !allowedIdps.isEmpty()) {
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
+        additional.putAll(additionalInfo);
         c.setAdditionalInformation(additional);
         if (hasText(redirectUri)) {
             c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));

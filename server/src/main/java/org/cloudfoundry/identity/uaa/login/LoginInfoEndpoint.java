@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -39,6 +41,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -70,7 +73,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.sql.Timestamp;
@@ -89,6 +91,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
@@ -106,6 +109,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
  */
 @Controller
 public class LoginInfoEndpoint {
+
+    private static Log logger = LogFactory.getLog(LoginInfoEndpoint.class);
 
     public static final String NotANumber = OriginKeys.NotANumber;
     public static final String CREATE_ACCOUNT_LINK = "createAccountLink";
@@ -154,6 +159,12 @@ public class LoginInfoEndpoint {
         );
 
     private XOAuthProviderConfigurator xoAuthProviderConfigurator;
+
+    private Links globalLinks = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
+
+    public void setGlobalLinks(Links globalLinks) {
+        this.globalLinks = globalLinks;
+    }
 
     public LoginInfoEndpoint setXoAuthProviderConfigurator(XOAuthProviderConfigurator xoAuthProviderConfigurator) {
         this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
@@ -246,8 +257,19 @@ public class LoginInfoEndpoint {
         return Arrays.asList(ofNullable(cookies).orElse(new Cookie[]{}))
                 .stream()
                 .filter(c -> c.getName().startsWith("Saved-Account"))
-                .map(c -> JsonUtils.readValue(c.getValue(), clazz))
+                .map(c -> JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz))
                 .collect(Collectors.toList());
+    }
+
+    private static String decodeCookieValue(String inValue) {
+        String out = null;
+        try {
+            out = URLDecoder.decode(inValue, UTF_8.name());
+        } catch (Exception e) {
+            logger.debug("URLDecoder.decode failed for " + inValue, e);
+            return "";
+        }
+        return out;
     }
 
     @RequestMapping(value = {"/invalid_request"})
@@ -613,7 +635,7 @@ public class LoginInfoEndpoint {
         }
 
         String base64Credentials = auth.substring("Basic".length()).trim();
-        String credentials = new String(new Base64().decode(base64Credentials.getBytes()), Charset.forName("UTF-8"));
+        String credentials = new String(new Base64().decode(base64Credentials.getBytes()), UTF_8.name());
         // credentials = username:password
         final String[] values = credentials.split(":", 2);
         if (values == null || values.length == 0) {
@@ -722,21 +744,36 @@ public class LoginInfoEndpoint {
         return model;
     }
 
-    private Map<String,String> getSelfServiceLinks() {
+    protected Map<String,String> getSelfServiceLinks() {
         Map<String, String> selfServiceLinks = new HashMap<>();
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
+
         boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
-        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getSignup() : "/create_account";
-        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getPasswd() : "/forgot_password";
+
+        final String defaultSignup = "/create_account";
+        final String defaultPasswd = "/forgot_password";
+        Links.SelfService service = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService() : null;
+        String signup = UaaStringUtils.nonNull(
+            service!=null ? service.getSignup() : null,
+            globalLinks.getSelfService().getSignup(),
+            defaultSignup);
+
+        String passwd = UaaStringUtils.nonNull(
+            service!=null ? service.getPasswd() : null,
+            globalLinks.getSelfService().getPasswd(),
+            defaultPasswd);
+
 
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             if (hasText(signup)) {
+                signup = UaaStringUtils.replaceZoneVariables(signup, IdentityZoneHolder.get());
                 selfServiceLinks.put(CREATE_ACCOUNT_LINK, signup);
                 selfServiceLinks.put("register", signup);
             }
             if (hasText(passwd)) {
+                passwd = UaaStringUtils.replaceZoneVariables(passwd, IdentityZoneHolder.get());
                 selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
                 selfServiceLinks.put("passwd", passwd);
             }
@@ -797,7 +834,7 @@ public class LoginInfoEndpoint {
     protected String extractPath(HttpServletRequest request) {
         String query = request.getQueryString();
         try {
-            query = query == null ? "" : "?" + URLDecoder.decode(query, "UTF-8");
+            query = query == null ? "" : "?" + URLDecoder.decode(query, UTF_8.name());
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("Cannot decode query string: " + query);
         }

@@ -312,4 +312,14 @@ public class XOAuthProviderConfiguratorTests {
         String expected = String.format(baseExpect, oauth.getRelyingPartyId(), URLEncoder.encode("code"), redirectUri, URLEncoder.encode("openid password.write"), "");
         assertEquals(configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth), expected);
     }
+
+    @Test
+    public void excludeUnreachableOidcProvider() {
+        when(cache.getUrlContent(anyString(), anyObject())).thenReturn(null);
+
+        List<IdentityProvider> providers = configurator.retrieveAll(true, IdentityZone.getUaa().getId());
+        assertEquals(1, providers.size());
+        assertEquals(oauthProvider.getName(), providers.get(0).getName());
+        verify(configurator, times(1)).overlay(eq(config));
+    }
 }

@@ -22,16 +22,64 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class UaaUrlUtilsTest {
+
+    private List<String> invalidWildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
+    private List<String> invalidHttpWildCardUrls = Arrays.asList(
+        "http://*",
+        "http://**",
+        "http://*/**",
+        "http://*/*",
+        "http://**/*",
+        "http://a*",
+        "http://*.com",
+        "http://*domain*",
+        "http://*domain.com",
+        "http://*domain/path",
+        "http://local*",
+        "*.valid.com/*/with/path**",
+        "http://**/path",
+        "https://*.*.*.com/*/with/path**",
+        "www.*/path",
+        "www.invalid.com/*/with/path**",
+        "www.*.invalid.com/*/with/path**",
+        "http://username:password@*.com",
+        "http://username:password@*.com/path"
+    );
+    private List<String> validUrls = Arrays.asList(
+        "http://localhost",
+        "http://localhost:8080",
+        "http://localhost:8080/uaa",
+        "http://valid.com",
+        "http://sub.valid.com",
+        "http://valid.com/with/path",
+        "https://subsub.sub.valid.com/**",
+        "https://valid.com/path/*/path",
+        "http://sub.valid.com/*/with/path**",
+        "http*://sub.valid.com/*/with/path**",
+        "http*://*.valid.com/*/with/path**",
+        "http://*.valid.com/*/with/path**",
+        "https://*.valid.com/*/with/path**",
+        "https://*.*.valid.com/*/with/path**",
+        "http://sub*.valid.com/*/with/path**",
+        "http://*.domain.com",
+        "http://username:password@some.server.com",
+        "http://username:password@some.server.com/path"
+    );
 
     @Before
     public void setUp() throws Exception {
@@ -57,6 +105,46 @@ public class UaaUrlUtilsTest {
     @Test
     public void testGetUaaUrl() throws Exception {
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl());
+    }
+
+    @Test
+    public void testGetBaseURL() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("login.domain");
+        request.setRequestURI("/something");
+        request.setServletPath("/something");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
+
+        assertEquals("http://login.domain", UaaUrlUtils.getBaseURL(request));
+    }
+
+    @Test
+    public void testGetBaseURLWhenPathMatchesHostname() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("login.domain");
+        request.setRequestURI("/login");
+        request.setServletPath("/login");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
+
+        assertEquals("http://login.domain", UaaUrlUtils.getBaseURL(request));
+    }
+
+    @Test
+    public void testGetBaseURLOnLocalhost() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        request.setRequestURI("/uaa/something");
+        request.setServletPath("/something");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
+
+        assertEquals("http://localhost:8080/uaa", UaaUrlUtils.getBaseURL(request));
     }
 
     @Test
@@ -257,6 +345,46 @@ public class UaaUrlUtilsTest {
         String url = "http://sub.domain.com#frag";
         String component = "name=value";
         assertEquals("http://sub.domain.com#frag&name=value", UaaUrlUtils.addFragmentComponent(url, component));
+    }
+
+    @Test
+    public void test_validate_valid_redirect_uri() {
+        validateRedirectUri(validUrls, true);
+        validateRedirectUri(convertToHttps(validUrls), true);
+    }
+
+    @Test
+    public void test_validate_invalid_redirect_uri() {
+        validateRedirectUri(invalidWildCardUrls, false);
+        validateRedirectUri(invalidHttpWildCardUrls, false);
+        validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
+    }
+
+    private void validateRedirectUri(List<String> urls, boolean result) {
+        Map<String, String> failed = getFailedUrls(urls, result);
+        if (!failed.isEmpty()) {
+            StringBuilder builder = new StringBuilder("\n");
+            failed.entrySet().forEach(entry ->
+                builder.append(entry.getValue()).append("\n")
+            );
+            fail(builder.toString());
+        }
+    }
+    private Map<String, String> getFailedUrls(List<String> urls, boolean result) {
+        Map<String, String> failed = new LinkedHashMap<>();
+        urls.stream().forEach(
+            url -> {
+                String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
+                if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
+                    failed.put(url, message);
+                }
+            }
+        );
+        return failed;
+    }
+
+    private List<String> convertToHttps(List<String> urls) {
+        return urls.stream().map(url -> url.replace("http:", "https:")).collect(Collectors.toList());
     }
 
     private void setIdentityZone(String subdomain) {

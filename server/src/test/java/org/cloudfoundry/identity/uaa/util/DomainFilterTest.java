@@ -15,22 +15,24 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -259,5 +261,34 @@ public class DomainFilterTest {
         assertFalse(filter.doesEmailDomainMatchProvider(ldapProvider, "test.org", true));
         assertFalse(filter.doesEmailDomainMatchProvider(samlProvider1, "test.org", false));
         assertFalse(filter.doesEmailDomainMatchProvider(samlProvider1, "test.org", true));
+    }
+
+    @Test
+    public void test_ipds_for_email_domain() {
+        samlProvider1.getConfig().setEmailDomain(Collections.singletonList("test.org"));
+        samlProvider2.getConfig().setEmailDomain(Collections.singletonList("test.org"));
+
+        List<IdentityProvider> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
+
+        assertEquals(2, idpsForEmailDomain.size());
+        assertThat(idpsForEmailDomain, Matchers.containsInAnyOrder(samlProvider1, samlProvider2));
+    }
+
+    @Test
+    public void test_idp_with_wildcard_for_email_domain() {
+        samlProvider1.getConfig().setEmailDomain(Collections.singletonList("t*.org"));
+
+        List<IdentityProvider> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
+
+        assertEquals(1, idpsForEmailDomain.size());
+        assertThat(idpsForEmailDomain, Matchers.containsInAnyOrder(samlProvider1));
+    }
+
+    @Test
+    public void test_idp_with_no_matching_email_domain() {
+        samlDef1.setEmailDomain(Collections.singletonList("example.org"));
+        List<IdentityProvider> idpsForEmailDomain = filter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
+
+        assertEquals(0, idpsForEmailDomain.size());
     }
 }

@@ -39,6 +39,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -65,6 +66,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -88,8 +90,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private static final String VERIFY_USER_SQL_FORMAT = "select verified from users where id=?";
 
-    private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
-    private static final String INSERT_MEMBERSHIP = "insert into group_membership (group_id, member_id, member_type,authorities,added, origin) values (?,?,?,?,?,?)";
+    private static final String INSERT_MEMBERSHIP = "insert into group_membership (group_id, member_id, member_type,authorities,added, origin, identity_zone_id) values (?,?,?,?,?,?,?)";
 
     private int existingUserCount = 0;
 
@@ -160,10 +161,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(userName, created.getUserName());
     }
 
-    protected void addApprovalAndMembership(String userId, String origin) {
+    protected void addMembership(String userId, String origin) {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        jdbcTemplate.update(INSERT_APPROVAL, userId, userId, "uaa.user", "APPROVED", timestamp, timestamp);
-        jdbcTemplate.update(INSERT_MEMBERSHIP, userId, userId, "USER", "authorities", timestamp, origin);
+        String zoneId = IdentityZoneHolder.get().getId();
+        jdbcTemplate.update(INSERT_MEMBERSHIP, userId, userId, "USER", "authorities", timestamp, origin, zoneId);
     }
 
     @Test
@@ -181,8 +182,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                          Integer.class
                      ), is(1)
         );
-        addApprovalAndMembership(created.getId(), created.getOrigin());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(1));
+        addMembership(created.getId(), created.getOrigin());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(1));
 
         IdentityProvider loginServer =
@@ -191,7 +191,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 .setIdentityZoneId(IdentityZone.getUaa().getId());
         db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, IdentityZone.getUaa().getId()}, Integer.class), is(0));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
     }
 
@@ -209,8 +208,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(LOGIN_SERVER, created.getOrigin());
         assertEquals(zone.getId(), created.getZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, zone.getId()}, Integer.class), is(1));
-        addApprovalAndMembership(created.getId(), created.getOrigin());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(1));
+        addMembership(created.getId(), created.getOrigin());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(1));
 
         IdentityProvider loginServer =
@@ -219,7 +217,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 .setIdentityZoneId(zone.getId());
         db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, zone.getId()}, Integer.class), is(0));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
     }
 
@@ -237,13 +234,11 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(UAA, created.getOrigin());
         assertEquals(zone.getId(), created.getZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, zone.getId()}, Integer.class), is(1));
-        addApprovalAndMembership(created.getId(), created.getOrigin());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(1));
+        addMembership(created.getId(), created.getOrigin());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(1));
 
         db.onApplicationEvent(new EntityDeletedEvent<>(zone, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, zone.getId()}, Integer.class), is(0));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
     }
 
@@ -301,7 +296,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
-        assertEquals(OriginKeys.UAA, created.getOrigin());
         assertEquals("uaa", map.get("identity_zone_id"));
         assertNull(user.getPasswordLastModified());
         assertNotNull(created.getPasswordLastModified());
@@ -351,7 +345,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
-        assertEquals(OriginKeys.UAA, created.getOrigin());
         assertEquals("my-zone-id", map.get("identity_zone_id"));
     }
 
@@ -430,55 +423,19 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         db.createUser(user, "j7hyqpassX");
     }
 
-    @Test(expected = InvalidScimResourceException.class)
-    public void cannotCreateUserWithNonAsciiUsername() {
-        ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
-        user.addEmail("jo@blah.com");
-        db.createUser(user, "j7hyqpassX");
-    }
-
-
     @Test(expected = IllegalArgumentException.class)
     public void cannotCreateScimUserWithEmptyEmail() {
         ScimUser user = new ScimUser(null, "joeyjoejoe", "joe", "young");
         user.addEmail("");
     }
 
-    @Test(expected = InvalidScimResourceException.class)
-    public void cannotPersistScimUserWithEmptyEmail() {
-        ScimUser user = new ScimUser(null, "josephine", "Jo", "Jung");
-        List<ScimUser.Email> emails = new ArrayList<>();
-        ScimUser.Email email = new ScimUser.Email();
-        email.setValue("");
-        emails.add(email);
-        user.setEmails(emails);
-        db.createUser(user, "j7hyqpassX");
-    }
 
-    @Test(expected = InvalidScimResourceException.class)
-    public void cannotPersistScimUserWithEmptyandNonEmptyEmails() {
-        ScimUser user = new ScimUser(null, "josephine", "Jo", "Jung");
-        List<ScimUser.Email> emails = new ArrayList<>();
-        ScimUser.Email email1 = new ScimUser.Email();
-        email1.setValue("sample@sample.com");
-        emails.add(email1);
-        ScimUser.Email email2 = new ScimUser.Email();
-        email2.setValue("");
-        emails.add(email2);
-        user.setEmails(emails);
-        db.createUser(user, "j7hyqpassX");
-    }
 
     @Test
     public void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
         JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory) {
-            @Override
-            protected void validate(ScimUser user) throws InvalidScimResourceException {
-                return;
-            }
-
             @Override
             public ScimUser retrieve(String id) {
                 ScimUser createdUserId = new ScimUser();
@@ -495,6 +452,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         nohbdy.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
         nohbdy.setSalt("salt");
         nohbdy.setPassword(generator.generate());
+        nohbdy.setOrigin(OriginKeys.UAA);
         String createdUserId = noValidateProvisioning.create(nohbdy).getId();
 
         db.retrieve(createdUserId);
@@ -668,6 +626,16 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     }
 
     @Test
+    public void canDeleteExistingUserThroughEvent() {
+        String tmpUserId = createUserForDelete();
+        ScimUser user = db.retrieve(tmpUserId);
+        db.setDeactivateOnDelete(false);
+        db.onApplicationEvent(new EntityDeletedEvent<Object>(user, mock(Authentication.class)));
+        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+        assertEquals(0, db.query("username eq \"" + tmpUserId + "\"").size());
+    }
+
+    @Test
     public void canDeleteExistingUser() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
@@ -709,6 +677,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser scimUser = new ScimUser("user-id-2", "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("user@example.com");
+        scimUser.setOrigin(OriginKeys.UAA);
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setPassword("password");
 
@@ -735,6 +704,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setPassword("password");
         scimUser.setSalt("salt");
+        scimUser.setOrigin(OriginKeys.UAA);
         scimUser = db.create(scimUser);
         assertNotNull(scimUser);
         assertEquals("salt", scimUser.getSalt());
