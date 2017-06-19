@@ -137,7 +137,7 @@ public class InjectedMockContextTest implements Contextable {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("client_id", username)
-//                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
                 .param("scope", scope);
             if (subdomain != null && !subdomain.equals(""))
                 oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
