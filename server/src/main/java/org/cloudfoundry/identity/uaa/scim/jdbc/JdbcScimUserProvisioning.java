@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -104,13 +105,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
-    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE = "delete from group_membership where member_type='USER' and member_id in (select id from users where identity_zone_id = ?)";
+    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE = "delete from group_membership where identity_zone_id = ?";
 
-    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER = "delete from group_membership where member_type='USER' and member_id in (select id from users where identity_zone_id = ? and origin = ?)";
-
-    public static final String HARD_DELETE_OF_USER_APPROVALS_BY_ZONE = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ?)";
-
-    public static final String HARD_DELETE_OF_USER_APPROVALS_BY_PROVIDER = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ? and origin = ?)";
+    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER = "delete from group_membership where identity_zone_id = ? and origin = ?";
 
     public static final String HARD_DELETE_BY_ZONE = "delete from users where identity_zone_id = ?";
 
@@ -181,7 +178,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
-        validate(user);
         logger.debug("Creating new user: " + user.getUserName());
 
         final String id = UUID.randomUUID().toString();
@@ -247,23 +243,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return create(user);
     }
 
-    protected void validate(final ScimUser user) throws InvalidScimResourceException {
-        if (!hasText(user.getUserName())) {
-            throw new InvalidScimResourceException("A username must be provided.");
-        }
-        if (OriginKeys.UAA.equals(user.getOrigin()) && !usernamePattern.matcher(user.getUserName()).matches()) {
-            throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
-        }
-        if (user.getEmails() == null || user.getEmails().size() != 1) {
-            throw new InvalidScimResourceException("Exactly one email must be provided.");
-        }
-        for (ScimUser.Email email : user.getEmails()) {
-            if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
-                throw new InvalidScimResourceException("An email must be provided.");
-            }
-        }
-    }
-
     private String extractPhoneNumber(final ScimUser user) {
         String phoneNumber = null;
         if (user.getPhoneNumbers() != null && !user.getPhoneNumbers().isEmpty()) {
@@ -274,9 +253,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
-        validate(user);
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
+        user.setOrigin(origin);
+        ScimUtils.validate(user);
         final String zoneId = IdentityZoneHolder.get().getId();
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override
@@ -381,7 +361,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public ScimUser delete(String id, int version) {
         ScimUser user = retrieve(id);
-        return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version);
+        return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version, IdentityZoneHolder.get().getId());
     }
 
     private ScimUser deactivateUser(ScimUser user, int version) {
@@ -429,22 +409,28 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return user;
     }
 
-    private ScimUser deleteUser(ScimUser user, int version) {
-        logger.debug("Deleting user: " + user.getId());
+    protected ScimUser deleteUser(ScimUser user, int version, String zoneId) {
+        int updated = deleteUser(user.getId(), version, zoneId);
+        if (updated == 0) {
+            throw new OptimisticLockingFailureException(String.format(
+                "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
+                version, version));
+        }
+        return user;
+    }
+
+    protected int deleteUser(String userId, int version, String zoneId) {
+        logger.debug("Deleting user: " + userId);
         int updated;
 
         if (version < 0) {
-            updated = jdbcTemplate.update(DELETE_USER_SQL, user.getId(), IdentityZoneHolder.get().getId());
+            updated = jdbcTemplate.update(DELETE_USER_SQL, userId, zoneId);
         }
         else {
-            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", user.getId(), IdentityZoneHolder.get().getId(), version);
+            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", userId, zoneId, version);
         }
-        if (updated == 0) {
-            throw new OptimisticLockingFailureException(String.format(
-                            "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
-                            user.getVersion(), version));
-        }
-        return user;
+        return updated;
+
     }
 
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
@@ -471,15 +457,26 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public int deleteByIdentityZone(String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE, zoneId);
-        jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_ZONE, zoneId);
         return jdbcTemplate.update(HARD_DELETE_BY_ZONE, zoneId);
     }
 
     public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER, zoneId, origin);
-        jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(HARD_DELETE_BY_PROVIDER, zoneId, origin);
     }
+
+    @Override
+    public int deleteByClient(String clientId, String zoneId) {
+        //no op - nothing to do here
+        return 0;
+    }
+
+    @Override
+    public int deleteByUser(String userId, String zoneId) {
+        deleteUser(userId, -1, zoneId);
+        return 1;
+    }
+
 
     private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
         @Override

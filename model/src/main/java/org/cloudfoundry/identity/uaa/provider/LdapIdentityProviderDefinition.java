@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -24,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
     public static final String LDAP_TLS_NONE = "none";
     public static final String LDAP_TLS_SIMPLE = "simple";
@@ -47,6 +50,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public static final String LDAP_BASE_USER_DN_PATTERN = LDAP_PREFIX + "base.userDnPattern";
     public static final String LDAP_BASE_USER_DN_PATTERN_DELIMITER = LDAP_PREFIX + "base.userDnPatternDelimiter";
     public static final String LDAP_EMAIL_DOMAIN = LDAP_PREFIX + EMAIL_DOMAIN_ATTR;
+    public static final String LDAP_STORE_CUSTOM_ATTRIBUTES = LDAP_PREFIX + STORE_CUSTOM_ATTRIBUTES_NAME;
     public static final String LDAP_EXTERNAL_GROUPS_WHITELIST = LDAP_PREFIX + "externalGroupsWhitelist";
     public static final String LDAP_GROUP_FILE_GROUPS_AS_SCOPES = "ldap/ldap-groups-as-scopes.xml";
     public static final String LDAP_GROUP_FILE_GROUPS_MAP_TO_SCOPES = "ldap/ldap-groups-map-to-scopes.xml";
@@ -236,6 +240,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return baseUrl;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getBindPassword() {
         return bindPassword;
     }

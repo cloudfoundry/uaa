@@ -61,8 +61,10 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
 
     public static final String JOIN_WHERE_ID = "g.id = gm.group_id and gm.origin = ?";
 
-    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,lower(?),?,?)",
-                    EXTERNAL_GROUP_MAPPING_TABLE, EXTERNAL_GROUP_MAPPING_FIELDS);
+    public static final String DELETE_FROM_TABLE_SQL ="DELETE FROM %s WHERE %s identity_zone_id='%s'";
+
+    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,lower(?),?,?,?)",
+                    EXTERNAL_GROUP_MAPPING_TABLE, EXTERNAL_GROUP_MAPPING_FIELDS + ",identity_zone_id");
 
     public static final String GET_EXTERNAL_GROUP_MAPPINGS_SQL = String.format(
         "select %s from %s where g.identity_zone_id=? and gm.group_id=? and %s",
@@ -72,7 +74,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     );
 
     public static final String GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL = String.format(
-        "select %s from %s where g.identity_zone_id=? and %s and lower(external_group)=lower(?)",
+        "select %s from %s where gm.identity_zone_id=? and %s and lower(external_group)=lower(?)",
         JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
         JOIN_GROUP_TABLE,
         JOIN_WHERE_ID
@@ -86,12 +88,12 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     );
 
     public static final String DELETE_EXTERNAL_GROUP_MAPPING_SQL = String.format(
-        "delete from %s where group_id=? and lower(external_group)=lower(?) and origin=?",
+        "delete from %s where identity_zone_id=? and group_id=? and lower(external_group)=lower(?) and origin=?",
         EXTERNAL_GROUP_MAPPING_TABLE
     );
 
     public static final String DELETE_ALL_MAPPINGS_FOR_GROUP_SQL = String.format(
-        "delete from %s where group_id = ?",
+        "delete from %s where identity_zone_id=? and group_id = ?",
         EXTERNAL_GROUP_MAPPING_TABLE
     );
 
@@ -131,11 +133,11 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         SearchQueryConverter.ProcessedFilter where = getQueryConverter().convert(filter, null, false);
         logger.debug("Filtering groups with SQL: " + where);
         try {
-            String completeSql = "DELETE FROM "+getTableName()+" WHERE ";
+            String whereClause = "";
             if (StringUtils.hasText(where.getSql())) {
-                completeSql +=  where.getSql() + " AND ";
+                whereClause = where.getSql() + " AND ";
             }
-            completeSql += "group_id IN (SELECT id FROM groups WHERE identity_zone_id='"+ IdentityZoneHolder.get().getId()+"')";
+            String completeSql = String.format(DELETE_FROM_TABLE_SQL, getTableName(), whereClause, IdentityZoneHolder.get().getId());
             logger.debug("delete sql: " + completeSql + ", params: " + where.getParams());
             return new NamedParameterJdbcTemplate(jdbcTemplate).update(completeSql, where.getParams());
         } catch (DataAccessException e) {
@@ -171,6 +173,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                         ps.setString(2, externalGroup);
                         ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
                         ps.setString(4, origin);
+                        ps.setString(5, IdentityZoneHolder.get().getId());
 
                     }
                 });
@@ -203,9 +206,10 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
             int count = jdbcTemplate.update(DELETE_EXTERNAL_GROUP_MAPPING_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, groupId);
-                    ps.setString(2, externalGroup);
-                    ps.setString(3, origin);
+                    ps.setString(1, IdentityZoneHolder.get().getId());
+                    ps.setString(2, groupId);
+                    ps.setString(3, externalGroup);
+                    ps.setString(4, origin);
                 }
             });
             if (count==1) {
@@ -266,7 +270,8 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
             jdbcTemplate.update(DELETE_ALL_MAPPINGS_FOR_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, groupId);
+                    ps.setString(1, IdentityZoneHolder.get().getId());
+                    ps.setString(2, groupId);
                 }
             });
     }

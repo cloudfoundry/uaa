@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 /**
  * Provides an implementation that sets the UserAuthentication
@@ -157,9 +156,13 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             onUnsuccessfulAuthentication(request, response, failed);
             authenticationEntryPoint.commence(request, response, failed);
             return;
-        } catch (InvalidScopeException ex) {
-            String message = ex.getMessage();
-            response.sendError(UNAUTHORIZED.value(), message);
+        } catch (InvalidScopeException failed) {
+            String message = failed.getMessage();
+            UnapprovedClientAuthenticationException ex = new UnapprovedClientAuthenticationException(message, failed);
+            SecurityContextHolder.clearContext();
+            logger.debug("Authentication request for failed: " + ex);
+            onUnsuccessfulAuthentication(request, response, ex);
+            authenticationEntryPoint.commence(request, response, ex);
             return;
         }
 

@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
-import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.account.ChangeEmailController;
 import org.cloudfoundry.identity.uaa.account.ChangeEmailService;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;

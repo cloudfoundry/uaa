@@ -46,9 +46,9 @@ import static org.springframework.restdocs.headers.HeaderDocumentation.requestHe
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
@@ -61,6 +61,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
@@ -348,6 +349,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + scimReadToken);
 
         getMockMvc().perform(listMembers).andExpect(status().isOk())
+            .andDo(print())
             .andDo(document("{ClassName}/listMembersOfGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
@@ -362,7 +364,16 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields(
-                    subFields("[]", ArrayUtils.addAll(idempotentMembershipFields, fieldWithPath("entity").description("Present only if requested with `returnEntities`; user or group with membership in the group")))
+                    subFields("[]",
+                              ArrayUtils.addAll(
+                                  idempotentMembershipFields,
+                                  fieldWithPath("entity.*").description("Present only if requested with `returnEntities`; user or group details for each entity that is a member of this group"),
+                                  fieldWithPath("entity.meta.*").ignored(), //users are documented in the user section
+                                  fieldWithPath("entity.name.*").ignored(),
+                                  fieldWithPath("entity.emails[].*").ignored(),
+                                  fieldWithPath("entity.schemas").ignored()
+                              )
+                    )
                 )
             ));
 

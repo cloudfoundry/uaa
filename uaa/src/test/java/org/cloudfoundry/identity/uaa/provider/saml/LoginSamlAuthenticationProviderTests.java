@@ -498,6 +498,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         invitedUser.setPassword("a");
         invitedUser.setVerified(false);
         invitedUser.setPrimaryEmail("marissa.invited@test.org");
+        invitedUser.setOrigin(OriginKeys.UAA);
         ScimUser scimUser = userProvisioning.create(invitedUser);
 
         RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
@@ -567,6 +568,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("phone_number", "phone");
         attributeMappings.put(USER_ATTRIBUTE_PREFIX+"secondary_email","emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
+        providerDefinition.setStoreCustomAttributes(false);
         provider.setConfig(providerDefinition);
         provider = providerProvisioning.update(provider);
 

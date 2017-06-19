@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.restdocs.snippet.Snippet;
 
@@ -26,9 +25,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
@@ -78,7 +75,7 @@ public class CheckTokenEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("zid").description("Zone ID"),
             fieldWithPath("rev_sig").description("Revocation Signature - token revocation hash salted with at least client ID and client secret, and optionally various user values."),
             fieldWithPath("origin").type(STRING).description("Only applicable for user tokens").optional(),
-            fieldWithPath("revocable").type(STRING).description("Set to true if this token is revocable").optional()
+            fieldWithPath("revocable").type(BOOLEAN).description("Set to true if this token is revocable").optional()
         );
 
         getMockMvc().perform(post("/check_token")

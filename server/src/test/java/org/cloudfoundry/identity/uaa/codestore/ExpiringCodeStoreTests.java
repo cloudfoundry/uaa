@@ -240,10 +240,10 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     public void testExpirationCleaner() throws Exception {
         when(timeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
         if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
-            jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null);
+            jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
             ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
             jdbcTemplate.queryForObject(JdbcExpiringCodeStore.selectAllFields,
-                                        (RowMapper<ExpiringCode>) ReflectionTestUtils.getField(expiringCodeStore, "rowMapper"), "test");
+                            new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test", IdentityZoneHolder.get().getId());
         } else {
             throw new EmptyResultDataAccessException(1);
         }

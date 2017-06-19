@@ -22,6 +22,8 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 
+import static java.util.Optional.ofNullable;
+
 public class EntityDeletedEvent<T> extends AbstractUaaEvent {
 
     protected static final String dataFormat = "Class:%s; ID:%s";
@@ -45,7 +47,8 @@ public class EntityDeletedEvent<T> extends AbstractUaaEvent {
     }
 
     public String getObjectId() {
-        Method m = ReflectionUtils.findMethod(source.getClass(), "getId");
+        Method m = ofNullable(ReflectionUtils.findMethod(source.getClass(), "getId"))
+            .orElseGet(() -> ReflectionUtils.findMethod(source.getClass(), "getClientId"));
         return m!=null ? (String)ReflectionUtils.invokeMethod(m, source) : String.valueOf(System.identityHashCode(source));
     }
 }

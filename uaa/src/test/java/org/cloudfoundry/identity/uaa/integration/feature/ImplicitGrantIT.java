@@ -97,7 +97,7 @@ public class ImplicitGrantIT {
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "cf");
-        postBody.add("redirect_uri", "https://uaa.cloudfoundry.com/redirect/cf");
+        postBody.add("redirect_uri", "http://localhost:8080/redirect/cf");
         postBody.add("response_type", "token");
         postBody.add("source", "credentials");
         postBody.add("username", testAccounts.getUserName());
@@ -111,7 +111,7 @@ public class ImplicitGrantIT {
         Assert.assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
-        Assert.assertEquals("uaa.cloudfoundry.com", locationComponents.getHost());
+        Assert.assertEquals("localhost", locationComponents.getHost());
         Assert.assertEquals("/redirect/cf", locationComponents.getPath());
 
         MultiValueMap<String, String> params = parseFragmentParams(locationComponents);
@@ -153,7 +153,7 @@ public class ImplicitGrantIT {
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "cf");
-        postBody.add("redirect_uri", "https://uaa.cloudfoundry.com/redirect/cf");
+        postBody.add("redirect_uri", "http://localhost:8080/redirect/cf");
         postBody.add("response_type", "token");
         postBody.add("source", "credentials");
         postBody.add("username", testAccounts.getUserName());
@@ -170,7 +170,7 @@ public class ImplicitGrantIT {
         System.out.println("responseEntity.getHeaders().getLocation() = " + responseEntity.getHeaders().getLocation());
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
-        Assert.assertEquals("uaa.cloudfoundry.com", locationComponents.getHost());
+        Assert.assertEquals("localhost", locationComponents.getHost());
         Assert.assertEquals("/redirect/cf", locationComponents.getPath());
 
         MultiValueMap<String, String> params = parseFragmentParams(locationComponents);

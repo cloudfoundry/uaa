@@ -21,6 +21,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -46,8 +48,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -271,6 +275,22 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
                         joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
         assertTrue("authorities does not contain dash.admin",
                         joe.getAuthorities().contains(new SimpleGrantedAuthority("dash.admin")));
+    }
+
+    @Test
+    public void getUserWithMultipleExtraAuthorities() {
+        addAuthority("additional", JOE_ID);
+        addAuthority("anotherOne", JOE_ID);
+        JdbcTemplate spy = Mockito.spy(jdbcTemplate);
+        db.setJdbcTemplate(spy);
+        UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
+        verify(spy, times(2)).queryForList(anyString(), Matchers.<String>anyVararg());
+        assertTrue("authorities does not contain uaa.user",
+                joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+        assertTrue("authorities does not contain additional",
+                joe.getAuthorities().contains(new SimpleGrantedAuthority("additional")));
+        assertTrue("authorities does not contain anotherOne",
+                joe.getAuthorities().contains(new SimpleGrantedAuthority("anotherOne")));
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -11,6 +11,24 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
+
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,27 +46,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
-import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-
 public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
     private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
@@ -61,26 +58,22 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
     @Before
     public void initUserManagedAuthzApprovalHandlerTests() {
-        limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
-        approvalStore = new JdbcApprovalStore(
-            jdbcTemplate,
-            new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-            new SimpleSearchQueryConverter()
-        );
+        approvalStore = new JdbcApprovalStore(jdbcTemplate);
         handler.setApprovalStore(approvalStore);
         handler.setClientDetailsService(
             mockClientDetailsService(
-                "foo", 
+                "foo",
                 new String[]{
                     "cloud_controller.read",
-                    "cloud_controller.write", 
+                    "cloud_controller.write",
                     "openid",
                     "space.*.developer"
-                }, 
+                },
                 Collections.emptySet()
             )
         );
         userId = new RandomValueStringGenerator().generate();
+        testAccounts.addRandomUser(jdbcTemplate, userId);
         userAuthentication = new TestAuthentication(userId, testAccounts.getUserName(), true);
     }
 
@@ -106,7 +99,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testNoPreviouslyApprovedScopes() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList("cloud_controller.read", "cloud_controller.write")
             )
@@ -121,7 +114,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testAuthzApprovedButNoPreviouslyApprovedScopes() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList("cloud_controller.read", "cloud_controller.write")
             )
@@ -162,7 +155,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testRequestedScopesDontMatchApprovalsAtAll() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList("openid")
             )
@@ -193,7 +186,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testOnlySomeRequestedScopeMatchesApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList("openid", "cloud_controller.read")
             )
@@ -224,7 +217,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testOnlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList("openid", "cloud_controller.read")
             )
@@ -236,10 +229,10 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         handler.setClientDetailsService(
             mockClientDetailsService(
-                "foo", 
+                "foo",
                 new String[]{
                     "cloud_controller.read",
-                    "cloud_controller.write", 
+                    "cloud_controller.write",
                     "openid"
                     },
                 singleton("true")
@@ -266,11 +259,11 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testRequestedScopesMatchApprovalButAdditionalScopesRequested() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList(
-                    "openid", 
-                    "cloud_controller.read", 
+                    "openid",
+                    "cloud_controller.read",
                     "cloud_controller.write"
                 )
             )
@@ -301,11 +294,11 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testAllRequestedScopesMatchApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList(
-                    "openid", 
-                    "cloud_controller.read", 
+                    "openid",
+                    "cloud_controller.read",
                     "cloud_controller.write"
                 )
             )
@@ -342,11 +335,11 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testRequestedScopesMatchApprovalButSomeDenied() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList(
-                    "openid", 
-                    "cloud_controller.read", 
+                    "openid",
+                    "cloud_controller.read",
                     "cloud_controller.write"
                 )
             )
@@ -383,11 +376,11 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(
                 Arrays.asList(
-                    "openid", 
-                    "cloud_controller.read", 
+                    "openid",
+                    "cloud_controller.read",
                     "cloud_controller.write"
                 )
             )
@@ -400,7 +393,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
             "foo",
             new String[]{
                 "cloud_controller.read",
-                "cloud_controller.write", 
+                "cloud_controller.write",
                 "openid"
             },
             singleton("cloud_controller.write")));
@@ -561,7 +554,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Test
     public void testSomeRequestedScopesMatchApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo", 
+            "foo",
             new HashSet<>(Arrays.asList("openid"))
         );
         request.setApproved(false);

@@ -17,7 +17,7 @@
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
@@ -186,6 +186,10 @@
                            @config['cors']['xhr']==null ? 1728000 :
                            @config['cors']['xhr']['max_age']==null ? 1728000 :
                            @config['cors']['xhr']['max_age']}"/>
+    </bean>
+
+    <bean id="allowQueryStringForTokens" class="java.lang.Boolean">
+        <constructor-arg value="${jwt.token.queryString.enabled:true}"/>
     </bean>
 
     <bean id="sessionFixationProtectionStrategy"
@@ -357,7 +361,7 @@
 
     <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
-    <import resource="classpath:login-ui.xml"/>
+    <import resource="classpath:spring/login-ui.xml"/>
     <import resource="spring/saml-idp.xml"/>
     <import resource="spring/saml-providers.xml"/>
 
@@ -415,6 +419,16 @@
         <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
     </bean>
 
+    <bean id="globalLinks" class="org.cloudfoundry.identity.uaa.zone.Links">
+        <property name="selfService">
+            <bean class="org.cloudfoundry.identity.uaa.zone.Links$SelfService">
+                <property name="passwd" value="${links.global.passwd:#{null}}"/>
+                <property name="signup" value="${links.global.signup:#{null}}"/>
+            </bean>
+        </property>
+        <property name="homeRedirect" value="${links.global.homeRedirect:#{null}}"/>
+    </bean>
+
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
@@ -426,6 +440,7 @@
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
         <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
+        <property name="globalLinks" ref="globalLinks"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
@@ -458,7 +473,7 @@
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="selfServiceLinks" ref="links" />
-        <property name="homeRedirect" value="${login.homeRedirect:null}"/>
+        <property name="homeRedirect" value="${links.homeRedirect:${login.homeRedirect:#{null}}}"/>
         <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}" />
         <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}" />
         <property name="logoutRedirectWhitelist"
@@ -474,6 +489,11 @@
         <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
         <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword}" />
         <property name="samlSpCertificate" value="${login.serviceProviderCertificate}" />
+        <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
+        <property name="samlKeys"
+                  value="#{@config['login']==null ? null :
+                           @config['login']['saml']==null ? null :
+                           @config['login']['saml']['keys']}"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

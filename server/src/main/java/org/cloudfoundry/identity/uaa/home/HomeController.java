@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -14,12 +14,12 @@ package org.cloudfoundry.identity.uaa.home;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.AuthenticationException;
@@ -29,11 +29,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,8 +42,8 @@ import static org.springframework.util.StringUtils.hasText;
 public class HomeController {
     private final Log logger = LogFactory.getLog(getClass());
     protected final Environment environment;
-    private Map<String, String> links = new HashMap<String, String>();
     private String baseUrl;
+    private Links globalLinks;
 
     @Autowired
     private JdbcClientMetadataProvisioning clientMetadataProvisioning;
@@ -56,15 +52,12 @@ public class HomeController {
         this.environment = environment;
     }
 
-    /**
-     * @param links the links to set
-     */
-    public void setLinks(Map<String, String> links) {
-        this.links = links;
+    public Links getGlobalLinks() {
+        return globalLinks;
     }
 
-    public Map<String, String> getLinks() {
-        return links;
+    public void setGlobalLinks(Links globalLinks) {
+        this.globalLinks = globalLinks;
     }
 
     /**
@@ -78,26 +71,20 @@ public class HomeController {
         return baseUrl;
     }
 
-    protected Map<String, ?> getLinksInfo() {
-        Map<String, Object> model = new HashMap<String, Object>();
-        model.put(OriginKeys.UAA, getUaaBaseUrl());
-        model.put("login", getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"));
-        model.putAll(getLinks());
-        return model;
-    }
-
     protected void populateBuildAndLinkInfo(Model model) {
         Map<String, Object> attributes = new HashMap<String, Object>();
-        attributes.put("links", getLinksInfo());
         model.addAllAttributes(attributes);
-        model.addAttribute("links", getLinks());
     }
 
     @RequestMapping(value = { "/", "/home" })
     public String home(Model model, Principal principal) {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        String homePage = config!=null?config.getLinks().getHomeRedirect() : null;
-        if (homePage != null) {
+        String homePage =
+            config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
+            getGlobalLinks() != null && getGlobalLinks().getHomeRedirect() != null ?
+                getGlobalLinks().getHomeRedirect() : null;
+        if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
+            homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
             return "redirect:" + homePage;
         }
         model.addAttribute("principal", principal);

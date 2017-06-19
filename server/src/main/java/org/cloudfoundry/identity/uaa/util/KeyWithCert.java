@@ -1,13 +1,5 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -18,12 +10,26 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
 public class KeyWithCert {
     private X509Certificate cert;
     private KeyPair pkey;
 
+    public KeyWithCert(String certificate) throws CertificateException {
+        loadCertificate(certificate);
+    }
+
     public KeyWithCert(String key, String passphrase, String certificate) throws CertificateException {
-        if(passphrase == null) { passphrase = ""; }
+        if(passphrase == null) {
+            passphrase = "";
+        }
 
         PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(key.getBytes())));
         try {
@@ -57,6 +63,14 @@ public class KeyWithCert {
            throw new CertificateException("Failed to read private key. The security provider could not parse it.");
         }
 
+        loadCertificate(certificate);
+        if (!cert.getPublicKey().equals(pkey.getPublic())) {
+            throw new CertificateException("Certificate does not match private key.");
+        }
+    }
+
+    public void loadCertificate(String certificate) throws CertificateException {
+        PEMParser pemParser;
         pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(certificate.getBytes())));
         try {
             Object object = pemParser.readObject();
@@ -80,9 +94,6 @@ public class KeyWithCert {
         }
         if(cert == null) {
             throw new CertificateException("Failed to read certificate. The security provider could not parse it.");
-        }
-        if (!cert.getPublicKey().equals(pkey.getPublic())) {
-            throw new CertificateException("Certificate does not match private key.");
         }
     }
 

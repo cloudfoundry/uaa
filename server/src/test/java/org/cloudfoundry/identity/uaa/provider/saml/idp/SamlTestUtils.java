@@ -8,9 +8,9 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
@@ -37,6 +37,7 @@ import org.opensaml.xml.io.Marshaller;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.SecurityHelper;
+import org.opensaml.xml.security.credential.Credential;
 import org.opensaml.xml.signature.Signature;
 import org.opensaml.xml.signature.SignatureException;
 import org.opensaml.xml.signature.Signer;
@@ -49,13 +50,29 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -118,6 +135,19 @@ public class SamlTestUtils {
         initializeSimple();
     }
 
+    public IdentityZone getUaaZoneWithSamlConfig() {
+        IdentityZone uaa = IdentityZoneHolder.getUaaZone();
+        setupZoneWithSamlConfig(uaa);
+        return uaa;
+    }
+
+    public void setupZoneWithSamlConfig(IdentityZone zone) {
+        SamlConfig config = zone.getConfig().getSamlConfig();
+        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
+        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+        config.setCertificate(PROVIDER_CERTIFICATE);
+    }
+
     public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId, String idpMetaData) {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);
@@ -160,12 +190,20 @@ public class SamlTestUtils {
         context.setPeerEntityRoleMetadata(spDescriptor);
         context.setInboundSAMLMessage(authnRequest);
 
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
+        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+        config.setCertificate(PROVIDER_CERTIFICATE);
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
         context.setLocalSigningCredential(keyManager.getDefaultCredential());
         return context;
     }
 
     public EntityDescriptor mockIdpMetadata() {
+        return mockIdpMetadataGenerator().generateMetadata();
+    }
+
+    public IdpMetadataGenerator mockIdpMetadataGenerator() {
         IdpExtendedMetadata extendedMetadata = new IdpExtendedMetadata();
 
         IdpMetadataGenerator metadataGenerator = new IdpMetadataGenerator();
@@ -176,7 +214,7 @@ public class SamlTestUtils {
         KeyManager keyManager = mock(KeyManager.class);
         when(keyManager.getDefaultCredentialName()).thenReturn(null);
         metadataGenerator.setKeyManager(keyManager);
-        return metadataGenerator.generateMetadata();
+        return metadataGenerator;
     }
 
     public EntityDescriptor mockSpMetadata() {
@@ -218,11 +256,14 @@ public class SamlTestUtils {
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
         assertion.getConditions().setNotOnOrAfter(until);
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(privateKey, keyPassword, certificate);
+        SamlConfig config = new SamlConfig();
+        config.addAndActivateKey("active-key", new SamlKey(privateKey,keyPassword, certificate));
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
         SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
         Signature signature = signatureBuilder.buildObject();
-        signature.setSigningCredential(keyManager.getDefaultCredential());
-        SecurityHelper.prepareSignatureParams(signature, keyManager.getDefaultCredential(), null, null);
+        final Credential defaultCredential = keyManager.getDefaultCredential();
+        signature.setSigningCredential(defaultCredential);
+        SecurityHelper.prepareSignatureParams(signature, defaultCredential, null, null);
         assertion.setSignature(signature);
         Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
         marshaller.marshall(assertion);
@@ -596,12 +637,12 @@ public class SamlTestUtils {
 
     public static final String UNSIGNED_SAML_SP_METADATA_WITHOUT_HEADER = UNSIGNED_SAML_SP_METADATA_WITHOUT_ID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
 
-    public static final String MOCK_SP_ENTITY_ID = "cloudfoundry-saml-login";
+    public static final String MOCK_SP_ENTITY_ID = "mock-saml-sp-entity-id";
 
     public static SamlServiceProvider mockSamlServiceProviderForZone(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
-                        new RandomValueStringGenerator().generate()))
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
+                        new RandomValueStringGenerator().generate(), MOCK_SP_ENTITY_ID, DEFAULT_NAME_ID_FORMATS))
                 .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
                 .setMetadataTrustCheck(true).build();
 
@@ -635,11 +676,35 @@ public class SamlTestUtils {
 
     public static SamlServiceProvider mockSamlServiceProviderForZoneWithoutSPSSOInMetadata(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_SPSSODESCRIPTOR,
-                        new RandomValueStringGenerator().generate()))
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
+                        new RandomValueStringGenerator().generate(), MOCK_SP_ENTITY_ID, DEFAULT_NAME_ID_FORMATS))
                 .setMetadataTrustCheck(true).build();
         return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
                 .setConfig(singleAddDef);
      }
+
+    public static List<String> getCertificates(String metadata, String type) throws Exception {
+        Document doc = getMetadataDoc(metadata);
+        NodeList nodeList = evaluateXPathExpression(doc, "//*[local-name()='KeyDescriptor' and @*[local-name() = 'use']='"+ type +"']//*[local-name()='X509Certificate']/text()");
+        assertNotNull(nodeList);
+        List<String> result = new LinkedList<>();
+        for (int i=0; i<nodeList.getLength(); i++) {
+            result.add(nodeList.item(i).getNodeValue().replace("\n", ""));
+        }
+        return result;
+    }
+
+    public static NodeList evaluateXPathExpression(Document doc, String xpath) throws XPathExpressionException {
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        XPathExpression expression = xPath.compile(xpath);
+        return (NodeList) expression.evaluate(doc, XPathConstants.NODESET);
+    }
+
+    public static Document getMetadataDoc(String metadata) throws SAXException, IOException, ParserConfigurationException {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(false);
+        InputSource is = new InputSource(new StringReader(metadata));
+        return documentBuilderFactory.newDocumentBuilder().parse(is);
+    }
 
 }

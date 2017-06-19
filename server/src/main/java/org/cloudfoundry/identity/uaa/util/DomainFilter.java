@@ -67,6 +67,14 @@ public class DomainFilter {
         return activeProviders != null ? activeProviders : EMPTY_LIST;
     }
 
+    public static List<IdentityProvider> getIdpsForEmailDomain(List<IdentityProvider> activeProviders, String email) {
+        if (!StringUtils.hasText(email) || !email.contains("@")) {
+            return EMPTY_LIST;
+        }
+        final String domain = email.substring(email.indexOf('@') + 1);
+        return activeProviders.stream().filter(provider -> doesEmailDomainMatchProvider(provider, domain, true)).collect(Collectors.toList());
+    }
+
     protected static List<String> getProvidersForClient(ClientDetails client) {
         if (client==null) {
             return null;

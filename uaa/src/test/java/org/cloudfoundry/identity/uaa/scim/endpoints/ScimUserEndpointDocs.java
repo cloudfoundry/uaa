@@ -99,7 +99,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String userZoneIdDescription = "The zone this user belongs to. 'uaa' is the default zone.";
     private final String passwordLastModifiedDescription = "The timestamp this user's password was last changed.";
     private final String externalIdDescription = "External user ID if authenticated through external identity provider.";
-    private final String passwordDescription = "User's password.";
+    private final String passwordDescription = "User's password, required if origin is set to 'uaa'.";
     private final String phoneNumbersListDescription = "The user's phone numbers.";
     private final String phoneNumbersDescription = "The phone number.";
 
@@ -117,6 +117,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
         fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
         fieldWithPath("resources").type(ARRAY).description(resourceDescription),
+        fieldWithPath("resources[].schemas").type(ARRAY).description(schemasDescription),
         fieldWithPath("resources[].id").type(STRING).description(userIdDescription),
         fieldWithPath("resources[].userName").type(STRING).description(usernameDescription),
         fieldWithPath("resources[].name").type(OBJECT).description(nameObjectDescription),
@@ -140,13 +141,13 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].approvals[].expiresAt").type(STRING).description(approvalsExpiresAtDescription),
         fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
         fieldWithPath("resources[].lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
-        fieldWithPath("resources[].previoousLogonTime").optional(null).type(NUMBER).description(userPreviousLogonTimeDescription),
+        fieldWithPath("resources[].previousLogonTime").optional(null).type(NUMBER).description(userPreviousLogonTimeDescription),
         fieldWithPath("resources[].verified").type(BOOLEAN).description(userVerifiedDescription),
         fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
         fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("resources[].meta").type(STRING).description(metaDesc),
+        fieldWithPath("resources[].meta").type(OBJECT).description(metaDesc),
         fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
         fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
         fieldWithPath("resources[].meta.created").type(STRING).description(metaCreatedDesc)
@@ -154,8 +155,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
 
     Snippet createFields = requestFields(
         fieldWithPath("userName").required().type(STRING).description(usernameDescription),
-        fieldWithPath("password").required().type(STRING).description(passwordDescription),
+        fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
         fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
+        fieldWithPath("name.formatted").ignored().type(STRING).description("First and last name combined"),
         fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
         fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
         fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
@@ -168,7 +170,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
         fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
-        fieldWithPath("meta").optional().ignored().type(STRING).description("SCIM object meta data not read.")
+        fieldWithPath("meta.*").optional().ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
     FieldDescriptor[] createResponse = {
@@ -194,7 +196,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(STRING).description(metaDesc),
+        fieldWithPath("meta").type(OBJECT).description(metaDesc),
         fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
         fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
         fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
@@ -220,7 +222,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").ignored().type(STRING).description("SCIM object meta data not read.")
+        fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
     FieldDescriptor[] updateResponse = {
@@ -254,7 +256,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
         fieldWithPath("previousLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(STRING).description(metaDesc),
+        fieldWithPath("meta").type(OBJECT).description(metaDesc),
         fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
         fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
         fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
@@ -280,7 +282,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").ignored().type(STRING).description("SCIM object meta data not read."),
+        fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read."),
         fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
     );
 

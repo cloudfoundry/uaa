@@ -27,6 +27,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -108,7 +109,6 @@ public class ForcedPasswordChangeIT {
 
     @Test
     public void testHandleForceChangingPassword() throws Exception {
-
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
@@ -118,7 +118,6 @@ public class ForcedPasswordChangeIT {
 
     @Test
     public void testHandleForceChangingPasswordWithNewPasswordSameAsOld() throws Exception {
-
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
@@ -130,7 +129,6 @@ public class ForcedPasswordChangeIT {
 
     @Test
     public void testHandleForcePasswordChangeInvalidConfirmation() throws Exception {
-
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("invalid");
@@ -142,7 +140,6 @@ public class ForcedPasswordChangeIT {
 
     @Test
     public void testHandleForcePasswordChangeEmptyConfirmation() throws Exception {
-
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
@@ -153,7 +150,6 @@ public class ForcedPasswordChangeIT {
 
     @Test
     public void testRedirectForHandleForcePasswordChange() throws Exception {
-
         updateUserToForcePasswordChange();
         webDriver.get(baseUrl+"/profile");
         assertEquals(baseUrl+"/login", webDriver.getCurrentUrl());
@@ -164,6 +160,18 @@ public class ForcedPasswordChangeIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
         assertEquals(baseUrl+"/profile", webDriver.getCurrentUrl());
+    }
+
+    @Test
+    public void testForcePasswordChangeThatFailsPasswordPolicy() {
+        navigateToForcePasswordChange();
+        String invalidNewPassword = new RandomValueStringGenerator(256).generate();
+        webDriver.findElement(By.name("password")).sendKeys(invalidNewPassword);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(invalidNewPassword);
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(),
+            containsString("Password must be no more than 255 characters in length."));
     }
 
     private void navigateToForcePasswordChange() {

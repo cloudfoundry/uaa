@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -30,6 +31,7 @@ import org.springframework.util.StringUtils;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -60,9 +62,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users where id = ? and active=? and identity_zone_id=?";
     private final TimeService timeService;
-
-
-    private String AUTHORITIES_QUERY = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id and m.member_id = ? and g.identity_zone_id=?";
 
     private JdbcTemplate jdbcTemplate;
 
@@ -227,25 +226,37 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
         private String getAuthorities(final String userId) {
             Set<String> authorities = new HashSet<>();
-            getAuthorities(authorities, userId);
+            getAuthorities(authorities, Arrays.asList(userId));
             authorities.addAll(defaultAuthorities);
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 
-        protected void getAuthorities(Set<String> authorities, final String memberId) {
+        protected void getAuthorities(Set<String> authorities, final List<String> memberIdList) {
             List<Map<String, Object>> results;
-            try {
-                results = jdbcTemplate.queryForList(AUTHORITIES_QUERY, memberId, IdentityZoneHolder.get().getId());
-                for (Map<String,Object> record : results) {
-                    String displayName = (String)record.get("displayName");
-                    String groupId = (String)record.get("id");
-                    if (!authorities.contains(displayName)) {
-                        authorities.add(displayName);
-                        getAuthorities(authorities, groupId);
-                    }
-                }
-            } catch (EmptyResultDataAccessException ex) {
+            if(memberIdList.size() == 0) {
+                return;
             }
+            StringBuffer dynamicAuthoritiesQuery = new StringBuffer("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
+            for (int i = 0; i < memberIdList.size() - 1; i++) {
+                dynamicAuthoritiesQuery.append("?,");
+            }
+            dynamicAuthoritiesQuery.append("?);");
+
+            Object[] parameterList = ArrayUtils.addAll(new Object[]{IdentityZoneHolder.get().getId()},memberIdList.toArray());
+
+            results = jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList);
+            List<String> newMemberIdList = new ArrayList<>();
+
+            for(int i=0;i<results.size();i++) {
+                Map<String, Object> record = results.get(i);
+                String displayName = (String) record.get("displayName");
+                String groupId = (String) record.get("id");
+                if (!authorities.contains(displayName)) {
+                    authorities.add(displayName);
+                    newMemberIdList.add(groupId);
+                }
+            }
+            getAuthorities(authorities,newMemberIdList);
         }
     }
 }

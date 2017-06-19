@@ -75,7 +75,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.HttpSession;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -94,6 +96,7 @@ import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -102,6 +105,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -113,6 +119,7 @@ import static org.springframework.security.web.context.HttpSessionSecurityContex
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -168,8 +175,22 @@ public class LdapMockMvcTests  {
         apacheDS.stop();
     }
 
+    public static boolean checkOpenPorts(int port) throws Exception {
+        //need to configure gradle to not swallow the output, but log it to a file
+        System.out.println("Checking for processes using port:"+port);
+        ProcessBuilder builder = new ProcessBuilder(Arrays.asList("sudo", "lsof", "-i", ":"+port));
+        builder.inheritIO().redirectOutput(ProcessBuilder.Redirect.PIPE);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(builder.start().getInputStream()))) {
+            long count = reader.lines().count();
+            reader.lines().forEach(line -> System.err.println("LDAP Port["+port+"] lsof:"+line));
+            return count > 0;
+        }
+    }
+
     @BeforeClass
     public static void startApacheDS() throws Exception {
+        checkOpenPorts(33389);
+        checkOpenPorts(33636);
         apacheDS = ApacheDSHelper.start();
         webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
@@ -342,7 +363,7 @@ public class LdapMockMvcTests  {
             .andExpect(content().string(containsString("Email: " + email)))
             .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
             .andExpect(content().string(containsString("username")))
-            .andExpect(content().string(containsString("<input type=\"submit\" value=\"Sign in\" class=\"island-button\" />")))
+            .andExpect(content().string(containsString("<input type=\"submit\" value=\"Sign in\" class=\"island-button\"/>")))
             .andReturn();
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
@@ -865,6 +886,38 @@ public class LdapMockMvcTests  {
     public void printProfileType() throws Exception {
         assertEquals(ldapProfile, getBean("testLdapProfile"));
         assertEquals(ldapGroup, getBean("testLdapGroup"));
+    }
+
+    @Test
+    public void test_read_and_write_config_then_login() throws Exception {
+
+        String response = getMockMvc().perform(
+            get("/identity-providers/"+provider.getId())
+                .header(ACCEPT, APPLICATION_JSON)
+                .header(HOST, host)
+                .header(AUTHORIZATION, "Bearer " + zone.getAdminToken())
+        )
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        assertThat(response, not(containsString("bindPassword")));
+        IdentityProvider<LdapIdentityProviderDefinition> provider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<LdapIdentityProviderDefinition>>() {});
+        assertNull(provider.getConfig().getBindPassword());
+
+        getMockMvc().perform(
+            put("/identity-providers/"+provider.getId())
+                .content(JsonUtils.writeValueAsString(provider))
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .header(ACCEPT, APPLICATION_JSON)
+                .header(HOST, host)
+                .header(AUTHORIZATION, "Bearer " + zone.getAdminToken())
+        )
+            .andExpect(status().isOk());
+
+        testSuccessfulLogin();
+
     }
 
     @Test

@@ -47,6 +47,7 @@ import org.springframework.web.servlet.View;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,10 +69,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     private final Log logger = LogFactory.getLog(getClass());
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
-
-    private static final String USER_FILTER_TEMPLATE = "user_id eq \"%s\"";
-
-    private static final String USER_AND_CLIENT_FILTER_TEMPLATE = "user_id eq \"%s\" and client_id eq \"%s\"";
 
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.statuses = statuses;
@@ -96,13 +93,12 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @RequestMapping(value = "/approvals", method = RequestMethod.GET)
     @ResponseBody
     @Override
-    public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String filter,
+    public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String ignored,
                                        @RequestParam(required = false, defaultValue = "1") int startIndex,
                                        @RequestParam(required = false, defaultValue = "100") int count) {
         String userId = getCurrentUserId();
         logger.debug("Fetching all approvals for user: " + userId);
-        List<Approval> input = approvalStore.getApprovals(
-                        String.format("%s and " + USER_FILTER_TEMPLATE, filter, userId));
+        List<Approval> input = approvalStore.getApprovalsForUser(userId);
         List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
 
         // Find the clients for these approvals
@@ -154,7 +150,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
-        approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
+        approvalStore.revokeApprovalsForUser(currentUserId);
+        List<Approval> result = new LinkedList<>();
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) &&  !isValidUser(approval.getUserId())) {
                 logger.warn(String.format("Error[2] %s attempting to update approvals for %s", currentUserId, approval.getUserId()));
@@ -163,9 +160,11 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             } else {
                 approval.setUserId(currentUserId);
             }
-            approvalStore.addApproval(approval);
+            if (approvalStore.addApproval(approval)) {
+                result.add(approval);
+            }
         }
-        return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
+        return result;
     }
 
     @RequestMapping(value = "/approvals/{clientId}", method = RequestMethod.PUT)
@@ -175,7 +174,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         clientDetailsService.loadClientByClientId(clientId);
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
-        approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
+        approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId);
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
                 logger.warn(String.format("Error[1] %s attemting to update approvals for %s.", currentUserId, approval.getUserId()));
@@ -186,7 +185,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             }
             approvalStore.addApproval(approval);
         }
-        return approvalStore.getApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
+        return approvalStore.getApprovals(currentUserId, clientId);
     }
 
     private boolean isValidUser(String userId) {
@@ -205,16 +204,16 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ResponseBody
     @Override
     public ActionResult revokeApprovals(@RequestParam(required = true) String clientId) {
-        String username = getCurrentUserId();
-        logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
         clientDetailsService.loadClientByClientId(clientId);
-        approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
-        return new ActionResult("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
+        String userId = getCurrentUserId();
+        logger.debug("Revoking all existing approvals for user: " + userId + " and client " + clientId);
+        approvalStore.revokeApprovalsForClientAndUser(clientId, userId);
+        return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
     }
 
     @ExceptionHandler
     public View handleException(NoSuchClientException nsce) {
-        logger.debug("Client not found:"+nsce.getMessage());
+        logger.debug("Client not found:" + nsce.getMessage());
         return handleException(new UaaException(nsce.getMessage(), 404));
     }
 
