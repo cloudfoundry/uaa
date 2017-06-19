@@ -50,6 +50,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     public static final String CLIENTID = "oauth_showcase_password_grant";
     public static final String CLIENTSECRET = "secret";
     private String token;
+    private String idToken;
     private String basic;
     private boolean allowQueryString;
 
@@ -65,12 +66,14 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", SECRET)
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+                .param("response_type", "id_token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))
             .andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
         Map<String,Object> tokenMap = JsonUtils.readValue(content, new TypeReference<Map<String, Object>>() {});
         token = (String) tokenMap.get("access_token");
+        idToken = (String) tokenMap.get("id_token");
         basic = new String(Base64.encodeBase64((CLIENTID+":"+CLIENTSECRET).getBytes()));
         allowQueryString = getWebApplicationContext().getBean(CheckTokenEndpoint.class).isAllowQueryString();
         getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(false);
@@ -127,6 +130,17 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
             .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"))
             .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
             .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
+    }
+
+    @Test
+    public void check_token_endpoint_id_token() throws Exception {
+        getMockMvc().perform(
+            post("/check_token")
+                .header("Authorization", "Basic " + basic)
+                .header(ACCEPT, APPLICATION_JSON_VALUE)
+                .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
+                .param("token", idToken))
+            .andExpect(status().isOk());
     }
 
     public ResultActions check_token(MockHttpServletRequestBuilder builder, ResultMatcher matcher) throws Exception {
