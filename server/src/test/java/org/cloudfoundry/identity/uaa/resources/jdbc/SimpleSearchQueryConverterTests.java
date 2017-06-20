@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import com.unboundid.scim.sdk.InvalidResourceException;
 import com.unboundid.scim.sdk.SCIMFilter;
-import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,7 +59,7 @@ public class SimpleSearchQueryConverterTests {
 
     @Before
     public void setup() {
-        converter = new ScimSearchQueryConverter();
+        converter = new SimpleSearchQueryConverter();
     }
 
     @Test
