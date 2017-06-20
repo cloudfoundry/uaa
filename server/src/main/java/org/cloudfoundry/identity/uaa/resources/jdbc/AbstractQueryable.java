@@ -12,10 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.resources.Queryable;
@@ -24,6 +20,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.StringUtils;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
@@ -63,19 +63,6 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     public int getPageSize() {
         return pageSize;
-    }
-
-    public int delete(String filter) {
-        SearchQueryConverter.ProcessedFilter where = queryConverter.convert(filter, null, false);
-        logger.debug("Filtering groups with SQL: " + where);
-        try {
-            String completeSql = "DELETE FROM "+getTableName() + " WHERE " + where.getSql();
-            logger.debug("delete sql: " + completeSql + ", params: " + where.getParams());
-            return jdbcTemplate.update(completeSql, where.getParams());
-        } catch (DataAccessException e) {
-            logger.debug("Filter '" + filter + "' generated invalid SQL", e);
-            throw new IllegalArgumentException("Invalid delete filter: " + filter);
-        }
     }
 
     @Override

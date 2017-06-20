@@ -146,8 +146,4 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
                         ScimUser.class, id).getBody();
     }
 
-    @Override
-    public int delete(String filter) {
-        throw new UnsupportedOperationException();
-    }
 }

@@ -177,24 +177,6 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void canDeleteGroupsUsingFilter1() throws Exception {
-        dao.delete("displayName eq \"uaa.user\"");
-        validateGroupCount(2);
-    }
-
-    @Test
-    public void canDeleteGroupsUsingFilter2() throws Exception {
-        dao.delete("displayName sw \"uaa\"");
-        validateGroupCount(1);
-    }
-
-    @Test
-    public void canDeleteGroupsUsingFilter3() throws Exception {
-        dao.delete("id eq \"g1\"");
-        validateGroupCount(2);
-    }
-
-    @Test
     public void canUpdateGroup() throws Exception {
         ScimGroup g = dao.retrieve("g1", IdentityZoneHolder.get().getId());
         assertEquals("uaa.user", g.getDisplayName());
