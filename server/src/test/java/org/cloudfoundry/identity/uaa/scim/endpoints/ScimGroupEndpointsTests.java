@@ -37,7 +37,10 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -146,6 +149,11 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         externalGroups.put(OriginKeys.LDAP, externalToInternalMap);
         externalGroupBootstrap.setExternalGroupMaps(externalGroups);
         externalGroupBootstrap.afterPropertiesSet();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        IdentityZoneHolder.clear();
     }
 
     private String addGroup(String name, List<ScimGroupMember> m) {
@@ -648,6 +656,23 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         } catch (ScimResourceNotFoundException ex) {
         }
         validateUserGroups(g.getMembers().get(0).getMemberId(), "uaa.user");
+    }
+
+    @Test
+    public void testDeleteGroupRemovesMembershipsInZone() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
+        IdentityZoneHolder.set(zone);
+
+        ScimGroup group = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroupMember member = createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        group.setMembers(Arrays.asList(member));
+
+        group = endpoints.createGroup(group, new MockHttpServletResponse());
+
+        endpoints.deleteGroup(member.getMemberId(), "*", new MockHttpServletResponse());
+
+        List<ScimGroupMember> members = endpoints.listGroupMemberships(group.getId(), true, "").getBody();
+        assertEquals(0, members.size());
     }
 
     @Test

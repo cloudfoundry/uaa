@@ -410,7 +410,7 @@ public class ScimGroupEndpoints {
         logger.debug("deleting group: " + group);
         try {
             membershipManager.removeMembersByGroupId(groupId, IdentityZoneHolder.get().getId());
-            membershipManager.removeMembersByMemberId(groupId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+            membershipManager.removeMembersByMemberId(groupId, IdentityZoneHolder.get().getId());
             dao.delete(groupId, getVersion(groupId, etag), IdentityZoneHolder.get().getId());
         } catch (IncorrectResultSizeDataAccessException ex) {
             logger.debug("error deleting group", ex);
