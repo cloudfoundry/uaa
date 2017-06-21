@@ -87,6 +87,7 @@ public class EmailAccountCreationServiceTests {
 
     @Before
     public void setUp() throws Exception {
+        IdentityZoneHolder.clear();
         SecurityContextHolder.clearContext();
         messageService = mock(MessageService.class);
         codeStore = mock(ExpiringCodeStore.class);
@@ -198,7 +199,8 @@ public class EmailAccountCreationServiceTests {
     public void testBeginActivationWithExistingUser() throws Exception {
         setUpForSuccess(null);
         user.setVerified(true);
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
     }
@@ -209,7 +211,8 @@ public class EmailAccountCreationServiceTests {
         user.setId("existing-user-id");
         user.setVerified(false);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();

@@ -401,7 +401,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         List<ScimUser> input = new ArrayList<ScimUser>();
         List<ScimUser> result;
         try {
-            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"));
+            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), IdentityZoneHolder.get().getId());
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
                 if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)groups") || attributesCommaSeparated.isEmpty()) {
                     syncGroups(user);

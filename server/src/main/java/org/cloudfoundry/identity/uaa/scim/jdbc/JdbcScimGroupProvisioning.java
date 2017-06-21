@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -179,23 +178,6 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     protected String getBaseSqlQuery() {
         return QUERY_FOR_FILTER;
-    }
-
-    @Override
-    public List<ScimGroup> query(String filter, String sortBy, boolean ascending) {
-        String zoneId = IdentityZoneHolder.get().getId();
-        return query(filter, sortBy, ascending, zoneId);
-    }
-
-    public List<ScimGroup> query(String filter, String sortBy, boolean ascending, final String zoneId) {
-        //validate syntax
-        getQueryConverter().convert(filter, sortBy, ascending);
-
-        if (StringUtils.hasText(filter)) {
-            filter = "("+ filter+ ") and";
-        }
-        filter += " identity_zone_id eq \""+zoneId+"\"";
-        return super.query(filter, sortBy, ascending);
     }
 
     @Override

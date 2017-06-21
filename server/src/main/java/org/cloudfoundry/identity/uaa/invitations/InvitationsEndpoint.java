@@ -137,7 +137,7 @@ public class InvitationsEndpoint {
 
     protected ScimUser findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
-        List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin));
+        List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin), IdentityZoneHolder.get().getId());
         if (results == null || results.size() == 0) {
             ScimUser user = new ScimUser(null, email, "", "");
             user.setPrimaryEmail(email.toLowerCase());

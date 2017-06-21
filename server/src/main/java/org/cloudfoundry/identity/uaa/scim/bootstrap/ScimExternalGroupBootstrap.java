@@ -69,7 +69,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
         try {
             return getScimGroupProvisioning().create(group, IdentityZoneHolder.get().getId());
         } catch (ScimResourceAlreadyExistsException x) {
-            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, groupName, IdentityZoneHolder.get().getId()));
+            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, groupName, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
             if (groups != null && groups.size() > 0) {
                 return groups.get(0);
             } else {
@@ -88,7 +88,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
                     if (internalGroups != null) {
                         internalGroups.removeAll(Collections.singleton(null));
                         for (String internalGroup : internalGroups) {
-                            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, internalGroup, IdentityZoneHolder.get().getId()));
+                            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, internalGroup, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
 
                             if (groups == null || groups.size() == 0 && isAddNonExistingGroups()) {
                                 groups = new ArrayList<>();

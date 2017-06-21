@@ -1248,7 +1248,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     protected String getGroupId(String displayName) throws Exception {
         JdbcScimGroupProvisioning gp = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");
-        List<ScimGroup> result = gp.query("displayName eq \""+displayName+"\"");
+        List<ScimGroup> result = gp.query("displayName eq \""+displayName+"\"", IdentityZoneHolder.get().getId());
         if (result==null || result.size()==0) {
             throw new NullPointerException("Group not found:"+displayName);
         }
@@ -1313,7 +1313,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
             Collection<ScimUser.Group> scimUserGroups = new LinkedList<>();
             for (String groupName : groupNames) {
-                List<ScimGroup> scimGroups = groupRepository.query("displayName eq \""+ groupName +"\"");
+                List<ScimGroup> scimGroups = groupRepository.query("displayName eq \""+ groupName +"\"", IdentityZoneHolder.get().getId());
                 ScimUser.Group scimUserGroup;
                 ScimGroup group;
                 if (scimGroups==null || scimGroups.isEmpty()) {
@@ -1353,7 +1353,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
             Collection<ScimUser.Group> scimUserGroups = new LinkedList<>();
             for (String groupName : groupNames) {
-                List<ScimGroup> scimGroups = groupRepository.query("displayName eq \""+ groupName +"\"");
+                List<ScimGroup> scimGroups = groupRepository.query("displayName eq \""+ groupName +"\"", IdentityZoneHolder.get().getId());
                 ScimUser.Group scimUserGroup;
                 ScimGroup group;
                 if (scimGroups==null || scimGroups.isEmpty()) {

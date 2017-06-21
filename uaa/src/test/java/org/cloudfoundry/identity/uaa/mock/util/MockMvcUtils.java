@@ -1025,7 +1025,7 @@ public final class MockMvcUtils {
             try {
                 IdentityZoneHolder.set(zone);
                 ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
-                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
+                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
                 UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
                 SecurityContext securityContext = new SecurityContextImpl();

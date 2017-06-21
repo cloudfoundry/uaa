@@ -241,7 +241,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     }
 
     protected ScimGroup createIfNotExist(String scope, String zoneId) {
-        List<ScimGroup> exists = groupProvisioning.query("displayName eq \"" + scope + "\" and identity_zone_id eq \""+zoneId+"\"");
+        List<ScimGroup> exists = groupProvisioning.query("displayName eq \"" + scope + "\" and identity_zone_id eq \""+zoneId+"\"", IdentityZoneHolder.get().getId());
         if (exists.size() > 0) {
             return exists.get(0);
         } else {

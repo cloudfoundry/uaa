@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -48,7 +49,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
             throw new BadCredentialsException(username);
         }
         passwordValidator.validate(newPassword);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + username + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + username + "\"", IdentityZoneHolder.get().getId());
         if (results.isEmpty()) {
             throw new ScimResourceNotFoundException("User not found");
         }

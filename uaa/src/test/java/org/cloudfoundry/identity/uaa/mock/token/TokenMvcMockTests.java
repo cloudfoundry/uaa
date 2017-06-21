@@ -600,7 +600,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Object refreshToken = tokens.get(REFRESH_TOKEN);
         String refreshTokenId = (String) refreshToken;
 
-        List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"");
+        List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"", IdentityZoneHolder.get().getId());
         assertEquals(1, groups.size());
         getWebApplicationContext().getBean(ScimGroupMembershipManager.class).removeMemberById(groups.get(0).getId(), scimUser.getId(), IdentityZoneHolder.get().getId());
 

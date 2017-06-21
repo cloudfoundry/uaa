@@ -35,12 +35,13 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    private SearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
+    private SearchQueryConverter queryConverter = null;
 
     private int pageSize = 200;
 
     protected AbstractQueryable(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory,
                     RowMapper<T> rowMapper) {
+        queryConverter = new SimpleSearchQueryConverter();
         this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.pagingListFactory = pagingListFactory;
         this.rowMapper = rowMapper;
@@ -66,13 +67,18 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     }
 
     @Override
-    public List<T> query(String filter) {
-        return query(filter, null, true);
+    public List<T> query(String filter, String zoneId) {
+        return query(filter, null, true, zoneId);
     }
 
     @Override
-    public List<T> query(String filter, String sortBy, boolean ascending) {
+    public List<T> query(String filter, String sortBy, boolean ascending, String zoneId) {
         validateOrderBy(queryConverter.map(sortBy));
+        if (StringUtils.hasText(filter)) {
+            filter = "("+ filter+ ") and";
+        }
+        filter += " identity_zone_id eq \""+ zoneId +"\"";
+
         SearchQueryConverter.ProcessedFilter where = queryConverter.convert(filter, sortBy, ascending);
         logger.debug("Filtering groups with SQL: " + where);
         List<T> result;
@@ -131,11 +137,6 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         if (allints) {
             return;
         }
-
-
     }
 
-    public SearchQueryConverter getQueryConverter() {
-        return queryConverter;
-    }
 }

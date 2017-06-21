@@ -159,19 +159,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public List<ScimUser> retrieveAll(String zoneId) {
-        return query("id pr", "created", true);
-    }
-
-    @Override
-    public List<ScimUser> query(String filter, String sortBy, boolean ascending) {
-        //validate syntax
-        getQueryConverter().convert(filter, sortBy, ascending);
-
-        if (hasText(filter)) {
-            filter = "("+ filter+ ") and";
-        }
-        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
-        return super.query(filter, sortBy, ascending);
+        return query("id pr", "created", true, zoneId);
     }
 
     @Override
@@ -221,7 +209,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
             });
         } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"").get(0);
+            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"", IdentityZoneHolder.get().getId()).get(0);
             Map<String,Object> userDetails = new HashMap<>();
             userDetails.put("active", existingUser.isActive());
             userDetails.put("verified", existingUser.isVerified());

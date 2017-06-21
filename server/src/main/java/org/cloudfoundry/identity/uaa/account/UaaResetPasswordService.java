@@ -155,9 +155,9 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     @Override
     public ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri) {
         String jsonEmail = JsonUtils.writeValueAsString(email);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + OriginKeys.UAA + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId());
         if (results.isEmpty()) {
-            results = scimUserProvisioning.query("userName eq " + jsonEmail);
+            results = scimUserProvisioning.query("userName eq " + jsonEmail, IdentityZoneHolder.get().getId());
             if (results.isEmpty()) {
                 throw new NotFoundException();
             } else {

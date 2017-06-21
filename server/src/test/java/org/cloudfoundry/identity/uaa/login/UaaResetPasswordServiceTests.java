@@ -77,6 +77,7 @@ public class UaaResetPasswordServiceTests {
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         codeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
@@ -99,7 +100,8 @@ public class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
         user.setPasswordLastModified(new Date(1234));
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
+        String zoneID = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(contains("origin"), eq(zoneID))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
@@ -128,7 +130,8 @@ public class UaaResetPasswordServiceTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "firstName", "lastName");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
         when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
@@ -145,8 +148,9 @@ public class UaaResetPasswordServiceTests {
     public void forgotPassword_ThrowsConflictException() throws Exception {
         ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{}));
-        when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{}));
+        when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
         when(codeStore.retrieveCode(anyString(), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
 

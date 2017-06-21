@@ -1048,7 +1048,7 @@ public class LdapMockMvcTests  {
         assertEquals("marissa7", authedUser.getUsername());
         try {
             IdentityZoneHolder.set(zone.getZone().getIdentityZone());
-            List<ScimUser> scimUserList = getWebApplicationContext().getBean(ScimUserProvisioning.class).query(String.format("origin eq \"%s\"", LDAP));
+            List<ScimUser> scimUserList = getWebApplicationContext().getBean(ScimUserProvisioning.class).query(String.format("origin eq \"%s\"", LDAP), IdentityZoneHolder.get().getId());
             assertEquals(1, scimUserList.size());
         } finally {
             IdentityZoneHolder.clear();
@@ -1255,7 +1255,7 @@ public class LdapMockMvcTests  {
                 group = gp.create(group, IdentityZoneHolder.get().getId());
             } catch (ScimResourceAlreadyExistsException e) {
                 String filter = "displayName eq \""+internalName+"\"";
-                group = gp.query(filter).get(0);
+                group = gp.query(filter, IdentityZoneHolder.get().getId()).get(0);
             }
             exm.mapExternalGroup(group.getId(), externalName, OriginKeys.LDAP, zone.getId());
         }
