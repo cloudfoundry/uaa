@@ -100,7 +100,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
                 usergroups.add(g.get(0));
             } else { // default group must exist, hence if not already present,
                 // create it
-                usergroups.add(groupProvisioning.create(new ScimGroup(null, name, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId()));
+                usergroups.add(groupProvisioning.create(new ScimGroup(null, name, IdentityZone.getUaa().getId()), IdentityZone.getUaa().getId()));
             }
         }
         defaultUserGroups.put(IdentityZone.getUaa().getId(), usergroups);

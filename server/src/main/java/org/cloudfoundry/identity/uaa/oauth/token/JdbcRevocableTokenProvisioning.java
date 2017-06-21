@@ -31,8 +31,6 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
-    protected JdbcTemplate jdbcTemplate;
-
     private final static String REFRESH_TOKEN_RESPONSE_TYPE = REFRESH_TOKEN.toString();
     protected final static String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
     protected static final String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',')+1, FIELDS.lastIndexOf(',')).replace(",","=?,") + "=?";
