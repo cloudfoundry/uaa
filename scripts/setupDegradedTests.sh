@@ -1,23 +1,39 @@
-uaac target http://localhost:8080/uaa
-uaac token client get admin -s adminsecret
+
+####Set up the degraded tests...
+uaac target ${PROTOCOL}://$PUBLISHED_DOMAIN
+uaac token client get admin -s ${ADMIN_CLIENT_SECRET}
+
 uaac client get admin
 uaac client update admin --authorities "zones.test-app-zone.admin zones.test-platform-zone.admin zones.write zones.read zones.uaa.admin clients.read clients.secret clients.write clients.admin uaa.admin password.write scim.write scim.read idps.read idps.write sps.read sps.write"
 
+#Create a client for implicit flow
+uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{
+  "scope" : [ "uaa.resource","openid" ],
+  "client_id" : "cf",
+  "authorized_grant_types" : [ "implicit" ],
+  "authorities" : [ "uaa.resource", "openid" ],
+  "redirect_uri" : "'"${PROTOCOL}"'://*.dummy.predix.io/**",
+  "autoapprove" : [ "uaa.resource","openid" ],
+  "allowedproviders" : ["uaa"]
+}'
+
+uaac user add marissa -p koala --email marissa@ge.com || true
+
 #Create test-app-zone (Application UAA) with zone admin
 uaac curl -X POST /identity-zones -H 'Content-Type: application/json' -d'{ "id": "test-app-zone", "subdomain":"test-app-zone", "name":"test-app-zone"}'
-uaac -t curl -H "X-Identity-Zone-Id:test-app-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "adminsecret", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-app-zone.admin", "idps.read", "idps.write", "uaa.resource"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
+uaac -t curl -H "X-Identity-Zone-Id:test-app-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "'"$ZONE_ADMIN_SECRET"'", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-app-zone.admin", "idps.read", "idps.write", "uaa.resource"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
 
 #Create test-platform-zone (Platform UAA) with zone admin
 uaac curl -X POST /identity-zones -H 'Content-Type: application/json' -d'{ "id": "test-platform-zone", "subdomain":"test-platform-zone", "name":"test-platform-zone", "config": {"idpDiscoveryEnabled" : true, "prompts" : [ {"name" : "username","type" : "text","text" : "username"}, {"name" : "password","type" : "password","text" : "password"}], "links" : {"selfService" : {"selfServiceLinksEnabled" : false}} }}'
-uaac -t curl -H "X-Identity-Zone-Id:test-platform-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "adminsecret", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-platform-zone.admin", "idps.read", "idps.write"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
+uaac -t curl -H "X-Identity-Zone-Id:test-platform-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "'"$ZONE_ADMIN_SECRET"'", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-platform-zone.admin", "idps.read", "idps.write"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
 
 #Create test-saml-zone (SAML IDP) with zone admin
 uaac curl -X POST /identity-zones -H 'Content-Type: application/json' -d'{ "id": "test-saml-zone", "subdomain":"test-saml-zone", "name":"test-saml-zone"}'
-uaac -t curl -H "X-Identity-Zone-Id:test-saml-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "adminsecret", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-saml-zone.admin", "idps.read", "idps.write"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
+uaac -t curl -H "X-Identity-Zone-Id:test-saml-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "'"$ZONE_ADMIN_SECRET"'",  "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-saml-zone.admin", "idps.read", "idps.write"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
 
 #Login to test-saml-zone
-uaac target http://test-saml-zone.localhost:8080/uaa
-uaac token client get admin -s adminsecret
+uaac target ${PROTOCOL}://test-saml-zone.$PUBLISHED_DOMAIN
+uaac token client get admin -s $ZONE_ADMIN_SECRET
 
 #Get SAML IDP metadata
 SAML_IDP_RESPONSE=$(uaac curl "/saml/idp/metadata")
@@ -25,13 +41,15 @@ SAML_IDP_METADATA_RAW=$(echo $SAML_IDP_RESPONSE | sed s/.*RESPONSE\ BODY://)
 SAML_IDP_METADATA=$(echo $SAML_IDP_METADATA_RAW | sed 's/"/\\"/g')
 
 #Create some saml users
-uaac user add samluser1 -p samluser1 --email samluser1@ge.com
-uaac user add samluser2 -p samluser2 --email samluser2@ge.com
-uaac user add 1234 -p user3 --email user3@ge.com
+uaac user add samluser1 -p samluser1 --email samluser1@ge.com || true
+
+uaac user add samluser2 -p samluser2 --email samluser2@ge.com || true
+
+uaac user add 1234 -p user3 --email user3@ge.com || true
 
 #Login to test-platform-zone
-uaac target http://test-platform-zone.localhost:8080/uaa
-uaac token client get admin -s adminsecret
+uaac target ${PROTOCOL}://test-platform-zone.$PUBLISHED_DOMAIN
+uaac token client get admin -s $ZONE_ADMIN_SECRET
 
 #Create migrated saml users
 uaac curl '/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
@@ -89,7 +107,7 @@ uaac curl /identity-providers -XPOST -H 'Content-Type: application/json' -d '{
   "originKey" : "test-saml-zone-idp",
   "name" : "test-saml-zone-idp SAML zone",
   "active" : true
-	}'
+    }'
 
 #Create a client for openid flow in test-platform-zone
 uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{
@@ -98,26 +116,14 @@ uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept:
   "client_secret" : "oidc",
   "authorized_grant_types" : [ "authorization_code" ],
   "authorities" : [ "uaa.resource", "openid" ],
-  "redirect_uri" : "http://test-app-zone.localhost:8080/uaa/login/callback/*",
+  "redirect_uri" : "'"${PROTOCOL}"'://test-app-zone.'"${PUBLISHED_DOMAIN}"'/login/callback/*",
   "autoapprove" : [ "uaa.resource","openid" ],
   "allowedproviders" : ["uaa", "test-saml-zone-idp"]
 }'
 
-#Create a client for saml2bearer flow in test-platform-zone
-uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{
-  "scope" : [ "uaa.resource","openid" ],
-  "client_id" : "saml2Client",
-  "client_secret" : "saml2",
-  "authorized_grant_types" : [ "urn:ietf:params:oauth:grant-type:saml2-bearer" ],
-  "authorities" : [ "uaa.resource", "openid" ],
-  "redirect_uri" : "http://*.localhost:8080/uaa/login/callback/*",
-  "autoapprove" : [ "uaa.resource","openid" ],
-  "allowedproviders" : ["test-saml-zone-idp"]
-}'
-
 #Login to test-saml-zone
-uaac target http://test-saml-zone.localhost:8080/uaa
-uaac token client get admin -s adminsecret
+uaac target ${PROTOCOL}://test-saml-zone.$PUBLISHED_DOMAIN
+uaac token client get admin -s $ZONE_ADMIN_SECRET
 
 #Create a SP of platform uaa
 uaac curl /saml/service-providers -XPOST -H 'Content-Type: application/json' -d '{
@@ -128,16 +134,18 @@ uaac curl /saml/service-providers -XPOST -H 'Content-Type: application/json' -d 
 }'
 
 #Login to test-app-zone
-uaac target http://test-app-zone.localhost:8080/uaa
-uaac token client get admin -s adminsecret
+uaac target ${PROTOCOL}://test-app-zone.$PUBLISHED_DOMAIN
+uaac token client get admin -s $ZONE_ADMIN_SECRET
 
-#Create group
-uaac group add zones.test-app-zone.admin
-uaac group add sps.read
-uaac group add sps.write
+uaac group add zones.test-app-zone.admin || true
+
+uaac group add sps.read || true
+
+uaac group add sps.write || true
+
 
 #Create Shadow user account in test-app-zone (password value doesn't matter)
-uaac curl 'http://test-app-zone.localhost:8080/uaa/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
+uaac curl '/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
   "externalId" : "user1@example.com",
   "meta" : {
     "version" : 0,
@@ -160,7 +168,7 @@ uaac curl 'http://test-app-zone.localhost:8080/uaa/Users' -X POST -H 'Accept: ap
 }'
 
 #Create Shadow saml user account in test-app-zone (password value doesn't matter)
-uaac curl 'http://test-app-zone.localhost:8080/uaa/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
+uaac curl '/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
   "externalId" : "samluser1",
   "meta" : {
     "version" : 0,
@@ -183,7 +191,7 @@ uaac curl 'http://test-app-zone.localhost:8080/uaa/Users' -X POST -H 'Accept: ap
 }'
 
 #Create Shadow saml user account in test-app-zone (password value doesn't matter)
-uaac curl 'http://test-app-zone.localhost:8080/uaa/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
+uaac curl '/Users' -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
   "externalId" : "1234",
   "meta" : {
     "version" : 0,
@@ -206,14 +214,18 @@ uaac curl 'http://test-app-zone.localhost:8080/uaa/Users' -X POST -H 'Accept: ap
 }'
 
 #Add shadow user to group
-uaac member add zones.test-app-zone.admin user1@example.com
-uaac member add uaa.admin user1@example.com
+uaac member add zones.test-app-zone.admin user1@example.com || true
+
+uaac member add uaa.admin user1@example.com || true
 
 #Add saml shadow users to group
-uaac member add zones.test-app-zone.admin samluser1
-uaac member add uaa.admin samluser1
-uaac member add zones.test-app-zone.admin 1234
-uaac member add uaa.admin 1234
+uaac member add zones.test-app-zone.admin samluser1 || true
+
+uaac member add uaa.admin samluser1 || true
+
+uaac member add zones.test-app-zone.admin 1234 || true
+
+uaac member add uaa.admin 1234 || true
 
 #"clients.admin", "sps.read", "sps.write", "idps.read", "idps.write", "clients.write"
 
@@ -226,7 +238,7 @@ uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept:
   "authorities" : [ "uaa.resource", "openid" ],
   "autoapprove" : [ "zones.test-app-zone.admin", "clients.admin", "sps.read", "sps.write", "idps.read", "idps.write", "scim.read", "scim.write" ],
   "allowedproviders" : [ "PredixIntegrationOIDCProvider" ],
-  "redirect_uri" : [ "http://localhost:5000/login/authcode" ]
+  "redirect_uri" : [ "'"${PROTOCOL}"'://*.dummy.predix.io/**" ]
 }'
 
 #Create OP in test-app-zone
@@ -235,28 +247,21 @@ uaac curl /identity-providers -XPOST -H 'Content-Type: application/json' -d '{
   "config" : {
     "providerDescription" : "OIDC idp",
     "attributeMappings" : {
-		"user_name" : "user_name"
-	},
+        "user_name" : "user_name"
+    },
     "addShadowUserOnLogin" : false,
-    "authUrl" : "http://test-platform-zone.localhost:8080/uaa/oauth/authorize",
-    "tokenUrl" : "http://test-platform-zone.localhost:8080/uaa/oauth/token",
-    "tokenKeyUrl" : "http://test-platform-zone.localhost:8080/uaa/token_key",
+    "authUrl" : "'"${PROTOCOL}"'://test-platform-zone.'"${PUBLISHED_DOMAIN}"'/oauth/authorize",
+    "tokenUrl" : "'"${PROTOCOL}"'://test-platform-zone.'"${PUBLISHED_DOMAIN}"'/oauth/token",
+    "tokenKeyUrl" : "'"${PROTOCOL}"'://test-platform-zone.'"${PUBLISHED_DOMAIN}"'/token_key",
     "linkText" : "PredixIntegrationOIDCProvider",
     "showLinkText" : true,
     "skipSslValidation" : true,
     "relyingPartyId" : "oidcClient",
     "relyingPartySecret" : "oidc",
     "scopes" : ["openid"],
-    "issuer" : "http://test-platform-zone.localhost:8080/uaa/oauth/token"
+    "issuer" : "'"${PROTOCOL}"'://test-platform-zone.'"${PUBLISHED_DOMAIN}"'/oauth/token"
   },
   "originKey" : "PredixIntegrationOIDCProvider",
   "name" : "PredixIntegrationOIDCProvider",
   "active" : true
 }'
-
-#Get token
-#uaac token client get dashboardClient -s dashboard
-#export TOKEN=$(uaac context | grep access_token | cut -d":" -f 2 | cut -d" " -f 2)
-
-#Get id token and auth code from test-app-zone
-#curl -v "http://test-app-zone.localhost:8080/uaa/oauth/authorize?client_id=dashboardClient&client_secret=dashboard&response_type=code&grant_type=authorization_code"

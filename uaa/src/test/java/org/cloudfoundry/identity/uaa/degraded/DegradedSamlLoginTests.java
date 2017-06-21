@@ -18,12 +18,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.logging.LogEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -44,9 +45,7 @@ import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParamet
 import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -61,23 +60,44 @@ public class DegradedSamlLoginTests {
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
+    @Value("${PUBLISHED_HOST:predix-uaa-integration}")
+    String publishedHost;
+
+    @Value("${CF_DOMAIN:run.aws-usw02-dev.ice.predix.io}")
+    String cfDomain;
+
+    @Value("${BASIC_AUTH_CLIENT_ID:app}")
+    String basicAuthClientId;
+
+    @Value("${BASIC_AUTH_CLIENT_SECRET:appclientsecret}")
+    String basicAuthClientSecret;
+
     @Autowired
     RestOperations restOperations;
+
+    @Autowired
+    public Environment environment;
 
     @Autowired
     WebDriver webDriver;
 
     protected final static Logger logger = LoggerFactory.getLogger(DegradedSamlLoginTests.class);
     private final static String zoneSubdomain = "test-app-zone";
+    private String baseUaaZoneHost;
+    private String protocol;
     private String baseUrl;
+    private String testRedirectUri;
     private String zoneAdminToken;
+    private String baseBasicAuth;
 
 
     @Before
     public void setup() throws Exception {
-        baseUrl = "http://" + zoneSubdomain + ".localhost:8080/uaa";
+        baseUaaZoneHost = Boolean.valueOf(environment.getProperty("RUN_AGAINST_CLOUD")) ? (publishedHost + "." + cfDomain) : "localhost:8080/uaa";
+        protocol = Boolean.valueOf(environment.getProperty("RUN_AGAINST_CLOUD")) ? "https://" : "http://";
+        baseUrl = protocol + zoneSubdomain+ "." + baseUaaZoneHost;
+        testRedirectUri = protocol +  "test-url.dummy.predix.io";
         zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, ZONE_ADMIN, ZONE_ADMINSECRET);
-
         screenShootRule.setWebDriver(webDriver);
     }
 
@@ -101,17 +121,15 @@ public class DegradedSamlLoginTests {
         RestTemplate restTemplate = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
-        headers.set("Authorization", getAuthorizationHeader("app", "appclientsecret"));
+        headers.set("Authorization", getAuthorizationHeader(basicAuthClientId, basicAuthClientSecret));
         HttpEntity getHeaders = new HttpEntity(headers);
         ResponseEntity<Map> tokenKeyGet = restTemplate.exchange(
-                "http://localhost:8080/uaa" + "/token_key",
+                protocol + baseUaaZoneHost + "/token_key",
                 HttpMethod.GET,
                 getHeaders,
                 Map.class
         );
         assertEquals(HttpStatus.OK, tokenKeyGet.getStatusCode());
-        assertEquals("MAC", tokenKeyGet.getBody().get("kty"));
-        assertEquals("HS256", tokenKeyGet.getBody().get("alg"));
     }
 
 
@@ -171,9 +189,9 @@ public class DegradedSamlLoginTests {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE);
         headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE);
-        headers.set("Authorization", getAuthorizationHeader("app", "appclientsecret"));
+        headers.set("Authorization", getAuthorizationHeader(basicAuthClientId, basicAuthClientSecret));
 
-        ResponseEntity<Map> tokenResponse = new RestTemplate().exchange("http://localhost:8080/uaa" + "/oauth/token", HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), Map.class);
+        ResponseEntity<Map> tokenResponse = new RestTemplate().exchange(protocol + baseUaaZoneHost + "/oauth/token", HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), Map.class);
         assertThat(tokenResponse.getStatusCode().value(), Matchers.equalTo(200));
 
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
@@ -181,7 +199,7 @@ public class DegradedSamlLoginTests {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", accessToken.getValue());
 
-        ResponseEntity<Map> checkTokenResponse = new RestTemplate().exchange("http://localhost:8080/uaa" + "/check_token", HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
+        ResponseEntity<Map> checkTokenResponse = new RestTemplate().exchange(protocol + baseUaaZoneHost + "/check_token", HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
         assertEquals(checkTokenResponse.getStatusCode(), HttpStatus.OK);
         logger.info("check token response: " + checkTokenResponse.getBody());
         assertEquals("marissa", checkTokenResponse.getBody().get("user_name"));
@@ -189,7 +207,7 @@ public class DegradedSamlLoginTests {
 
     @Test
     public void testImplicitTokenAndCheckToken() throws Exception {
-        webDriver.get("http://localhost:8080/uaa" + "/oauth/authorize?client_id=cf&response_type=token&redirect_uri=http://localhost:5000/cf");
+        webDriver.get(protocol + baseUaaZoneHost + "/oauth/authorize?client_id=cf&response_type=token&redirect_uri=" + testRedirectUri +"/cf");
 
         assertThat(webDriver.getCurrentUrl(), Matchers.containsString("login"));
         logger.info(webDriver.getCurrentUrl());
@@ -208,7 +226,7 @@ public class DegradedSamlLoginTests {
 
         String requestUrl = getRequestUrlFromHarLogEntry(logEntry);
         logger.info("request url: " + requestUrl);
-        assertThat(requestUrl, Matchers.startsWith("http://localhost:5000/cf#token_type=bearer&access_token="));
+        assertThat(requestUrl, Matchers.startsWith(testRedirectUri + "/cf#token_type=bearer&access_token="));
         String tokenprefixedString = requestUrl.split("access_token=")[1];
         String accessToken = tokenprefixedString.split("&")[0];
 
@@ -218,9 +236,9 @@ public class DegradedSamlLoginTests {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE);
         headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE);
-        headers.set("Authorization", getAuthorizationHeader("app", "appclientsecret"));
+        headers.set("Authorization", getAuthorizationHeader(basicAuthClientId, basicAuthClientSecret));
 
-        ResponseEntity<Map> checkTokenResponse = new RestTemplate().exchange("http://localhost:8080/uaa" + "/check_token", HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
+        ResponseEntity<Map> checkTokenResponse = new RestTemplate().exchange(protocol + baseUaaZoneHost + "/check_token", HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
         assertEquals(checkTokenResponse.getStatusCode(), HttpStatus.OK);
         logger.info("check token response: " + checkTokenResponse.getBody());
         assertEquals("marissa", checkTokenResponse.getBody().get("user_name"));
@@ -228,7 +246,7 @@ public class DegradedSamlLoginTests {
 
     @Test
     public void testOidcSamlAuthcodeTokenAndCheckToken() throws Exception {
-        testOidcSamlAuthcodeTokenAndCheckToken("/oauth/authorize?client_id=" + ZONE_AUTHCODE_CLIENT_ID + "&response_type=code");
+        testOidcSamlAuthcodeTokenAndCheckToken("/oauth/authorize?client_id=" + ZONE_AUTHCODE_CLIENT_ID + "&response_type=code&redirect_uri=" + testRedirectUri);
     }
 
     private void testOidcSamlAuthcodeTokenAndCheckToken(String firstUrl) throws Exception {
@@ -255,7 +273,7 @@ public class DegradedSamlLoginTests {
 
         String lastRequestUrl = getRequestUrlFromHarLogEntry(lastLogEntry);
         logger.info("last request url: " + lastRequestUrl);
-        assertThat(lastRequestUrl, Matchers.containsString("localhost:5000"));
+        assertThat(lastRequestUrl, Matchers.containsString(testRedirectUri));
         String authcode = lastRequestUrl.split("code=")[1];
         logger.info("AuthCode is: ",authcode);
 
@@ -264,6 +282,7 @@ public class DegradedSamlLoginTests {
         postBody.add(CLIENT_SECRET, ZONE_AUTHCODE_CLIENT_SECRET);
         postBody.add("code", authcode);
         postBody.add(GRANT_TYPE, "authorization_code");
+        postBody.add(REDIRECT_URI, testRedirectUri);
         postBody.add(RESPONSE_TYPE, "token");
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
@@ -297,8 +316,11 @@ public class DegradedSamlLoginTests {
             throws IOException {
 
         Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
+        System.out.println("message:"+ message);
         Map<String, Object> log = (Map<String, Object>) message.get("log");
+        System.out.println("log:"+ log);
         List<Object> entries = (List<Object>) log.get("entries");
+        System.out.println("entries:"+ entries);
         Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
         Map<String, Object> request = (Map<String, Object>) lastEntry.get("request");
         String url = (String) request.get("url");
