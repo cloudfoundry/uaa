@@ -661,7 +661,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         ScimUser user = new ScimUser("", username, givenName, familyName);
         user.setPrimaryEmail(email);
         user.setOrigin(OriginKeys.SAML);
-        return userProvisioning.createUser(user, "");
+        return userProvisioning.createUser(user, "", IdentityZoneHolder.get().getId());
     }
 
     @Test

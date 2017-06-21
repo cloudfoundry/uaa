@@ -66,6 +66,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
@@ -401,11 +402,11 @@ public class ClientAdminEndpointsTests {
 
     @Test
     public void testFindClientDetails() throws Exception {
-        Mockito.when(clientDetailsService.query("filter", "sortBy", true)).thenReturn(
+        Mockito.when(clientDetailsService.query("filter", "sortBy", true, IdentityZoneHolder.get().getId())).thenReturn(
             Arrays.<ClientDetails> asList(detail));
         SearchResults<?> result = endpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100);
         assertEquals(1, result.getResources().size());
-        verify(clientDetailsService).query("filter", "sortBy", true);
+        verify(clientDetailsService).query("filter", "sortBy", true, IdentityZoneHolder.get().getId());
 
         result = endpoints.listClientDetails("", "filter", "sortBy", "ascending", 1, 100);
         assertEquals(1, result.getResources().size());
@@ -413,13 +414,13 @@ public class ClientAdminEndpointsTests {
 
     @Test(expected = UaaException.class)
     public void testFindClientDetailsInvalidFilter() throws Exception {
-        Mockito.when(clientDetailsService.query("filter", "sortBy", true)).thenThrow(new IllegalArgumentException());
+        Mockito.when(clientDetailsService.query("filter", "sortBy", true, IdentityZoneHolder.get().getId())).thenThrow(new IllegalArgumentException());
         endpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100);
     }
 
     @Test
     public void testFindClientDetails_Test_Attribute_Filter() throws Exception {
-        when(clientDetailsService.query(anyString(), anyString(), anyBoolean())).thenReturn(Arrays.asList(inputs));
+        when(clientDetailsService.query(anyString(), anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()))).thenReturn(Arrays.asList(inputs));
         for (String attribute : Arrays.asList("client_id", "resource_ids", "authorized_grant_types", "redirect_uri", "access_token_validity", "refresh_token_validity", "autoapprove","additionalinformation")) {
             SearchResults<Map<String, Object>> result = (SearchResults<Map<String, Object>>) endpoints.listClientDetails(attribute, "client_id pr", "sortBy", "ascending", 1, 100);
             validateAttributeResults(result, 5, Arrays.asList(attribute));

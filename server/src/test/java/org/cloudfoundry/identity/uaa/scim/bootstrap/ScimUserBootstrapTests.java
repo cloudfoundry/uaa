@@ -360,13 +360,13 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
 
-        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities),add));
 
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
         validateAuthoritiesCreated(add?externalAuthorities:new String[0], userAuthorities, origin, created);
@@ -416,13 +416,13 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
 
-        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, newEmail, firstName, lastName, password, externalId, userId, username);
 
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities),true));
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
@@ -431,14 +431,14 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         user = user.modifyEmail("test123@test.org");
         //Ensure email doesn't get updated if event instructs not to update.
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities),true));
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
         assertEquals(newEmail, created.getPrimaryEmail());
 
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities),true));
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);

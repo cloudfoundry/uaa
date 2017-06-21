@@ -95,12 +95,12 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     public void setDefaultUserGroups(Set<String> groupNames) {
         Set<ScimGroup> usergroups = new HashSet<>();
         for (String name : groupNames) {
-            List<ScimGroup> g = groupProvisioning.query(String.format("displayName co \"%s\" and identity_zone_id eq \""+IdentityZone.getUaa().getId()+"\"", name));
+            List<ScimGroup> g = groupProvisioning.query(String.format("displayName co \"%s\" and identity_zone_id eq \""+IdentityZone.getUaa().getId()+"\"", name), IdentityZoneHolder.get().getId());
             if (!g.isEmpty()) {
                 usergroups.add(g.get(0));
             } else { // default group must exist, hence if not already present,
                 // create it
-                usergroups.add(groupProvisioning.create(new ScimGroup(null, name, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId()));
+                usergroups.add(groupProvisioning.create(new ScimGroup(null, name, IdentityZone.getUaa().getId()), IdentityZone.getUaa().getId()));
             }
         }
         defaultUserGroups.put(IdentityZone.getUaa().getId(), usergroups);

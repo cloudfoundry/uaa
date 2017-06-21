@@ -467,7 +467,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         List<ClientDetails> result = new ArrayList<ClientDetails>();
         List<ClientDetails> clients;
         try {
-            clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+            clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), IdentityZoneHolder.get().getId());
             if (count > clients.size()) {
                 count = clients.size();
             }

@@ -75,7 +75,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri);
         } catch (ScimResourceAlreadyExistsException e) {
-            List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+ OriginKeys.UAA+"\"");
+            List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+ OriginKeys.UAA+"\"", IdentityZoneHolder.get().getId());
             try {
                 if (users.size()>0) {
                     if (users.get(0).isVerified()) {
@@ -109,7 +109,7 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), IdentityZoneHolder.get().getId());
-        user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
+        user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), IdentityZoneHolder.get().getId());
 
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
@@ -156,7 +156,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         scimUser.setPassword(password);
         scimUser.setVerified(false);
         try {
-            ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password);
+            ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password, IdentityZoneHolder.get().getId());
             return userResponse;
         } catch (RuntimeException x) {
             if (x instanceof ScimResourceAlreadyExistsException) {

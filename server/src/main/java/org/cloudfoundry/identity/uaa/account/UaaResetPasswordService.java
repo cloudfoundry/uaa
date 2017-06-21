@@ -83,12 +83,12 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
     @Override
     public void updateLastLogonTime(String userId) {
-        scimUserProvisioning.updateLastLogonTime(userId);
+        scimUserProvisioning.updateLastLogonTime(userId, IdentityZoneHolder.get().getId());
     }
 
     @Override
     public void resetUserPassword(String userId, String password) {
-        if (scimUserProvisioning.checkPasswordMatches(userId, password)) {
+        if (scimUserProvisioning.checkPasswordMatches(userId, password, IdentityZoneHolder.get().getId())) {
             throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(password);
@@ -120,14 +120,14 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         try {
-            if (scimUserProvisioning.checkPasswordMatches(userId, newPassword)) {
+            if (scimUserProvisioning.checkPasswordMatches(userId, newPassword, IdentityZoneHolder.get().getId())) {
                 throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
             if (isUserModified(user, expiringCode.getExpiresAt(), userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
             }
             if (!user.isVerified()) {
-                scimUserProvisioning.verifyUser(userId, -1);
+                scimUserProvisioning.verifyUser(userId, -1, IdentityZoneHolder.get().getId());
             }
 
             updatePasswordAndPublishEvent(scimUserProvisioning, uaaUser, authentication, newPassword);
@@ -155,9 +155,9 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     @Override
     public ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri) {
         String jsonEmail = JsonUtils.writeValueAsString(email);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + OriginKeys.UAA + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId());
         if (results.isEmpty()) {
-            results = scimUserProvisioning.query("userName eq " + jsonEmail);
+            results = scimUserProvisioning.query("userName eq " + jsonEmail, IdentityZoneHolder.get().getId());
             if (results.isEmpty()) {
                 throw new NotFoundException();
             } else {
@@ -210,8 +210,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     }
 
     private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword){
-        scimUserProvisioning.changePassword(uaaUser.getId(), null, newPassword);
-        scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false);
+        scimUserProvisioning.changePassword(uaaUser.getId(), null, newPassword, IdentityZoneHolder.get().getId());
+        scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false, IdentityZoneHolder.get().getId());
         publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
     }
 }

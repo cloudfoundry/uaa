@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -61,17 +60,6 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     @Override
     protected String getTableName() {
         return CLIENT_DETAILS_TABLE;
-    }
-
-    @Override
-    public List<ClientDetails> query(String filter, String sortBy, boolean ascending) {
-        //validate syntax
-        getQueryConverter().convert(filter, sortBy, ascending);
-        if (StringUtils.hasText(filter)) {
-            filter = "(" + filter + ") and ";
-        }
-        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
-        return super.query(filter, sortBy, ascending);
     }
 
     @Override

@@ -110,7 +110,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, clientId, redirectUri);
@@ -136,7 +136,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, null, null);
@@ -160,7 +160,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.addEmail("user@example.com");
         user.setPasswordLastModified(yesterday);
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Arrays.asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -176,7 +176,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Arrays.<ScimUser>asList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -190,14 +190,14 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserHasNonUaaOrigin() throws Exception {
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
             .thenReturn(Arrays.<ScimUser>asList());
 
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.addEmail("user@example.com");
         user.setOrigin(OriginKeys.LDAP);
-        when(scimUserProvisioning.query("userName eq \"user@example.com\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\"", IdentityZoneHolder.get().getId()))
             .thenReturn(Arrays.<ScimUser>asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -216,7 +216,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.setPasswordLastModified(yesterday);
         user.addEmail("user\"'@example.com");
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
             .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", "user\"'@example.com", yesterday, null, null);
@@ -233,10 +233,10 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
             .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
 
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
             .thenReturn(Arrays.<ScimUser>asList());
         user.setOrigin(OriginKeys.LDAP);
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\"", IdentityZoneHolder.get().getId()))
             .thenReturn(Arrays.asList(user));
 
         post = post("/password_resets")
@@ -273,7 +273,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
                 .andExpect(jsonPath("$.user_id").value("eyedee"))
                 .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret");
+        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -320,8 +320,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .andExpect(jsonPath("$.user_id").value("eyedee"))
             .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret");
-        verify(scimUserProvisioning).verifyUser(scimUser.getId(), -1);
+        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
+        verify(scimUserProvisioning).verifyUser(scimUser.getId(), -1, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -370,7 +370,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setVerified(true);
 
         when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
-        when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret")).thenReturn(true);
+        when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret", IdentityZoneHolder.get().getId())).thenReturn(true);
 
         MockHttpServletRequestBuilder post = post("/password_change")
             .contentType(APPLICATION_JSON)

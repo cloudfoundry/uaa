@@ -88,7 +88,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
         when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(userChangingEmail);
 
         ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
-        when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
             .thenReturn(Arrays.asList(existingUser));
 
         MockHttpServletRequestBuilder post = post("/email_verifications")

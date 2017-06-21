@@ -138,7 +138,7 @@ public class ScimUserBootstrap implements
                 filter.append(" or ");
             }
         }
-        List<ScimUser> list = scimUserProvisioning.query("origin eq \"uaa\" and (" + filter.toString() + ")");
+        List<ScimUser> list = scimUserProvisioning.query("origin eq \"uaa\" and (" + filter.toString() + ")", IdentityZoneHolder.get().getId());
         for (ScimUser delete : list) {
             publish(new EntityDeletedEvent<>(delete, SystemAuthentication.SYSTEM_AUTHENTICATION));
         }
@@ -147,7 +147,7 @@ public class ScimUserBootstrap implements
     protected ScimUser getScimUser(UaaUser user) {
         List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
             " and origin eq \"" +
-            (user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin()) + "\"");
+            (user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin()) + "\"", IdentityZoneHolder.get().getId());
 
         if (users.isEmpty() && StringUtils.hasText(user.getId())) {
             try {
@@ -202,7 +202,7 @@ public class ScimUserBootstrap implements
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser, IdentityZoneHolder.get().getId());
         if (OriginKeys.UAA.equals(newScimUser.getOrigin()) && hasText(updatedUser.getPassword())) { //password is not relevant for non UAA users
-            scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
+            scimUserProvisioning.changePassword(id, null, updatedUser.getPassword(), IdentityZoneHolder.get().getId());
         }
         if (updateGroups) {
             Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
@@ -213,7 +213,7 @@ public class ScimUserBootstrap implements
 
     private void createNewUser(UaaUser user) {
         logger.debug("Registering new user account: " + user);
-        ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword());
+        ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword(), IdentityZoneHolder.get().getId());
         addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()));
     }
 
@@ -281,7 +281,7 @@ public class ScimUserBootstrap implements
             return;
         }
         logger.debug("Adding to group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName));
+        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName), IdentityZoneHolder.get().getId());
         ScimGroup group;
         if ((g == null || g.isEmpty()) && (!addGroup)) {
             logger.debug("No group found with name:"+gName+". Group membership will not be added.");
@@ -306,7 +306,7 @@ public class ScimUserBootstrap implements
             return;
         }
         logger.debug("Removing membership of group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName));
+        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName), IdentityZoneHolder.get().getId());
         ScimGroup group;
         if (g == null || g.isEmpty()) {
             return;

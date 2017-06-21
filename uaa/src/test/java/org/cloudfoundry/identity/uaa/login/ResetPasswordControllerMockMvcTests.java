@@ -95,7 +95,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     @Test
     public void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {
 
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), users.get(0).getPasswordLastModified(), "", "");
@@ -119,7 +119,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
     @Test
     public void testResettingPasswordUpdatesLastLogonTime() throws Exception {
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         Long lastLogonBeforeReset = users.get(0).getLastLogonTime();
@@ -143,7 +143,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     public void testResettingAPasswordFailsWhenUsernameChanged() throws Exception {
 
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
@@ -317,14 +317,14 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null, IdentityZoneHolder.get().getId());
 
-        userProvisioning.changePassword(user.getId(), "secret", "secr3t");
+        userProvisioning.changePassword(user.getId(), "secret", "secr3t", IdentityZoneHolder.get().getId());
         getMockMvc().perform(createChangePasswordRequest(user, code, true))
             .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
     public void testResettingAPasswordNoCsrfParameter() throws Exception {
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
@@ -336,7 +336,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
     @Test
     public void testResettingAPasswordUsingTimestampForUserModification() throws Exception {
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         PasswordChange passwordChange = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), null, null, null);
@@ -363,7 +363,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     @Test
     public void resetPassword_ReturnsUnprocessableEntity_NewPasswordSameAsOld() throws Exception {
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
@@ -390,7 +390,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
 
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);

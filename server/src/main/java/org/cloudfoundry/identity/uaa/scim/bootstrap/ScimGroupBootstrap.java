@@ -244,7 +244,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     }
 
     private ScimUser getUser(String name) {
-        List<ScimUser> user = scimUserProvisioning.query(String.format(USER_BY_NAME_FILTER, name));
+        List<ScimUser> user = scimUserProvisioning.query(String.format(USER_BY_NAME_FILTER, name), IdentityZoneHolder.get().getId());
         if (user != null && !user.isEmpty()) {
             return user.get(0);
         }
@@ -252,7 +252,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     }
 
     ScimGroup getGroup(String name) {
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name));
+        List<ScimGroup> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name), IdentityZoneHolder.get().getId());
         if (g != null && !g.isEmpty()) {
             ScimGroup gr = g.get(0);
             gr.setMembers(membershipManager.getMembers(gr.getId(), false, IdentityZoneHolder.get().getId()));

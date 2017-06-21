@@ -503,7 +503,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
-        userProvisioning.updatePasswordChangeRequired(user.getId(), true);
+        userProvisioning.updatePasswordChangeRequired(user.getId(), true, IdentityZoneHolder.get().getId());
 
         String response = getMockMvc().perform(
             post("/oauth/token")
@@ -600,7 +600,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Object refreshToken = tokens.get(REFRESH_TOKEN);
         String refreshTokenId = (String) refreshToken;
 
-        List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"");
+        List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"", IdentityZoneHolder.get().getId());
         assertEquals(1, groups.size());
         getWebApplicationContext().getBean(ScimGroupMembershipManager.class).removeMemberById(groups.get(0).getId(), scimUser.getId(), IdentityZoneHolder.get().getId());
 
@@ -4112,7 +4112,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         email.setValue(username);
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setOrigin(OriginKeys.UAA);
-        return jdbcScimUserProvisioning.createUser(scimUser, "secret");
+        return jdbcScimUserProvisioning.createUser(scimUser, "secret", IdentityZoneHolder.get().getId());
     }
 
     public static class MockSecurityContext implements SecurityContext {

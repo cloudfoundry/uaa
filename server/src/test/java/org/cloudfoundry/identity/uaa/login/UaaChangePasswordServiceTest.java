@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,6 +30,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -63,10 +65,11 @@ public class UaaChangePasswordServiceTest {
     @Test(expected = ScimResourceNotFoundException.class)
     public void testChangePasswordWithUserNotFound() {
         List<ScimUser> results = Collections.emptyList();
-        when(scimUserProvisioning.query(anyString())).thenReturn(results);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(results);
         subject.changePassword("username", "currentPassword", "validPassword");
         verify(passwordValidator).validate("validPassword");
-        verify(scimUserProvisioning).query(anyString());
+        verify(scimUserProvisioning).query(anyString(), zoneId);
     }
 
     @Test
@@ -76,8 +79,8 @@ public class UaaChangePasswordServiceTest {
         ScimUser user = new ScimUser("id", "username", "givenName", "familyName");
         user.setEmails(Collections.singletonList(email));
         List<ScimUser> results = Collections.singletonList(user);
-        when(scimUserProvisioning.query(anyString())).thenReturn(results);
-        when(scimUserProvisioning.checkPasswordMatches("id", "samePassword1")).thenReturn(true);
+        when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(results);
+        when(scimUserProvisioning.checkPasswordMatches("id", "samePassword1", IdentityZoneHolder.get().getId())).thenReturn(true);
         try {
             subject.changePassword("username", "samePassword1", "samePassword1");
             fail();
@@ -93,10 +96,10 @@ public class UaaChangePasswordServiceTest {
         ScimUser user = new ScimUser("id", "username", "givenName", "familyName");
         user.setEmails(Collections.singletonList(email));
         List<ScimUser> results = Collections.singletonList(user);
-        when(scimUserProvisioning.query(anyString())).thenReturn(results);
+        when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(results);
         subject.changePassword("username", "currentPassword", "validPassword");
         verify(passwordValidator).validate("validPassword");
-        verify(scimUserProvisioning).query(anyString());
-        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword");
+        verify(scimUserProvisioning).query(anyString(), eq(IdentityZoneHolder.get().getId()));
+        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword", IdentityZoneHolder.get().getId());
     }
 }

@@ -77,6 +77,7 @@ public class UaaResetPasswordServiceTests {
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         codeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
@@ -99,7 +100,8 @@ public class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
         user.setPasswordLastModified(new Date(1234));
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
+        String zoneID = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(contains("origin"), eq(zoneID))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
@@ -128,7 +130,8 @@ public class UaaResetPasswordServiceTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "firstName", "lastName");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
         when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
@@ -145,8 +148,9 @@ public class UaaResetPasswordServiceTests {
     public void forgotPassword_ThrowsConflictException() throws Exception {
         ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{}));
-        when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{}));
+        when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
         when(codeStore.retrieveCode(anyString(), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
 
@@ -194,7 +198,7 @@ public class UaaResetPasswordServiceTests {
             new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
         when(codeStore.retrieveCode("good_code", IdentityZoneHolder.get().getId())).thenReturn(expiringCode);
         when(scimUserProvisioning.retrieve("user-id", IdentityZoneHolder.get().getId())).thenReturn(user);
-        when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld"))
+        when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld", IdentityZoneHolder.get().getId()))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
@@ -269,8 +273,8 @@ public class UaaResetPasswordServiceTests {
         when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
         uaaResetPasswordService.resetUserPassword(userId, "password");
 
-        verify(scimUserProvisioning, times(1)).updatePasswordChangeRequired(userId, false);
-        verify(scimUserProvisioning, times(1)).changePassword(userId, null, "password");
+        verify(scimUserProvisioning, times(1)).updatePasswordChangeRequired(userId, false, IdentityZoneHolder.get().getId());
+        verify(scimUserProvisioning, times(1)).changePassword(userId, null, "password", IdentityZoneHolder.get().getId());
     }
 
     @Test (expected = InvalidPasswordException.class)
@@ -280,7 +284,7 @@ public class UaaResetPasswordServiceTests {
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
         when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
-        when(scimUserProvisioning.checkPasswordMatches("user-id", "password"))
+        when(scimUserProvisioning.checkPasswordMatches("user-id", "password", IdentityZoneHolder.get().getId()))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         uaaResetPasswordService.resetUserPassword(userId, "password");
 
@@ -303,7 +307,7 @@ public class UaaResetPasswordServiceTests {
     public void updateLastLogonForUser() {
         String userId = "id1";
         uaaResetPasswordService.updateLastLogonTime(userId);
-        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId);
+        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId, IdentityZoneHolder.get().getId());
     }
 
     private ExpiringCode setupResetPassword(String clientId, String redirectUri) {

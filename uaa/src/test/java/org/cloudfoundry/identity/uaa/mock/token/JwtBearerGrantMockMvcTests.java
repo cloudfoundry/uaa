@@ -250,7 +250,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         user.setPrimaryEmail(userName+"@test.org");
         IdentityZoneHolder.set(zone);
         try {
-            return getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, SECRET);
+            return getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, SECRET, IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.clear();
         }

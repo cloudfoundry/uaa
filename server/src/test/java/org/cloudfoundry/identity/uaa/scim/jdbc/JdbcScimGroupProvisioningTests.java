@@ -110,47 +110,47 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canRetrieveGroupsWithFilter() throws Exception {
-        assertEquals(1, dao.query("displayName eq \"uaa.user\"").size());
-        assertEquals(3, dao.query("displayName pr").size());
-        assertEquals(1, dao.query("displayName eq \"openid\"").size());
-        assertEquals(1, dao.query("DISPLAYNAMe eq \"uaa.admin\"").size());
-        assertEquals(1, dao.query("displayName EQ \"openid\"").size());
-        assertEquals(1, dao.query("displayName eq \"Openid\"").size());
-        assertEquals(1, dao.query("displayName co \"user\"").size());
-        assertEquals(3, dao.query("id sw \"g\"").size());
-        assertEquals(3, dao.query("displayName gt \"oauth\"").size());
-        assertEquals(0, dao.query("displayName lt \"oauth\"").size());
-        assertEquals(1, dao.query("displayName eq \"openid\" and meta.version eq 0").size());
-        assertEquals(3, dao.query("meta.created gt \"1970-01-01T00:00:00.000Z\"").size());
-        assertEquals(3, dao.query("displayName pr and id co \"g\"").size());
-        assertEquals(2, dao.query("displayName eq \"openid\" or displayName co \".user\"").size());
-        assertEquals(3, dao.query("displayName eq \"foo\" or id sw \"g\"").size());
+        assertEquals(1, dao.query("displayName eq \"uaa.user\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(3, dao.query("displayName pr", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.query("displayName eq \"openid\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.query("DISPLAYNAMe eq \"uaa.admin\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.query("displayName EQ \"openid\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.query("displayName eq \"Openid\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.query("displayName co \"user\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(3, dao.query("id sw \"g\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(3, dao.query("displayName gt \"oauth\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, dao.query("displayName lt \"oauth\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.query("displayName eq \"openid\" and meta.version eq 0", IdentityZoneHolder.get().getId()).size());
+        assertEquals(3, dao.query("meta.created gt \"1970-01-01T00:00:00.000Z\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(3, dao.query("displayName pr and id co \"g\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(2, dao.query("displayName eq \"openid\" or displayName co \".user\"", IdentityZoneHolder.get().getId()).size());
+        assertEquals(3, dao.query("displayName eq \"foo\" or id sw \"g\"", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
     public void canRetrieveGroupsWithFilterAndSortBy() {
-        assertEquals(3, dao.query("displayName pr", "id", true).size());
-        assertEquals(1, dao.query("id co \"2\"", "displayName", false).size());
+        assertEquals(3, dao.query("displayName pr", "id", true, IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, dao.query("id co \"2\"", "displayName", false, IdentityZoneHolder.get().getId()).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithIllegalQuotesFilter() {
-        assertEquals(1, dao.query("displayName eq \"bar").size());
+        assertEquals(1, dao.query("displayName eq \"bar", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithMissingQuotesFilter() {
-        assertEquals(0, dao.query("displayName eq bar").size());
+        assertEquals(0, dao.query("displayName eq bar", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithInvalidFieldsFilter() {
-        assertEquals(1, dao.query("name eq \"openid\"").size());
+        assertEquals(1, dao.query("name eq \"openid\"", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithWrongFilter() {
-        assertEquals(0, dao.query("displayName pr \"r\"").size());
+        assertEquals(0, dao.query("displayName pr \"r\"", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
@@ -174,24 +174,6 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         g = dao.create(g, IdentityZoneHolder.get().getId());
         validateGroupCount(4);
         validateGroup(g, "test.1", IdentityZoneHolder.get().getId(), "description-create");
-    }
-
-    @Test
-    public void canDeleteGroupsUsingFilter1() throws Exception {
-        dao.delete("displayName eq \"uaa.user\"");
-        validateGroupCount(2);
-    }
-
-    @Test
-    public void canDeleteGroupsUsingFilter2() throws Exception {
-        dao.delete("displayName sw \"uaa\"");
-        validateGroupCount(1);
-    }
-
-    @Test
-    public void canDeleteGroupsUsingFilter3() throws Exception {
-        dao.delete("id eq \"g1\"");
-        validateGroupCount(2);
     }
 
     @Test
@@ -288,30 +270,30 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack1Fails() {
         dao.query("displayName='something'; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack2Fails() {
         dao.query("displayName gt 'a'; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack3Fails() {
         dao.query("displayName eq \"something\"; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack4Fails() {
         dao.query("displayName eq \"something\"; select id from groups where id='''; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack5Fails() {
         dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something''");
+                      + " from groups where displayName='something''", IdentityZoneHolder.get().getId());
     }
 }

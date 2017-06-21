@@ -49,7 +49,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         assertEquals(0 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
         String zoneId = IdentityZone.getUaa().getId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
-        SamlServiceProvider createdSp = db.create(sp);
+        SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
         assertEquals(1 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
         jdbcTemplate.update("update service_provider set active=?", false);
         assertEquals(0 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
@@ -62,7 +62,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
 
-        SamlServiceProvider createdSp = db.create(sp);
+        SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
         Map<String, Object> rawCreatedSp = jdbcTemplate.queryForMap("select * from service_provider where id = ?",
                 createdSp.getId());
 
@@ -82,7 +82,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         updatedConfig.setMetaDataLocation(SamlTestUtils.UNSIGNED_SAML_SP_METADATA);
         sp.setConfig(updatedConfig);
         sp.setIdentityZoneId(zoneId);
-        createdSp = db.update(sp);
+        createdSp = db.update(sp, IdentityZoneHolder.get().getId());
 
         assertEquals(sp.getName(), createdSp.getName());
         assertEquals(sp.getConfig(), createdSp.getConfig());
@@ -111,7 +111,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
 
-        SamlServiceProvider createdSp = db.create(sp);
+        SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
         Map<String, Object> rawCreatedSp = jdbcTemplate.queryForMap("select * from service_provider where id = ?",
                 createdSp.getId());
 
@@ -130,11 +130,11 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         IdentityZoneHolder.set(zone);
 
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
-        db.create(sp);
+        db.create(sp, sp.getIdentityZoneId());
 
         // The current zone is not where we are creating the zone.
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        db.retrieve(sp.getId());
+        db.retrieve(sp.getId(), IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = EmptyResultDataAccessException.class)
@@ -144,7 +144,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
 
-        SamlServiceProvider createdSp = db.create(sp);
+        SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
         Map<String, Object> rawCreatedSp = jdbcTemplate.queryForMap("select * from service_provider where id = ?",
                 createdSp.getId());
 
@@ -166,7 +166,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         sp.setIdentityZoneId(zone.getId());
         // Switch to a different zone before updating.
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        db.update(sp);
+        db.update(sp, IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = SamlSpAlreadyExistsException.class)
@@ -174,8 +174,8 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaa().getId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
-        db.create(sp);
-        db.create(sp);
+        db.create(sp, sp.getIdentityZoneId());
+        db.create(sp, sp.getIdentityZoneId());
     }
 
     @Test(expected = SamlSpAlreadyExistsException.class)
@@ -183,8 +183,8 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
         IdentityZoneHolder.set(zone);
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
-        db.create(sp);
-        db.create(sp);
+        db.create(sp, sp.getIdentityZoneId());
+        db.create(sp, sp.getIdentityZoneId());
     }
 
     @Test
@@ -192,13 +192,13 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaa().getId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
-        db.create(sp);
+        db.create(sp, sp.getIdentityZoneId());
 
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
         IdentityZoneHolder.set(zone);
         zoneId = zone.getId();
         sp.setIdentityZoneId(zoneId);
-        db.create(sp);
+        db.create(sp, sp.getIdentityZoneId());
     }
 
     @Test
@@ -207,7 +207,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         String zoneId = IdentityZone.getUaa().getId();
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
-        SamlServiceProvider createdSp = db.create(sp);
+        SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
 
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
@@ -224,7 +224,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         IdentityZoneHolder.set(zone);
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
-        SamlServiceProvider createdSp = db.create(sp);
+        SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
 
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",

@@ -170,7 +170,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     }
 
     private void deleteGroup(String name) {
-        for (ScimGroup g : dao.query("displayName eq \"" + name + "\"")) {
+        for (ScimGroup g : dao.query("displayName eq \"" + name + "\"", IdentityZoneHolder.get().getId())) {
             dao.delete(g.getId(), g.getVersion(), IdentityZoneHolder.get().getId());
             mm.removeMembersByGroupId(g.getId(), IdentityZoneHolder.get().getId());
         }

@@ -59,13 +59,13 @@ public class EmailInvitationsService implements InvitationsService {
 
         ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
 
-        user = scimUserProvisioning.verifyUser(userId, user.getVersion());
+        user = scimUserProvisioning.verifyUser(userId, user.getVersion(), IdentityZoneHolder.get().getId());
 
 
         if (OriginKeys.UAA.equals(user.getOrigin()) && StringUtils.hasText(password)) {
             PasswordChangeRequest request = new PasswordChangeRequest();
             request.setPassword(password);
-            scimUserProvisioning.changePassword(userId, null, password);
+            scimUserProvisioning.changePassword(userId, null, password, IdentityZoneHolder.get().getId());
         }
 
         String redirectLocation = "/home";

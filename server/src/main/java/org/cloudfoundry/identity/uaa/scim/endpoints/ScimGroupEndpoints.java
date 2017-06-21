@@ -155,7 +155,7 @@ public class ScimGroupEndpoints {
 
         List<ScimGroup> result;
         try {
-            result = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+            result = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), IdentityZoneHolder.get().getId());
         } catch (IllegalArgumentException e) {
             throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
         }
@@ -306,7 +306,7 @@ public class ScimGroupEndpoints {
         if (displayName==null || displayName.trim().length()==0) {
             throw new ScimException("Group not found, not name provided", HttpStatus.NOT_FOUND);
         }
-        List<ScimGroup> result = dao.query("displayName eq \""+displayName+"\"");
+        List<ScimGroup> result = dao.query("displayName eq \""+displayName+"\"", IdentityZoneHolder.get().getId());
         if (result==null || result.size()==0) {
             throw new ScimException("Group not found:"+displayName, HttpStatus.NOT_FOUND);
         }

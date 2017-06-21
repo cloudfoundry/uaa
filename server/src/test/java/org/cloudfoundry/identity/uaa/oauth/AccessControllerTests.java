@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -123,7 +123,9 @@ public class AccessControllerTests {
         ScimGroupProvisioning provisioning = mock(JdbcScimGroupProvisioning.class);
         ScimGroup scimGroup1 = new ScimGroup("resource.scope1");
         ScimGroup scimGroup2 = new ScimGroup("resource.scope2");
-        when(provisioning.query(anyString())).thenReturn(new ArrayList<>(Arrays.asList(scimGroup1))).thenReturn(new ArrayList<>(Arrays.asList(scimGroup2)));
+        when(provisioning.query(any(), any()))
+            .thenReturn(new ArrayList<>(Arrays.asList(scimGroup1)))
+            .thenReturn(new ArrayList<>(Arrays.asList(scimGroup2)));
         controller.setClientDetailsService(clientDetailsService);
         controller.setGroupProvisioning(provisioning);
 

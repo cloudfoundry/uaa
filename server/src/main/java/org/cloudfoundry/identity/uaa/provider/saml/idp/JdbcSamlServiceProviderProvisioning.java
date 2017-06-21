@@ -14,10 +14,8 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -80,15 +78,14 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     }
 
     @Override
-    public SamlServiceProvider retrieve(String id) {
-        SamlServiceProvider serviceProvider = jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ID_QUERY, mapper, id,
-                IdentityZoneHolder.get().getId());
+    public SamlServiceProvider retrieve(String id, String zoneId) {
+        SamlServiceProvider serviceProvider = jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
         return serviceProvider;
     }
 
     @Override
-    public void delete(String id) {
-        jdbcTemplate.update(DELETE_SERVICE_PROVIDER_SQL, id, IdentityZoneHolder.get().getId());
+    public void delete(String id, String zoneId) {
+        jdbcTemplate.update(DELETE_SERVICE_PROVIDER_SQL, id, zoneId);
     }
 
     @Override
@@ -123,7 +120,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     }
 
     @Override
-    public SamlServiceProvider create(final SamlServiceProvider serviceProvider) {
+    public SamlServiceProvider create(final SamlServiceProvider serviceProvider, final String zoneId) {
         validate(serviceProvider);
         final String id = UUID.randomUUID().toString();
         try {
@@ -138,20 +135,19 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
                     ps.setString(pos++, serviceProvider.getName());
                     ps.setString(pos++, serviceProvider.getEntityId());
                     ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
-                    ps.setString(pos++, serviceProvider.getIdentityZoneId());
+                    ps.setString(pos++, zoneId);
                     ps.setBoolean(pos++, serviceProvider.isActive());
                 }
             });
         } catch (DuplicateKeyException e) {
             throw new SamlSpAlreadyExistsException(e.getMostSpecificCause().getMessage());
         }
-        return retrieve(id);
+        return retrieve(id, zoneId);
     }
 
     @Override
-    public SamlServiceProvider update(final SamlServiceProvider serviceProvider) {
+    public SamlServiceProvider update(final SamlServiceProvider serviceProvider, String zoneId) {
         validate(serviceProvider);
-        final String zoneId = IdentityZoneHolder.get().getId();
         jdbcTemplate.update(UPDATE_SERVICE_PROVIDER_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
@@ -165,7 +161,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
                 ps.setString(pos++, zoneId);
             }
         });
-        return retrieve(serviceProvider.getId());
+        return retrieve(serviceProvider.getId(), zoneId);
     }
 
     protected void validate(SamlServiceProvider provider) {
