@@ -37,7 +37,9 @@ public class DegradedModeUaaFilter extends OncePerRequestFilter {
                 requestPath.startsWith("/saml")) {
             filterChain.doFilter(request, response);
         }else {
-            String responseToClient = "{\"error\": \"UAA currently in degraded mode, operation not permitted.\"}";
+            String responseToClient = "{\"error\": \"UAA is currently in degraded mode - please try again later. " +
+                    "Operations permitted in degraded mode are: getting a token(/oauth/token), checking a token(check_token)" +
+                    ", Read SCIM and other UAA resources. \"}";
             logger.warn("Operation Not permitted in degraded mode::"+uri.substring(contextPath.length()));
             response.setStatus(HttpStatus.FORBIDDEN.value());
             response.addHeader("Content-Type", "application/json");
