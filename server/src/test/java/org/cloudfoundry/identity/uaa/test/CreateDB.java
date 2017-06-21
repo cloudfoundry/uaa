@@ -54,9 +54,4 @@ public class CreateDB  extends JdbcTestBase {
     public void test() {
         System.out.println("DB Created:"+profile);
     }
-
-    @Override
-    public void tearDown() throws Exception {
-        //no op - no clean up
-    }
 }

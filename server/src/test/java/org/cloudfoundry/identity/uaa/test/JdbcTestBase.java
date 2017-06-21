@@ -102,8 +102,8 @@ public class JdbcTestBase extends TestClassNullifier {
     }
 
     @After
-    public void tearDown() throws Exception {
-        tearDown(true);
+    public final void tearDown() throws Exception {
+        tearDown(needsToCleanData());
     }
 
     public final void tearDown(boolean cleandata) throws Exception {
@@ -113,5 +113,9 @@ public class JdbcTestBase extends TestClassNullifier {
         IdentityZoneHolder.clear();
         ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).close(true);
         webApplicationContext.destroy();
+    }
+
+    protected boolean needsToCleanData() {
+        return true;
     }
 }
