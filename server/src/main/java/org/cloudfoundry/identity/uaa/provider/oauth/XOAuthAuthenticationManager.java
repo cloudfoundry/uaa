@@ -86,11 +86,13 @@ import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
+import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
@@ -168,13 +170,19 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
             String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
             String username;
+            String preferredUsername = "preferred_username";
             if (StringUtils.hasText(userNameAttributePrefix)) {
                 username = (String) claims.get(userNameAttributePrefix);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", userNameAttributePrefix, username));
-            } else {
-                String preferredUsername = "preferred_username";
+            } else if (claims.get(preferredUsername)!=null) {
                 username = (String) claims.get(preferredUsername);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", preferredUsername, username));
+            } else {
+                username = (String) claims.get(SUB);
+                logger.debug(String.format("Extracted username for claim: %s and username is: %s", SUB, username));
+            }
+            if (!hasText(username)) {
+                throw new InsufficientAuthenticationException("Unable to map claim to a username");
             }
 
             authenticationData.setUsername(username);

@@ -740,6 +740,24 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     @Test
+    public void username_defaults_to_subject() throws Exception {
+        claims.remove("preferred_username");
+        mockToken();
+        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
+        assertThat(uaaUser.getUsername(), is("12345"));
+    }
+
+    @Test
+    public void missing_user_name_throws_auth_exception() throws Exception {
+        exception.expect(InsufficientAuthenticationException.class);
+        exception.expectMessage("Unable to map claim to a username");
+        claims.remove("preferred_username");
+        claims.remove("sub");
+        mockToken();
+        getAuthenticationData(xCodeToken);
+    }
+
+    @Test
     public void getUserWithNullEmail() throws MalformedURLException {
         claims.put("email", null);
         mockToken();
