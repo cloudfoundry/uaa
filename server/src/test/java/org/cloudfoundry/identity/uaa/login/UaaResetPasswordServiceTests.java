@@ -198,7 +198,7 @@ public class UaaResetPasswordServiceTests {
             new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
         when(codeStore.retrieveCode("good_code", IdentityZoneHolder.get().getId())).thenReturn(expiringCode);
         when(scimUserProvisioning.retrieve("user-id", IdentityZoneHolder.get().getId())).thenReturn(user);
-        when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld"))
+        when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld", IdentityZoneHolder.get().getId()))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
@@ -273,8 +273,8 @@ public class UaaResetPasswordServiceTests {
         when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
         uaaResetPasswordService.resetUserPassword(userId, "password");
 
-        verify(scimUserProvisioning, times(1)).updatePasswordChangeRequired(userId, false);
-        verify(scimUserProvisioning, times(1)).changePassword(userId, null, "password");
+        verify(scimUserProvisioning, times(1)).updatePasswordChangeRequired(userId, false, IdentityZoneHolder.get().getId());
+        verify(scimUserProvisioning, times(1)).changePassword(userId, null, "password", IdentityZoneHolder.get().getId());
     }
 
     @Test (expected = InvalidPasswordException.class)
@@ -284,7 +284,7 @@ public class UaaResetPasswordServiceTests {
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
         when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
-        when(scimUserProvisioning.checkPasswordMatches("user-id", "password"))
+        when(scimUserProvisioning.checkPasswordMatches("user-id", "password", IdentityZoneHolder.get().getId()))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         uaaResetPasswordService.resetUserPassword(userId, "password");
 
@@ -307,7 +307,7 @@ public class UaaResetPasswordServiceTests {
     public void updateLastLogonForUser() {
         String userId = "id1";
         uaaResetPasswordService.updateLastLogonTime(userId);
-        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId);
+        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId, IdentityZoneHolder.get().getId());
     }
 
     private ExpiringCode setupResetPassword(String clientId, String redirectUri) {

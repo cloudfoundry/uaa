@@ -982,7 +982,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         //create user and add user to group
         ScimUser user = getScimUser();
         user.setOrigin(LOGIN_SERVER);
-        user = userProvisioning.createUser(user, "");
+        user = userProvisioning.createUser(user, "", IdentityZoneHolder.get().getId());
         assertNotNull(userProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId()));
         assertEquals(zone.getId(), user.getZoneId());
 

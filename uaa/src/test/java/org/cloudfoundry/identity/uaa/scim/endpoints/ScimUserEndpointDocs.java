@@ -685,7 +685,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.setVerified(false);
         joel.addEmail(email);
-        joel = userProvisioning.createUser(joel, "pas5Word");
+        joel = userProvisioning.createUser(joel, "pas5Word", IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/Users/{userId}/verify-link", joel.getId())
             .header("Authorization", "Bearer " + accessToken)
@@ -716,7 +716,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         billy.setVerified(false);
         billy.addEmail(email);
         billy.setVersion(12);
-        billy = userProvisioning.createUser(billy, "pas5Word");
+        billy = userProvisioning.createUser(billy, "pas5Word", IdentityZoneHolder.get().getId());
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"),
             headerWithName("If-Match").description("(Optional) The expected current version of the user, which will prevent update if the version does not match"),

@@ -202,7 +202,7 @@ public class ScimUserBootstrap implements
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser, IdentityZoneHolder.get().getId());
         if (OriginKeys.UAA.equals(newScimUser.getOrigin()) && hasText(updatedUser.getPassword())) { //password is not relevant for non UAA users
-            scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
+            scimUserProvisioning.changePassword(id, null, updatedUser.getPassword(), IdentityZoneHolder.get().getId());
         }
         if (updateGroups) {
             Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
@@ -213,7 +213,7 @@ public class ScimUserBootstrap implements
 
     private void createNewUser(UaaUser user) {
         logger.debug("Registering new user account: " + user);
-        ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword());
+        ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword(), IdentityZoneHolder.get().getId());
         addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()));
     }
 

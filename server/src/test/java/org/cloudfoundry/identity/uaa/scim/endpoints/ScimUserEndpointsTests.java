@@ -202,8 +202,8 @@ public class ScimUserEndpointsTests {
         joel.addEmail(JDSA_VMWARE_COM);
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
-        joel = dao.createUser(joel, "password");
-        dale = dao.createUser(dale, "password");
+        joel = dao.createUser(joel, "password", IdentityZoneHolder.get().getId());
+        dale = dao.createUser(dale, "password", IdentityZoneHolder.get().getId());
 
         Map<Class<? extends Exception>, HttpStatus> map = new HashMap<Class<? extends Exception>, HttpStatus>();
         map.put(IllegalArgumentException.class, HttpStatus.BAD_REQUEST);
@@ -396,7 +396,8 @@ public class ScimUserEndpointsTests {
         doThrow(new InvalidPasswordException("whaddup")).when(mockPasswordValidator).validate(anyString());
         ScimUserProvisioning mockDao = mock(ScimUserProvisioning.class);
         endpoints.setScimUserProvisioning(mockDao);
-        when(mockDao.createUser(any(ScimUser.class), anyString())).thenReturn(new ScimUser());
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(mockDao.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(new ScimUser());
 
         String userName = "user@example.com";
         ScimUser user = new ScimUser("user1",userName, null, null);
@@ -515,7 +516,7 @@ public class ScimUserEndpointsTests {
     public void deleteIsAllowedWithCorrectVersionInEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
-        exGuy = dao.createUser(exGuy, "exguyspassword");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()),
                              new MockHttpServletRequest(), new MockHttpServletResponse());
     }
@@ -524,7 +525,7 @@ public class ScimUserEndpointsTests {
     public void deleteIsAllowedWithQuotedEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
-        exGuy = dao.createUser(exGuy, "exguyspassword");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
         endpoints.deleteUser(exGuy.getId(), "\"*", new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 
@@ -544,7 +545,7 @@ public class ScimUserEndpointsTests {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.setOrigin(origin);
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
-        exGuy = dao.createUser(exGuy, "exguyspassword");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
         endpoints.deleteUser(exGuy.getId(), "\"*", request, new MockHttpServletResponse());
     }
 
@@ -553,7 +554,7 @@ public class ScimUserEndpointsTests {
     public void deleteIsNotAllowedWithWrongVersionInEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
         exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
-        exGuy = dao.createUser(exGuy, "exguyspassword");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1),
                              new MockHttpServletRequest(), new MockHttpServletResponse());
     }
@@ -562,7 +563,7 @@ public class ScimUserEndpointsTests {
     public void deleteIsAllowedWithNullEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
-        exGuy = dao.createUser(exGuy, "exguyspassword");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
         endpoints.deleteUser(exGuy.getId(), null, new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 
@@ -570,7 +571,7 @@ public class ScimUserEndpointsTests {
     public void deleteUserUpdatesGroupMembership() {
         ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
-        exGuy = dao.createUser(exGuy, "exguyspassword");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
 
         ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
         g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));

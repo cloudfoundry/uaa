@@ -1035,7 +1035,7 @@ public class LdapMockMvcTests  {
             ScimUser user = new ScimUser(null, "marissa7@user.from.ldap.cf", "Marissa", "Seven");
             user.setPrimaryEmail("marissa7@user.from.ldap.cf");
             user.setOrigin(LDAP);
-            createdUser = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, "");
+            createdUser = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, "", IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.clear();
         }

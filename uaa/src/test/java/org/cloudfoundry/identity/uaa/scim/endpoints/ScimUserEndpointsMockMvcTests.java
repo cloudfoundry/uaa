@@ -672,7 +672,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -686,14 +686,14 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
     public void testForcePasswordChange() throws Exception {
         ScimUser user = createUser(uaaAdminToken);
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
 
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(true);
@@ -702,7 +702,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
-        assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -716,7 +716,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
 
         attemptLogin(user)
             .andExpect(redirectedUrl("/"));
@@ -734,7 +734,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
 
         attemptLogin(user)
             .andExpect(redirectedUrl("/login?error=account_locked"));
@@ -778,7 +778,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.addEmail(email);
-        joel = usersRepository.createUser(joel, "pas5Word");
+        joel = usersRepository.createUser(joel, "pas5Word", IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId() + "/verify")
             .header("Authorization", "Bearer " + token)
@@ -888,7 +888,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "otheruser@"+generator.generate().toLowerCase()+".com";
         ScimUser user = new ScimUser(null, email, "Other", "User");
         user.addEmail(email);
-        user = usersRepository.createUser(user, "pas5Word");
+        user = usersRepository.createUser(user, "pas5Word", IdentityZoneHolder.get().getId());
         if (status==HttpStatus.BAD_REQUEST.value()) {
             user.setUserName(null);
         } else {
@@ -1081,7 +1081,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
             joel.setVerified(false);
             joel.addEmail(email);
-            joel = usersRepository.createUser(joel, USER_PASSWORD);
+            joel = usersRepository.createUser(joel, USER_PASSWORD, IdentityZoneHolder.get().getId());
             return joel;
         } finally {
             IdentityZoneHolder.set(original);

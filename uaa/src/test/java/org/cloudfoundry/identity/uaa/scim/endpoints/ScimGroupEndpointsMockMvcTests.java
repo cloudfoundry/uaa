@@ -1308,7 +1308,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 IdentityZoneHolder.set(zone);
             }
             user.setOrigin(OriginKeys.UAA);
-            user = usersRepository.createUser(user, "password");
+            user = usersRepository.createUser(user, "password", IdentityZoneHolder.get().getId());
             ephemeralResources.add(new String[] {user.getId(), "USER"});
 
             Collection<ScimUser.Group> scimUserGroups = new LinkedList<>();

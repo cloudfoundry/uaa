@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationListener;
 
 /*******************************************************************************
@@ -30,10 +31,10 @@ public class UserAuthenticationSuccessListener implements ApplicationListener<Us
     public void onApplicationEvent(UserAuthenticationSuccessEvent event) {
         UaaUser user = event.getUser();
         if(user.isLegacyVerificationBehavior() && !user.isVerified()) {
-            scimUserProvisioning.verifyUser(user.getId(), -1);
+            scimUserProvisioning.verifyUser(user.getId(), -1, IdentityZoneHolder.get().getId());
         }
         UaaAuthentication authentication = (UaaAuthentication) event.getAuthentication();
         authentication.setLastLoginSuccessTime(user.getLastLogonTime());
-        scimUserProvisioning.updateLastLogonTime(user.getId());
+        scimUserProvisioning.updateLastLogonTime(user.getId(), IdentityZoneHolder.get().getId());
     }
 }

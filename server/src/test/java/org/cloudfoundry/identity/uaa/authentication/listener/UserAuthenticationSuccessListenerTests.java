@@ -62,11 +62,12 @@ public class UserAuthenticationSuccessListenerTests {
                 .withEmail("test@email.com")
                 .withVerified(false)
                 .withLegacyVerificationBehavior(true));
-        when(scimUserProvisioning.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(getScimUser(event.getUser()));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
 
         listener.onApplicationEvent(event);
 
-        verify(scimUserProvisioning).verifyUser(eq(id), eq(-1));
+        verify(scimUserProvisioning).verifyUser(eq(id), eq(-1), eq(zoneId));
     }
 
     @Test
@@ -77,11 +78,12 @@ public class UserAuthenticationSuccessListenerTests {
                 .withUsername("testUser")
                 .withEmail("test@email.com")
                 .withVerified(false));
-        when(scimUserProvisioning.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(getScimUser(event.getUser()));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
 
         listener.onApplicationEvent(event);
 
-        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt());
+        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt(), eq(zoneId));
     }
 
     @Test
@@ -95,7 +97,7 @@ public class UserAuthenticationSuccessListenerTests {
         when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(getScimUser(event.getUser()));
 
         listener.onApplicationEvent(event);
-        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId);
+        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId, IdentityZoneHolder.get().getId());
     }
 
     @Test

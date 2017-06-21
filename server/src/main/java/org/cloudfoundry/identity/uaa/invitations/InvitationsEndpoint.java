@@ -144,7 +144,7 @@ public class InvitationsEndpoint {
             user.setOrigin(origin);
             user.setVerified(false);
             user.setActive(true);
-            return users.createUser(user, new RandomValueStringGenerator(12).generate());
+            return users.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId());
         } else if (results.size() == 1) {
             return results.get(0);
         } else {

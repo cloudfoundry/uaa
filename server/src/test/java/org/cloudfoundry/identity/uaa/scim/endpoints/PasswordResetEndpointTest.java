@@ -273,7 +273,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
                 .andExpect(jsonPath("$.user_id").value("eyedee"))
                 .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret");
+        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -320,8 +320,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .andExpect(jsonPath("$.user_id").value("eyedee"))
             .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret");
-        verify(scimUserProvisioning).verifyUser(scimUser.getId(), -1);
+        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
+        verify(scimUserProvisioning).verifyUser(scimUser.getId(), -1, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -370,7 +370,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setVerified(true);
 
         when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
-        when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret")).thenReturn(true);
+        when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret", IdentityZoneHolder.get().getId())).thenReturn(true);
 
         MockHttpServletRequestBuilder post = post("/password_change")
             .contentType(APPLICATION_JSON)

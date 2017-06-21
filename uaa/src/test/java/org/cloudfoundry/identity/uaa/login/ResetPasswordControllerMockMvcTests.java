@@ -317,7 +317,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null, IdentityZoneHolder.get().getId());
 
-        userProvisioning.changePassword(user.getId(), "secret", "secr3t");
+        userProvisioning.changePassword(user.getId(), "secret", "secr3t", IdentityZoneHolder.get().getId());
         getMockMvc().perform(createChangePasswordRequest(user, code, true))
             .andExpect(status().isUnprocessableEntity());
     }

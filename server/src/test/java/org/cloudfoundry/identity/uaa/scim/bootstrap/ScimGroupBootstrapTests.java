@@ -59,13 +59,13 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         mDB.setScimGroupProvisioning(gDB);
         mDB.setScimUserProvisioning(uDB);
 
-        uDB.createUser(TestUtils.scimUserInstance("dev1"), "test");
-        uDB.createUser(TestUtils.scimUserInstance("dev2"), "test");
-        uDB.createUser(TestUtils.scimUserInstance("dev3"), "test");
-        uDB.createUser(TestUtils.scimUserInstance("qa1"), "test");
-        uDB.createUser(TestUtils.scimUserInstance("qa2"), "test");
-        uDB.createUser(TestUtils.scimUserInstance("mgr1"), "test");
-        uDB.createUser(TestUtils.scimUserInstance("hr1"), "test");
+        uDB.createUser(TestUtils.scimUserInstance("dev1"), "test", IdentityZoneHolder.get().getId());
+        uDB.createUser(TestUtils.scimUserInstance("dev2"), "test", IdentityZoneHolder.get().getId());
+        uDB.createUser(TestUtils.scimUserInstance("dev3"), "test", IdentityZoneHolder.get().getId());
+        uDB.createUser(TestUtils.scimUserInstance("qa1"), "test", IdentityZoneHolder.get().getId());
+        uDB.createUser(TestUtils.scimUserInstance("qa2"), "test", IdentityZoneHolder.get().getId());
+        uDB.createUser(TestUtils.scimUserInstance("mgr1"), "test", IdentityZoneHolder.get().getId());
+        uDB.createUser(TestUtils.scimUserInstance("hr1"), "test", IdentityZoneHolder.get().getId());
 
         assertEquals(7, uDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());

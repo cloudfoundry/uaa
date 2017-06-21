@@ -80,7 +80,7 @@ public class UaaChangePasswordServiceTest {
         user.setEmails(Collections.singletonList(email));
         List<ScimUser> results = Collections.singletonList(user);
         when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(results);
-        when(scimUserProvisioning.checkPasswordMatches("id", "samePassword1")).thenReturn(true);
+        when(scimUserProvisioning.checkPasswordMatches("id", "samePassword1", IdentityZoneHolder.get().getId())).thenReturn(true);
         try {
             subject.changePassword("username", "samePassword1", "samePassword1");
             fail();
@@ -100,6 +100,6 @@ public class UaaChangePasswordServiceTest {
         subject.changePassword("username", "currentPassword", "validPassword");
         verify(passwordValidator).validate("validPassword");
         verify(scimUserProvisioning).query(anyString(), eq(IdentityZoneHolder.get().getId()));
-        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword");
+        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword", IdentityZoneHolder.get().getId());
     }
 }

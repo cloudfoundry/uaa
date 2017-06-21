@@ -527,8 +527,8 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "first","last");
         user.setPrimaryEmail(user.getUserName());
-        user = provisioning.createUser(user, "oldpassword");
-        provisioning.changePassword(user.getId(), "oldpassword", "newpassword");
+        user = provisioning.createUser(user, "oldpassword", IdentityZoneHolder.get().getId());
+        provisioning.changePassword(user.getId(), "oldpassword", "newpassword", IdentityZoneHolder.get().getId());
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
         //the last event should be our password modified event

@@ -195,7 +195,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             user.setOrigin(origin);
 
 
-            user = userProvisioning.createUser(user, SECRET);
+            user = userProvisioning.createUser(user, SECRET, IdentityZoneHolder.get().getId());
 
             Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
             Set<ScimGroup> groups = new HashSet<>();
