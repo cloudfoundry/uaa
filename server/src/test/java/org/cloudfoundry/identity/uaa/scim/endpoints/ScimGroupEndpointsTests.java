@@ -40,7 +40,6 @@ import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -149,11 +148,6 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         externalGroups.put(OriginKeys.LDAP, externalToInternalMap);
         externalGroupBootstrap.setExternalGroupMaps(externalGroups);
         externalGroupBootstrap.afterPropertiesSet();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        IdentityZoneHolder.clear();
     }
 
     private String addGroup(String name, List<ScimGroupMember> m) {
