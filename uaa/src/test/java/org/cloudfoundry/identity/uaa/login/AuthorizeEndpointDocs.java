@@ -89,7 +89,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("`code` for requesting an authorization code for an access token, as per OAuth spec"),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `code` for requesting an authorization code for an access token, as per OAuth spec"),
             clientIdParameter,
             scopesParameter,
             redirectParameter
@@ -118,7 +118,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("`code` for requesting an authorization code or `token` for an access token, as per OAuth spec"),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `code` for requesting an authorization code or `token` for an access token, as per OAuth spec"),
             clientIdParameter,
             scopesParameter,
             redirectParameter
@@ -157,7 +157,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .param(STATE, new RandomValueStringGenerator().generate());
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("`code` for requesting an authorization code for an access token, as per OAuth spec"),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `code` for requesting an authorization code for an access token, as per OAuth spec"),
             clientIdParameter,
             redirectParameter,
             parameterWithName(STATE).description("any random string to be returned in the Location header as a query parameter, used to achieve per-request customization").attributes(key("constraints").value("Required"), key("type").value(STRING))
@@ -187,7 +187,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("Expected response type, in this case `token`, i.e. an access token"),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `token`, i.e. an access token"),
             clientIdParameter,
             scopesParameter,
             redirectParameter
@@ -216,7 +216,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
           .param(REDIRECT_URI, "http://localhost:8080/app/");
 
         Snippet requestParameters = requestParameters(
-          responseTypeParameter.description("Expected response type, in this case `token`, i.e. an access token"),
+          responseTypeParameter.description("Space-delimited list of response types. Here, `token`, i.e. an access token"),
           clientIdParameter,
           scopesParameter,
           redirectParameter,
@@ -249,7 +249,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("Expected response type, in this case `id_token`"),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `id_token`"),
             clientIdParameter,
             scopesParameter,
             redirectParameter
@@ -284,7 +284,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("Expected response type, in this case `token id_token`, indicating both an access token and an ID token."),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `token id_token`, indicating both an access token and an ID token."),
             clientIdParameter,
             scopesParameter,
             redirectParameter
@@ -320,7 +320,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("Expected response type, in this case `id_token code`, indicating a request for an ID token and an authorization code."),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `id_token code`, indicating a request for an ID token and an authorization code."),
             clientIdParameter,
             scopesParameter,
             redirectParameter
@@ -357,7 +357,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("Expected response type, in this case `token id_token code`, indicating a request for an (implicitly granted) access token, an ID token, and an authorization code."),
+            responseTypeParameter.description("Space-delimited list of response types. Here, `token id_token code`, indicating a request for an (implicitly granted) access token, an ID token, and an authorization code."),
             clientIdParameter,
             scopesParameter,
             redirectParameter
