@@ -571,7 +571,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setZoneFavIconAndProductLogo("/sM4\n\nlL==", "/sM4\n\nlL==");
 
         getMockMvc().perform(get("/login"))
-            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))))
+            .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4\n\nlL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))))
             //background image set in predix-styles.css, doesn't show in html
             //.andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
             ;

@@ -202,6 +202,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Ignore //predix branding does not have this image.
     @Test
     public void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
