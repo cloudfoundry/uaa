@@ -102,7 +102,15 @@ public class ProfileControllerTests extends TestClassNullifier {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 
         Mockito.reset(approvalStore);
+        Mockito.reset(clientDetailsService);
         Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<>();
+
+        DescribedApproval otherApproval = new DescribedApproval();
+        otherApproval.setUserId(USER_ID);
+        otherApproval.setClientId("other-client");
+        otherApproval.setScope("thing.read");
+        otherApproval.setStatus(APPROVED);
+        otherApproval.setDescription("Read your thing resources");
 
         DescribedApproval readApproval = new DescribedApproval();
         readApproval.setUserId(USER_ID);
@@ -118,7 +126,7 @@ public class ProfileControllerTests extends TestClassNullifier {
         writeApproval.setStatus(APPROVED);
         writeApproval.setDescription("Write to your thing resources");
 
-        allDescApprovals = Arrays.asList(readApproval, writeApproval);
+        allDescApprovals = Arrays.asList(otherApproval, readApproval, writeApproval);
         allApprovals = new LinkedList<>(allDescApprovals);
         approvalsByClientId.put("app", allDescApprovals);
 
@@ -127,6 +135,10 @@ public class ProfileControllerTests extends TestClassNullifier {
         BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
         Mockito.when(clientDetailsService.loadClientByClientId("app")).thenReturn(appClient);
+
+        BaseClientDetails otherClient = new BaseClientDetails("other-client","thing","thing.read,thing.write","authorization_code", "");
+        otherClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
+        Mockito.when(clientDetailsService.loadClientByClientId("other-client")).thenReturn(otherClient);
     }
 
     @After

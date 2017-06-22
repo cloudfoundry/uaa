@@ -46,6 +46,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.springframework.util.StringUtils.hasText;
+
 @Controller
 public class ProfileController {
 
@@ -109,6 +111,10 @@ public class ProfileController {
             List<DescribedApproval> allApprovals = new ArrayList<>();
             for (List<DescribedApproval> clientApprovals : approvalsByClientId.values()) {
                 allApprovals.addAll(clientApprovals);
+            }
+
+            if (hasText(clientId)) {
+                allApprovals.removeIf(da -> !clientId.equals(da.getClientId()));
             }
 
             for (Approval approval : allApprovals) {
