@@ -280,4 +280,12 @@ public class UaaStringUtils {
         }
     }
 
+    public static String toJsonString(String s) {
+        if (s == null) {
+            return null;
+        }
+        String result = JsonUtils.writeValueAsString(s);
+        return result.substring(1, result.length()-1);
+    }
+
 }
