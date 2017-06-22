@@ -586,7 +586,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
 
-    private static final String defaultCopyrightTemplate =  "Copyright &#169; %d %s";
+    //Thymeleaf now converts copyright html code into unicode
+    private static final String defaultCopyrightTemplate =  "Copyright \u00a9 %d %s";
     private static final int currentYear = Calendar.getInstance().get(Calendar.YEAR);
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, currentYear, "CloudFoundry.org Foundation, Inc.");
     private static final String CF_LAST_LOGIN = "Last Login";
@@ -627,6 +628,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(allOf(containsString(expectedFooterText))));
     }
 
+    //Thymeleaf now converts copyright html code into unicode
     private static final String predixCopyright =  "Copyright \u00a9 2016 General Electric Company. All rights reserved.";
     @Test
     public void testPredixCopyright() throws Exception {
