@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.hamcrest.Matcher;
 import org.junit.After;
@@ -447,7 +448,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(getSystemScopes("scim").size()+1));
+        assertEquals(searchResults.getResources().size(), getSystemScopes("scim").size()+1);
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + result.getZoneAdminToken())
@@ -459,7 +460,10 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(getSystemScopes(null).size()+2));
+        assertEquals(searchResults.getResources().size(),
+                     UserConfig.DEFAULT_ZONE_GROUPS.size() +
+                     getSystemScopes(null).size() + 2 -1 //two added groups, password.write exist in both default
+        );
     }
 
     protected List<String> getSystemScopes(String containing) {
@@ -525,7 +529,11 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andReturn();
 
         searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(getSystemScopes(null).size()));
+        assertEquals(searchResults.getResources().size(),
+                     UserConfig.DEFAULT_ZONE_GROUPS.size() +
+                         getSystemScopes(null).size() - 1 //password.write exists in both list
+        );
+
     }
 
     @Test
