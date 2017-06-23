@@ -105,9 +105,9 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         multipleBootstrapGroupAfter.setVersion(multipleBootstrapGroupAfter.getVersion() + 1);
         
         gDB = mock(JdbcScimGroupProvisioning.class);
-        when(gDB.create(anyObject())).thenReturn(multipleBootstrapGroupBefore);
-        when(gDB.update(anyString(), anyObject())).thenThrow(new IncorrectResultSizeDataAccessException(1, 0));
-        when(gDB.query(anyString())).thenReturn(Arrays.asList(multipleBootstrapGroupAfter));
+        when(gDB.create(anyObject(), anyString())).thenReturn(multipleBootstrapGroupBefore);
+        when(gDB.update(anyString(), anyObject(), anyString())).thenThrow(new IncorrectResultSizeDataAccessException(1, 0));
+        when(gDB.query(anyString(), anyString())).thenReturn(Arrays.asList(multipleBootstrapGroupAfter));
 
         //second bootstrap
         bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
