@@ -454,7 +454,6 @@
         <constructor-arg ref="jdbcClientDetailsService" />
         <constructor-arg ref="userDatabase"/>
         <constructor-arg ref="identityProviderProvisioning"/>
-        <property name="defaultScopes" ref="defaultUserAuthorities" />
     </bean>
 
     <bean id="uaaTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">

@@ -169,7 +169,7 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("scope", "aud1.test aud2.test");
         parameters.put("client_id", client.getClientId());
         parameters.put(OAuth2Utils.GRANT_TYPE, "client_credentials");
-        factory.setDefaultScopes(Arrays.asList("aud1.test"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("aud1.test"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
@@ -195,7 +195,7 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("client_id", recipient.getClientId());
         parameters.put("expires_in", "44000");
         parameters.put(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
-        factory.setDefaultScopes(Arrays.asList("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("uaa.user"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
         when(clientDetailsService.loadClientByClientId(recipient.getClientId())).thenReturn(recipient);
@@ -279,7 +279,7 @@ public class UaaAuthorizationRequestManagerTests {
             }
         };
         parameters.put("scope", "openid foo.bar");
-        factory.setDefaultScopes(Arrays.asList("openid"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("openid"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
