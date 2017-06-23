@@ -27,7 +27,7 @@ import static java.util.Collections.unmodifiableList;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UserConfig {
 
-    private static List<String> DEFAULT_ZONE_GROUPS = unmodifiableList(
+    public static List<String> DEFAULT_ZONE_GROUPS = unmodifiableList(
             asList(
                 "openid",
                 "password.write",
