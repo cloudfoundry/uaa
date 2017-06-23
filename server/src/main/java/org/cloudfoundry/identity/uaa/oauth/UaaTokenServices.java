@@ -153,8 +153,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private String issuer = null;
 
-    private Set<String> defaultUserAuthorities = new HashSet<String>();
-
     private ApprovalStore approvalStore = null;
 
     private ApplicationEventPublisher applicationEventPublisher;
@@ -1053,9 +1051,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         authorizationRequest.setApproved(true);
 
-        Collection<? extends GrantedAuthority> authorities = AuthorityUtils
-                        .commaSeparatedStringToAuthorityList(StringUtils
-                            .collectionToCommaDelimitedString(defaultUserAuthorities));
+        Collection<String> defaultUserAuthorities = IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups();
+        Collection<? extends GrantedAuthority> authorities =
+            AuthorityUtils.commaSeparatedStringToAuthorityList(
+                StringUtils.collectionToCommaDelimitedString(defaultUserAuthorities)
+            );
         if (claims.containsKey("authorities")) {
             Object authoritiesFromClaims = claims.get("authorities");
             if (authoritiesFromClaims instanceof String) {
@@ -1241,10 +1241,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setDefaultUserAuthorities(Set<String> defaultUserAuthorities) {
-        this.defaultUserAuthorities = defaultUserAuthorities;
     }
 
     public void setApprovalStore(ApprovalStore approvalStore) {
