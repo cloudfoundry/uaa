@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
@@ -192,22 +193,7 @@ public class BootstrapTests {
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         Collection<String> defaultZoneGroups = context.getBean("defaultUserAuthorities", Collection.class);
-        String[] expectedZoneGroups = {
-            "openid",
-            "scim.me",
-            "cloud_controller.read",
-            "cloud_controller.write",
-            "cloud_controller_service_permissions.read",
-            "password.write",
-            "scim.userids",
-            "uaa.user",
-            "approvals.me",
-            "oauth.approvals",
-            "profile",
-            "roles",
-            "user_attributes",
-            "uaa.offline_token"
-        };
+        String[] expectedZoneGroups = CheckDefaultAuthoritiesMvcMockTests.EXPECTED_DEFAULT_GROUPS;
         assertThat(defaultZoneGroups,containsInAnyOrder(expectedZoneGroups));
         IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
         assertNotNull(defaultZone);
