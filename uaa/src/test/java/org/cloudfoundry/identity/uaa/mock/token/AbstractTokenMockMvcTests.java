@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,6 +115,9 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         zone.setName(subdomain);
         zone.setSubdomain(subdomain);
         zone.setDescription(subdomain);
+        List<String> defaultGroups = new LinkedList(zone.getConfig().getUserConfig().getDefaultGroups());
+        defaultGroups.add("cloud_controller.read");
+        zone.getConfig().getUserConfig().setDefaultGroups(defaultGroups);
         identityZoneProvisioning.create(zone);
         return zone;
     }

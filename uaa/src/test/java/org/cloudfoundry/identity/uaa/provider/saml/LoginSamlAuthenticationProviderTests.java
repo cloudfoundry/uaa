@@ -82,7 +82,6 @@ import javax.xml.namespace.QName;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -199,6 +198,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Before
     public void configureProvider() throws Exception {
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("uaa.user"));
         providerDefinition = new SamlIdentityProviderDefinition();
 
         userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
@@ -233,7 +233,6 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         timeService = mock(TimeService.class);
         userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService);
-        userDatabase.setDefaultAuthorities(new HashSet<>(Arrays.asList(UaaAuthority.UAA_USER.getAuthority())));
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
         authprovider = new LoginSamlAuthenticationProvider();

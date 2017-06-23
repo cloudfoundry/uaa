@@ -18,12 +18,14 @@ import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -31,10 +33,12 @@ import org.springframework.util.LinkedMultiValueMap;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY;
@@ -79,6 +83,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     public static final String ADD_GROUP_SQL = "insert into groups (id, displayName, identity_zone_id) values (?,?,?)";
     public static final String ADD_MEMBER_SQL = "insert into group_membership (group_id, member_id, member_type, authorities) values (?,?,?,?)";
     private TimeService timeService;
+    private Set<SimpleGrantedAuthority> defaultAuthorities;
 
     private void addUser(String id, String name, String password, boolean requiresPasswordChange) {
         TestUtils.assertNoSuchUser(template, "id", id);
@@ -94,6 +99,11 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Before
     public void initializeDb() throws Exception {
+        defaultAuthorities = UserConfig.DEFAULT_ZONE_GROUPS
+            .stream()
+            .map(s -> new SimpleGrantedAuthority(s))
+            .collect(Collectors.toSet());
+
         timeService = mock(TimeService.class);
         IdentityZoneHolder.clear();
         otherIdentityZone = new IdentityZone();
@@ -102,7 +112,6 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         template = new JdbcTemplate(dataSource);
 
         db = new JdbcUaaUserDatabase(template, timeService);
-        db.setDefaultAuthorities(Collections.singleton("uaa.user"));
 
         TestUtils.assertNoSuchUser(template, "id", JOE_ID);
         TestUtils.assertNoSuchUser(template, "id", MABEL_ID);
@@ -296,9 +305,11 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     @Test
     public void getUserWithNestedAuthoritiesWorks() {
         UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
+
         assertThat(joe.getAuthorities(),
                    containsInAnyOrder(
-                       new SimpleGrantedAuthority("uaa.user")
+                       defaultAuthorities
+                           .toArray(new SimpleGrantedAuthority[0])
                    )
         );
 
@@ -322,14 +333,11 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     protected void evaluateNestedJoe() {
         UaaUser joe;
         joe = db.retrieveUserByName("joe", OriginKeys.UAA);
-
-        assertThat(joe.getAuthorities(),
-                   containsInAnyOrder(
-                       new SimpleGrantedAuthority("direct"),
-                       new SimpleGrantedAuthority("uaa.user"),
-                       new SimpleGrantedAuthority("indirect")
-                   )
-        );
+        Set<GrantedAuthority> compareTo = new HashSet<>(defaultAuthorities);
+        compareTo.add(new SimpleGrantedAuthority("direct"));
+        compareTo.add(new SimpleGrantedAuthority("uaa.user"));
+        compareTo.add(new SimpleGrantedAuthority("indirect"));
+        assertThat(joe.getAuthorities(),containsInAnyOrder(compareTo.toArray(new SimpleGrantedAuthority[0])));
     }
 
     @Test

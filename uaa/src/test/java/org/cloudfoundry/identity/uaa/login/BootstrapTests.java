@@ -429,6 +429,7 @@ public class BootstrapTests {
         IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
         assertNotNull(defaultZone);
         assertThat(defaultZone.getConfig().getUserConfig().getDefaultGroups(),containsInAnyOrder(expectedZoneGroups));
+        IdentityZoneHolder.set(defaultZone);
 
         HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
         assertNotNull(filterWrapper);
