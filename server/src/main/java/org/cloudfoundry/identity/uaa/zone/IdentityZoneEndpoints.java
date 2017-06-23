@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,16 +81,22 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
+    private final ScimGroupProvisioning groupProvisioning;
 
-    @Autowired
     private IdentityZoneValidator validator;
 
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
-                                 IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
+                                 IdentityZoneEndpointClientRegistrationService clientRegistrationService,
+                                 ScimGroupProvisioning groupProvisioning) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
         this.clientRegistrationService = clientRegistrationService;
+        this.groupProvisioning = groupProvisioning;
+    }
+
+    public void setValidator(IdentityZoneValidator validator) {
+        this.validator = validator;
     }
 
     @Override

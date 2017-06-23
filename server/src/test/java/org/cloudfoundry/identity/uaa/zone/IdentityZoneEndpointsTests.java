@@ -17,20 +17,40 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.junit.Before;
 import org.junit.Test;
+import org.springframework.validation.BindingResult;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class IdentityZoneEndpointsTests {
 
-    IdentityZoneEndpoints endpoints = new IdentityZoneEndpoints(
-        mock(IdentityZoneProvisioning.class),
-        mock(IdentityProviderProvisioning.class),
-        mock(IdentityZoneEndpointClientRegistrationService.class)
-    );
+    IdentityZoneEndpoints endpoints;
     private IdentityZone zone;
+    private IdentityZoneProvisioning zoneDao = mock(IdentityZoneProvisioning.class);
+
+    @Before
+    public void setup() {
+        endpoints = new IdentityZoneEndpoints(
+            zoneDao,
+            mock(IdentityProviderProvisioning.class),
+            mock(IdentityZoneEndpointClientRegistrationService.class),
+            mock(ScimGroupProvisioning.class)
+        );
+        endpoints.setValidator((config, mode) -> config);
+    }
+
+    @Test
+    public void create_zone() throws Exception {
+        zone = createZone();
+        when(zoneDao.create(any())).then(invocation -> invocation.getArguments()[0]);
+        endpoints.createIdentityZone(zone, mock(BindingResult.class));
+    }
 
     @Test
     public void remove_keys_from_map() {
