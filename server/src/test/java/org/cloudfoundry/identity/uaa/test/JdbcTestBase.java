@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
@@ -65,6 +66,7 @@ public class JdbcTestBase extends TestClassNullifier {
         dataSource = webApplicationContext.getBean(DataSource.class);
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         validationQuery = webApplicationContext.getBean("validationQuery", String.class);
+        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
     }
 
     public void cleanData() {
@@ -98,7 +100,6 @@ public class JdbcTestBase extends TestClassNullifier {
                 .setType(origin);
             idp.create(provider);
         }
-
     }
 
     @After
@@ -111,6 +112,7 @@ public class JdbcTestBase extends TestClassNullifier {
             cleanData();
         }
         IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
         ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).close(true);
         webApplicationContext.destroy();
     }

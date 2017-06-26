@@ -62,6 +62,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -141,8 +142,9 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe, mabel));
         bootstrap.setUsersToDelete(Arrays.asList("joe", "mabel"));
         bootstrap.afterPropertiesSet();
-        verify(db, never()).create(any(), IdentityZoneHolder.get().getId());
-        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
+        String zoneId = IdentityZoneHolder.get().getId();
+        verify(db, never()).create(any(), eq(zoneId));
+        Collection<ScimUser> users = db.retrieveAll(zoneId);
         assertEquals(0, users.size());
     }
 
