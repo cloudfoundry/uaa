@@ -24,6 +24,22 @@ public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest
 
     ClientServicesExtension clientRegistrationService;
     private Set<String> defaultAuthorities;
+    public static final String[] EXPECTED_DEFAULT_GROUPS = new String[]{
+        "openid",
+        "scim.me",
+        "cloud_controller.read",
+        "cloud_controller.write",
+        "cloud_controller_service_permissions.read",
+        "password.write",
+        "scim.userids",
+        "uaa.user",
+        "approvals.me",
+        "oauth.approvals",
+        "profile",
+        "roles",
+        "user_attributes",
+        "uaa.offline_token"
+    };
 
     @Before
     public void setUp() throws Exception {
@@ -35,23 +51,7 @@ public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest
     @Test
     public void testDefaultAuthorities() throws Exception {
         Assert.assertEquals(14, defaultAuthorities.size());
-        String[] expected = new String[] {
-            "openid",
-            "scim.me",
-            "cloud_controller.read",
-            "cloud_controller.write",
-            "cloud_controller_service_permissions.read",
-            "password.write",
-            "scim.userids",
-            "uaa.user",
-            "approvals.me",
-            "oauth.approvals",
-            "profile",
-            "roles",
-            "user_attributes",
-            "uaa.offline_token"
-        };
-        for (String s : expected) {
+        for (String s : EXPECTED_DEFAULT_GROUPS) {
             Assert.assertTrue("Expecting authority to be present:"+s,defaultAuthorities.contains(s));
         }
     }

@@ -375,4 +375,17 @@ public class UaaStringUtilsTest {
         assertEquals(3, result.size());
     }
 
+    @Test
+    public void json_string() throws Exception {
+        String s = "Y1sPgF\"Yj4xYZ\"";
+        String escaped = s.replace("\"","\\\"");
+        assertEquals(escaped, UaaStringUtils.toJsonString(s));
+    }
+
+    @Test
+    public void json_null_string() throws Exception {
+        assertNull(UaaStringUtils.toJsonString(null));
+        assertEquals("", UaaStringUtils.toJsonString(""));
+    }
+
 }

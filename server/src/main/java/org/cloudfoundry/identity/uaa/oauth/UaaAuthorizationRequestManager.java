@@ -73,8 +73,6 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
-    private Collection<String> defaultScopes = new HashSet<String>();
-
     public OAuth2RequestFactory getRequestFactory() {
         return requestFactory;
     }
@@ -96,16 +94,6 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         this.uaaUserDatabase = userDatabase;
         this.requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         this.providerProvisioning = providerProvisioning;
-    }
-
-    /**
-     * Default requested scopes that are always added to a user token (and then removed if
-     * the client doesn't have permission).
-     *
-     * @param defaultScopes the defaultScopes to set
-     */
-    public void setDefaultScopes(Collection<String> defaultScopes) {
-        this.defaultScopes = defaultScopes;
     }
 
     /**
@@ -270,6 +258,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
                                         ClientDetails clientDetails) {
         Set<String> allowed = new LinkedHashSet<>(AuthorityUtils.authorityListToSet(authorities));
         // Add in all default requestedScopes
+        Collection<String> defaultScopes = IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups();
         allowed.addAll(defaultScopes);
 
         // Find intersection of user authorities, default requestedScopes and client requestedScopes:

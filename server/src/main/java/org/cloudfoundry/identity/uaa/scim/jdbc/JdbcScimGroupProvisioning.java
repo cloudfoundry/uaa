@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.springframework.dao.DuplicateKeyException;
@@ -36,7 +37,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.getSystemScopes;
+import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     implements ScimGroupProvisioning, SystemDeletable {
@@ -158,6 +159,27 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         try {
             create(new ScimGroup(null, name, zoneId), zoneId);
         }catch (ScimResourceAlreadyExistsException ignore){
+        }
+    }
+
+    @Override
+    public ScimGroup createOrGet(ScimGroup group, String zoneId) {
+        createAndIgnoreDuplicate(group.getDisplayName(), zoneId);
+        return getByName(group.getDisplayName(), zoneId);
+    }
+
+    @Override
+    public ScimGroup getByName(String displayName, String zoneId) {
+        if (!hasText(displayName)) {
+            throw new IncorrectResultSizeDataAccessException("group name must contain text", 1, 0);
+        }
+        String jsonName = UaaStringUtils.toJsonString(displayName);
+        String filter = String.format(GROUP_BY_NAME_FILTER, jsonName);
+        List<ScimGroup> groups = query(filter, zoneId);
+        if (groups.size()==1) {
+            return groups.get(0);
+        } else {
+            throw new IncorrectResultSizeDataAccessException("Invalid result size found for:"+displayName, 1, groups.size());
         }
     }
 
@@ -300,7 +322,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     }
 
     protected void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {
-        if (!StringUtils.hasText(group.getZoneId())) {
+        if (!hasText(group.getZoneId())) {
             throw new ScimResourceConstraintFailedException("zoneId is a required field");
         }
     }

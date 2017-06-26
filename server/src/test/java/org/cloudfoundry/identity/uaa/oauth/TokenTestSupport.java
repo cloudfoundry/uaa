@@ -60,6 +60,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -253,7 +254,9 @@ public class TokenTestSupport {
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setTokenPolicy(tokenPolicy);
-        tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(
+            new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
+        );
         tokenServices.setIssuer(DEFAULT_ISSUER);
         tokenServices.setUserDatabase(userDatabase);
         tokenServices.setApprovalStore(approvalStore);

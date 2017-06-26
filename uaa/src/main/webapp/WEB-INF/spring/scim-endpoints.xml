@@ -94,11 +94,12 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
     </bean>
 
-    <bean id="groupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
+    <bean id="groupMembershipManager"
+          class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <property name="defaultUserGroups" ref="defaultUserAuthorities" />
+        <property name="zoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
     <bean id="externalGroupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager">
@@ -263,7 +264,7 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <property name="groups" ref="groups" />
         <property name="groupMembers" ref="members" />
-        <property name="defaultUserGroups" value="#{@config['oauth'] != null and @config['oauth']['user'] != null ? @config['oauth']['user']['authorities'] : {}}" />
+        <property name="defaultUserGroups" ref="defaultUserAuthorities" />
         <property name="nonDefaultUserGroups" ref="nonDefaultUserGroups"/>
     </bean>
 

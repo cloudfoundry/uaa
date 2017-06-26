@@ -15,10 +15,17 @@ package org.cloudfoundry.identity.uaa.impl.config;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
+import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -51,7 +58,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private boolean accountChooserEnabled;
 
-    @Autowired
+    private Collection<String> defaultUserGroups;
+
     private IdentityZoneValidator validator = (config, mode) -> config;
     private Map<String, Object> branding;
 
@@ -108,6 +116,11 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
         BrandingInformation brandingInfo = JsonUtils.convertValue(branding, BrandingInformation.class);
         definition.setBranding(brandingInfo);
+
+        if (defaultUserGroups!=null) {
+            definition.getUserConfig().setDefaultGroups(new LinkedList<>(defaultUserGroups));
+        }
+
 
         identityZone.setConfig(definition);
 
@@ -200,5 +213,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public Map<String, Object> getBranding() {
         return branding;
+    }
+
+    public void setDefaultUserGroups(Collection<String> defaultUserGroups) {
+        this.defaultUserGroups = defaultUserGroups;
     }
 }

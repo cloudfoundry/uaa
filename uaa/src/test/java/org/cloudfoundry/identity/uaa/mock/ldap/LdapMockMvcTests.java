@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.mock.DefaultConfigurationTestSuite;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
@@ -38,6 +37,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -80,6 +80,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -753,9 +754,10 @@ public class LdapMockMvcTests  {
         assertEquals(zone.getZone().getIdentityZone().getId(), user.getZoneId());
     }
 
-
+    @Test
     public void test_memberOf_search() throws Exception {
-
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
+        transferDefaultMappingsToZone(zone.getZone().getIdentityZone());
         provider.getConfig().setGroupSearchBase("memberOf");
         updateLdapProvider();
 
@@ -1202,25 +1204,11 @@ public class LdapMockMvcTests  {
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        String[] list = new String[]{
-            "uaa.admin",
-            "password.write",
-            "scim.userids",
-            "approvals.me",
-            "cloud_controller.write",
-            "scim.me",
-            "cloud_controller_service_permissions.read",
-            "openid",
-            "profile",
-            "roles",
-            "oauth.approvals",
-            "uaa.user",
-            "cloud_controller.read",
-            "user_attributes",
-            UaaTokenServices.UAA_REFRESH_TOKEN,
-            "thirdmarissa"
-        };
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+        List<String> list = new LinkedList<>(UserConfig.DEFAULT_ZONE_GROUPS);
+        list.add("uaa.admin");
+        list.add("thirdmarissa");
+        list.add("cloud_controller.read");
+        assertThat(list, containsInAnyOrder(getAuthorities(auth.getAuthorities())));
         IdentityZoneHolder.clear();
     }
 
@@ -1229,7 +1217,7 @@ public class LdapMockMvcTests  {
         if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
             return;
         }
-        Set<String> defaultAuthorities = new HashSet((Set<String>)getWebApplicationContext().getBean("defaultUserAuthorities"));
+        Set<String> defaultAuthorities = new HashSet(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         AuthenticationManager manager = getWebApplicationContext().getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa4","ldap4");
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
@@ -1275,7 +1263,7 @@ public class LdapMockMvcTests  {
     }
 
     protected void validateUserAuthorities(String[] expected, Authentication auth) throws Exception {
-        Set<String> defaultAuthorities = new HashSet((Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities"));
+        Set<String> defaultAuthorities = new HashSet<>(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         for (String s : expected) {
             defaultAuthorities.add(s);
         }
@@ -1368,7 +1356,7 @@ public class LdapMockMvcTests  {
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        Set<String> defaultAuthorities = new HashSet((Set<String>)getWebApplicationContext().getBean("defaultUserAuthorities"));
+        Set<String> defaultAuthorities = new HashSet(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         defaultAuthorities.addAll(Arrays.asList(expected));
         assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
     }

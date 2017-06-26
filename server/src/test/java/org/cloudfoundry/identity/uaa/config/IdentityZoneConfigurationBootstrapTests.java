@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.*;
 
 public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
@@ -99,6 +100,15 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, uaa.getConfig().getSamlConfig().getPrivateKey());
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, uaa.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, uaa.getConfig().getSamlConfig().getCertificate());
+    }
+
+    @Test
+    public void testDefaultGroups() throws Exception {
+        String[] groups = {"group1", "group2", "group3"};
+        bootstrap.setDefaultUserGroups(Arrays.asList(groups));
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertThat(uaa.getConfig().getUserConfig().getDefaultGroups(), containsInAnyOrder(groups));
     }
 
     @Test

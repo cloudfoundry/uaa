@@ -336,6 +336,10 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreateZone() throws Exception {
+        createZoneReturn();
+    }
+
+    public IdentityZone createZoneReturn() throws Exception {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
         assertEquals(id, zone.getId());
@@ -343,6 +347,33 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
         assertEquals(JWT.getStringValue(),zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
+
+        //validate that default groups got created
+        ScimGroupProvisioning groupProvisioning = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
+        for (String g : UserConfig.DEFAULT_ZONE_GROUPS) {
+            assertNotNull(groupProvisioning.getByName(g, id));
+        }
+        return zone;
+    }
+
+    @Test
+    public void updateZoneCreatesGroups() throws Exception {
+        IdentityZone zone = createZoneReturn();
+        List<String> zoneGroups = new LinkedList(zone.getConfig().getUserConfig().getDefaultGroups());
+
+        //test two times with the same groups
+        zone = updateZone(zone, HttpStatus.OK, identityClientToken);
+
+        zoneGroups.add("updated.group.1");
+        zoneGroups.add("updated.group.2");
+        zone.getConfig().getUserConfig().setDefaultGroups(zoneGroups);
+        zone = updateZone(zone, HttpStatus.OK, identityClientToken);
+
+        //validate that default groups got created
+        ScimGroupProvisioning groupProvisioning = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
+        for (String g : zoneGroups) {
+            assertNotNull(groupProvisioning.getByName(g, zone.getId()));
+        }
     }
 
     @Test

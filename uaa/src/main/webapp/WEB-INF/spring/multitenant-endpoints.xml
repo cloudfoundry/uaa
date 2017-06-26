@@ -39,6 +39,8 @@
         <constructor-arg ref="identityZoneProvisioning"/>
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="zoneEndpointsClientRegistrationService"/>
+        <constructor-arg ref="scimGroupProvisioning"/>
+        <property name="validator" ref="identityZoneValidator"/>
     </bean>
 
     <bean id="zoneEndpointsClientDetailsValidator"

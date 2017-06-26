@@ -470,6 +470,7 @@
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="validator" ref="identityZoneValidator"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="selfServiceLinks" ref="links" />
@@ -494,6 +495,7 @@
                   value="#{@config['login']==null ? null :
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
+        <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
