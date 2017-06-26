@@ -44,6 +44,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
@@ -89,7 +91,8 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         dao = new JdbcScimGroupMembershipManager(template);
         dao.setScimGroupProvisioning(gdao);
         dao.setScimUserProvisioning(udao);
-        dao.setDefaultUserGroups(Collections.singleton("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(asList("uaa.user"));
+        gdao.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
         egdao = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
 
         for (String id : Arrays.asList(zone.getId(), IdentityZone.getUaa().getId())) {
@@ -401,6 +404,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     public void addMember_In_Different_Zone_Causes_Issues() throws Exception {
         String subdomain = generator.generate();
         IdentityZone otherZone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        otherZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(otherZone);
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
         m1.setOrigin(OriginKeys.UAA);
@@ -411,6 +415,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     public void canAddMember_Validate_Origin_and_ZoneId() throws Exception {
         String subdomain = generator.generate();
         IdentityZone otherZone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        otherZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(otherZone);
         validateCount(0);
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);

@@ -65,6 +65,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -109,7 +111,8 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         mm = new JdbcScimGroupMembershipManager(template);
         mm.setScimGroupProvisioning(dao);
         mm.setScimUserProvisioning(udao);
-        mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(asList("uaa.user"));
+        dao.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
 
         em = new JdbcScimGroupExternalMembershipManager(template);
         em.setScimGroupProvisioning(dao);
@@ -655,6 +658,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testDeleteGroupRemovesMembershipsInZone() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
+        zone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(zone);
 
         ScimGroup group = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());

@@ -30,6 +30,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 import javax.sql.DataSource;
 import java.util.Arrays;
 
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
@@ -67,6 +68,7 @@ public class JdbcTestBase extends TestClassNullifier {
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         validationQuery = webApplicationContext.getBean("validationQuery", String.class);
         IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 
     public void cleanData() {

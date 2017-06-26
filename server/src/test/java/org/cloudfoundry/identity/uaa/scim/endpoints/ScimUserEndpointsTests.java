@@ -81,7 +81,6 @@ import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -91,6 +90,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -194,7 +194,8 @@ public class ScimUserEndpointsTests {
         mm.setScimUserProvisioning(dao);
         JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mm.setScimGroupProvisioning(gdao);
-        mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(asList("uaa.user"));
+        gdao.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
         endpoints.setScimGroupMembershipManager(mm);
         groupEndpoints = new ScimGroupEndpoints(gdao, mm);
 
@@ -233,7 +234,7 @@ public class ScimUserEndpointsTests {
 
     private void validateUserGroups(ScimUser user, String... gnm) {
         Set<String> expectedAuthorities = new HashSet<String>();
-        expectedAuthorities.addAll(Arrays.asList(gnm));
+        expectedAuthorities.addAll(asList(gnm));
         expectedAuthorities.add("uaa.user");
         assertNotNull(user.getGroups());
         Log logger = LogFactory.getLog(getClass());
@@ -283,7 +284,7 @@ public class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.setPassword("password");
         user.addEmail("dsyer@vmware.com");
-        user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
+        user.setGroups(asList(new ScimUser.Group(null, "test1")));
         ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
     }
@@ -296,7 +297,7 @@ public class ScimUserEndpointsTests {
         ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
 
-        created.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
+        created.setGroups(asList(new ScimUser.Group(null, "test1")));
         ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
         validateUserGroups(updated, "uaa.user");
     }
@@ -311,7 +312,7 @@ public class ScimUserEndpointsTests {
         validateUserGroups(created, "uaa.user");
 
         ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
+        g.setMembers(asList(new ScimGroupMember(created.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
 
         validateUserGroups(endpoints.getUser(created.getId(), new MockHttpServletResponse()), "test1");
@@ -574,7 +575,7 @@ public class ScimUserEndpointsTests {
         exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
 
         ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
+        g.setMembers(asList(new ScimGroupMember(exGuy.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);
 
@@ -644,7 +645,7 @@ public class ScimUserEndpointsTests {
     public void testFindAllEmails() {
         SearchResults<?> results = endpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
         Collection<Object> values = getSetFromMaps(results.getResources(), "emails.value");
-        assertTrue(values.contains(Arrays.asList("olds@vmware.com")));
+        assertTrue(values.contains(asList("olds@vmware.com")));
     }
 
     @Test
@@ -1012,11 +1013,11 @@ public class ScimUserEndpointsTests {
         createdUser.getMeta().setAttributes(new String[]{"Name"});
         createdUser.setName(null);
         ScimUser.PhoneNumber number = new ScimUser.PhoneNumber("0123456789");
-        createdUser.setPhoneNumbers(Arrays.asList(number));
+        createdUser.setPhoneNumbers(asList(number));
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("example@example.org");
         email.setPrimary(true);
-        createdUser.setEmails(Arrays.asList(email));
+        createdUser.setEmails(asList(email));
         ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
         assertEquals(createdUser.getId(), patchedUser.getId());
         assertEquals(user.getUserName(), patchedUser.getUserName());
@@ -1124,7 +1125,7 @@ public class ScimUserEndpointsTests {
         ldapProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
         IdentityProvider oidcProvider = new IdentityProvider().setActive(true).setType(OriginKeys.OIDC10).setOriginKey("oidc1").setConfig(new OIDCIdentityProviderDefinition());
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
-        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(ldapProvider, oidcProvider));
+        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(asList(ldapProvider, oidcProvider));
 
         expected.expect(ScimException.class);
         expected.expectMessage("The user account is set up for single sign-on. Please use one of these origin(s) : [ldap, oidc1]");
@@ -1139,7 +1140,7 @@ public class ScimUserEndpointsTests {
         user.setOrigin("NOT_UAA");
         IdentityProvider ldapProvider = new IdentityProvider().setActive(true).setType(OriginKeys.LDAP).setOriginKey(OriginKeys.LDAP).setConfig(new LdapIdentityProviderDefinition());
         ldapProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
-        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(ldapProvider));
+        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(asList(ldapProvider));
 
         endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         verify(identityProviderProvisioning, times(0)).retrieveActive(anyString());
@@ -1153,7 +1154,7 @@ public class ScimUserEndpointsTests {
         user.setOrigin("uaa");
         IdentityProvider uaaProvider = new IdentityProvider().setActive(true).setType(OriginKeys.UAA).setOriginKey(OriginKeys.UAA).setConfig(new UaaIdentityProviderDefinition());
         uaaProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
-        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(uaaProvider));
+        when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(asList(uaaProvider));
 
         endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
     }

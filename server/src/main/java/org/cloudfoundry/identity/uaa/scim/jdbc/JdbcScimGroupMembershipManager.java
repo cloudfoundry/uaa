@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -46,9 +47,11 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+
+import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toSet;
+import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManager {
 
@@ -88,34 +91,28 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     private ScimGroupProvisioning groupProvisioning;
 
-    private Map<String,Set<ScimGroup>> defaultUserGroups = new ConcurrentHashMap<>();
+    private IdentityZoneProvisioning zoneProvisioning;
+
     private ScimGroupMemberRowMapper rowMapper;
 
-    //we do not yet support default user groups for other zones
-    public void setDefaultUserGroups(Set<String> groupNames) {
-        Set<ScimGroup> usergroups = new HashSet<>();
-        for (String name : groupNames) {
-            List<ScimGroup> g = groupProvisioning.query(String.format("displayName co \"%s\" and identity_zone_id eq \""+IdentityZone.getUaa().getId()+"\"", name), IdentityZoneHolder.get().getId());
-            if (!g.isEmpty()) {
-                usergroups.add(g.get(0));
-            } else { // default group must exist, hence if not already present,
-                // create it
-                usergroups.add(groupProvisioning.create(new ScimGroup(null, name, IdentityZone.getUaa().getId()), IdentityZone.getUaa().getId()));
-            }
+    public Set<ScimGroup> getDefaultUserGroups(String zoneId) {
+        //TODO - replicates previous behavior where groups are automatically created here
+        if (!hasText(zoneId)) {
+            return emptySet();
         }
-        defaultUserGroups.put(IdentityZone.getUaa().getId(), usergroups);
+        IdentityZone currentZone = IdentityZoneHolder.get();
+        List<String> zoneDefaultGroups = currentZone.getConfig().getUserConfig().getDefaultGroups();
+        if (!zoneId.equals(currentZone.getId())) {
+            zoneDefaultGroups = zoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().getDefaultGroups();
+        }
+        return zoneDefaultGroups
+            .stream()
+            .map(groupName -> groupProvisioning.createOrGet(new ScimGroup(null, groupName, zoneId), zoneId))
+            .collect(toSet());
     }
 
-    public Set<ScimGroup> getDefaultUserGroups(IdentityZone zone) {
-        return getDefaultUserGroups(zone.getId());
-    }
-
-    public Set<ScimGroup> getDefaultUserGroups(String zone) {
-        Set<ScimGroup> groups = defaultUserGroups.get(zone);
-        if (groups==null) {
-            return Collections.EMPTY_SET;
-        }
-        return groups;
+    public void setZoneProvisioning(IdentityZoneProvisioning zoneProvisioning) {
+        this.zoneProvisioning = zoneProvisioning;
     }
 
     public void setScimUserProvisioning(ScimUserProvisioning userProvisioning) {
@@ -420,9 +417,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     private void validateRequest(String groupId, ScimGroupMember member, String zoneId) {
-        if (!StringUtils.hasText(groupId) ||
-            !StringUtils.hasText(member.getMemberId()) ||
-            !StringUtils.hasText(member.getOrigin())) {
+        if (!hasText(groupId) ||
+            !hasText(member.getMemberId()) ||
+            !hasText(member.getOrigin())) {
             throw new InvalidScimResourceException("group-id, member-id, origin and member-type must be non-empty");
         }
 
