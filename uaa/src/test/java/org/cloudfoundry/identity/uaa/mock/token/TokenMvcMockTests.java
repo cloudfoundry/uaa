@@ -58,6 +58,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -3811,6 +3812,31 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void password_grant_with_default_user_groups_in_zone() throws Exception {
+        String username = generator.generate()+"@test.org";
+        String subdomain = "testzone"+ generator.generate();
+        String clientId = "testclient" + generator.generate();
+        List<String> defaultGroups = new LinkedList(Arrays.asList("custom.default.group", "other.default.group"));
+        defaultGroups.addAll(UserConfig.DEFAULT_ZONE_GROUPS);
+        createNonDefaultZone(username, subdomain, clientId, defaultGroups, "custom.default.group,openid");
+
+        MvcResult result = getMockMvc().perform(post("/oauth/token")
+                                                    .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                                                    .param("username", username)
+                                                    .param("password", "secret")
+                                                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                                                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                                    .param(OAuth2Utils.GRANT_TYPE, "password")
+                                                    .param(OAuth2Utils.CLIENT_ID, clientId))
+            .andExpect(status().isOk())
+            .andReturn();
+        String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
+        Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
+        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
+        assertThat(claims.getScope(), containsInAnyOrder("openid", "custom.default.group"));
+    }
+
+    @Test
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {
         String username = generator.generate()+"@test.org";
         String subdomain = "testzone"+ generator.generate();
@@ -4002,10 +4028,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     protected void createNonDefaultZone(String username, String subdomain, String clientId) {
-        IdentityZone testZone = setupIdentityZone(subdomain);
+        createNonDefaultZone(username, subdomain, clientId, UserConfig.DEFAULT_ZONE_GROUPS, "cloud_controller.read");
+    }
+
+    protected void createNonDefaultZone(String username, String subdomain, String clientId, List<String> defaultUserGroups, String scopes) {
+        IdentityZone testZone = setupIdentityZone(subdomain, defaultUserGroups);
         IdentityZoneHolder.set(testZone);
         IdentityProvider provider = setupIdentityProvider();
-        String scopes = "cloud_controller.read";
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
         setUpUser(username);
         IdentityZoneHolder.clear();

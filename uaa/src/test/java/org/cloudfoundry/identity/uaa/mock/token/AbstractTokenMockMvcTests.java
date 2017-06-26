@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.Before;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -109,7 +110,12 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     }
 
     protected IdentityZone setupIdentityZone(String subdomain) {
+        return setupIdentityZone(subdomain, UserConfig.DEFAULT_ZONE_GROUPS);
+    }
+
+    protected IdentityZone setupIdentityZone(String subdomain, List<String> defaultUserGroups) {
         IdentityZone zone = new IdentityZone();
+        zone.getConfig().getUserConfig().setDefaultGroups(defaultUserGroups);
         zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
         zone.setId(UUID.randomUUID().toString());
         zone.setName(subdomain);
