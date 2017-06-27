@@ -107,6 +107,14 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
+    public void test_validate_jwt_bearer_grant_type_without_secret_for_update() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        client.setScope(Collections.singleton(client.getClientId()+".write"));
+        client.setClientSecret("");
+        validator.validate(client, false, true);
+    }
+
+    @Test
     public void test_validate_jwt_bearer_grant_type_without_secret() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
         client.setScope(Collections.singleton(client.getClientId()+".write"));
