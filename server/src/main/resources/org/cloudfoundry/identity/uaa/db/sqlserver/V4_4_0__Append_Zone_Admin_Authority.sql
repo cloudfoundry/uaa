@@ -1,0 +1,1 @@
+update oauth_client_details set authorities = authorities + ',uaa.admin' where client_id = 'admin' and authorities LIKE '%zones.%.admin%' and authorities NOT LIKE '%uaa.admin%';

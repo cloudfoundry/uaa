@@ -72,7 +72,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertNotNull(cookie);
         assertEquals(token.getToken(), cookie.getValue());
         assertEquals(true, cookie.isHttpOnly());
-        assertEquals(60 * 60 * 24 *30, cookie.getMaxAge());
+        assertEquals(60 * 60 * 24, cookie.getMaxAge());
 
         request.setCookies(cookie);
 
