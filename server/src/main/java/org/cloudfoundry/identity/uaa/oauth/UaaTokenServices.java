@@ -45,6 +45,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -451,7 +452,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken,
@@ -468,6 +469,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
 
         return accessToken;
+    }
+
+    private KeyInfo getActiveKeyInfo() {
+        return ofNullable(KeyInfo.getActiveKey())
+            .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
     }
 
     private void populateIdToken(CompositeAccessToken token,
@@ -892,7 +898,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
