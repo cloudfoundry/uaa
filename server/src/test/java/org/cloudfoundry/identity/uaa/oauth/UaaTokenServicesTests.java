@@ -44,6 +44,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
@@ -362,6 +363,15 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(map,null,null,null,null,null,false,null,null,null);
         tokenServices.refreshAccessToken("dasdasdasdasdas", tokenSupport.requestFactory.createTokenRequest(authorizationRequest, "refresh_token"));
     }
+
+    @Test
+    public void misconfigured_keys_throws_proper_error() {
+        expectedEx.expect(InternalAuthenticationServiceException.class);
+        expectedEx.expectMessage("Unable to sign token, misconfigured JWT signing keys");
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("invalid");
+        performPasswordGrant(JWT.getStringValue());
+    }
+
 
     @Test
     public void testCreateAccessTokenForAClient() {

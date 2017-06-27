@@ -3707,6 +3707,31 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void misconfigured_jwt_keys_returns_proper_error() throws Exception {
+        String subdomain = "testzone" + generator.generate();
+        IdentityZone testZone = setupIdentityZone(subdomain);
+        testZone.getConfig().getTokenPolicy().setActiveKeyId("invalid-active-key");
+        identityZoneProvisioning.update(testZone);
+        IdentityZoneHolder.set(testZone);
+        String clientId = "testclient" + generator.generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+        IdentityZoneHolder.clear();
+
+        getMockMvc().perform(post("http://localhost/oauth/token")
+                                 .accept(MediaType.APPLICATION_JSON_VALUE)
+                                 .header("Host", subdomain + ".localhost")
+                                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                                 .param("grant_type", "client_credentials")
+                                 .param("client_id", clientId)
+                                 .param("client_secret", SECRET))
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").value("unauthorized"))
+            .andExpect(jsonPath("$.error_description").value("Unable to sign token, misconfigured JWT signing keys"));
+    }
+
+    @Test
     public void testGetClientCredentialsTokenForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
         String subdomain = "testzone"+ generator.generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
