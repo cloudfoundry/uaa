@@ -703,10 +703,15 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     protected ResultActions createGroup(String id, String name, String externalName) throws Exception {
+        return createGroup(id, name, externalName, null);
+    }
+
+    protected ResultActions createGroup(String id, String name, String externalName, String origin) throws Exception {
         ScimGroupExternalMember em = new ScimGroupExternalMember();
         if (id!=null) em.setGroupId(id);
         if (externalName!=null) em.setExternalGroup(externalName);
         if (name!=null) em.setDisplayName(name);
+        if (origin!=null) em.setOrigin(origin);
         String content = JsonUtils.writeValueAsString(em);
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post("/Groups/External")
             .header("Authorization", "Bearer " + scimWriteToken)
@@ -1176,6 +1181,61 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         checkGetExternalGroupsPagination(5);
         checkGetExternalGroupsPagination(6);
         checkGetExternalGroupsPagination(100);
+    }
+
+    @Test
+    public void external_group_filtering() throws Exception {
+        //add a group of another origin
+        createGroup(null, "internal.read", "external-group-name", "other-origin").andExpect(status().isCreated());
+
+        //get all results
+        assertEquals(6, performExternalGroupFilter(getListExternalGroupMethod(), HttpStatus.OK).size());
+
+        //filter using origin parameter
+        assertEquals(1, performExternalGroupFilter(getListExternalGroupMethod().param("origin", "other-origin"), HttpStatus.OK).size());
+        assertEquals(5, performExternalGroupFilter(getListExternalGroupMethod().param("origin", OriginKeys.LDAP), HttpStatus.OK).size());
+
+        //filter using externalGroup parameter
+        assertEquals(1, performExternalGroupFilter(getListExternalGroupMethod().param("externalGroup", "external-group-name"), HttpStatus.OK).size());
+
+        //filter using both
+        assertEquals(0, performExternalGroupFilter(getListExternalGroupMethod().param("externalGroup", "external-group-name").param("origin", OriginKeys.LDAP), HttpStatus.OK).size());
+        assertEquals(1, performExternalGroupFilter(getListExternalGroupMethod().param("externalGroup", "external-group-name").param("origin", "other-origin"), HttpStatus.OK).size());
+
+        //filter using filter
+        assertEquals(1, performExternalGroupFilter(getListExternalGroupMethod().param("filter", "externalGroup eq \"external-group-name\""), HttpStatus.OK).size());
+        assertEquals(5, performExternalGroupFilter(getListExternalGroupMethod().param("filter", "origin eq \"ldap\""), HttpStatus.OK).size());
+        assertEquals(0, performExternalGroupFilter(getListExternalGroupMethod().param("filter", "externalGroup eq \"external-group-name\" and origin eq \"ldap\""), HttpStatus.OK).size());
+        assertEquals(1, performExternalGroupFilter(getListExternalGroupMethod().param("filter", "externalGroup eq \"external-group-name\" and origin eq \"other-origin\""), HttpStatus.OK).size());
+
+        //invalid parameter combinations
+        performExternalGroupFilter(getListExternalGroupMethod().param("filter", "origin eq \"ldap\"").param("origin","value"), HttpStatus.BAD_REQUEST);
+        performExternalGroupFilter(getListExternalGroupMethod().param("filter", "origin eq \"ldap\"").param("externalGroup","value"), HttpStatus.BAD_REQUEST);
+
+        //invalid filters
+        performExternalGroupFilter(getListExternalGroupMethod().param("filter", "origin co \"ldap\""), HttpStatus.BAD_REQUEST);
+        performExternalGroupFilter(getListExternalGroupMethod().param("filter", "origin sw \"ldap\""), HttpStatus.BAD_REQUEST);
+        performExternalGroupFilter(getListExternalGroupMethod().param("filter", "origin eq \"ldap\""), HttpStatus.OK);
+    }
+
+    public MockHttpServletRequestBuilder getListExternalGroupMethod() {
+        return get("/Groups/External")
+                .param("startIndex",String.valueOf(0))
+                .param("count", String.valueOf(1000))
+                .header("Authorization", "Bearer " + scimReadToken)
+                .accept(APPLICATION_JSON);
+    }
+
+    public List<Map<String,String>> performExternalGroupFilter(MockHttpServletRequestBuilder get, HttpStatus status) throws Exception {
+        ResultActions result = getMockMvc().perform(get);
+        result.andExpect(status().is(status.value()));
+        if (status.equals(HttpStatus.OK)) {
+            String content = result.andReturn().getResponse().getContentAsString();
+            Map<String, Object> map = JsonUtils.readValue(content, new TypeReference<Map<String, Object>>() {});
+            return (List<Map<String, String>>) map.get("resources");
+        } else {
+            return null;
+        }
     }
 
 
