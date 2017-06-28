@@ -2619,7 +2619,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.CLIENT_ID, clientId))
             .andExpect(status().isOk())
             .andReturn();
-        String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
+        String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), TestClient.OAuthToken.class).accessToken).getClaims();
         Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
         assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
     }
