@@ -55,12 +55,14 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String iconUrl;
     private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
     private boolean skipSslValidation = false;
+    private List<String> authnContext;
 
     public SamlIdentityProviderDefinition() {}
 
     public SamlIdentityProviderDefinition clone() {
         List<String> emailDomain = getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null;
         List<String> externalGroupsWhitelist = getExternalGroupsWhitelist() != null ? new ArrayList<>(getExternalGroupsWhitelist()) : null;
+        List<String> authnContext = getAuthnContext() != null ? new ArrayList<>(getAuthnContext()) : null;
         Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap(getAttributeMappings()) : null;
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation(metaDataLocation);
@@ -82,6 +84,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setSocketFactoryClassName(getSocketFactoryClassName());
         def.setSkipSslValidation(isSkipSslValidation());
         def.setStoreCustomAttributes(isStoreCustomAttributes());
+        def.setAuthnContext(authnContext);
         return def;
     }
 
@@ -145,6 +148,15 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     public SamlIdentityProviderDefinition setNameID(String nameID) {
         this.nameID = nameID;
+        return this;
+    }
+
+    public List<String> getAuthnContext() {
+        return authnContext;
+    }
+
+    public SamlIdentityProviderDefinition setAuthnContext(List<String> authnContext) {
+        this.authnContext = authnContext;
         return this;
     }
 

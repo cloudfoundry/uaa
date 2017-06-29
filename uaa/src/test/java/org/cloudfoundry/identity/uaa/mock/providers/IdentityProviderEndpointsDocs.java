@@ -371,6 +371,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
             fieldWithPath("config.socketFactoryClassName").optional(null).description("Either `\"org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory\"` or" +
                 "`\"org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory\"` depending on if the `metaDataLocation` of type `URL` is HTTP or HTTPS, respectively"),
+            fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
             ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS_WHITELIST,
             ATTRIBUTE_MAPPING,

@@ -602,6 +602,33 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
+    public void authnContext_isvalidated_fail() throws Exception {
+        providerDefinition.setAuthnContext(Arrays.asList("some-context", "another-context"));
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider);
+
+        try {
+            getAuthentication();
+            fail("Expected authentication to throw BadCredentialsException");
+        } catch (BadCredentialsException ex) {
+
+        }
+    }
+
+    @Test
+    public void authnContext_isvalidated_good() throws Exception {
+        providerDefinition.setAuthnContext(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX));
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider);
+
+        try {
+            getAuthentication();
+        } catch (BadCredentialsException ex) {
+            fail("Expected authentication to succeed");
+        }
+    }
+
+    @Test
     public void shadowAccountNotCreated_givenShadowAccountCreationDisabled() throws Exception {
         Map<String,Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "firstName");

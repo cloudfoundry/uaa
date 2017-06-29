@@ -155,6 +155,11 @@ public class SamlIdentityProviderConfiguratorTests {
                     assertEquals("http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php", provider.getEntityID());
                     break;
                 }
+                case "custom-authncontext" : {
+                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
+                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityID());
+                    break;
+                }
                 default: fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
             }
 
