@@ -50,6 +50,10 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
                 if (def.getAssertionConsumerIndex()>=0) {
                     options.setAssertionConsumerIndex(def.getAssertionConsumerIndex());
                 }
+
+                if (def.getAuthnContext() != null) {
+                    options.setAuthnContexts(def.getAuthnContext());
+                }
             }
         }
         return options;
