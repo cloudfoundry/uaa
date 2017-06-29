@@ -345,6 +345,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         assertNotEquals(csrf1.getValue(), csrf2.getValue());
     }
 
+    @Test
+    public void testLoginPageReloadOnCsrfExpiry() throws Exception {
+        CookieBasedCsrfTokenRepository cookieBasedCsrfTokenRepository = webApplicationContext.getBean(CookieBasedCsrfTokenRepository.class);
+        cookieBasedCsrfTokenRepository.setCookieMaxAge(3);
+
+        MvcResult mvcResult = getMockMvc()
+                .perform(get("/login"))
+                .andReturn();
+        assertThat("", mvcResult.getResponse().getContentAsString(), containsString("http-equiv=\"refresh\" content=\"3\""));
+    }
+
     protected void setDisableInternalAuth(boolean disable) throws Exception {
        MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), getUaa().getId(), disable);
     }
