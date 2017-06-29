@@ -149,6 +149,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         externalToInternalMap.put("cn=operators,ou=scopes,dc=test,dc=com", Collections.singletonList("internal.write"));
         externalToInternalMap.put("cn=superusers,ou=scopes,dc=test,dc=com", Arrays.asList("internal.everything", "internal.superuser"));
         externalGroups.put(OriginKeys.LDAP, externalToInternalMap);
+        externalGroups.put("other-ldap", externalToInternalMap);
         externalGroupBootstrap.setExternalGroupMaps(externalGroups);
         externalGroupBootstrap.afterPropertiesSet();
     }
@@ -231,17 +232,32 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
     @Test
     public void testListExternalGroups() throws Exception {
-        validateSearchResults(endpoints.getExternalGroups(1, 100, ""), 5);
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "", "", ""), 10);
+
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "", OriginKeys.LDAP, ""), 5);
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "", "", "cn=superusers,ou=scopes,dc=test,dc=com"), 4);
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "", OriginKeys.LDAP, "cn=superusers,ou=scopes,dc=test,dc=com"), 2);
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "", "you-wont-find-me", "cn=superusers,ou=scopes,dc=test,dc=com"), 0);
+
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "externalGroup eq \"cn=superusers,ou=scopes,dc=test,dc=com\"", "", ""), 4);
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "origin eq \""+ OriginKeys.LDAP+"\"", "", ""), 5);
+        validateSearchResults(endpoints.getExternalGroups(1, 100, "externalGroup eq \"cn=superusers,ou=scopes,dc=test,dc=com\" and "+"origin eq \""+ OriginKeys.LDAP+"\"", "", ""), 2);
     }
 
     @Test
     public void testListExternalGroupsInvalidFilter() throws Exception {
-        try {
-            endpoints.getExternalGroups(1, 100, "dasda dasdas dasdas");
-        }catch (ScimException x) {
-            assertTrue(x.getMessage().startsWith("Invalid filter"));
-        }
+        for (String filter : Arrays.asList(
+            "dasda dasdas dasdas",
+            "displayName eq \"test\""
+        ))
+            try {
+                endpoints.getExternalGroups(1, 100, filter, null, null);
+                fail("Filter: " + filter);
+            } catch (ScimException x) {
+                //expected
+            }
     }
+
 
     @Test
     public void mapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() throws Exception {
