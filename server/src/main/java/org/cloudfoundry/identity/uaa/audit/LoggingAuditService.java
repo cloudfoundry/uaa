@@ -33,7 +33,9 @@ import org.springframework.jmx.support.MetricType;
 @ManagedResource
 public class LoggingAuditService implements UaaAuditService {
 
-    private final Log logger = LogFactory.getLog("UAA.Audit");
+    public static final String SANITIZED_FLAG = "[SANITIZED]";
+
+    private Log logger = LogFactory.getLog("UAA.Audit");
 
     private AtomicInteger userAuthenticationCount = new AtomicInteger();
 
@@ -144,16 +146,34 @@ public class LoggingAuditService implements UaaAuditService {
         }
     }
 
+    private String sanitize(String original) {
+        String cleaned = original.replace("\r","|")
+                                 .replace("\n","|")
+                                 .replace("\t","|");
+
+        if (!cleaned.equals(original)) {
+            cleaned += SANITIZED_FLAG;
+        }
+
+        return cleaned;
+    }
+
     private void log(String msg) {
+        String sanitized = sanitize(msg);
+
         if (logger.isTraceEnabled()) {
             StringBuilder output = new StringBuilder(256);
             output.append("\n************************************************************\n");
-            output.append(msg);
+            output.append(sanitized);
             output.append("\n\n************************************************************\n");
             logger.trace(output.toString());
         }
         else {
-            logger.info(msg);
+            logger.info(sanitized);
         }
+    }
+
+    public void setLogger(Log logger) {
+        this.logger = logger;
     }
 }
