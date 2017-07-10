@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.impl;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.junit.Assert;
@@ -14,9 +16,9 @@ public class JsonDateDeserializerTest {
 	Exception exceptionOccured = null;
 
 	@Test
-	public void testParsing() throws IOException {
+	public void testParsing() throws IOException, ParseException {
 		Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
-		Assert.assertEquals(1499462701297L, d.getTime());
+		Assert.assertEquals(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime(), (long) d.getTime());
 	}
 
 	@Test
@@ -29,7 +31,7 @@ public class JsonDateDeserializerTest {
 				public void run() {
 					try {
 						Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
-						if(1499462701297L!= d.getTime())
+						if(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime() != d.getTime())
 						{
 							throw new Exception("Unexpected date");
 						}
