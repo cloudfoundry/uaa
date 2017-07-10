@@ -12,7 +12,7 @@ import com.fasterxml.jackson.core.JsonLocation;
 
 public class JsonDateDeserializerTest {
 
-	String testDateString = "2017-07-07T23:25:01.297Z";
+	String testDateString = "2017-07-07T23:25:01.297Z"; 
 	Exception exceptionOccured = null;
 
 	@Test

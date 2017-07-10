@@ -12,7 +12,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 
-public class JsonDateSererializerTest {
+public class JsonDateSerializerTest {
 
 	String testDateString = "2017-07-07T23:25:01.297Z";
 	Exception exceptionOccured = null;
