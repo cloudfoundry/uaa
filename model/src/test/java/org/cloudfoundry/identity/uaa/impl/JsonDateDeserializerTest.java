@@ -16,7 +16,7 @@ public class JsonDateDeserializerTest {
 	@Test
 	public void testParsing() throws IOException {
 		Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
-		Assert.assertEquals(1499462701297L, d.getTime());
+		Assert.assertEquals(new Date(1499462701297L).getTime(), (long) d.getTime());
 	}
 
 	@Test
@@ -29,7 +29,7 @@ public class JsonDateDeserializerTest {
 				public void run() {
 					try {
 						Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
-						if(1499462701297L!= d.getTime())
+						if(new Date(1499462701297L).getTime()!= d.getTime())
 						{
 							throw new Exception("Unexpected date");
 						}
