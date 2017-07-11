@@ -30,12 +30,15 @@ dependencies {
   compile(group: 'org.opensaml', name: 'opensaml', version: '2.6.6') {
     exclude(module: 'bcprov-jdk15on')
     exclude(group: 'org.slf4j', module: 'log4j-over-slf4j')
+    exclude(group: 'ca.juliusdavies', module: 'not-yet-commons-ssl')
   }
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
     exclude(module: 'jackson-mapper-asl')
     exclude(module: 'spring-security-web')
   }
+
+  compile files('lib/not-yet-commons-ssl-0.3.17.jar')
 
   compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bcprovVersion
   compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bcpkixVersion
