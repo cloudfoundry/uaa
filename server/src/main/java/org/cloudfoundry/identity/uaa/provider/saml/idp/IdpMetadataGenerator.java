@@ -114,7 +114,7 @@ public class IdpMetadataGenerator {
     /**
      * Bindings for single sign-on
      */
-    private Collection<String> bindingsSSO = Arrays.asList("post", "artifact");
+    private Collection<String> bindingsSSO = Arrays.asList("redirect", "post", "artifact");
 
     /**
      * Bindings for single sign-on holder of key
@@ -301,6 +301,10 @@ public class IdpMetadataGenerator {
             if (binding.equals(SAMLConstants.SAML2_PAOS_BINDING_URI)) {
                 idpDescriptor.getSingleSignOnServices().add(getSingleSignOnService(entityBaseURL, entityAlias,
                         getSAMLWebSSOProcessingFilterPath(), SAMLConstants.SAML2_PAOS_BINDING_URI));
+            }
+            if (binding.equals(SAMLConstants.SAML2_REDIRECT_BINDING_URI)) {
+                idpDescriptor.getSingleSignOnServices().add(getSingleSignOnService(entityBaseURL, entityAlias,
+                        getSAMLWebSSOProcessingFilterPath(), SAMLConstants.SAML2_REDIRECT_BINDING_URI));
             }
         }
 

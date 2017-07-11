@@ -490,6 +490,116 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     /**
+     *
+     * In this test testzone1 acts as the SAML IdP and testzone2 acts as the SAML SP.
+     * SP makes the first SAMLAUthnRequest using Http-Redirect binding and must succeed.
+     * SP's IDP is updated, so that SP makes the Second SAMLAunthnRequest using Http-POST
+     * binding and must succeed.
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testWebSSOProfileWithRedirectPostSamlIntegration() throws Exception {
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String idpZoneId = "testzone1";
+        String spZoneId = "testzone2";
+
+        RestTemplate adminClient =
+                IntegrationTestUtils.getClientCredentialsTemplate(
+                        IntegrationTestUtils.getClientCredentialsResource(
+                                baseUrl, new String[0], "admin", "adminsecret")
+                );
+
+        RestTemplate identityClient =
+                IntegrationTestUtils.getClientCredentialsTemplate(
+                        IntegrationTestUtils.getClientCredentialsResource(
+                                baseUrl,new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+                );
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId);
+        String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
+        String idpZoneAdminToken =
+                IntegrationTestUtils.getAuthorizationCodeToken(
+                        serverRunning,
+                        UaaTestAccounts.standard(serverRunning),
+                        "identity",
+                        "identitysecret",
+                        idpZoneAdminEmail,
+                        "secr3T"
+                );
+
+        String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
+        createZoneUser(idpZoneId, idpZoneAdminToken, idpZoneUserEmail, idpZoneUrl);
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        IdentityZone spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config);
+
+        String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser spZoneAdminUser = IntegrationTestUtils.createUser(
+                adminClient,
+                baseUrl,
+                spZoneAdminEmail,
+                "firstname",
+                "lastname",
+                spZoneAdminEmail,
+                true
+        );
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
+        String spZoneAdminToken =
+                IntegrationTestUtils.getAuthorizationCodeToken(
+                        serverRunning,
+                        UaaTestAccounts.standard(serverRunning),
+                        "identity",
+                        "identitysecret",
+                        spZoneAdminEmail,
+                        "secr3T"
+                );
+        String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
+        samlIdentityProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_IDP_METADATA_REDIRECT_FIRST);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setIdentityZoneId(spZoneId);
+        idp.setType(OriginKeys.SAML);
+        idp.setActive(true);
+        idp.setConfig(samlIdentityProviderDefinition);
+        idp.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
+        idp.setName("Local SAML IdP for testzone1");
+        idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
+        assertNotNull(idp.getId());
+
+        SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition("cloudfoundry-saml-login");
+        SamlServiceProvider sp = new SamlServiceProvider();
+        samlServiceProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_SP_METADATA_TESTZONE2);
+
+        sp.setIdentityZoneId(idpZoneId);
+        sp.setActive(true);
+        sp.setConfig(samlServiceProviderDefinition);
+        sp.setEntityId("testzone2.cloudfoundry-saml-login");
+        sp.setName("Local SAML SP for testzone2");
+        sp = createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
+
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(spZoneUrl + "/logout.do");
+
+        // Switch up the Identity Provider SSO binding list to start with HTTP-POST
+        samlIdentityProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_IDP_METADATA_POST_FIRST);
+        idp.setConfig(samlIdentityProviderDefinition);
+        idp.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
+        idp.setName("Local SAML IdP for testzone1");
+        idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
+        assertNotNull(idp.getId());
+
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+    }
+
+
+
+    /**
      * In this test testzone1 acts as the SAML IdP and testzone2 acts as the SAML SP.
      */
     @SuppressWarnings("unchecked")
@@ -690,5 +800,4 @@ public class SamlLoginWithLocalIdpIT {
     public SamlIdentityProviderDefinition createZone3IdpDefinition(String alias) {
         return createLocalSamlIdpDefinition(alias, "testzone3");
     }
-
 }
