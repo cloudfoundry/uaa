@@ -6,6 +6,7 @@ ext {
   cglibVersion = '2.2.2'
   commonsHttpClientVersion = '4.3.6'
   commonsLoggingVersion = '1.2'
+  esapiVersion = '2.1.0.1'
   flywayVersion = '4.0'
   guavaVersion = '19.0'
   hamcrestVersion = '1.3'
