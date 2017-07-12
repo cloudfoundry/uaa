@@ -90,11 +90,14 @@ public class SamlLoginAT {
     @Value("${ACCEPTANCE_ZONE_ID:uaa-acceptance-zone}")
     String acceptanceZoneId;
     
-    @Value("${ARTIFACTORY_READER}")
+    @Value("${SAML_IDP_USER}")
     String GESSOUsername;
     
-    @Value("${ARTIFACTORY_READER_PW}")
+    @Value("${SAML_IDP_USER_PW}")
     String GESSOPassword;
+
+    @Value("${RUN_AGAINST_LOCAL_UAA:false}")
+    boolean runAgainstLocalUaa;
 
     @Autowired
     TestAccounts testAccounts;
@@ -124,10 +127,15 @@ public class SamlLoginAT {
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
-        baseUrl = "https://" + zoneSubdomain + "."  + publishedHost + "." + cfDomain;
-        zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "acceptance-test");
+        if (this.runAgainstLocalUaa) {
+            this.baseUrl = "http://" + this.zoneSubdomain + ".localhost:8080/uaa";
+        }
+        else {
+            this.baseUrl = "https://" + this.zoneSubdomain + "."  + this.publishedHost + "." + this.cfDomain;
+        }
+        this.zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(this.baseUrl, "admin", "acceptance-test");
 
-        screenShootRule.setWebDriver(webDriver);
+        this.screenShootRule.setWebDriver(this.webDriver);
     }
 
     @Test
@@ -135,7 +143,7 @@ public class SamlLoginAT {
         Long beforeTest = System.currentTimeMillis();
         testGESSOLogin("/login", "You should not see this page. Set up your redirect URI.");
         Long afterTest = System.currentTimeMillis();
-        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ENTITY_ID, GESSOUsername);
+        ScimUser user = IntegrationTestUtils.getUser(this.zoneAdminToken, this.baseUrl, SAML_ENTITY_ID, this.GESSOUsername);
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
     }
 
@@ -143,22 +151,26 @@ public class SamlLoginAT {
         Assert.assertTrue("Expected acceptance zone subdomain to exist", findZoneInUaa());
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = createGESSOIdentityProvider("gefssstg");
-
-        webDriver.get(baseUrl + firstUrl);
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        logger.info(webDriver.getCurrentUrl());
-        webDriver.findElement(By.xpath("//h1[contains(text(), 'GE Single Sign On')]"));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(GESSOUsername);
-        webDriver.findElement(By.name("password")).sendKeys(GESSOPassword);
-        webDriver.findElement(By.xpath("//input[@value='Log In To A Shared Computer']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
+        this.webDriver.get(this.baseUrl + firstUrl);
+        this.webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+        logger.info(this.webDriver.getCurrentUrl());
+        String page = this.webDriver.getPageSource();
+        logger.info(page);
+        this.webDriver.findElement(By.xpath("//h1[contains(text(), 'GE Single Sign On')]"));
+        this.webDriver.findElement(By.name("username")).clear();
+        this.webDriver.findElement(By.name("username")).sendKeys(this.GESSOUsername);
+        this.webDriver.findElement(By.name("password")).sendKeys(this.GESSOPassword);
+        this.webDriver.findElement(By.xpath("//input[@value='Log In To A Shared Computer']")).click();
+        page = this.webDriver.getPageSource();
+        logger.info("************************:" + this.webDriver.getCurrentUrl());
+        logger.info(page);
+        assertThat(this.webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
     }
 
     private boolean findZoneInUaa() {
         RestTemplate zoneAdminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "acceptance-test"));
-        ResponseEntity<String> responseEntity = zoneAdminClient.getForEntity(baseUrl + "/login", String.class);
+                IntegrationTestUtils.getClientCredentialsResource(this.baseUrl, new String[0], "admin", "acceptance-test"));
+        ResponseEntity<String> responseEntity = zoneAdminClient.getForEntity(this.baseUrl + "/login", String.class);
 
         logger.info("response body: " + responseEntity.getStatusCode());
         return responseEntity.getStatusCode() == HttpStatus.OK;
@@ -168,14 +180,14 @@ public class SamlLoginAT {
         SamlIdentityProviderDefinition geSSOIdentityProviderDefinition = createGESSOIDPDefinition(originKey);
         geSSOIdentityProviderDefinition.setAddShadowUserOnLogin(true);
         IdentityProvider provider = new IdentityProvider();
-        provider.setIdentityZoneId(acceptanceZoneId);
+        provider.setIdentityZoneId(this.acceptanceZoneId);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(geSSOIdentityProviderDefinition);
         provider.setOriginKey(geSSOIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName("GESSO");
-        logger.info("our token is: " + zoneAdminToken);
-        provider = createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        logger.info("our token is: " + this.zoneAdminToken);
+        provider = createOrUpdateProvider(this.zoneAdminToken,this.baseUrl,provider);
         assertNotNull(provider.getId());
         return provider;
     }
@@ -259,7 +271,7 @@ public class SamlLoginAT {
         }
         
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setZoneId(acceptanceZoneId);
+        def.setZoneId(this.acceptanceZoneId);
         def.setMetaDataLocation(metadata);
         //That's how ge sso rolls in the nameID department
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
