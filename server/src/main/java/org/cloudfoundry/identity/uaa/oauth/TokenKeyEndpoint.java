@@ -63,6 +63,10 @@ public class TokenKeyEndpoint {
     }
 
     public static VerificationKeyResponse getVerificationKeyResponse(KeyInfo key) {
+        return new VerificationKeyResponse(getResultMap(key));
+    }
+
+    public static Map<String, Object> getResultMap(KeyInfo key) {
         Map<String, Object> result = new HashMap<>();
         result.put("alg", key.getSigner().algorithm());
         result.put("value", key.getVerifierKey());
@@ -82,7 +86,8 @@ public class TokenKeyEndpoint {
                 result.put("e", e);
             }
         }
-        return new VerificationKeyResponse(result);
+
+        return result;
     }
 
     /**

@@ -25,6 +25,7 @@ public class XOAuthCodeToken implements Authentication {
     private String redirectUrl;
     private String idToken;
     private String accessToken;
+    private String requestContextPath;
     private UaaAuthenticationDetails details;
 
     public XOAuthCodeToken(String code, String origin, String redirectUrl) {
@@ -120,5 +121,13 @@ public class XOAuthCodeToken implements Authentication {
 
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
+    }
+
+    public String getRequestContextPath() {
+        return requestContextPath;
+    }
+
+    public void setRequestContextPath(String requestContextPath) {
+        this.requestContextPath = requestContextPath;
     }
 }
