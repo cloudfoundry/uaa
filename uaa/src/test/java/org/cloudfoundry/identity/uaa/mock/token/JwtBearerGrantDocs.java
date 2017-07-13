@@ -67,7 +67,7 @@ public class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
 
         IdentityZone defaultZone = IdentityZone.getUaa();
 
-        createProvider(originZone.getIdentityZone(), getTokenVerificationKey(originZone.getIdentityZone()));
+        createProvider(defaultZone, getTokenVerificationKey(originZone.getIdentityZone()));
 
         perform_grant_in_zone(defaultZone, getUaaIdToken(originZone.getIdentityZone(), originClient, originUser))
             .andExpect(status().isOk())
