@@ -109,6 +109,79 @@ public class KeyWithCertTest {
         "coxNL/KY05iVlE1bmq/fzNEmEi2zf3dQV8CNSYs=\n" +
         "-----END CERTIFICATE----\n";
 
+    // openssl req -out cert.pem -nodes -keyout private.key -newkey rsa:2048 -new -x509
+    public static final String opensslCert = "-----BEGIN CERTIFICATE-----\n" +
+        "MIIDXTCCAkWgAwIBAgIJAOpOBuLToBXJMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV\n" +
+        "BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX\n" +
+        "aWRnaXRzIFB0eSBMdGQwHhcNMTcwNzE0MTcxNDE4WhcNMTcwODEzMTcxNDE4WjBF\n" +
+        "MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50\n" +
+        "ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB\n" +
+        "CgKCAQEA3+07F4S5Fz3wv/UFm/OWsJXm6s3pKI2mp4fSAY8rx9+0cyLAHsedWzeq\n" +
+        "5uKcDeRW858DOdnClaTOZC73FcvOmv1bw2eYcmfsbqHEhyR0dp+rDHt/7pr6kajC\n" +
+        "yUvAW+hoRRSMpooiZckxrjJ7LOa5iqRyZRwshfGN+mFSygfVguMDKrsE2rvpK6/K\n" +
+        "tkG/lcToLHiw4OnMnZ9ocrNRDAoCkzKGZTLJkUEr3MgOKmr2EO0P6KOAmNnOEmCf\n" +
+        "05ohcrUXeFZVnS5MMUzoGAOzBstZhA0dd7l297IDnWH9uIhCANCvZ9sovZWz/o3J\n" +
+        "pc2LyXsaI1cV7O1cGV4aEEn8zzWWGwIDAQABo1AwTjAdBgNVHQ4EFgQUXBO1+qo7\n" +
+        "w6iiiv1pnm+zdrQ3CzkwHwYDVR0jBBgwFoAUXBO1+qo7w6iiiv1pnm+zdrQ3Czkw\n" +
+        "DAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAT78lT5VEIetWPGk3szPz\n" +
+        "CT9zNpR1F+7o3rvRTI6Psyjz4tGlyX5iU0Z99Xa9yimIEhWme2UVsgQ9uOzk2IgH\n" +
+        "wMbB2TTP/RRK5+eO4BUu4zWWIXsIcfC6Rqw9Y3Hki+mRpuWMv+5pcOz/H+aYeSfy\n" +
+        "WvVYfRZJOhcztysII4HWIxw8qqwBrf5kX8IRKZXay+A2W04A6kjjX3zfN2OzljTA\n" +
+        "jZbtHedUGxSHvK8x6tHEwS0lZ9eZh+V4DWyRvrunwDCtA7zJQmrJd1qbM84H/1C8\n" +
+        "cAC6dglvc82n1BTAZbZwWHYt+Ro3Vp0GMPsZLOXJ0g03LbkhXg4krwXjJPD42nus\n" +
+        "3A==\n" +
+        "-----END CERTIFICATE-----\n";
+
+    public static final String opensslPrivateKey = "-----BEGIN PRIVATE KEY-----\n" +
+        "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDf7TsXhLkXPfC/\n" +
+        "9QWb85awlebqzekojaanh9IBjyvH37RzIsAex51bN6rm4pwN5FbznwM52cKVpM5k\n" +
+        "LvcVy86a/VvDZ5hyZ+xuocSHJHR2n6sMe3/umvqRqMLJS8Bb6GhFFIymiiJlyTGu\n" +
+        "Mnss5rmKpHJlHCyF8Y36YVLKB9WC4wMquwTau+krr8q2Qb+VxOgseLDg6cydn2hy\n" +
+        "s1EMCgKTMoZlMsmRQSvcyA4qavYQ7Q/oo4CY2c4SYJ/TmiFytRd4VlWdLkwxTOgY\n" +
+        "A7MGy1mEDR13uXb3sgOdYf24iEIA0K9n2yi9lbP+jcmlzYvJexojVxXs7VwZXhoQ\n" +
+        "SfzPNZYbAgMBAAECggEAdEfMl7nkI52Wlxe1gfZMGga9ktC6csSb9gMhmo2uPmx8\n" +
+        "WA2Dlngxzlxp8ttaDhy0ym2YT0I1OWALjRqWVEsxTmqibCYvk7lDnW+Djmnv0Gm5\n" +
+        "eRHorQ7tbxYjkEQ174QQIU86eoDgu9puYfb036wwTT536OlodWWqRIqlYyQOS5h+\n" +
+        "KURvuQkH7CT30swTun11hHibNomxPd97D49aYqr86vrNKYRrVWuruc3OO9ofFaWO\n" +
+        "hRuLVivLiuGfFMtkVun2V9ropRArHeSOHPfyCUETJIcyrKPxk7ack0U/Nq9uf3Rd\n" +
+        "z9iImQkqMSMvaYmsqIM5qjgMqU+aXfj98l1v0hYvAQKBgQDzoC23vjx01as1BVIA\n" +
+        "Z0fc5t+LSonhrKphHnHxxUx7pcmS5HrBCL4Rv+6HL15zCfTkYdt5w+6hByJMpDL4\n" +
+        "ZwrdyoI1fL21PSo/TdzNLtgB6FUtYqrUSSFAG3fLN2OYqDW5vxumsFwjn1YmKG1f\n" +
+        "emTjNE422oQv/xVsjmj7tgc9CQKBgQDrTOjTVChO/H7WgV20TM8/fg9XD4mfimhD\n" +
+        "g9apKReOtKniBL0sFcJH7XpDoNahPRhk+iDY16IbLknstnxGRml+Y63ZHbnD+1v6\n" +
+        "vdR15vjJECWHdn8u1y9FqOWa4oXAOO4G1q1FQmjXEIX8svyXSkX65Qg3w9h5oYpN\n" +
+        "nhPHVJenAwKBgQDsCOmiVq5uJ8GLSg9LksTeMdStOFdkDQy5sWyF6DiUp2gnaDPC\n" +
+        "J/02ZzTrRqqEXEYmquSgEYN2AdpqVL+JSRQPFC+ZMLUADjWLRZ3CMTtYhcdYhHqr\n" +
+        "1/peCP7EJXLaKUZ8IrrggYeTf8FQkOR+l699LWUF4iol8kbIeSUfkhlrOQKBgQC2\n" +
+        "H7NeTxdb+6eZFEyZD5KiTEpHUqltKU4GY/c0u6+WL1QGszBQ/Q6BadhmnAlEh+tn\n" +
+        "zQq7jDvW2f8yDxUlt75Tq4eWM6HjhZzt+RyHnZ0W0z6ZGSjb8oaOXmpJdeecnvPt\n" +
+        "qyA2KW7Id+udalSELWL5DWlM8HOPwW8xIJeig2FWTQKBgBkGMD+32aXltymx0SIo\n" +
+        "JVfL+kPBtPyDdAJbxJu8fFfhzbFGlLI5qVQnrzjgjhnkHcnvmTu2ZgPStArpJqUk\n" +
+        "4KNl3HZLG6vreo137aKjXzshdNwx1Yzw0PigLAwLgx7APFZYkM0qpE0JPyFeFORu\n" +
+        "XXDWlzK1YYlKSBuSsm9VWfXq\n" +
+        "-----END PRIVATE KEY-----\n";
+
+    // openssl req -out cert.pem -nodes -keyout private.key
+    //   -newkey ec:<(openssl ecparam -name secp224r1) -new -x509
+    public static final String ecCertificate = "-----BEGIN CERTIFICATE-----\n" +
+        "MIIBvjCCAWygAwIBAgIJAK/rmJC9QdjcMAoGCCqGSM49BAMCMEUxCzAJBgNVBAYT\n" +
+        "AkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn\n" +
+        "aXRzIFB0eSBMdGQwHhcNMTcwNzE0MTgxNjU2WhcNMTcwODEzMTgxNjU2WjBFMQsw\n" +
+        "CQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJu\n" +
+        "ZXQgV2lkZ2l0cyBQdHkgTHRkME4wEAYHKoZIzj0CAQYFK4EEACEDOgAEY83DklF/\n" +
+        "qOPmJkASvf25MaDvzF7w+MeYaBZHiC18y9mayfAcKPti4MbPR6ADAo9NxKbdsZjA\n" +
+        "13+jUDBOMB0GA1UdDgQWBBQxUP7SZIeKaQmFaAIBDRCJjUcXbzAfBgNVHSMEGDAW\n" +
+        "gBQxUP7SZIeKaQmFaAIBDRCJjUcXbzAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMC\n" +
+        "A0AAMD0CHCR7SmBxeufWpfAECH+Zp/2NMhhyIuYoeOThi3wCHQCyJmYQs8xHzC17\n" +
+        "yMyZj8YGfSSXgdWkp381P0gl\n" +
+        "-----END CERTIFICATE-----\n";
+
+    public static final String ecPrivateKey = "-----BEGIN PRIVATE KEY-----\n" +
+        "MHgCAQAwEAYHKoZIzj0CAQYFK4EEACEEYTBfAgEBBBz+XVZZoypybMtDZWBVcrPu\n" +
+        "IiVn3yZ+kzF+f2NyoTwDOgAEY83DklF/qOPmJkASvf25MaDvzF7w+MeYaBZHiC18\n" +
+        "y9mayfAcKPti4MbPR6ADAo9NxKbdsZjA138=\n" +
+        "-----END PRIVATE KEY-----\n";
+
     @Test(expected = CertificateException.class)
     public void testInvalidCert() throws Exception {
         new KeyWithCert(key, password, invalidCert);
@@ -120,7 +193,23 @@ public class KeyWithCertTest {
     }
 
     @Test
+
+    public void testEllipticCurve() throws Exception {
+        new KeyWithCert(ecPrivateKey, "", ecCertificate);
+    }
+
+    @Test
+    public void testEmbeddedPrivateKey() throws Exception {
+        new KeyWithCert(opensslPrivateKey, "", opensslCert);
+    }
+
+    @Test(expected = CertificateException.class)
+    public void testKeyMismatch() throws Exception {
+        new KeyWithCert(key, "", opensslCert);
+    }
+
+    @Test
     public void testCertOnly() throws Exception {
-        assertNotNull(new KeyWithCert(goodCert).getCert());
+        assertNotNull(new KeyWithCert(goodCert).getCertificate());
     }
 }

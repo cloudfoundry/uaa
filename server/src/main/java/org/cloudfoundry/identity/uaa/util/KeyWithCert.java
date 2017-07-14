@@ -15,35 +15,91 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 public class KeyWithCert {
-    private X509Certificate cert;
-    private KeyPair pkey;
+    private X509Certificate certificate;
+    private PrivateKey privateKey;
 
-    public KeyWithCert(String certificate) throws CertificateException {
-        loadCertificate(certificate);
+    public KeyWithCert(String encodedCertificate) throws CertificateException {
+        certificate = loadCertificate(encodedCertificate);
     }
 
-    public KeyWithCert(String key, String passphrase, String certificate) throws CertificateException {
+    public KeyWithCert(String encodedPrivateKey, String passphrase, String encodedCertificate) throws CertificateException {
         if (passphrase == null) {
             passphrase = "";
         }
 
-        PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(key.getBytes())));
+        privateKey = loadPrivateKey(encodedPrivateKey, passphrase);
+
+        certificate = loadCertificate(encodedCertificate);
+
+        if (!keysMatch(certificate.getPublicKey(), privateKey)) {
+            throw new CertificateException("Certificate does not match private key.");
+        }
+    }
+
+    public X509Certificate getCertificate() {
+        return certificate;
+    }
+
+    public PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    private boolean keysMatch(PublicKey publicKey, PrivateKey privateKey) {
+        byte[] data = {42};
+
+        String privateKeyAlgorithm = privateKey.getAlgorithm();
+        String publicKeyAlgorithm = publicKey.getAlgorithm();
+
+        if (privateKeyAlgorithm == "EC") {
+            privateKeyAlgorithm = "ECDSA";
+        }
+
+        if (publicKeyAlgorithm == "EC") {
+            publicKeyAlgorithm = "ECDSA";
+        }
+
+        try {
+            Signature sig = Signature.getInstance(privateKeyAlgorithm);
+            sig.initSign(privateKey);
+            sig.update(data);
+
+            byte[] signature = sig.sign();
+
+            Signature ver = Signature.getInstance(publicKeyAlgorithm);
+            ver.initVerify(publicKey);
+            ver.update(data);
+
+            return ver.verify(signature);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private PrivateKey loadPrivateKey(String encodedPrivateKey, String passphrase) throws CertificateException {
+        PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedPrivateKey.getBytes())));
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+
+        PrivateKey privateKey = null;
+
         try {
             Object object = pemParser.readObject();
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 
             if (object instanceof PEMEncryptedKeyPair) {
                 PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(passphrase.toCharArray());
-                pkey = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
+                KeyPair keyPair = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
+                privateKey = keyPair.getPrivate();
             } else if (object instanceof PEMKeyPair) {
-                pkey = converter.getKeyPair((PEMKeyPair) object);
+                KeyPair keyPair = converter.getKeyPair((PEMKeyPair) object);
+                privateKey = keyPair.getPrivate();
             } else if (object instanceof PrivateKeyInfo) {
-                PrivateKey privKey = converter.getPrivateKey((PrivateKeyInfo) object);
-                pkey = new KeyPair(null, privKey);
+                PrivateKeyInfo privateKeyInfo = (PrivateKeyInfo) object;
+                privateKey = converter.getPrivateKey(privateKeyInfo);
             }
         } catch (IOException ex) {
             throw new CertificateException("Failed to read private key.", ex);
@@ -54,23 +110,23 @@ public class KeyWithCert {
                 throw new CertificateException("Failed to close key reader", e);
             }
         }
-        if (pkey == null) {
+
+        if (privateKey == null) {
             throw new CertificateException("Failed to read private key. The security provider could not parse it.");
         }
 
-        loadCertificate(certificate);
-        if (!cert.getPublicKey().equals(pkey.getPublic())) {
-            throw new CertificateException("Certificate does not match private key.");
-        }
+        return privateKey;
     }
 
-    public void loadCertificate(String certificate) throws CertificateException {
-        PEMParser pemParser;
-        pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(certificate.getBytes())));
+    private X509Certificate loadCertificate(String encodedCertificate) throws CertificateException {
+        PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedCertificate.getBytes())));
+
+        X509Certificate certificate;
+
         try {
             Object object = pemParser.readObject();
             if (object instanceof X509CertificateHolder) {
-                cert = new JcaX509CertificateConverter().setProvider("BC").getCertificate((X509CertificateHolder) object);
+                certificate = new JcaX509CertificateConverter().setProvider("BC").getCertificate((X509CertificateHolder) object);
             } else {
                 throw new CertificateException("Unsupported certificate type, not an X509CertificateHolder.");
             }
@@ -83,16 +139,11 @@ public class KeyWithCert {
                 throw new CertificateException("Failed to close certificate reader.", e);
             }
         }
-        if (cert == null) {
+
+        if (certificate == null) {
             throw new CertificateException("Failed to read certificate. The security provider could not parse it.");
         }
-    }
 
-    public X509Certificate getCert() {
-        return cert;
-    }
-
-    public KeyPair getPkey() {
-        return pkey;
+        return certificate;
     }
 }
