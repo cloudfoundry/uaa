@@ -27,7 +27,7 @@ public class KeyWithCert {
     }
 
     public KeyWithCert(String key, String passphrase, String certificate) throws CertificateException {
-        if(passphrase == null) {
+        if (passphrase == null) {
             passphrase = "";
         }
 
@@ -37,30 +37,25 @@ public class KeyWithCert {
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 
             if (object instanceof PEMEncryptedKeyPair) {
-               PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(passphrase.toCharArray());
-               pkey = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
-            }
-            else  if (object instanceof PEMKeyPair) {
+                PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(passphrase.toCharArray());
+                pkey = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
+            } else if (object instanceof PEMKeyPair) {
                 pkey = converter.getKeyPair((PEMKeyPair) object);
-            }
-            else if (object instanceof PrivateKeyInfo) {
+            } else if (object instanceof PrivateKeyInfo) {
                 PrivateKey privKey = converter.getPrivateKey((PrivateKeyInfo) object);
                 pkey = new KeyPair(null, privKey);
             }
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             throw new CertificateException("Failed to read private key.", ex);
-        }
-        finally {
+        } finally {
             try {
                 pemParser.close();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new CertificateException("Failed to close key reader", e);
             }
         }
-        if(pkey == null) {
-           throw new CertificateException("Failed to read private key. The security provider could not parse it.");
+        if (pkey == null) {
+            throw new CertificateException("Failed to read private key. The security provider could not parse it.");
         }
 
         loadCertificate(certificate);
@@ -75,24 +70,20 @@ public class KeyWithCert {
         try {
             Object object = pemParser.readObject();
             if (object instanceof X509CertificateHolder) {
-                cert = new JcaX509CertificateConverter().setProvider("BC").getCertificate((X509CertificateHolder)object);
-            }
-            else {
+                cert = new JcaX509CertificateConverter().setProvider("BC").getCertificate((X509CertificateHolder) object);
+            } else {
                 throw new CertificateException("Unsupported certificate type, not an X509CertificateHolder.");
             }
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             throw new CertificateException("Failed to read certificate.", ex);
-        }
-        finally {
+        } finally {
             try {
                 pemParser.close();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new CertificateException("Failed to close certificate reader.", e);
             }
         }
-        if(cert == null) {
+        if (cert == null) {
             throw new CertificateException("Failed to read certificate. The security provider could not parse it.");
         }
     }
