@@ -656,7 +656,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
         samlConfig.setAssertionTimeToLiveSeconds(77);
 
-        samlConfig.setCertificate(KeyWithCertTest.cert);
+        samlConfig.setCertificate(KeyWithCertTest.invalidCert);
         samlConfig.setPrivateKey(null);
         samlConfig.setPrivateKeyPassword(null);
         updateZone(created, HttpStatus.UNPROCESSABLE_ENTITY, identityClientToken);

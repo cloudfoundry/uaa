@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 
-import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
@@ -56,18 +56,17 @@ public final class SamlKeyManagerFactory {
                     new KeyWithCert(entry.getValue().getCertificate()) :
                     new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
 
-                X509Certificate cert = keyWithCert.getCert();
-
+                X509Certificate certificate = keyWithCert.getCertificate();
 
                 String alias = entry.getKey();
-                keystore.setCertificateEntry(alias, cert);
-                if (keyWithCert.getPkey()!=null) {
-                    KeyPair pkey = keyWithCert.getPkey();
-                    keystore.setKeyEntry(alias, pkey.getPrivate(), password.toCharArray(), new Certificate[]{cert});
+                keystore.setCertificateEntry(alias, certificate);
+
+                PrivateKey privateKey = keyWithCert.getPrivateKey();
+                if (privateKey != null) {
+                    keystore.setKeyEntry(alias, privateKey, password.toCharArray(), new Certificate[]{certificate});
                     aliasPasswordMap.put(alias, password);
                 }
             }
-
 
             JKSKeyManager keyManager = new JKSKeyManager(keystore, aliasPasswordMap, activeKeyId);
 
