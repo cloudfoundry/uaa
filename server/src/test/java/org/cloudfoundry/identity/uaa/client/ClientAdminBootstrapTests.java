@@ -316,6 +316,34 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
+    public void testOverrideClientWithEmptySecret() throws Exception {
+        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
+        bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+
+        BaseClientDetails foo = new BaseClientDetails("foo", "", "openid", "client_credentials,password", "uaa.none");
+        foo.setClientSecret("secret");
+        clientRegistrationService.addClientDetails(foo);
+
+        reset(clientRegistrationService);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("secret", null);
+        map.put("override", true);
+        map.put("authorized-grant-types", "client_credentials");
+        bootstrap.setClients(Collections.singletonMap("foo", map));
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
+
+        doThrow(new ClientAlreadyExistsException("Planned"))
+            .when(clientRegistrationService).addClientDetails(any(ClientDetails.class), anyString());
+        bootstrap.afterPropertiesSet();
+        verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+        ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
+        verify(clientRegistrationService, times(1)).updateClientDetails(captor.capture(), anyString());
+        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "", IdentityZoneHolder.get().getId());
+        assertEquals(new HashSet(Arrays.asList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
+    }
+
+    @Test
     public void testOverrideClientByDefault() throws Exception {
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
