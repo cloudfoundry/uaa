@@ -182,7 +182,9 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
                 (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                 (String) map.get("authorities"), getRedirectUris(map));
-            client.setClientSecret((String) map.get("secret"));
+
+            client.setClientSecret(map.get("secret") == null ? "" : (String) map.get("secret"));
+
             Integer validity = (Integer) map.get("access-token-validity");
             Boolean override = (Boolean) map.get("override");
             if (override == null) {
@@ -220,7 +222,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
                 if (override == null || override) {
                     logger.debug("Overriding client details for " + clientId);
                     clientRegistrationService.updateClientDetails(client, IdentityZone.getUaa().getId());
-                    if (StringUtils.hasText(client.getClientSecret()) && didPasswordChange(clientId, client.getClientSecret())) {
+                    if ( didPasswordChange(clientId, client.getClientSecret())) {
                         clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaa().getId());
                     }
                 } else {
