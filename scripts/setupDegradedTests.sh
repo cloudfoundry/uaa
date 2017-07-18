@@ -6,19 +6,6 @@ uaac token client get admin -s ${ADMIN_CLIENT_SECRET}
 uaac client get admin
 uaac client update admin --authorities "zones.test-app-zone.admin zones.test-platform-zone.admin zones.write zones.read zones.uaa.admin clients.read clients.secret clients.write clients.admin uaa.admin password.write scim.write scim.read idps.read idps.write sps.read sps.write"
 
-#Create a client for implicit flow
-uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{
-  "scope" : [ "uaa.resource","openid" ],
-  "client_id" : "cf",
-  "authorized_grant_types" : [ "implicit" ],
-  "authorities" : [ "uaa.resource", "openid" ],
-  "redirect_uri" : "'"${PROTOCOL}"'://*.dummy.predix.io/**",
-  "autoapprove" : [ "uaa.resource","openid" ],
-  "allowedproviders" : ["uaa"]
-}'
-
-uaac user add marissa -p koala --email marissa@ge.com || true
-
 #Create test-app-zone (Application UAA) with zone admin
 uaac curl -X POST /identity-zones -H 'Content-Type: application/json' -d'{ "id": "test-app-zone", "subdomain":"test-app-zone", "name":"test-app-zone"}'
 uaac -t curl -H "X-Identity-Zone-Id:test-app-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "'"$ZONE_ADMIN_SECRET"'", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-app-zone.admin", "idps.read", "idps.write", "uaa.resource"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
@@ -30,6 +17,7 @@ uaac -t curl -H "X-Identity-Zone-Id:test-platform-zone" -XPOST -H"Content-Type:a
 #Create test-saml-zone (SAML IDP) with zone admin
 uaac curl -X POST /identity-zones -H 'Content-Type: application/json' -d'{ "id": "test-saml-zone", "subdomain":"test-saml-zone", "name":"test-saml-zone"}'
 uaac -t curl -H "X-Identity-Zone-Id:test-saml-zone" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "'"$ZONE_ADMIN_SECRET"'",  "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin", "sps.write", "sps.read", "zones.test-saml-zone.admin", "idps.read", "idps.write"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
+
 
 #Login to test-saml-zone
 uaac target ${PROTOCOL}://test-saml-zone.$PUBLISHED_DOMAIN
@@ -136,6 +124,29 @@ uaac curl /saml/service-providers -XPOST -H 'Content-Type: application/json' -d 
 #Login to test-app-zone
 uaac target ${PROTOCOL}://test-app-zone.$PUBLISHED_DOMAIN
 uaac token client get admin -s $ZONE_ADMIN_SECRET
+
+
+#Create a client for implicit flow
+uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{
+  "scope" : [ "uaa.resource","openid" ],
+  "client_id" : "cf",
+  "authorized_grant_types" : [ "implicit" ],
+  "authorities" : [ "uaa.resource", "openid" ],
+  "redirect_uri" : "'"${PROTOCOL}"'://*.dummy.predix.io/**",
+  "autoapprove" : [ "uaa.resource","openid" ],
+  "allowedproviders" : ["uaa"]
+}'
+
+#Create a client to check token.
+uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{
+  "scope" : [ "openid" ],
+  "client_id" : "app",
+  "client_secret" : "'"$BASIC_AUTH_CLIENT_SECRET"'",
+  "authorized_grant_types" : [ "client_credentials" , "password" ],
+  "authorities" : [ "uaa.resource" ]
+}'
+
+uaac user add marissa -p koala --email marissa@ge.com || true
 
 uaac group add zones.test-app-zone.admin || true
 
