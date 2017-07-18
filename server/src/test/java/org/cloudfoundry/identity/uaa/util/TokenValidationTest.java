@@ -368,6 +368,14 @@ public class TokenValidationTest {
     }
 
     @Test
+    public void emptyAudience() {
+        TokenValidation validation = validate(getToken())
+            .checkAudience("");
+        assertFalse(validation.isValid());
+        assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
+    }
+
+    @Test
     public void tokenIsRevoked() {
         RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
         when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))

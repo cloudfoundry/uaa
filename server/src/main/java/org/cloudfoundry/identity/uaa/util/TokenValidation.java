@@ -398,9 +398,10 @@ public class TokenValidation {
             }
         }
 
-        String notInAudience = clients.stream().filter(c -> !audience.contains(c)).collect(Collectors.joining(", "));
-        if(StringUtils.hasText(notInAudience)) {
-            addError("Some parties were not in the token audience: " + notInAudience);
+        List<String> notInAudience = clients.stream().filter(c -> !audience.contains(c)).collect(Collectors.toList());
+        if(!notInAudience.isEmpty()) {
+            String joinedAudiences = notInAudience.stream().map(c ->  "".equals(c) ? "EMPTY_VALUE" : c  ).collect(Collectors.joining(", "));
+            addError("Some parties were not in the token audience: " + joinedAudiences);
         }
 
         return this;
