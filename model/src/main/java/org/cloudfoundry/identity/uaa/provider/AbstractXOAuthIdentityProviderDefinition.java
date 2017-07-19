@@ -29,6 +29,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
     private String tokenKey;
     private String linkText;
     private boolean showLinkText = true;
+    private boolean clientAuthInBody = false;
     private boolean skipSslValidation;
     private String relyingPartyId;
     private String relyingPartySecret;
@@ -78,6 +79,15 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setLinkText(String linkText) {
         this.linkText = linkText;
+        return (T) this;
+    }
+
+    public boolean isClientAuthInBody() {
+        return clientAuthInBody;
+    }
+
+    public T setClientAuthInBody(boolean clientAuthInBody) {
+        this.clientAuthInBody = clientAuthInBody;
         return (T) this;
     }
 
