@@ -487,9 +487,9 @@
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
         <property name="prompts" ref="prompts"/>
         <property name="branding" value="#{@config['login']['branding']}" />
-        <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
-        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword}" />
-        <property name="samlSpCertificate" value="${login.serviceProviderCertificate}" />
+        <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}" />
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}" />
+        <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}" />
         <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
         <property name="samlKeys"
                   value="#{@config['login']==null ? null :

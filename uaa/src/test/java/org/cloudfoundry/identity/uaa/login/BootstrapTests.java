@@ -506,7 +506,7 @@ public class BootstrapTests {
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
 
         assertEquals("key1", zoneConfiguration.getSamlConfig().getActiveKeyId());
-        assertEquals(3, zoneConfiguration.getSamlConfig().getKeys().size());
+        assertEquals(2, zoneConfiguration.getSamlConfig().getKeys().size());
 
 
         assertTrue(zoneConfiguration.isAccountChooserEnabled());
@@ -523,10 +523,6 @@ public class BootstrapTests {
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
         assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
-
-        assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), zoneConfiguration.getSamlConfig().getCertificate().trim());
-        assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), zoneConfiguration.getSamlConfig().getPrivateKey().trim());
-        assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), zoneConfiguration.getSamlConfig().getPrivateKeyPassword().trim());
 
         assertTrue(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
@@ -751,6 +747,13 @@ public class BootstrapTests {
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
         IdentityZoneConfigurationBootstrap zoneBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);
         assertEquals("https://deprecated.home_redirect.com", zoneBootstrap.getHomeRedirect());
+        IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve("uaa");
+        IdentityZoneConfiguration defaultConfig = defaultZone.getConfig();
+        assertTrue("Legacy SAML keys should be available", defaultConfig.getSamlConfig().getKeys().containsKey(SamlConfig.LEGACY_KEY_ID));
+        assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), defaultConfig.getSamlConfig().getCertificate().trim());
+        assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), defaultConfig.getSamlConfig().getPrivateKey().trim());
+        assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), defaultConfig.getSamlConfig().getPrivateKeyPassword().trim());
+
     }
 
     @Test
