@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
@@ -32,8 +33,6 @@ import org.springframework.jmx.support.MetricType;
  */
 @ManagedResource
 public class LoggingAuditService implements UaaAuditService {
-
-    public static final String SANITIZED_FLAG = "[SANITIZED]";
 
     private Log logger = LogFactory.getLog("UAA.Audit");
 
@@ -146,20 +145,8 @@ public class LoggingAuditService implements UaaAuditService {
         }
     }
 
-    private String sanitize(String original) {
-        String cleaned = original.replace("\r","|")
-                                 .replace("\n","|")
-                                 .replace("\t","|");
-
-        if (!cleaned.equals(original)) {
-            cleaned += SANITIZED_FLAG;
-        }
-
-        return cleaned;
-    }
-
     private void log(String msg) {
-        String sanitized = sanitize(msg);
+        String sanitized = LogSanitizerUtil.sanitize(msg);
 
         if (logger.isTraceEnabled()) {
             StringBuilder output = new StringBuilder(256);

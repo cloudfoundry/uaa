@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.audit;
 
 
 import org.apache.commons.logging.Log;
+import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,7 +35,7 @@ public class LoggingAuditServiceTest {
         assertFalse(stringCaptor.getValue().contains("\r"));
         assertFalse(stringCaptor.getValue().contains("\n"));
         assertFalse(stringCaptor.getValue().contains("\t"));
-        assertTrue(stringCaptor.getValue().contains(LoggingAuditService.SANITIZED_FLAG));
+        assertTrue(stringCaptor.getValue().contains(LogSanitizerUtil.SANITIZED_FLAG));
     }
 
     @Test
@@ -45,6 +46,6 @@ public class LoggingAuditServiceTest {
 
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).info(stringCaptor.capture());
-        assertFalse(stringCaptor.getValue().contains(LoggingAuditService.SANITIZED_FLAG));
+        assertFalse(stringCaptor.getValue().contains(LogSanitizerUtil.SANITIZED_FLAG));
     }
 }
