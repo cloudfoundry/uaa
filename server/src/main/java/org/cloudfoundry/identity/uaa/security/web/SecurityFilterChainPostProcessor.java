@@ -243,7 +243,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Filter chain '" + name + "' processing request " + request.getMethod() + " "
-                                + request.getRequestURI());
+                        + request.getRequestURI());
 
                 if (dumpRequests) {
                     logger.debug(dumpRequest(request));
