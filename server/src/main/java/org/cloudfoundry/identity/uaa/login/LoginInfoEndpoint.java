@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.ColorHash;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -257,7 +258,11 @@ public class LoginInfoEndpoint {
         return Arrays.asList(ofNullable(cookies).orElse(new Cookie[]{}))
                 .stream()
                 .filter(c -> c.getName().startsWith("Saved-Account"))
-                .map(c -> JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz))
+                .map(c -> {
+                    try { return JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz); }
+                    catch (JsonUtilException e) { return null; }
+                })
+                .filter(c -> c != null)
                 .collect(Collectors.toList());
     }
 
