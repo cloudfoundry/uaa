@@ -22,12 +22,14 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.support.ResourcePropertySource;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -59,8 +61,6 @@ public class ScimGroupBootstrap implements InitializingBean {
     private Map<String, String> configuredGroups = Collections.EMPTY_MAP;
 
     private static final String USER_BY_NAME_FILTER = "username eq \"%s\"";
-
-    private static final String GROUP_BY_NAME_FILTER = "displayName eq \"%s\"";
 
     private final Log logger = LogFactory.getLog(getClass());
     private PropertySource messageSource;
@@ -187,7 +187,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             String description = groups.get(g.getDisplayName());
             if (StringUtils.hasText(description)) {
                 g.setDescription(description);
-                groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g));
+                groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g, IdentityZoneHolder.get().getId()));
             }
         }
 
@@ -204,7 +204,7 @@ public class ScimGroupBootstrap implements InitializingBean {
 
         for (ScimGroupMember member : members) {
             try {
-                membershipManager.addMember(group.getId(), member);
+                membershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
             } catch (MemberAlreadyExistsException ex) {
                 logger.debug(member.getMemberId() + " already is member of group " + name);
             }
@@ -244,7 +244,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     }
 
     private ScimUser getUser(String name) {
-        List<ScimUser> user = scimUserProvisioning.query(String.format(USER_BY_NAME_FILTER, name));
+        List<ScimUser> user = scimUserProvisioning.query(String.format(USER_BY_NAME_FILTER, name), IdentityZoneHolder.get().getId());
         if (user != null && !user.isEmpty()) {
             return user.get(0);
         }
@@ -252,25 +252,19 @@ public class ScimGroupBootstrap implements InitializingBean {
     }
 
     ScimGroup getGroup(String name) {
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name));
-        if (g != null && !g.isEmpty()) {
-            ScimGroup gr = g.get(0);
-            gr.setMembers(membershipManager.getMembers(gr.getId(), null, false));
+        try {
+            ScimGroup gr = scimGroupProvisioning.getByName(name, IdentityZoneHolder.get().getId());
+            gr.setMembers(membershipManager.getMembers(gr.getId(), false, IdentityZoneHolder.get().getId()));
             return gr;
+        } catch (ScimResourceNotFoundException | IncorrectResultSizeDataAccessException e) {
+            logger.debug("could not find group with name");
+            return null;
         }
-        logger.debug("could not find group with name");
-        return null;
     }
 
     private ScimGroup getOrCreateGroup(String name) {
         logger.debug("adding group: " + name);
-        ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
-        try {
-            g = scimGroupProvisioning.create(g);
-        } catch (ScimResourceAlreadyExistsException ex) {
-            logger.debug("group " + g + " already exists, retrieving...");
-            g = getGroup(name);
-        }
-        return g;
+        String uaaZoneId = IdentityZone.getUaa().getId();
+        return scimGroupProvisioning.createOrGet(new ScimGroup(null, name, uaaZoneId), uaaZoneId);
     }
 }

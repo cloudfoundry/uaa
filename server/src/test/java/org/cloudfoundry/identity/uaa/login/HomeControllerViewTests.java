@@ -48,6 +48,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -214,13 +215,18 @@ public class HomeControllerViewTests extends TestClassNullifier {
             clientMetadataDoesNotExist.setClientId("client-3");
             clientMetadataDoesNotExist.setShowOnHomePage(false);
 
+            ClientMetadata clientMetadataNoAppLaunchUrl = new ClientMetadata();
+            clientMetadataNoAppLaunchUrl.setClientId("client-4");
+            clientMetadataNoAppLaunchUrl.setShowOnHomePage(true);
+
             List<ClientMetadata> clientMetadataList = new ArrayList<>();
             clientMetadataList.add(clientMetadata1);
             clientMetadataList.add(clientMetadata2);
             clientMetadataList.add(clientMetadataDoesNotExist);
+            clientMetadataList.add(clientMetadataNoAppLaunchUrl);
 
             JdbcClientMetadataProvisioning clientMetadata = mock(JdbcClientMetadataProvisioning.class);
-            when(clientMetadata.retrieveAll()).thenReturn(clientMetadataList);
+            when(clientMetadata.retrieveAll(anyString())).thenReturn(clientMetadataList);
             return clientMetadata;
         }
 

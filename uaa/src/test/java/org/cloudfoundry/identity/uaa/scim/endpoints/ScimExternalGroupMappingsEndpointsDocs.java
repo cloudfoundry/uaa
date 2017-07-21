@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -179,9 +180,11 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         createExternalGroupMappingHelper(group);
 
         Snippet requestParameters = requestParameters(
-                parameterWithName("filter").optional("").type(STRING).description("scim filter for groups over groupId, externalGroup and displayName"),
-                parameterWithName("startIndex").optional("1").type(NUMBER).description("display paged results beginning at specified index"),
-                parameterWithName("count").optional("100").type(NUMBER).description("number of results to return per page")
+                parameterWithName("startIndex").optional("1").type(NUMBER).description("Display paged results beginning at specified index"),
+                parameterWithName("count").optional("100").type(NUMBER).description("Number of results to return per page"),
+                parameterWithName("origin").optional(null).type(STRING).description("Filters results based on supplied origin. default is to return all"),
+                parameterWithName("externalGroup").optional(null).type(STRING).description("Filters results based on supplied externalGroup. default is to return all"),
+                parameterWithName("filter").optional(null).type(STRING).description("Deprecated - will be removed in future release. Use `externalGroup` and `origin` parameters instead.")
         );
 
         Snippet requestHeaders = requestHeaders(
@@ -203,10 +206,12 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         );
 
         MockHttpServletRequestBuilder get = get("/Groups/External")
-                .header("Authorization", "Bearer " + scimReadToken)
-                .param("filter", String.format("group_id eq \"%s\"", group.getId()))
-                .param("startIndex", "1")
-                .param("count", "50");
+            .header("Authorization", "Bearer " + scimReadToken)
+            .param("startIndex", "1")
+            .param("count", "50")
+            .param("origin", OriginKeys.LDAP)
+            .param("externalGroup", "")
+            .param("filter", "");
 
         getMockMvc().perform(get)
                 .andExpect(status().isOk())
@@ -218,6 +223,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         ScimGroupExternalMember externalMember = new ScimGroupExternalMember();
         externalMember.setExternalGroup("External group");
         externalMember.setGroupId(group.getId());
+        externalMember.setOrigin(OriginKeys.LDAP);
 
         MockHttpServletRequestBuilder post = post("/Groups/External")
                 .contentType(APPLICATION_JSON)

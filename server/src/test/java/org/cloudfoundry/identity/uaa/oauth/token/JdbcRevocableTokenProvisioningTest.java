@@ -133,7 +133,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             IdentityZoneHolder.set(zone);
             insertToken();
             countTokens(1);
-            assertEquals(zone.getId(), dao.retrieve(tokenId).getZoneId());
+            assertEquals(zone.getId(), dao.retrieve(tokenId, IdentityZoneHolder.get().getId()).getZoneId());
             dao.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
             countTokens(0);
         }
@@ -153,7 +153,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             );
             insertToken();
             countTokens(1);
-            assertEquals(zone.getId(), dao.retrieve(tokenId).getZoneId());
+            assertEquals(zone.getId(), dao.retrieve(tokenId, IdentityZoneHolder.get().getId()).getZoneId());
             dao.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class)));
             countTokens(0);
         }
@@ -161,18 +161,18 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
 
     @Test
     public void retrieve_all_returns_nothing() {
-        assertNull(dao.retrieveAll());
+        assertNull(dao.retrieveAll(IdentityZoneHolder.get().getId()));
     }
 
     @Test(expected = EmptyResultDataAccessException.class)
     public void testNotFound() {
-        dao.retrieve(tokenId);
+        dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
     }
 
     @Test()
     public void testGetFound() throws Exception {
         insertToken();
-        assertNotNull(dao.retrieve(tokenId));
+        assertNotNull(dao.retrieve(tokenId, IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -186,15 +186,15 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     public void testGetFound_In_Zone() throws Exception {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("new-zone", "new-zone"));
         insertToken();
-        assertNotNull(dao.retrieve(tokenId));
+        assertNotNull(dao.retrieve(tokenId, IdentityZoneHolder.get().getId()));
         IdentityZoneHolder.clear();
         error.expect(EmptyResultDataAccessException.class);
-        dao.retrieve(tokenId);
+        dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
     }
 
     @Test
     public void insertToken() throws Exception {
-        RevocableToken actual = dao.create(expected);
+        RevocableToken actual = dao.create(expected, IdentityZoneHolder.get().getId());
         evaluateToken(expected, actual);
     }
 
@@ -220,12 +220,12 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
 
     @Test(expected = NullPointerException.class)
     public void listUserTokens_Null_ClientId() {
-        dao.getUserTokens("userid", null);
+        dao.getUserTokens("userid", null, IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = NullPointerException.class)
     public void listUserTokens_Empty_ClientId() {
-        dao.getUserTokens("userid", "");
+        dao.getUserTokens("userid", "", IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -247,7 +247,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             insertToken();
         }
 
-        List<RevocableToken> actualTokens = dao.getUserTokens(userId, clientId);
+        List<RevocableToken> actualTokens = dao.getUserTokens(userId, clientId, IdentityZoneHolder.get().getId());
         assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
     }
 
@@ -277,7 +277,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         createData(generator.generate(), generator.generate(), generator.generate());
         insertToken();
 
-        List<RevocableToken> actualTokens = client ? dao.getClientTokens(clientId) : dao.getUserTokens(userId);
+        List<RevocableToken> actualTokens = client ? dao.getClientTokens(clientId, IdentityZoneHolder.get().getId()) : dao.getUserTokens(userId, IdentityZoneHolder.get().getId());
         assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
     }
 
@@ -286,7 +286,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         char[] data = new char[200*1024];
         Arrays.fill(data, 'Y');
         insertToken();
-        RevocableToken toUpdate = dao.retrieve(tokenId);
+        RevocableToken toUpdate = dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
         long expiresAt = System.currentTimeMillis()+1000;
         String scope = "scope1,scope2,scope3";
         toUpdate.setFormat("format")
@@ -299,18 +299,18 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             .setZoneId("arbitrary-zone-id")
             .setResponseType(REFRESH_TOKEN);
 
-        RevocableToken revocableToken = dao.update(tokenId, toUpdate);
+        RevocableToken revocableToken = dao.update(tokenId, toUpdate, IdentityZoneHolder.get().getId());
         evaluateToken(toUpdate, revocableToken);
     }
 
     @Test
     public void testDelete() throws Exception {
         insertToken();
-        dao.retrieve(tokenId);
-        dao.delete(tokenId, 8);
+        dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        dao.delete(tokenId, 8, IdentityZoneHolder.get().getId());
 
         error.expect(EmptyResultDataAccessException.class);
-        dao.retrieve(tokenId);
+        dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
 
     }
 
@@ -321,9 +321,9 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         createData(new RandomValueStringGenerator().generate(), userId, clientId);
         expected.setResponseType(REFRESH_TOKEN);
         insertToken();
-        assertEquals(2, dao.deleteRefreshTokensForClientAndUserId(clientId,userId));
-        assertEquals(0, dao.deleteRefreshTokensForClientAndUserId(clientId,userId));
-        List<RevocableToken> userTokens = dao.getUserTokens(userId, clientId);
+        assertEquals(2, dao.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId()));
+        assertEquals(0, dao.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId()));
+        List<RevocableToken> userTokens = dao.getUserTokens(userId, clientId, IdentityZoneHolder.get().getId());
         assertEquals(0, userTokens.stream().filter(t -> t.getResponseType().equals(REFRESH_TOKEN)).count());
     }
 
@@ -332,7 +332,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         insertToken();
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, tokenId);
         try {
-            dao.retrieve(tokenId);
+            dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
             fail("Token should have been deleted prior to retrieval");
         } catch (EmptyResultDataAccessException x) {}
         countTokens(0);
@@ -354,7 +354,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, tokenId);
         expected.setTokenId(generator.generate());
         dao.lastExpiredCheck.set(0); //simulate time has passed
-        dao.create(expected);
+        dao.create(expected, IdentityZoneHolder.get().getId());
         countTokens(1);
         countTokens(1, expected.getTokenId());
         countTokens(0, tokenId);
@@ -370,7 +370,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
         try {
             dao.lastExpiredCheck.set(0);
-            dao.retrieve(tokenId);
+            dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
             fail("Token should have been deleted prior to retrieval");
         } catch (EmptyResultDataAccessException x) {}
         countTokens(0);
@@ -381,11 +381,11 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone","test-zone");
         IdentityZoneHolder.set(zone);
         insertToken();
-        dao.retrieve(tokenId);
+        dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
         EntityDeletedEvent<IdentityZone> zoneDeleted = new EntityDeletedEvent<>(zone, null);
         dao.onApplicationEvent(zoneDeleted);
         error.expect(EmptyResultDataAccessException.class);
-        dao.retrieve(tokenId);
+        dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
     }
 
     @Test

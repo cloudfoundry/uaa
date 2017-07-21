@@ -39,9 +39,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
@@ -56,7 +53,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -114,6 +110,7 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -526,6 +523,17 @@ public final class MockMvcUtils {
         return context.getBean(IdentityZoneProvisioning.class).update(zone);
     }
 
+    public static void deleteIdentityZone(String zoneId, MockMvc mockMvc) throws Exception {
+        String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
+            "zones.write,scim.zones", null);
+
+        mockMvc.perform(delete("/identity-zones/" + zoneId)
+            .header("Authorization", "Bearer " + identityToken)
+            .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk());
+    }
+
     public static IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
                                                      IdentityProvider identityProvider, ResultMatcher resultMatcher) throws Exception {
         return createIdpUsingWebRequest(mockMvc, zoneId, token, identityProvider, resultMatcher, false);
@@ -666,43 +674,6 @@ public final class MockMvcUtils {
             ScimGroup.class);
     }
 
-    public static void createClient(ApplicationContext context, BaseClientDetails client, String zoneId) throws Exception {
-        IdentityZone original = IdentityZoneHolder.get();
-        try {
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone(zoneId,zoneId));
-            context.getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(client);
-        } finally {
-            IdentityZoneHolder.set(original);
-        }
-
-    }
-
-    public static void mapExternalGroup(ApplicationContext context, String groupId, String externalGroup, String origin, String zoneId) throws Exception {
-        JdbcScimGroupExternalMembershipManager gm = context.getBean(JdbcScimGroupExternalMembershipManager.class);
-        IdentityZone original = IdentityZoneHolder.get();
-        try {
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone(zoneId,zoneId));
-            gm.mapExternalGroup(groupId, externalGroup, origin);
-        } finally {
-            IdentityZoneHolder.set(original);
-        }
-    }
-
-    public static ScimGroup createGroup(ApplicationContext context, ScimGroup group, String zoneId) throws Exception {
-        JdbcScimGroupProvisioning gp = context.getBean(JdbcScimGroupProvisioning.class);
-        try {
-            return gp.create(group, zoneId);
-        } catch (ScimResourceAlreadyExistsException e) {
-            String filter = "displayName eq \""+group.getDisplayName()+"\"";
-            IdentityZone original = IdentityZoneHolder.get();
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone(zoneId, zoneId));
-            try {
-                return gp.query(filter).get(0);
-            } finally {
-                IdentityZoneHolder.set(original);
-            }
-        }
-    }
 
     public static ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group, String zoneId) throws Exception {
         MockHttpServletRequestBuilder post = post("/Groups")
@@ -1054,7 +1025,7 @@ public final class MockMvcUtils {
             try {
                 IdentityZoneHolder.set(zone);
                 ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
-                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
+                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
                 UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
                 SecurityContext securityContext = new SecurityContextImpl();

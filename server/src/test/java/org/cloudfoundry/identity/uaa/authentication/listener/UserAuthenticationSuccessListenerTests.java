@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,11 +62,12 @@ public class UserAuthenticationSuccessListenerTests {
                 .withEmail("test@email.com")
                 .withVerified(false)
                 .withLegacyVerificationBehavior(true));
-        when(scimUserProvisioning.retrieve(id)).thenReturn(getScimUser(event.getUser()));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
 
         listener.onApplicationEvent(event);
 
-        verify(scimUserProvisioning).verifyUser(eq(id), eq(-1));
+        verify(scimUserProvisioning).verifyUser(eq(id), eq(-1), eq(zoneId));
     }
 
     @Test
@@ -76,11 +78,12 @@ public class UserAuthenticationSuccessListenerTests {
                 .withUsername("testUser")
                 .withEmail("test@email.com")
                 .withVerified(false));
-        when(scimUserProvisioning.retrieve(id)).thenReturn(getScimUser(event.getUser()));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
 
         listener.onApplicationEvent(event);
 
-        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt());
+        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt(), eq(zoneId));
     }
 
     @Test
@@ -91,10 +94,10 @@ public class UserAuthenticationSuccessListenerTests {
         .withEmail("test@test.org")
         .withUsername("testUser")
         .withVerified(false));
-        when(scimUserProvisioning.retrieve(userId)).thenReturn(getScimUser(event.getUser()));
+        when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(getScimUser(event.getUser()));
 
         listener.onApplicationEvent(event);
-        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId);
+        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -108,7 +111,7 @@ public class UserAuthenticationSuccessListenerTests {
             .withLastLogonSuccess(123456789L);
 
         UserAuthenticationSuccessEvent event = new UserAuthenticationSuccessEvent(new UaaUser(uaaUserPrototype), mockAuth);
-        when(scimUserProvisioning.retrieve(userId)).thenReturn(getScimUser(event.getUser()));
+        when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(getScimUser(event.getUser()));
         UaaAuthentication authentication = (UaaAuthentication) event.getAuthentication();
         listener.onApplicationEvent(event);
         verify(authentication).setLastLoginSuccessTime(123456789L);

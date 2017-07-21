@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
@@ -26,14 +27,14 @@ import org.springframework.jmx.support.MetricType;
  * through the logger.
  * <p>
  * Also accumulates count data for exposure through /varz
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
 @ManagedResource
 public class LoggingAuditService implements UaaAuditService {
 
-    private final Log logger = LogFactory.getLog("UAA.Audit");
+    private Log logger = LogFactory.getLog("UAA.Audit");
 
     private AtomicInteger userAuthenticationCount = new AtomicInteger();
 
@@ -99,12 +100,12 @@ public class LoggingAuditService implements UaaAuditService {
     }
 
     @Override
-    public List<AuditEvent> find(String principal, long after) {
+    public List<AuditEvent> find(String principal, long after, String zoneId) {
         throw new UnsupportedOperationException("This implementation does not store data");
     }
 
     @Override
-    public void log(AuditEvent auditEvent) {
+    public void log(AuditEvent auditEvent, String zoneId) {
         updateCounters(auditEvent);
         log(String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s]", auditEvent.getType().name(), auditEvent.getData(),
                         auditEvent.getPrincipalId(), auditEvent.getOrigin(), auditEvent.getIdentityZoneId()));
@@ -145,15 +146,21 @@ public class LoggingAuditService implements UaaAuditService {
     }
 
     private void log(String msg) {
+        String sanitized = LogSanitizerUtil.sanitize(msg);
+
         if (logger.isTraceEnabled()) {
             StringBuilder output = new StringBuilder(256);
             output.append("\n************************************************************\n");
-            output.append(msg);
+            output.append(sanitized);
             output.append("\n\n************************************************************\n");
             logger.trace(output.toString());
         }
         else {
-            logger.info(msg);
+            logger.info(sanitized);
         }
+    }
+
+    public void setLogger(Log logger) {
+        this.logger = logger;
     }
 }

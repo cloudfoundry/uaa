@@ -48,16 +48,16 @@ public class JdbcFailedLoginCountingAuditService extends JdbcAuditService {
     }
 
     @Override
-    public void log(AuditEvent auditEvent) {
+    public void log(AuditEvent auditEvent, String zoneId) {
         switch (auditEvent.getType()) {
             case UserAuthenticationSuccess:
             case PasswordChangeSuccess:
             case UserAccountUnlockedEvent:
-                getJdbcTemplate().update("delete from sec_audit where principal_id=?", auditEvent.getPrincipalId());
+                getJdbcTemplate().update("delete from sec_audit where principal_id=? and identity_zone_id=?", auditEvent.getPrincipalId(), zoneId);
                 break;
             case UserAuthenticationFailure:
                 periodicDelete();
-                super.log(auditEvent);
+                super.log(auditEvent, zoneId);
                 break;
             default:
                 break;

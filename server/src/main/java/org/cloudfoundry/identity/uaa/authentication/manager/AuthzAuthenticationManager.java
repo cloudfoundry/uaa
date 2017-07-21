@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFail
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.logging.SanitizedLogFactory;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -58,7 +59,7 @@ import java.util.Locale;
  */
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());
     private final PasswordEncoder encoder;
     private final UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;

@@ -48,7 +48,7 @@ public class SearchResultsFactory {
             //we're past the last result
             count = input.size() - (startIndex - 1);
         }
-
+        count = Math.max(count, 0);
         input = count>0 ? input.subList(startIndex-1, startIndex-1+count) : Collections.emptyList();
 
         return buildSearchResultFrom(

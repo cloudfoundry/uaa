@@ -293,7 +293,7 @@
         <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
-    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
+    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
@@ -470,6 +470,7 @@
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="validator" ref="identityZoneValidator"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="selfServiceLinks" ref="links" />
@@ -494,6 +495,7 @@
                   value="#{@config['login']==null ? null :
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
+        <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

@@ -280,7 +280,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String code = getQueryStringParam(query, "code");
         assertThat(code, is(notNullValue()));
 
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
@@ -319,7 +319,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(code, is(notNullValue()));
 
         IdentityZoneHolder.set(zoneResult.getIdentityZone());
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
@@ -358,7 +358,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(code, is(notNullValue()));
 
         IdentityZoneHolder.set(zoneResult.getIdentityZone());
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
@@ -471,7 +471,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void verification_link_unverified_error() throws Exception {
         ScimUser user = setUpScimUser();
         user.setVerified(true);
-        usersRepository.update(user.getId(), user);
+        usersRepository.update(user.getId(), user, IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = setUpVerificationLinkRequest(user, scimCreateToken);
 
@@ -672,7 +672,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -686,14 +686,14 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
     public void testForcePasswordChange() throws Exception {
         ScimUser user = createUser(uaaAdminToken);
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
 
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(true);
@@ -702,7 +702,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
-        assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -716,7 +716,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
 
         attemptLogin(user)
             .andExpect(redirectedUrl("/"));
@@ -734,7 +734,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateAccountStatus(user, alteredAccountStatus)
             .andExpect(status().isBadRequest());
 
-        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId()));
+        assertFalse(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
 
         attemptLogin(user)
             .andExpect(redirectedUrl("/login?error=account_locked"));
@@ -778,7 +778,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.addEmail(email);
-        joel = usersRepository.createUser(joel, "pas5Word");
+        joel = usersRepository.createUser(joel, "pas5Word", IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId() + "/verify")
             .header("Authorization", "Bearer " + token)
@@ -888,7 +888,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "otheruser@"+generator.generate().toLowerCase()+".com";
         ScimUser user = new ScimUser(null, email, "Other", "User");
         user.addEmail(email);
-        user = usersRepository.createUser(user, "pas5Word");
+        user = usersRepository.createUser(user, "pas5Word", IdentityZoneHolder.get().getId());
         if (status==HttpStatus.BAD_REQUEST.value()) {
             user.setUserName(null);
         } else {
@@ -977,7 +977,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         approval.setUserId(user.getId());
         approval.setScope("openid");
         approval.setStatus(Approval.ApprovalStatus.APPROVED);
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
         assertEquals(1, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));
         testDeleteUserWithUaaAdminToken(user);
         assertEquals(0, (long)template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, user.getId()));
@@ -1081,7 +1081,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
             joel.setVerified(false);
             joel.addEmail(email);
-            joel = usersRepository.createUser(joel, USER_PASSWORD);
+            joel = usersRepository.createUser(joel, USER_PASSWORD, IdentityZoneHolder.get().getId());
             return joel;
         } finally {
             IdentityZoneHolder.set(original);

@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -44,12 +44,14 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.SQLServerLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.After;
@@ -65,7 +67,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -87,6 +88,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -106,7 +108,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
-    private ClientRegistrationService clientRegistrationService;
+    private ClientServicesExtension clientRegistrationService;
     private UaaTestAccounts testAccounts;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener2;
     private ApplicationListener<AbstractUaaEvent> listener2;
@@ -125,7 +127,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        clientRegistrationService = getWebApplicationContext().getBean(ClientRegistrationService.class);
+        clientRegistrationService = getWebApplicationContext().getBean(ClientServicesExtension.class);
         originalLoginClient = ((MultitenantJdbcClientDetailsService)clientRegistrationService).loadClientByClientId("login");
         testAccounts = UaaTestAccounts.standard(null);
         mockAuditService = mock(UaaAuditService.class);
@@ -215,7 +217,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(eventType, event.getAuditEvent().getType());
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
-        verify(mockAuditService, atLeast(1)).log(captor.capture());
+        verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
         List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType()== eventType).collect(Collectors.toList());
         assertNotNull(auditEvents);
         assertEquals(1, auditEvents.size());
@@ -409,7 +411,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         }
 
         //after we reach our max attempts, 5, the system stops logging them until the period is over
-        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis()-10000);
+        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis()-10000, IdentityZoneHolder.get().getId());
         assertEquals(5, events.size());
     }
 
@@ -518,6 +520,21 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         PasswordChangeFailureEvent pwfe = (PasswordChangeFailureEvent)captor.getValue();
         assertEquals(testUser.getUserName(), pwfe.getUser().getUsername());
         assertEquals("Old password is incorrect", pwfe.getMessage());
+    }
+
+    @Test
+    public void password_change_recorded_at_dao() throws Exception {
+        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        ScimUser user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "first","last");
+        user.setPrimaryEmail(user.getUserName());
+        user = provisioning.createUser(user, "oldpassword", IdentityZoneHolder.get().getId());
+        provisioning.changePassword(user.getId(), "oldpassword", "newpassword", IdentityZoneHolder.get().getId());
+        ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        //the last event should be our password modified event
+        PasswordChangeEvent pw = (PasswordChangeEvent)captor.getValue();
+        assertEquals(user.getUserName(), pw.getUser().getUsername());
+        assertEquals("Password changed", pw.getMessage());
     }
 
     private String requestExpiringCode(String email, String token) throws Exception {
@@ -938,7 +955,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     public void verifyGroupAuditData(ScimGroup group, AuditEventType eventType) {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
-        verify(mockAuditService, atLeast(1)).log(captor.capture());
+        verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
         List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType()== eventType).collect(Collectors.toList());
         assertNotNull(auditEvents);
         assertEquals(1, auditEvents.size());

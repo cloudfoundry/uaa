@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.codestore;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -80,7 +79,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public ExpiringCode generateCode(String data, Timestamp expiresAt, String intent) {
+    public ExpiringCode generateCode(String data, Timestamp expiresAt, String intent, String zoneId) {
         cleanExpiredEntries();
 
         if (data == null || expiresAt == null) {
@@ -96,7 +95,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             count++;
             String code = generator.generate();
             try {
-                int update = jdbcTemplate.update(insert, code, expiresAt.getTime(), data, intent, IdentityZoneHolder.get().getId());
+                int update = jdbcTemplate.update(insert, code, expiresAt.getTime(), data, intent, zoneId);
                 if (update == 1) {
                     ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
                     return expiringCode;
@@ -114,7 +113,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public ExpiringCode retrieveCode(String code) {
+    public ExpiringCode retrieveCode(String code, String zoneId) {
         cleanExpiredEntries();
 
         if (code == null) {
@@ -122,9 +121,9 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         }
 
         try {
-            ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code, IdentityZoneHolder.get().getId());
+            ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code, zoneId);
             if (expiringCode != null) {
-                jdbcTemplate.update(delete, code, IdentityZoneHolder.get().getId());
+                jdbcTemplate.update(delete, code, zoneId);
             }
             if (expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
                 expiringCode = null;
@@ -141,10 +140,10 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public void expireByIntent(String intent) {
+    public void expireByIntent(String intent, String zoneId) {
         Assert.hasText(intent);
 
-        jdbcTemplate.update(deleteIntent, intent, IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(deleteIntent, intent, zoneId);
     }
 
     public int cleanExpiredEntries() {

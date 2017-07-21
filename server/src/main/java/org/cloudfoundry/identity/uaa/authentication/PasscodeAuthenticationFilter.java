@@ -168,7 +168,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
         }
 
         protected ExpiringCode doRetrieveCode(String code) {
-            return expiringCodeStore.retrieveCode(code);
+            return expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         }
 
         @Override

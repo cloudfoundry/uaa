@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +48,7 @@ public class ClientMetadataAdminEndpoints {
     @ResponseBody
     public ClientMetadata retrieveClientMetadata(@PathVariable("client") String clientId) {
         try {
-            return clientMetadataProvisioning.retrieve(clientId);
+            return clientMetadataProvisioning.retrieve(clientId, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException erdae) {
             throw new ClientMetadataException("No client metadata found for " + clientId, HttpStatus.NOT_FOUND);
         }
@@ -57,7 +58,7 @@ public class ClientMetadataAdminEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public List<ClientMetadata> retrieveAllClientMetadata() {
-        return clientMetadataProvisioning.retrieveAll();
+        return clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
     }
 
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.PUT)
@@ -74,7 +75,7 @@ public class ClientMetadataAdminEndpoints {
             clientMetadata.setClientId(clientId);
         }
         try {
-            return clientMetadataProvisioning.update(clientMetadata);
+            return clientMetadataProvisioning.update(clientMetadata, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
             throw new ClientMetadataException("No client with ID " + clientMetadata.getClientId(), HttpStatus.NOT_FOUND);
         }

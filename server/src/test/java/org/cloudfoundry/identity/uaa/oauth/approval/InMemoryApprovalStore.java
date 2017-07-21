@@ -24,12 +24,12 @@ public class InMemoryApprovalStore implements ApprovalStore {
     private ArrayList<Approval> store = new ArrayList<Approval>();
 
     @Override
-    public boolean addApproval(Approval approval) {
+    public boolean addApproval(Approval approval, final String zoneId) {
         return store.add(approval);
     }
 
     @Override
-    public boolean revokeApproval(Approval approval) {
+    public boolean revokeApproval(Approval approval, final String zoneId) {
         for (Approval a : store) {
             if (a.equals(approval)) {
                 store.remove(a);
@@ -40,7 +40,7 @@ public class InMemoryApprovalStore implements ApprovalStore {
     }
 
     @Override
-    public List<Approval> getApprovals(String userName, String clientId) {
+    public List<Approval> getApprovals(String userName, String clientId, final String zoneId) {
         ArrayList<Approval> returnList = new ArrayList<Approval>();
 
         for (Approval a : store) {
@@ -52,17 +52,17 @@ public class InMemoryApprovalStore implements ApprovalStore {
     }
 
     @Override
-    public boolean revokeApprovalsForUser(String userId) {
+    public boolean revokeApprovalsForUser(String userId, final String zoneId) {
         return store.removeIf(approval -> userId.equals(approval.getUserId()));
     }
 
     @Override
-    public boolean revokeApprovalsForClient(String clientId) {
+    public boolean revokeApprovalsForClient(String clientId, final String zoneId) {
         return store.removeIf(approval -> clientId.equals(approval.getClientId()));
     }
 
     @Override
-    public boolean revokeApprovalsForClientAndUser(String clientId, String userId) {
+    public boolean revokeApprovalsForClientAndUser(String clientId, String userId, final String zoneId) {
         return store.removeIf(
             approval ->
                 clientId.equals(approval.getClientId()) &&
@@ -71,14 +71,14 @@ public class InMemoryApprovalStore implements ApprovalStore {
     }
 
     @Override
-    public List<Approval> getApprovalsForUser(String userId) {
+    public List<Approval> getApprovalsForUser(String userId, final String zoneId) {
         return store.stream()
             .filter(approval -> userId.equals(approval.getUserId()))
             .collect(Collectors.toList());
     }
 
     @Override
-    public List<Approval> getApprovalsForClient(String clientId) {
+    public List<Approval> getApprovalsForClient(String clientId, final String zoneId) {
         return store.stream()
             .filter(approval -> clientId.equals(approval.getClientId()))
             .collect(Collectors.toList());

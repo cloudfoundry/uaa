@@ -169,14 +169,14 @@ public class ResetPasswordController {
                                     HttpServletResponse response,
                                     @RequestParam("code") String code) {
 
-        ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code));
+        ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, IdentityZoneHolder.get().getId()));
         if (expiringCode==null) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
             PasswordChange passwordChange = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
             String userId = passwordChange.getUserId();
             UaaUser uaaUser = userDatabase.retrieveUserById(userId);
-            String newCode = codeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
+            String newCode = codeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
             model.addAttribute("code", newCode);
             model.addAttribute("email", uaaUser.getEmail());
             return "reset_password";

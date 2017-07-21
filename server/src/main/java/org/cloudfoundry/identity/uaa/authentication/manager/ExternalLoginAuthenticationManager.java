@@ -180,7 +180,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
     }
 
-    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) {
+    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException{
         return null;
     }
 
@@ -257,7 +257,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
                 .withFamilyName(familyName)
                 .withCreated(new Date())
                 .withModified(new Date())
-                .withOrigin(origin)
+                .withOrigin(getOrigin())
                 .withExternalId(externalId)
                 .withZoneId(IdentityZoneHolder.get().getId())
                 .withPhoneNumber(phoneNumber);

@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
@@ -97,6 +98,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -189,6 +191,13 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        Collection<String> defaultZoneGroups = context.getBean("defaultUserAuthorities", Collection.class);
+        String[] expectedZoneGroups = CheckDefaultAuthoritiesMvcMockTests.EXPECTED_DEFAULT_GROUPS;
+        assertThat(defaultZoneGroups,containsInAnyOrder(expectedZoneGroups));
+        IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
+        assertNotNull(defaultZone);
+        assertThat(defaultZone.getConfig().getUserConfig().getDefaultGroups(),containsInAnyOrder(expectedZoneGroups));
 
         HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
         assertNotNull(filterWrapper);
@@ -395,6 +404,32 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        Collection<String> defaultZoneGroups = context.getBean("defaultUserAuthorities", Collection.class);
+        String[] expectedZoneGroups = {
+            "openid",
+            "scim.me",
+            "cloud_controller.read",
+            "cloud_controller.write",
+            "cloud_controller_service_permissions.read",
+            "password.write",
+            "uaa.user",
+            "approvals.me",
+            "oauth.approvals",
+            "notification_preferences.read",
+            "notification_preferences.write",
+            "profile",
+            "roles",
+            "user_attributes",
+            "cloud_controller.user",
+            "actuator.read",
+            "foo.foo"
+        };
+        assertThat(defaultZoneGroups,containsInAnyOrder(expectedZoneGroups));
+        IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
+        assertNotNull(defaultZone);
+        assertThat(defaultZone.getConfig().getUserConfig().getDefaultGroups(),containsInAnyOrder(expectedZoneGroups));
+        IdentityZoneHolder.set(defaultZone);
 
         HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
         assertNotNull(filterWrapper);
@@ -652,7 +687,7 @@ public class BootstrapTests {
         assertEquals(SignatureConstants.ALGO_ID_DIGEST_SHA256, Configuration.getGlobalSecurityConfiguration().getSignatureReferenceDigestMethod());
 
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
-        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
+        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
 
@@ -695,6 +730,7 @@ public class BootstrapTests {
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = providerProvisioning.retrieveByOrigin("okta-local-2", IdentityZone.getUaa().getId());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES, samlProvider2.getConfig().getGroupMappingMode());
         assertFalse(samlProvider2.getConfig().isSkipSslValidation());
+        assertTrue(samlProvider2.getConfig().isStoreCustomAttributes());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider3 = providerProvisioning.retrieveByOrigin("vsphere.local", IdentityZone.getUaa().getId());
         assertTrue(samlProvider3.getConfig().isSkipSslValidation());
@@ -710,7 +746,7 @@ public class BootstrapTests {
     public void xlegacy_test_deprecated_properties() throws Exception {
         context = getServletContext(null, "login.yml", "test/bootstrap/deprecated_properties_still_work.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
-        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
+        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
         IdentityZoneConfigurationBootstrap zoneBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);

@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -13,27 +13,29 @@
 
 package org.cloudfoundry.identity.uaa.account.event;
 
-import java.util.Date;
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Email;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.Date;
+import java.util.List;
+
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.SYSTEM_AUTHENTICATION;
 
 /**
  * Event publisher for password changes with the resulting event type varying
  * according to the input and outcome. Can be
  * used as an aspect intercepting calls to a component that changes user
  * password.
- *
- * @author Dave Syer
  *
  */
 public class PasswordChangeEventPublisher implements ApplicationEventPublisherAware {
@@ -64,7 +66,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         try {
             // If the request came in for a user by id we should be able to
             // retrieve the username
-            ScimUser scimUser = dao.retrieve(userId);
+            ScimUser scimUser = dao.retrieve(userId, IdentityZoneHolder.get().getId());
             Date today = new Date();
             if (scimUser != null) {
                 return new UaaUser(
@@ -104,8 +106,9 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         return scimUser.getEmails().get(0).getValue();
     }
 
-    private Authentication getPrincipal() {
-        return SecurityContextHolder.getContext().getAuthentication();
+    protected Authentication getPrincipal() {
+        return ofNullable(SecurityContextHolder.getContext().getAuthentication())
+            .orElse(SYSTEM_AUTHENTICATION);
     }
 
     private void publish(AbstractUaaEvent event) {

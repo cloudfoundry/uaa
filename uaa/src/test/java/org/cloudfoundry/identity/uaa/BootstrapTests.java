@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -103,8 +104,8 @@ public class BootstrapTests {
                             ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
                                             .toString());
             ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
-            assertNotNull(users.query("username eq \"paul\"").get(0));
-            assertNotNull(users.query("username eq \"stefan\"").get(0));
+            assertNotNull(users.query("username eq \"paul\"", IdentityZoneHolder.get().getId()).get(0));
+            assertNotNull(users.query("username eq \"stefan\"", IdentityZoneHolder.get().getId()).get(0));
         } finally {
             System.clearProperty(configVariable);
         }

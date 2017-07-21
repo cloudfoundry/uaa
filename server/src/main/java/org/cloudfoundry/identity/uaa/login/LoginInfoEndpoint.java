@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -50,7 +51,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
@@ -149,7 +149,7 @@ public class LoginInfoEndpoint {
     private AuthenticationManager authenticationManager;
 
     private ExpiringCodeStore expiringCodeStore;
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
 
     private IdentityProviderProvisioning providerProvisioning;
     private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
@@ -519,7 +519,7 @@ public class LoginInfoEndpoint {
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         String[] client_ids = savedRequest.getParameterValues("client_id");
         try {
-            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
+            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], IdentityZoneHolder.get().getId());
             return clientDetails.getAdditionalInformation();
         } catch (NoSuchClientException x) {
             return null;
@@ -584,7 +584,7 @@ public class LoginInfoEndpoint {
             SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
             String[] client_ids = savedRequest.getParameterValues("client_id");
             try {
-                clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
+                clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], IdentityZoneHolder.get().getId());
             } catch (NoSuchClientException e) {
             }
         }
@@ -652,7 +652,7 @@ public class LoginInfoEndpoint {
                 codeData.put(OriginKeys.ORIGIN, p.getOrigin());
             }
         }
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name());
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), IdentityZoneHolder.get().getId());
 
         return new AutologinResponse(expiringCode.getCode());
     }
@@ -717,12 +717,12 @@ public class LoginInfoEndpoint {
 
         String intent = ExpiringCodeType.PASSCODE + " " + pi.getUserId();
 
-        expiringCodeStore.expireByIntent(intent);
+        expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
 
         ExpiringCode code = expiringCodeStore.generateCode(
             JsonUtils.writeValueAsString(pi),
             new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis())),
-            intent);
+            intent, IdentityZoneHolder.get().getId());
 
         model.put(PASSCODE, code.getCode());
 
@@ -848,7 +848,7 @@ public class LoginInfoEndpoint {
         return path;
     }
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

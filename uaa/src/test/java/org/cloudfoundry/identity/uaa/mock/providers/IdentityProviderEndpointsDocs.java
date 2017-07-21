@@ -102,7 +102,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion.";
     private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion.";
 
-    private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(false).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
+    private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
     private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).type(BOOLEAN).description("Whether users should be allowed to authenticate from LDAP without having a user pre-populated in the users database");
@@ -371,6 +371,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
             fieldWithPath("config.socketFactoryClassName").optional(null).description("Either `\"org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory\"` or" +
                 "`\"org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory\"` depending on if the `metaDataLocation` of type `URL` is HTTP or HTTPS, respectively"),
+            fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
             ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS_WHITELIST,
             ATTRIBUTE_MAPPING,

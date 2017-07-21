@@ -21,18 +21,18 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 
 public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryable<ScimUser> {
 
-    ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidScimResourceException;
+    ScimUser createUser(ScimUser user, String password, String zoneId) throws InvalidPasswordException, InvalidScimResourceException;
 
-    void changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException;
+    void changePassword(String id, String oldPassword, String newPassword, String zoneId) throws ScimResourceNotFoundException;
 
-    void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired) throws ScimResourceNotFoundException;
+    void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired, String zoneId) throws ScimResourceNotFoundException;
 
-    ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException, InvalidScimResourceException;
+    ScimUser verifyUser(String id, int version, String zoneId) throws ScimResourceNotFoundException, InvalidScimResourceException;
 
-    boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException;
+    boolean checkPasswordMatches(String id, String password, String zoneId) throws ScimResourceNotFoundException;
 
-    boolean checkPasswordChangeIndividuallyRequired(String id) throws ScimResourceNotFoundException;
+    boolean checkPasswordChangeIndividuallyRequired(String id, String zoneId) throws ScimResourceNotFoundException;
 
-    void updateLastLogonTime(String id);
+    void updateLastLogonTime(String id, String zoneId);
 }
 
