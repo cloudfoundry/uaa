@@ -16,11 +16,21 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.SAMLEntryPoint;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
+import org.springframework.security.web.FilterInvocation;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 public class LoginSamlEntryPoint extends SAMLEntryPoint {
 
@@ -33,6 +43,30 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
 
     public void setProviderDefinitionList(SamlIdentityProviderConfigurator providerDefinitionList) {
         this.providerDefinitionList = providerDefinitionList;
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+
+        FilterInvocation fi = new FilterInvocation(request, response, chain);
+
+        if (!processFilter(fi.getRequest())) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        try {
+            commence(fi.getRequest(), fi.getResponse(), null);
+        } catch (ServletException e) {
+            if(e.getRootCause() instanceof MetadataProviderException) {
+                request.setAttribute("error_message_code", "no.sso.supported.binding");
+                ((HttpServletResponse)response).sendError(HttpStatus.BAD_REQUEST.value(), "Bad Request:" +
+                        " Please Check the Identity Provider for compatible SSO bindings ");
+                return;
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override

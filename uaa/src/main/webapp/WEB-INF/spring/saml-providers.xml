@@ -202,7 +202,6 @@
                     <ref bean="redirectBinding" />
                     <ref bean="postBinding" />
                     <ref bean="assertionBinding" />
-                    <ref bean="artifactBinding" />
                     <ref bean="soapBinding" />
                     <ref bean="paosBinding" />
                 </list>
@@ -228,7 +227,7 @@
         </bean>
 
         <!-- SAML 2.0 Web SSO profile -->
-        <bean id="webSSOprofile" class="org.springframework.security.saml.websso.WebSSOProfileImpl">
+        <bean id="webSSOprofile" class="org.cloudfoundry.identity.uaa.provider.saml.SPWebSSOProfileImpl">
             <property name="metadata" ref="metadata" />
             <property name="processor" ref="processor" />
         </bean>
@@ -271,24 +270,6 @@
               class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
             <constructor-arg name="userTokenGranter" ref="samlTokenGranter"/>
             <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
-        </bean>
-
-        <bean id="artifactBinding" class="org.springframework.security.saml.processor.HTTPArtifactBinding">
-            <constructor-arg ref="parserPool" />
-            <constructor-arg ref="velocityEngine" />
-            <constructor-arg>
-                <bean class="org.springframework.security.saml.websso.ArtifactResolutionProfileImpl">
-                    <constructor-arg>
-                        <bean class="org.apache.commons.httpclient.HttpClient" />
-                    </constructor-arg>
-                    <property name="processor">
-                        <bean id="soapProcessor" class="org.springframework.security.saml.processor.SAMLProcessorImpl">
-                            <constructor-arg ref="soapBinding" />
-                        </bean>
-                    </property>
-                    <property name="metadata" ref="metadata" />
-                </bean>
-            </constructor-arg>
         </bean>
 
         <bean id="soapBinding" class="org.springframework.security.saml.processor.HTTPSOAP11Binding">

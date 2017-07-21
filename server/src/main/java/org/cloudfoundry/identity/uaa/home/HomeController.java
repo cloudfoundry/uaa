@@ -140,6 +140,12 @@ public class HomeController {
         return "error";
     }
 
+    @RequestMapping("/error400")
+    public String error400(Model model) {
+        populateBuildAndLinkInfo(model);
+        return "error";
+    }
+
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = (AuthenticationException) request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
