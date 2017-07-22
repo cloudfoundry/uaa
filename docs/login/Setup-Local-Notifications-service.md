@@ -1,19 +1,19 @@
-##Introduction
+## Introduction
 This document outlines how to setup a local notifications service.
 
-# Prerequisites
+### Prerequisites
 
     - a) mysql
     - b) SMTP server
     - c) UAA server
 
-# Step 1
+### Step 1
 
 Clone notifications repository
 
     - a) Clone the notifications repository at 'https://github.com/cloudfoundry-incubator/notifications.git' into '~/workspace/go/src/github.com/cloudfoundry-incubator/'
 
-# Step 2
+### Step 2
 
 Download and setup GO
 
@@ -22,14 +22,14 @@ Download and setup GO
             export GOPATH="$HOME/workspace/go"
             export GOROOT="$HOME/go" (This is if you've extracted go in the home directory. If not, set the path to your go1.2.1 as the GOROOT)
             export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-# Step 3
+### Step 3
 
 Create a database
 
     - a) Connect to mysql
     - b) Create a database called 'notifications_development'
 
-# Step 4
+### Step 4
 
 Setup the development environment for the notifications services
 
@@ -56,7 +56,7 @@ Setup the development environment for the notifications services
          | GOBBLE_MIGRATIONS_DIR\* | $ROOT_PATH/gobble/migrations        | \<none\> |
          * required
 
-# Step 5
+### Step 5
 
 Start the notifications service
 
