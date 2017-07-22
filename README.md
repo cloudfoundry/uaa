@@ -238,7 +238,7 @@ The webapp looks for Yaml content in the following locations
 
 For example, to deploy the UAA as a Cloud Foundry application, you can provide an application manifest like
 
-    ---
+   
       applications:
       - name: standalone-uaa-cf-war
         memory: 1024M
