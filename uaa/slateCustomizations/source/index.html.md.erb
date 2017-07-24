@@ -1484,6 +1484,33 @@ uaac token client get admin -s adminsecret
 uaac user delete testuser
 ```
 
+## Batch Create
+
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_Batch_User/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_Batch_User/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_Batch_User/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_Batch_User/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_Batch_User/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_Batch_User/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
+| 409        | Username already exists                                                                                |
+
 ## User Info
 
 An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriate access_token, returns information about a user. Defined fields include various standard user profile fields. The response may include other user information such as group membership.
