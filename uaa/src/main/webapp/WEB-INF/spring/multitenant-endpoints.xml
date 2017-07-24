@@ -93,7 +93,7 @@
         <intercept-url pattern="/identity-zones/*"
                        access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.read') or #oauth2.hasScope('zones.write')"
                        method="GET"/>
-        <intercept-url pattern="/identity-zones/*/clients" access="#oauth2.hasScopeInAuthZone('zones.write')"
+        <intercept-url pattern="/identity-zones/*/clieInts" access="#oauth2.hasScopeInAuthZone('zones.write')"
                        method="POST"/>
         <intercept-url pattern="/identity-zones/*/clients/*" access="#oauth2.hasScopeInAuthZone('zones.write')"
                        method="DELETE"/>

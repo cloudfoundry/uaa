@@ -16,7 +16,14 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -25,20 +32,38 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
@@ -50,11 +75,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
@@ -115,9 +151,44 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     private TestApplicationEventListener<AbstractUaaEvent> uaaEventListener;
     private String lowPriviledgeToken;
     private JdbcIdentityZoneProvisioning provisioning;
+    private BaseClientDetails uaaAdminClient;
+    private ScimUser uaaAdminUser;
+    private String uaaAdminClientToken;
+    private String uaaAdminUserToken;
 
     @Before
     public void setUp() throws Exception {
+
+        uaaAdminClient = new BaseClientDetails("uaa-admin-"+generator.generate().toLowerCase(),
+                                               null,
+                                               "uaa.admin",
+                                               "password,client_credentials",
+                                               "uaa.admin");
+        uaaAdminClient.setClientSecret("secret");
+        getWebApplicationContext().getBean(ClientRegistrationService.class).addClientDetails(uaaAdminClient);
+
+        uaaAdminClientToken = testClient.getClientCredentialsOAuthAccessToken(
+            uaaAdminClient.getClientId(),
+            "secret",
+            "uaa.admin");
+
+
+        uaaAdminUser = createUser(uaaAdminClientToken, null);
+
+        ScimGroupProvisioning groupProvisioning = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
+        ScimGroupMembershipManager membershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
+        String groupId = groupProvisioning.getByName("uaa.admin", IdentityZone.getUaa().getId()).getId();
+        membershipManager.addMember(groupId, new ScimGroupMember(uaaAdminUser.getId()), IdentityZone.getUaa().getId());
+
+
+        uaaAdminUserToken = testClient.getUserOAuthAccessToken(
+            uaaAdminClient.getClientId(),
+            uaaAdminClient.getClientSecret(),
+            uaaAdminUser.getUserName(),
+            "password",
+            "uaa.admin"
+        );
+
         zoneModifiedEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), IdentityZoneModifiedEvent.class);
         clientCreateEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), ClientCreateEvent.class);
         clientDeleteEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), ClientDeleteEvent.class);
@@ -196,6 +267,63 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail(email);
         return user;
+    }
+
+    public IdentityZone createZoneUsingToken(String token) throws Exception {
+        return createZone(generator.generate().toLowerCase(),
+                          HttpStatus.CREATED,
+                          token,
+                          new IdentityZoneConfiguration());
+    }
+
+    @Test
+    public void create_zone_as_with_uaa_admin_client() throws Exception {
+        createZoneUsingToken(uaaAdminClientToken);
+    }
+
+    @Test
+    public void create_zone_as_with_uaa_admin_user() throws Exception {
+        createZoneUsingToken(uaaAdminUserToken);
+    }
+
+    @Test
+    public void read_zone_as_with_uaa_admin() throws Exception {
+        IdentityZone zone = createZoneUsingToken(uaaAdminClientToken);
+        for (String token : Arrays.asList(uaaAdminClientToken, uaaAdminUserToken)) {
+            getMockMvc().perform(
+                get("/identity-zones")
+                    .header("Authorization", "Bearer " + token)
+                    .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+            )
+                .andExpect(status().isOk());
+            getMockMvc().perform(
+                get("/identity-zones/{id}", zone.getId())
+                    .header("Authorization", "Bearer " + token)
+                    .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+            )
+                .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    public void update_zone_as_with_uaa_admin() throws Exception {
+        IdentityZone zone = createZoneUsingToken(uaaAdminClientToken);
+        for (String token : Arrays.asList(uaaAdminClientToken, uaaAdminUserToken)) {
+            updateZone(zone, HttpStatus.OK, token);
+        }
+    }
+
+
+    @Test
+    public void delete_zone_as_with_uaa_admin() throws Exception {
+        for (String token : Arrays.asList(uaaAdminClientToken, uaaAdminUserToken)) {
+            IdentityZone zone = createZoneUsingToken(token);
+            getMockMvc().perform(
+                delete("/identity-zones/{id}", zone.getId())
+                    .header("Authorization", "Bearer " + token)
+                    .accept(APPLICATION_JSON))
+                .andExpect(status().isOk());
+        }
     }
 
     @Test
