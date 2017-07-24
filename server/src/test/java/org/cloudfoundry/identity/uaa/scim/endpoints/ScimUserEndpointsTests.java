@@ -1170,4 +1170,29 @@ public class ScimUserEndpointsTests {
 
         assertEquals(OriginKeys.UAA, createdUser.getOrigin());
     }
+
+    @Test
+    public void testCreateUserTx() {
+        ScimUser user0 = createScimUser("user0");
+        ScimUser user1 = createScimUser("user1");
+        ScimUser user2 = createScimUser("user2");
+        ScimUser user3 = createScimUser("user3");
+        ScimUser[] users = {user0, user1, user2, user3};
+
+        ScimUser[] usersCreated = endpoints.createUsersTx(users, new MockHttpServletRequest(), new MockHttpServletResponse());
+
+        for(ScimUser user : usersCreated) {
+            ScimUser dbUser = dao.retrieve(user.getId(), IdentityZoneHolder.get().getId());
+            assertEquals(user.getId(), dbUser.getId());
+            assertEquals(user.getUserName(), dbUser.getUserName());
+        }
+    }
+
+    private ScimUser createScimUser(String id) {
+        ScimUser user = new ScimUser(id, id + "username", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        user.setPassword("password");
+        user.setOrigin("");
+        return user;
+    }
 }
