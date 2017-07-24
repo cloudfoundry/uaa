@@ -12,8 +12,39 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.restdocs.headers.HeaderDescriptor;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
+import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.request.ParameterDescriptor;
+import org.springframework.restdocs.request.RequestDocumentation;
+import org.springframework.restdocs.snippet.Attributes;
+import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
@@ -39,32 +70,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.apache.commons.lang3.ArrayUtils;
-import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.restdocs.headers.HeaderDescriptor;
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
-import org.springframework.restdocs.payload.FieldDescriptor;
-import org.springframework.restdocs.request.ParameterDescriptor;
-import org.springframework.restdocs.request.RequestDocumentation;
-import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 public class ScimUserEndpointDocs extends InjectedMockContextTest {
 
@@ -154,13 +159,13 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].meta.created").type(STRING).description(metaCreatedDesc)
     };
 
-    Snippet createFields = requestFields(
+    FieldDescriptor[] createFields = {
         fieldWithPath("userName").required().type(STRING).description(usernameDescription),
         fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
         fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
         fieldWithPath("name.formatted").ignored().type(STRING).description("First and last name combined"),
-        fieldWithPath("name.familyName").optional(null).type(STRING).description(lastnameDescription),
-        fieldWithPath("name.givenName").optional(null).type(STRING).description(firstnameDescription),
+        fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
+        fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
         fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
         fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
         fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
@@ -172,7 +177,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
         fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
         fieldWithPath("meta.*").optional().ignored().type(OBJECT).description("SCIM object meta data not read.")
-    );
+    };
 
     FieldDescriptor[] createResponse = {
         fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
@@ -286,6 +291,11 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read."),
         fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
     );
+
+    public static FieldDescriptor[] subFields(String path, FieldDescriptor... fieldDescriptors) {
+        List<SubField> subFields = Arrays.asList(fieldDescriptors).stream().map(field -> new SubField(path, field)).collect(Collectors.toList());
+        return subFields.toArray(new FieldDescriptor[subFields.size()]);
+    }
 
     private final String scimFilterDescription = "SCIM filter for searching";
     private final String scimAttributeDescription = "Comma separated list of attribute names to be returned.";
@@ -464,7 +474,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                         IDENTITY_ZONE_ID_HEADER,
                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                     ),
-                    createFields,
+                    requestFields(createFields),
                     responseFields(createResponse)
                 )
             );
@@ -648,6 +658,35 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
+    public void test_Create_Batch_User() throws Exception {
+        ScimUser[] users = new ScimUser[2];
+        users[0] = createScimUserObject();
+        users[1] = createScimUserObject();
+
+        getMockMvc().perform(
+                RestDocumentationRequestBuilders.post("/Users/tx")
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimWriteToken)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .content(JsonUtils.writeValueAsString(users))
+        )
+                .andExpect(status().isCreated())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                requestFields(subFields("[]", createFields)),
+                                responseFields(subFields("[]", createResponse))
+                        )
+                );
+    }
+
+    @Test
     public void test_Get_User() throws Exception {
         ApprovalStore store = getWebApplicationContext().getBean(ApprovalStore.class);
         Approval approval = new Approval()
@@ -802,20 +841,32 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         tommy = userProvisioning.createUser(tommy, "pas5Word", IdentityZoneHolder.get().getId());
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Access token with `zones.<zoneId>.admin` or `uaa.admin` required."),
-            IDENTITY_ZONE_ID_HEADER,
-            IDENTITY_ZONE_SUBDOMAIN_HEADER);
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER);
 
         Snippet pathParameters = pathParameters(
-            RequestDocumentation.parameterWithName("userId").description("Unique user identifier.")
+                RequestDocumentation.parameterWithName("userId").description("Unique user identifier.")
         );
 
         MockHttpServletRequestBuilder delete = RestDocumentationRequestBuilders.delete("/Users/{userId}/mfa", tommy.getId())
-            .header("Authorization", "Bearer " + accessToken);
+                .header("Authorization", "Bearer " + accessToken);
 
         getMockMvc().perform(delete)
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
-                pathParameters, requestHeaders))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
+                        pathParameters, requestHeaders))
         ;
+    }
+
+    private static class SubField extends FieldDescriptor {
+        public SubField(String path, FieldDescriptor subFieldDescriptor) {
+            super(path + "." + subFieldDescriptor.getPath());
+            type(subFieldDescriptor.getType());
+            description(subFieldDescriptor.getDescription());
+            if(subFieldDescriptor.isIgnored()) { ignored(); }
+            List<Attributes.Attribute> attributes = subFieldDescriptor.getAttributes().entrySet().stream().map(e -> key(e.getKey()).value(e.getValue())).collect(Collectors.toList());
+            attributes(attributes.toArray(new Attributes.Attribute[attributes.size()]));
+            if(subFieldDescriptor.isOptional()) { optional(); }
+        }
     }
 }
