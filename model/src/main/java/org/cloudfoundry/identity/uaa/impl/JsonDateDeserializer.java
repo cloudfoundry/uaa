@@ -32,7 +32,17 @@ import java.util.Date;
  */
 public class JsonDateDeserializer extends JsonDeserializer<Date> {
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMATTER = 
+    	    new ThreadLocal<SimpleDateFormat>() {
+    	        @Override
+    	        protected SimpleDateFormat initialValue() {
+    	            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    	        }
+    	    };
+
+    public static SimpleDateFormat getDateFormatter() {
+        return DATE_FORMATTER.get();
+    }
 
     @Override
     public Date deserialize(JsonParser parser, DeserializationContext context) throws IOException {
@@ -41,7 +51,9 @@ public class JsonDateDeserializer extends JsonDeserializer<Date> {
 
     public static Date getDate(String text, JsonLocation loc) throws IOException {
         try {
-            return dateFormat.parse(text);
+       
+        	return getDateFormatter().parse(text);
+       
         } catch (ParseException e) {
             throw new JsonParseException("Could not parse date:"+ text, loc, e);
         }

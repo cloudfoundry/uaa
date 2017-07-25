@@ -30,12 +30,22 @@ import java.util.Date;
  */
 public class JsonDateSerializer extends JsonSerializer<Date> {
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+   
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMATTER = 
+    	    new ThreadLocal<SimpleDateFormat>() {
+    	        @Override
+    	        protected SimpleDateFormat initialValue() {
+    	            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    	        }
+    	    };
 
+    public static SimpleDateFormat getDateFormatter() {
+        return DATE_FORMATTER.get();
+    }
     @Override
     public void serialize(Date date, JsonGenerator generator, SerializerProvider provider) throws IOException,
         JsonProcessingException {
-        String formatted = dateFormat.format(date);
+        String formatted = getDateFormatter().format(date);
         generator.writeString(formatted);
     }
 
