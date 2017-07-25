@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import java.util.List;
 
@@ -54,7 +55,7 @@ public class CommonLoginPolicy implements LoginPolicy {
             LockoutPolicy lockoutPolicy = lockoutPolicyRetriever.getLockoutPolicy();
 
             long eventsAfter = timeService.getCurrentTimeMillis() - lockoutPolicy.getCountFailuresWithin() * 1000;
-            List<AuditEvent> events = auditService.find(principalId, eventsAfter);
+            List<AuditEvent> events = auditService.find(principalId, eventsAfter, IdentityZoneHolder.get().getId());
 
             failureCount = sequentialFailureCount(events);
 

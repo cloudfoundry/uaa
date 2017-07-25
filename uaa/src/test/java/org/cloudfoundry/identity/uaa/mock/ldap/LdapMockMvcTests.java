@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -19,13 +20,16 @@ import org.cloudfoundry.identity.uaa.mock.DefaultConfigurationTestSuite;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -33,6 +37,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -63,15 +68,19 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.HttpSession;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,6 +94,7 @@ import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -93,6 +103,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -104,6 +117,7 @@ import static org.springframework.security.web.context.HttpSessionSecurityContex
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -158,8 +172,22 @@ public class LdapMockMvcTests  {
         apacheDS.stop();
     }
 
+    public static boolean checkOpenPorts(int port) throws Exception {
+        //need to configure gradle to not swallow the output, but log it to a file
+        System.out.println("Checking for processes using port:"+port);
+        ProcessBuilder builder = new ProcessBuilder(Arrays.asList("sudo", "lsof", "-i", ":"+port));
+        builder.inheritIO().redirectOutput(ProcessBuilder.Redirect.PIPE);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(builder.start().getInputStream()))) {
+            long count = reader.lines().count();
+            reader.lines().forEach(line -> System.err.println("LDAP Port["+port+"] lsof:"+line));
+            return count > 0;
+        }
+    }
+
     @BeforeClass
     public static void startApacheDS() throws Exception {
+        checkOpenPorts(33389);
+        checkOpenPorts(33636);
         apacheDS = ApacheDSHelper.start();
         webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
@@ -726,9 +754,10 @@ public class LdapMockMvcTests  {
         assertEquals(zone.getZone().getIdentityZone().getId(), user.getZoneId());
     }
 
-
+    @Test
     public void test_memberOf_search() throws Exception {
-
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
+        transferDefaultMappingsToZone(zone.getZone().getIdentityZone());
         provider.getConfig().setGroupSearchBase("memberOf");
         updateLdapProvider();
 
@@ -779,6 +808,38 @@ public class LdapMockMvcTests  {
     public void printProfileType() throws Exception {
         assertEquals(ldapProfile, getBean("testLdapProfile"));
         assertEquals(ldapGroup, getBean("testLdapGroup"));
+    }
+
+    @Test
+    public void test_read_and_write_config_then_login() throws Exception {
+
+        String response = getMockMvc().perform(
+            get("/identity-providers/"+provider.getId())
+                .header(ACCEPT, APPLICATION_JSON)
+                .header(HOST, host)
+                .header(AUTHORIZATION, "Bearer " + zone.getAdminToken())
+        )
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        assertThat(response, not(containsString("bindPassword")));
+        IdentityProvider<LdapIdentityProviderDefinition> provider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<LdapIdentityProviderDefinition>>() {});
+        assertNull(provider.getConfig().getBindPassword());
+
+        getMockMvc().perform(
+            put("/identity-providers/"+provider.getId())
+                .content(JsonUtils.writeValueAsString(provider))
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .header(ACCEPT, APPLICATION_JSON)
+                .header(HOST, host)
+                .header(AUTHORIZATION, "Bearer " + zone.getAdminToken())
+        )
+            .andExpect(status().isOk());
+
+        testSuccessfulLogin();
+
     }
 
     @Test
@@ -976,7 +1037,7 @@ public class LdapMockMvcTests  {
             ScimUser user = new ScimUser(null, "marissa7@user.from.ldap.cf", "Marissa", "Seven");
             user.setPrimaryEmail("marissa7@user.from.ldap.cf");
             user.setOrigin(LDAP);
-            createdUser = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, "");
+            createdUser = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, "", IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.clear();
         }
@@ -989,7 +1050,7 @@ public class LdapMockMvcTests  {
         assertEquals("marissa7", authedUser.getUsername());
         try {
             IdentityZoneHolder.set(zone.getZone().getIdentityZone());
-            List<ScimUser> scimUserList = getWebApplicationContext().getBean(ScimUserProvisioning.class).query(String.format("origin eq \"%s\"", LDAP));
+            List<ScimUser> scimUserList = getWebApplicationContext().getBean(ScimUserProvisioning.class).query(String.format("origin eq \"%s\"", LDAP), IdentityZoneHolder.get().getId());
             assertEquals(1, scimUserList.size());
         } finally {
             IdentityZoneHolder.clear();
@@ -1143,25 +1204,11 @@ public class LdapMockMvcTests  {
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        String[] list = new String[]{
-            "uaa.admin",
-            "password.write",
-            "scim.userids",
-            "approvals.me",
-            "cloud_controller.write",
-            "scim.me",
-            "cloud_controller_service_permissions.read",
-            "openid",
-            "profile",
-            "roles",
-            "oauth.approvals",
-            "uaa.user",
-            "cloud_controller.read",
-            "user_attributes",
-            UaaTokenServices.UAA_REFRESH_TOKEN,
-            "thirdmarissa"
-        };
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+        List<String> list = new LinkedList<>(UserConfig.DEFAULT_ZONE_GROUPS);
+        list.add("uaa.admin");
+        list.add("thirdmarissa");
+        list.add("cloud_controller.read");
+        assertThat(list, containsInAnyOrder(getAuthorities(auth.getAuthorities())));
         IdentityZoneHolder.clear();
     }
 
@@ -1170,7 +1217,7 @@ public class LdapMockMvcTests  {
         if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
             return;
         }
-        Set<String> defaultAuthorities = new HashSet((Set<String>)getWebApplicationContext().getBean("defaultUserAuthorities"));
+        Set<String> defaultAuthorities = new HashSet(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         AuthenticationManager manager = getWebApplicationContext().getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa4","ldap4");
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
@@ -1181,11 +1228,34 @@ public class LdapMockMvcTests  {
         IdentityZoneHolder.clear();
     }
 
+    public void transferDefaultMappingsToZone(IdentityZone zone) {
+        JdbcScimGroupExternalMembershipManager exm = getWebApplicationContext().getBean(JdbcScimGroupExternalMembershipManager.class);
+        ScimGroupProvisioning gp = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
+        List<String> defaultMappings = (List<String>) getWebApplicationContext().getBean("defaultExternalMembers");
+        IdentityZoneHolder.set(zone);
+        for (String s : defaultMappings) {
+            String[] groupData = StringUtils.split(s, "|");
+            String internalName = groupData[0];
+            String externalName = groupData[1];
+            ScimGroup group = new ScimGroup(internalName);
+            group.setZoneId(zone.getId());
+            try {
+                group = gp.create(group, IdentityZoneHolder.get().getId());
+            } catch (ScimResourceAlreadyExistsException e) {
+                String filter = "displayName eq \""+internalName+"\"";
+                group = gp.query(filter, IdentityZoneHolder.get().getId()).get(0);
+            }
+            exm.mapExternalGroup(group.getId(), externalName, OriginKeys.LDAP, zone.getId());
+        }
+    }
+
     public void doTestNestedLdapGroupsMappedToScopes(String username, String password, String[] expected) throws Exception {
         assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
+        transferDefaultMappingsToZone(zone.getZone().getIdentityZone());
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
         AuthenticationManager manager = getWebApplicationContext().getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
-        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
         validateUserAuthorities(expected, auth);
@@ -1193,7 +1263,7 @@ public class LdapMockMvcTests  {
     }
 
     protected void validateUserAuthorities(String[] expected, Authentication auth) throws Exception {
-        Set<String> defaultAuthorities = new HashSet((Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities"));
+        Set<String> defaultAuthorities = new HashSet<>(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         for (String s : expected) {
             defaultAuthorities.add(s);
         }
@@ -1282,10 +1352,11 @@ public class LdapMockMvcTests  {
         assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
         AuthenticationManager manager = getWebApplicationContext().getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
+        transferDefaultMappingsToZone(zone.getZone().getIdentityZone());
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        Set<String> defaultAuthorities = new HashSet((Set<String>)getWebApplicationContext().getBean("defaultUserAuthorities"));
+        Set<String> defaultAuthorities = new HashSet(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         defaultAuthorities.addAll(Arrays.asList(expected));
         assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
     }

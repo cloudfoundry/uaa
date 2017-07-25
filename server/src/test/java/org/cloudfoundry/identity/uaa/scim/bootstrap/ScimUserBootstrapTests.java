@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -24,17 +25,19 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.MigrationVersion;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -45,17 +48,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-public class ScimUserBootstrapTests {
+public class ScimUserBootstrapTests extends JdbcTestBase {
 
     private JdbcScimUserProvisioning db;
 
@@ -65,49 +81,85 @@ public class ScimUserBootstrapTests {
 
     private ScimUserEndpoints userEndpoints;
 
-    private EmbeddedDatabase database;
-    private Flyway flyway;
-
-    private JdbcTemplate jdbcTemplate;
+    private IdentityZone otherZone;
 
     @Before
-    public void setUp() {
-        EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-        database = builder.build();
-        flyway = new Flyway();
-        flyway.setBaselineVersion(MigrationVersion.fromVersion("1.5.2"));
-        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
-        flyway.setDataSource(database);
-        flyway.migrate();
-        jdbcTemplate = new JdbcTemplate(database);
+    public void init() throws Exception {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
-        db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
+        db = spy(new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory));
         gdb = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        mdb = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
+        mdb = new JdbcScimGroupMembershipManager(jdbcTemplate);
         mdb.setScimUserProvisioning(db);
         mdb.setScimGroupProvisioning(gdb);
         userEndpoints = new ScimUserEndpoints();
         userEndpoints.setScimGroupMembershipManager(mdb);
         userEndpoints.setScimUserProvisioning(db);
+        String zoneId = new RandomValueStringGenerator().generate().toLowerCase();
+        otherZone = MultitenancyFixture.identityZone(zoneId, zoneId);
     }
 
     public static void addIdentityProvider(JdbcTemplate jdbcTemplate, String originKey) {
         jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')", UUID.randomUUID().toString(), originKey, originKey);
     }
 
-    @After
-    public void shutdownDb() throws Exception {
-        database.shutdown();
+
+    @Test
+    public void can_delete_users_but_only_in_default_zone() throws Exception {
+        canAddUsers(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        canAddUsers(OriginKeys.LDAP, IdentityZone.getUaa().getId());
+        canAddUsers(OriginKeys.UAA, otherZone.getId()); //this is just an update of the same two users, zoneId is ignored
+        List<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
+        assertEquals(4, users.size());
+        reset(db);
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        doAnswer(invocation -> {
+            EntityDeletedEvent event = invocation.getArgument(0);
+            db.deleteByUser(event.getObjectId(), IdentityZone.getUaa().getId());
+            return null;
+        })
+            .when(publisher).publishEvent(any(EntityDeletedEvent.class));
+
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, emptyList());
+        List<String> usersToDelete = Arrays.asList("joe", "mabel", "non-existent");
+        bootstrap.setUsersToDelete(usersToDelete);
+        bootstrap.setApplicationEventPublisher(publisher);
+        bootstrap.afterPropertiesSet();
+        bootstrap.onApplicationEvent(mock(ContextRefreshedEvent.class));
+        ArgumentCaptor<ApplicationEvent> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+        verify(publisher, times(2)).publishEvent(captor.capture());
+        List<EntityDeletedEvent<ScimUser>> deleted = new LinkedList(ofNullable(captor.getAllValues()).orElse(emptyList()));
+        assertNotNull(deleted);
+        assertEquals(2, deleted.size());
+        deleted.forEach(event -> assertEquals(OriginKeys.UAA, event.getDeleted().getOrigin()));
+        assertEquals(2, db.retrieveAll(IdentityZoneHolder.get().getId()).size());
+    }
+
+
+    @Test
+    public void slated_for_delete_does_not_add() throws Exception {
+        UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+        UaaUser mabel = new UaaUser("mabel", "password", "mabel@blah.com", "Mabel", "User");
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe, mabel));
+        bootstrap.setUsersToDelete(Arrays.asList("joe", "mabel"));
+        bootstrap.afterPropertiesSet();
+        String zoneId = IdentityZoneHolder.get().getId();
+        verify(db, never()).create(any(), eq(zoneId));
+        Collection<ScimUser> users = db.retrieveAll(zoneId);
+        assertEquals(0, users.size());
     }
 
     @Test
     public void canAddUsers() throws Exception {
-        UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
-        UaaUser mabel = new UaaUser("mabel", "password", "mabel@blah.com", "Mabel", "User");
+        canAddUsers(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
+        assertEquals(2, users.size());
+    }
+
+    public void canAddUsers(String origin, String zoneId) throws Exception {
+        UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User", origin, zoneId);
+        UaaUser mabel = new UaaUser("mabel", "password", "mabel@blah.com", "Mabel", "User", origin, zoneId);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe, mabel));
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
-        assertEquals(2, users.size());
     }
 
     @Test
@@ -117,7 +169,7 @@ public class ScimUserBootstrapTests {
 
         bootstrap.afterPropertiesSet();
 
-        List<ScimUser> users = db.retrieveAll();
+        List<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
 
         ScimUser scimJoe = users.get(0);
         assertTrue(scimJoe.isVerified());
@@ -217,7 +269,6 @@ public class ScimUserBootstrapTests {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.afterPropertiesSet();
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid"));
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         System.err.println(jdbcTemplate.queryForList("SELECT * FROM group_membership"));
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
@@ -247,7 +298,7 @@ public class ScimUserBootstrapTests {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         assertEquals("Bloggs", users.iterator().next().getFamilyName());
         assertNotEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
@@ -266,7 +317,7 @@ public class ScimUserBootstrapTests {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(false);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         assertEquals("User", users.iterator().next().getFamilyName());
     }
@@ -285,7 +336,7 @@ public class ScimUserBootstrapTests {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         assertEquals("Bloggs", users.iterator().next().getFamilyName());
         assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
@@ -311,13 +362,13 @@ public class ScimUserBootstrapTests {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
 
-        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities),add));
 
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
         validateAuthoritiesCreated(add?externalAuthorities:new String[0], userAuthorities, origin, created);
@@ -333,14 +384,14 @@ public class ScimUserBootstrapTests {
     }
 
     protected void validateAuthoritiesCreated(String[] externalAuthorities, String[] userAuthorities, String origin, ScimUser created) {
-        Set<ScimGroup> groups = mdb.getGroupsWithMember(created.getId(),true);
+        Set<ScimGroup> groups = mdb.getGroupsWithMember(created.getId(), true, IdentityZoneHolder.get().getId());
         String[] expected = merge(externalAuthorities,userAuthorities);
         String[] actual = getGroupNames(groups);
         assertThat(actual, IsArrayContainingInAnyOrder.arrayContainingInAnyOrder(expected));
 
         List<String> external = Arrays.asList(externalAuthorities);
         for (ScimGroup g : groups) {
-            ScimGroupMember m = mdb.getMemberById(g.getId(), created.getId());
+            ScimGroupMember m = mdb.getMemberById(g.getId(), created.getId(), IdentityZoneHolder.get().getId());
             if (external.contains(g.getDisplayName())) {
                 assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", origin, m.getOrigin());
             } else {
@@ -367,13 +418,13 @@ public class ScimUserBootstrapTests {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
 
-        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, newEmail, firstName, lastName, password, externalId, userId, username);
 
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities),true));
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
@@ -382,14 +433,14 @@ public class ScimUserBootstrapTests {
         user = user.modifyEmail("test123@test.org");
         //Ensure email doesn't get updated if event instructs not to update.
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities),true));
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
         assertEquals(newEmail, created.getPrimaryEmail());
 
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities),true));
-        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
         created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
@@ -435,7 +486,7 @@ public class ScimUserBootstrapTests {
         addIdentityProvider(jdbcTemplate,"newOrigin");
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user, user.modifySource("newOrigin", "")));
         bootstrap.afterPropertiesSet();
-        assertEquals(2, db.retrieveAll().size());
+        assertEquals(2, db.retrieveAll(IdentityZoneHolder.get().getId()).size());
     }
 
     private List<GrantedAuthority> getAuthorities(String[] auth) {

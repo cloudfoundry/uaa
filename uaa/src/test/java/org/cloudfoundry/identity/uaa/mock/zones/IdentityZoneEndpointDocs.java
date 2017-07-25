@@ -28,10 +28,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -126,6 +123,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         "Hn+GmxZA\n" +
         "-----END CERTIFICATE-----\n";
 
+    public static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
+    public static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
 
     @Before
@@ -156,9 +155,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.getConfig().setSamlConfig(samlConfig);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
-        identityZone.getConfig().getClientLockoutPolicy().setLockoutAfterFailures(5);
-        identityZone.getConfig().getClientLockoutPolicy().setLockoutPeriodSeconds(300);
-        identityZone.getConfig().getClientLockoutPolicy().setCountFailuresWithin(3600);
 
         FieldDescriptor[] fieldDescriptors = {
             fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Optional")),
@@ -167,13 +163,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-
             fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
-            fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
+            fieldWithPath("config.tokenPolicy.keys.*.*").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
@@ -186,16 +178,21 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `privateKey` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKey`")),
+            fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if a list of keys defined in `keys` map")),
+            fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.passphrase` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.passphrase`")),
             fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.selfService.signup").description(SIGNUP_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.selfService.passwd").description(PASSWD_DESC).attributes(key("constraints").value("Optional")),
@@ -212,7 +209,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
@@ -232,6 +229,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -274,7 +272,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to retrieve")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
                 ),
                 getResponseFields()
             ));
@@ -300,31 +298,31 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].description").description(DESCRIPTION_DESC),
             fieldWithPath("[].version").description(VERSION_DESC),
 
-            fieldWithPath("[].config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC),
+            fieldWithPath("[].config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("[].config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("[].config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("[].config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-
-
             fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
-            fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC),
             fieldWithPath("[].config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
+            fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
+
+            fieldWithPath("[].config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
+            fieldWithPath("[].config.samlConfig.keys").ignored().type(OBJECT).description(CERTIFICATE_DESC),
+            fieldWithPath("[].config.samlConfig.keys.*").type(OBJECT).description(CERTIFICATE_DESC),
+            fieldWithPath("[].config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC),
 
             fieldWithPath("[].config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
             fieldWithPath("[].config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC),
             fieldWithPath("[].config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
             fieldWithPath("[].config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
-            fieldWithPath("[].config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC),
+            fieldWithPath("[].config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC),
             fieldWithPath("[].config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC),
             fieldWithPath("[].config.links.selfService.signup").description(SIGNUP_DESC),
             fieldWithPath("[].config.links.selfService.passwd").description(PASSWD_DESC),
@@ -336,7 +334,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
 
 
-            fieldWithPath("[].config.prompts[]").type(ARRAY).description(PROMPTS_DESC),
+            fieldWithPath("[].config.prompts[]").type(OBJECT).description(PROMPTS_DESC),
             fieldWithPath("[].config.prompts[].name").description(PROMPTS_DESC),
             fieldWithPath("[].config.prompts[].type").description(PROMPTS_TYPE_DESC),
             fieldWithPath("[].config.prompts[].text").description(PROMPTS_TEXT_DESC),
@@ -348,7 +346,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
@@ -367,6 +365,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedMethods").description(CORS_XHR_METHODS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("[].config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("[].created").ignored(),
             fieldWithPath("[].last_modified").ignored()
@@ -418,32 +418,34 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
 
-            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
-            fieldWithPath("config.tokenPolicy.keys").description(KEYS_UPDATE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
+            fieldWithPath("config.tokenPolicy.keys.*.*").description(KEYS_UPDATE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `privateKey` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKeyPassword`")),
-            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `certificate` and `privateKey`")),
+          
             fieldWithPath("config.samlConfig.entityID").description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if a list of keys defined in `keys` map")),
+            fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.passphrase` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.certificate`")),
+            fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.passphrase`")),
+
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.selfService.signup").description(SIGNUP_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.selfService.passwd").description(PASSWD_DESC).attributes(key("constraints").value("Optional")),
@@ -460,7 +462,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
@@ -479,6 +481,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedMethods").description(CORS_XHR_METHODS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -568,30 +572,29 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("description").type(STRING).description(DESCRIPTION_DESC).optional(),
             fieldWithPath("version").description(VERSION_DESC),
 
-            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC),
+            fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
             fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.clientLockoutPolicy.lockoutPeriodSeconds").type(NUMBER).description(LOCKOUT_PERIOD_SECONDS_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.lockoutAfterFailures").type(NUMBER).description(LOCKOUT_AFTER_FAILURES_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-            fieldWithPath("config.clientLockoutPolicy.countFailuresWithin").type(NUMBER).description(LOCKOUT_COUNT_FAILURES_WITHIN_DESC).attributes(key("constraints").value("Required when `LockoutPolicy` in the config is not null")),
-
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC),
+          
             fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
+            fieldWithPath("config.samlConfig.activeKeyId").optional().type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
+            fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
-            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC),
+            fieldWithPath("config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC),
             fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC),
             fieldWithPath("config.links.selfService.signup").description(SIGNUP_DESC),
             fieldWithPath("config.links.selfService.passwd").description(PASSWD_DESC),
@@ -607,7 +610,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC),
             fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
-            fieldWithPath("config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
+            fieldWithPath("config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC),
 
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC),
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC),
@@ -626,6 +629,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedMethods").description(CORS_XHR_METHODS_DESC),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC),
             fieldWithPath("config.corsPolicy.xhrConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC),
+
+            fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()

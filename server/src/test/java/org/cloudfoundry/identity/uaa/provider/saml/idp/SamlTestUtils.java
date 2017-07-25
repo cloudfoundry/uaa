@@ -8,8 +8,11 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
@@ -34,6 +37,7 @@ import org.opensaml.xml.io.Marshaller;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.SecurityHelper;
+import org.opensaml.xml.security.credential.Credential;
 import org.opensaml.xml.signature.Signature;
 import org.opensaml.xml.signature.SignatureException;
 import org.opensaml.xml.signature.Signer;
@@ -46,13 +50,29 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -115,6 +135,19 @@ public class SamlTestUtils {
         initializeSimple();
     }
 
+    public IdentityZone getUaaZoneWithSamlConfig() {
+        IdentityZone uaa = IdentityZoneHolder.getUaaZone();
+        setupZoneWithSamlConfig(uaa);
+        return uaa;
+    }
+
+    public void setupZoneWithSamlConfig(IdentityZone zone) {
+        SamlConfig config = zone.getConfig().getSamlConfig();
+        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
+        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+        config.setCertificate(PROVIDER_CERTIFICATE);
+    }
+
     public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId, String idpMetaData) {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);
@@ -157,12 +190,20 @@ public class SamlTestUtils {
         context.setPeerEntityRoleMetadata(spDescriptor);
         context.setInboundSAMLMessage(authnRequest);
 
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
+        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+        config.setCertificate(PROVIDER_CERTIFICATE);
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
         context.setLocalSigningCredential(keyManager.getDefaultCredential());
         return context;
     }
 
     public EntityDescriptor mockIdpMetadata() {
+        return mockIdpMetadataGenerator().generateMetadata();
+    }
+
+    public IdpMetadataGenerator mockIdpMetadataGenerator() {
         IdpExtendedMetadata extendedMetadata = new IdpExtendedMetadata();
 
         IdpMetadataGenerator metadataGenerator = new IdpMetadataGenerator();
@@ -173,7 +214,7 @@ public class SamlTestUtils {
         KeyManager keyManager = mock(KeyManager.class);
         when(keyManager.getDefaultCredentialName()).thenReturn(null);
         metadataGenerator.setKeyManager(keyManager);
-        return metadataGenerator.generateMetadata();
+        return metadataGenerator;
     }
 
     public EntityDescriptor mockSpMetadata() {
@@ -215,11 +256,14 @@ public class SamlTestUtils {
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
         assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
         assertion.getConditions().setNotOnOrAfter(until);
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(privateKey, keyPassword, certificate);
+        SamlConfig config = new SamlConfig();
+        config.addAndActivateKey("active-key", new SamlKey(privateKey,keyPassword, certificate));
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
         SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
         Signature signature = signatureBuilder.buildObject();
-        signature.setSigningCredential(keyManager.getDefaultCredential());
-        SecurityHelper.prepareSignatureParams(signature, keyManager.getDefaultCredential(), null, null);
+        final Credential defaultCredential = keyManager.getDefaultCredential();
+        signature.setSigningCredential(defaultCredential);
+        SecurityHelper.prepareSignatureParams(signature, defaultCredential, null, null);
         assertion.setSignature(signature);
         Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
         marshaller.marshall(assertion);
@@ -227,7 +271,7 @@ public class SamlTestUtils {
         return assertion;
     }
 
-    public static String assertion = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><saml2:Assertion ID=\"agfe71gig53hfe2ggc3427i31bd94\" IssueInstant=\"2017-01-24T22:24:32.000Z\" Version=\"2.0\" xmlns:saml2=\"urn:oasis:names:tc:SAML:2.0:assertion\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\t\t<saml2:Issuer>dnd.login.identity.cf-app.com</saml2:Issuer>\t\t<ds:Signature xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\t\t\t<ds:SignedInfo>\t\t\t\t<ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\t\t\t\t<ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>\t\t\t\t<ds:Reference URI=\"#agfe71gig53hfe2ggc3427i31bd94\">\t\t\t\t\t<ds:Transforms>\t\t\t\t\t\t<ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/>\t\t\t\t\t\t<ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\">\t\t\t\t\t\t\t<ec:InclusiveNamespaces PrefixList=\"xs\" xmlns:ec=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\t\t\t\t\t\t</ds:Transform>\t\t\t\t\t</ds:Transforms>\t\t\t\t\t<ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/>\t\t\t\t\t<ds:DigestValue>qUU2CHdJFMoySxOWd0QxVAcrzz8=</ds:DigestValue>\t\t\t\t</ds:Reference>\t\t\t</ds:SignedInfo>\t\t\t<ds:SignatureValue>0q3OjHdv4EaOl2FUOSSAQDDb+Cfg9bEJ+RVvbYQHLhzgWHENwD1MDOg8pPMIkQ2zTH8aOg5FKT1qSK2K61NIk+pAZ/L47lJ6V2CCUwfb9lIOsbwATWppUjlg7zmcEXvL8cr/CrPA2q0h1vjT05SbFuUbVmPJ9YXa7PyPHt39XxM=</ds:SignatureValue>\t\t\t<ds:KeyInfo>\t\t\t\t<ds:X509Data>\t\t\t\t\t<ds:X509Certificate>MIIEJTCCA46gAwIBAgIJANIqfxWTfhpkMA0GCSqGSIb3DQEBBQUAMIG+MQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEdMBsGA1UEChMUUGl2b3RhbCBTb2Z0d2FyZSBJbmMxJDAiBgNVBAsTG0Nsb3VkIEZvdW5kcnkgSWRlbnRpdHkgVGVhbTEcMBoGA1UEAxMTaWRlbnRpdHkuY2YtYXBwLmNvbTEfMB0GCSqGSIb3DQEJARYQbWFyaXNzYUB0ZXN0Lm9yZzAeFw0xNTA1MTQxNzE5MTBaFw0yNTA1MTExNzE5MTBaMIG+MQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEdMBsGA1UEChMUUGl2b3RhbCBTb2Z0d2FyZSBJbmMxJDAiBgNVBAsTG0Nsb3VkIEZvdW5kcnkgSWRlbnRpdHkgVGVhbTEcMBoGA1UEAxMTaWRlbnRpdHkuY2YtYXBwLmNvbTEfMB0GCSqGSIb3DQEJARYQbWFyaXNzYUB0ZXN0Lm9yZzCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA30y2nX+kICXktl1yJhBzLGvtTuzJiLeOMWi++zdivifyRqX1dwJ5MgdOsBWdNrASwe4ZKONiyLFRDsk7lAYq3f975chxSsrRu1BLetBZfPEmwBH7FCTdYtWklJbpz0vzQs/gSsMChT/UrN6zSJhPVHNizLxstedyxxVVts644U8CAwEAAaOCAScwggEjMB0GA1UdDgQWBBSvWY/TyHysYGxKvII95wD/CzE1AzCB8wYDVR0jBIHrMIHogBSvWY/TyHysYGxKvII95wD/CzE1A6GBxKSBwTCBvjELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHTAbBgNVBAoTFFBpdm90YWwgU29mdHdhcmUgSW5jMSQwIgYDVQQLExtDbG91ZCBGb3VuZHJ5IElkZW50aXR5IFRlYW0xHDAaBgNVBAMTE2lkZW50aXR5LmNmLWFwcC5jb20xHzAdBgkqhkiG9w0BCQEWEG1hcmlzc2FAdGVzdC5vcmeCCQDSKn8Vk34aZDAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4GBAL5j1JCN5EoXMOOBSBUL8KeVZFQD3NfyYkYKBatFEKdBFlAKLBdG+5KzE7sTYesn7EzBISHXFz3DhdK2tg+IF1DeSFVmFl2niVxQ1sYjo4kCugHBsWo+MpFH9VBLFzsMlP3eIDuVKe8aPXFKYCGhctZEJdQTKljalshe50nayKrT</ds:X509Certificate>\t\t\t\t</ds:X509Data>\t\t\t</ds:KeyInfo>\t\t</ds:Signature>\t\t<saml2:Subject>\t\t\t<saml2:NameID Format=\"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\">fhanik@pivotal.io</saml2:NameID>\t\t\t<saml2:SubjectConfirmation Method=\"urn:oasis:names:tc:SAML:2.0:cm:bearer\">\t\t\t\t<saml2:SubjectConfirmationData InResponseTo=\"a26j1hhg7f23j3ab9fhd3b89c44ddf\" NotOnOrAfter=\"2017-01-24T22:34:32.001Z\" Recipient=\"https://login.identity.cf-app.com/saml/SSO/alias/login.identity.cf-app.com\"/>\t\t\t</saml2:SubjectConfirmation>\t\t</saml2:Subject>\t\t<saml2:Conditions NotBefore=\"2017-01-24T22:24:32.000Z\" NotOnOrAfter=\"2017-01-24T22:34:32.000Z\">\t\t\t<saml2:AudienceRestriction>\t\t\t\t<saml2:Audience>login.identity.cf-app.com</saml2:Audience>\t\t\t</saml2:AudienceRestriction>\t\t</saml2:Conditions>\t\t<saml2:AuthnStatement AuthnInstant=\"2017-01-24T22:24:32.000Z\" SessionIndex=\"a40ff3hh5e8fifg851b9e19i757b983\">\t\t\t<saml2:AuthnContext>\t\t\t\t<saml2:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml2:AuthnContextClassRef>\t\t\t</saml2:AuthnContext>\t\t</saml2:AuthnStatement>\t\t<saml2:AttributeStatement>\t\t\t<saml2:Attribute Name=\"authorities\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller.user</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">scim.me</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">openid</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">profile</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">roles</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">notification_preferences.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">user_attributes</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">uaa.user</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">notification_preferences.write</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">password.write</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">approvals.me</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">actuator.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller.write</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller_service_permissions.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">oauth.approvals</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"email\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">fhanik@pivotal.io</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"id\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">de53ef3f-0fac-4e0c-a5eb-b6c9752684b4</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"name\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">fhanik@pivotal.io</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"origin\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">uaa</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"zoneId\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">1c7a9bf9-679b-483e-a186-41c850411ee5</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t</saml2:AttributeStatement>\t</saml2:Assertion>";
+    public static String assertion = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><saml2:Assertion ID=\"agfe71gig53hfe2ggc3427i31bd94\" IssueInstant=\"2017-01-24T22:24:32.000Z\" Version=\"2.0\" xmlns:saml2=\"urn:oasis:names:tc:SAML:2.0:assertion\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\t\t<saml2:Issuer>dnd.login.uaa-acceptance.cf-app.com</saml2:Issuer>\t\t<ds:Signature xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\t\t\t<ds:SignedInfo>\t\t\t\t<ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\t\t\t\t<ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>\t\t\t\t<ds:Reference URI=\"#agfe71gig53hfe2ggc3427i31bd94\">\t\t\t\t\t<ds:Transforms>\t\t\t\t\t\t<ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/>\t\t\t\t\t\t<ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\">\t\t\t\t\t\t\t<ec:InclusiveNamespaces PrefixList=\"xs\" xmlns:ec=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\t\t\t\t\t\t</ds:Transform>\t\t\t\t\t</ds:Transforms>\t\t\t\t\t<ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/>\t\t\t\t\t<ds:DigestValue>qUU2CHdJFMoySxOWd0QxVAcrzz8=</ds:DigestValue>\t\t\t\t</ds:Reference>\t\t\t</ds:SignedInfo>\t\t\t<ds:SignatureValue>0q3OjHdv4EaOl2FUOSSAQDDb+Cfg9bEJ+RVvbYQHLhzgWHENwD1MDOg8pPMIkQ2zTH8aOg5FKT1qSK2K61NIk+pAZ/L47lJ6V2CCUwfb9lIOsbwATWppUjlg7zmcEXvL8cr/CrPA2q0h1vjT05SbFuUbVmPJ9YXa7PyPHt39XxM=</ds:SignatureValue>\t\t\t<ds:KeyInfo>\t\t\t\t<ds:X509Data>\t\t\t\t\t<ds:X509Certificate>MIIEJTCCA46gAwIBAgIJANIqfxWTfhpkMA0GCSqGSIb3DQEBBQUAMIG+MQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEdMBsGA1UEChMUUGl2b3RhbCBTb2Z0d2FyZSBJbmMxJDAiBgNVBAsTG0Nsb3VkIEZvdW5kcnkgSWRlbnRpdHkgVGVhbTEcMBoGA1UEAxMTaWRlbnRpdHkuY2YtYXBwLmNvbTEfMB0GCSqGSIb3DQEJARYQbWFyaXNzYUB0ZXN0Lm9yZzAeFw0xNTA1MTQxNzE5MTBaFw0yNTA1MTExNzE5MTBaMIG+MQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEdMBsGA1UEChMUUGl2b3RhbCBTb2Z0d2FyZSBJbmMxJDAiBgNVBAsTG0Nsb3VkIEZvdW5kcnkgSWRlbnRpdHkgVGVhbTEcMBoGA1UEAxMTaWRlbnRpdHkuY2YtYXBwLmNvbTEfMB0GCSqGSIb3DQEJARYQbWFyaXNzYUB0ZXN0Lm9yZzCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA30y2nX+kICXktl1yJhBzLGvtTuzJiLeOMWi++zdivifyRqX1dwJ5MgdOsBWdNrASwe4ZKONiyLFRDsk7lAYq3f975chxSsrRu1BLetBZfPEmwBH7FCTdYtWklJbpz0vzQs/gSsMChT/UrN6zSJhPVHNizLxstedyxxVVts644U8CAwEAAaOCAScwggEjMB0GA1UdDgQWBBSvWY/TyHysYGxKvII95wD/CzE1AzCB8wYDVR0jBIHrMIHogBSvWY/TyHysYGxKvII95wD/CzE1A6GBxKSBwTCBvjELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHTAbBgNVBAoTFFBpdm90YWwgU29mdHdhcmUgSW5jMSQwIgYDVQQLExtDbG91ZCBGb3VuZHJ5IElkZW50aXR5IFRlYW0xHDAaBgNVBAMTE2lkZW50aXR5LmNmLWFwcC5jb20xHzAdBgkqhkiG9w0BCQEWEG1hcmlzc2FAdGVzdC5vcmeCCQDSKn8Vk34aZDAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4GBAL5j1JCN5EoXMOOBSBUL8KeVZFQD3NfyYkYKBatFEKdBFlAKLBdG+5KzE7sTYesn7EzBISHXFz3DhdK2tg+IF1DeSFVmFl2niVxQ1sYjo4kCugHBsWo+MpFH9VBLFzsMlP3eIDuVKe8aPXFKYCGhctZEJdQTKljalshe50nayKrT</ds:X509Certificate>\t\t\t\t</ds:X509Data>\t\t\t</ds:KeyInfo>\t\t</ds:Signature>\t\t<saml2:Subject>\t\t\t<saml2:NameID Format=\"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\">fhanik@pivotal.io</saml2:NameID>\t\t\t<saml2:SubjectConfirmation Method=\"urn:oasis:names:tc:SAML:2.0:cm:bearer\">\t\t\t\t<saml2:SubjectConfirmationData InResponseTo=\"a26j1hhg7f23j3ab9fhd3b89c44ddf\" NotOnOrAfter=\"2017-01-24T22:34:32.001Z\" Recipient=\"https://login.uaa-acceptance.cf-app.com/saml/SSO/alias/login.uaa-acceptance.cf-app.com\"/>\t\t\t</saml2:SubjectConfirmation>\t\t</saml2:Subject>\t\t<saml2:Conditions NotBefore=\"2017-01-24T22:24:32.000Z\" NotOnOrAfter=\"2017-01-24T22:34:32.000Z\">\t\t\t<saml2:AudienceRestriction>\t\t\t\t<saml2:Audience>login.uaa-acceptance.cf-app.com</saml2:Audience>\t\t\t</saml2:AudienceRestriction>\t\t</saml2:Conditions>\t\t<saml2:AuthnStatement AuthnInstant=\"2017-01-24T22:24:32.000Z\" SessionIndex=\"a40ff3hh5e8fifg851b9e19i757b983\">\t\t\t<saml2:AuthnContext>\t\t\t\t<saml2:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml2:AuthnContextClassRef>\t\t\t</saml2:AuthnContext>\t\t</saml2:AuthnStatement>\t\t<saml2:AttributeStatement>\t\t\t<saml2:Attribute Name=\"authorities\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller.user</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">scim.me</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">openid</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">profile</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">roles</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">notification_preferences.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">user_attributes</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">uaa.user</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">notification_preferences.write</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">password.write</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">approvals.me</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">actuator.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller.write</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">cloud_controller_service_permissions.read</saml2:AttributeValue>\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">oauth.approvals</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"email\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">fhanik@pivotal.io</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"id\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">de53ef3f-0fac-4e0c-a5eb-b6c9752684b4</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"name\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">fhanik@pivotal.io</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"origin\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">uaa</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t\t<saml2:Attribute Name=\"zoneId\">\t\t\t\t<saml2:AttributeValue xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"xs:string\">1c7a9bf9-679b-483e-a186-41c850411ee5</saml2:AttributeValue>\t\t\t</saml2:Attribute>\t\t</saml2:AttributeStatement>\t</saml2:Assertion>";
 
     public String mockAssertionEncoded(Assertion assertion, String issuerEntityID, String format, String username, String spEndpoint, String audienceEntityID) throws Exception {
         return mockAssertionEncoded(assertion == null ? mockAssertion(issuerEntityID, format, username, spEndpoint, audienceEntityID, PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE) : assertion);
@@ -593,12 +637,12 @@ public class SamlTestUtils {
 
     public static final String UNSIGNED_SAML_SP_METADATA_WITHOUT_HEADER = UNSIGNED_SAML_SP_METADATA_WITHOUT_ID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
 
-    public static final String MOCK_SP_ENTITY_ID = "cloudfoundry-saml-login";
+    public static final String MOCK_SP_ENTITY_ID = "mock-saml-sp-entity-id";
 
     public static SamlServiceProvider mockSamlServiceProviderForZone(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
-                        new RandomValueStringGenerator().generate()))
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
+                        new RandomValueStringGenerator().generate(), MOCK_SP_ENTITY_ID, DEFAULT_NAME_ID_FORMATS))
                 .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
                 .setMetadataTrustCheck(true).build();
 
@@ -632,11 +676,35 @@ public class SamlTestUtils {
 
     public static SamlServiceProvider mockSamlServiceProviderForZoneWithoutSPSSOInMetadata(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_SPSSODESCRIPTOR,
-                        new RandomValueStringGenerator().generate()))
+                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
+                        new RandomValueStringGenerator().generate(), MOCK_SP_ENTITY_ID, DEFAULT_NAME_ID_FORMATS))
                 .setMetadataTrustCheck(true).build();
         return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
                 .setConfig(singleAddDef);
      }
+
+    public static List<String> getCertificates(String metadata, String type) throws Exception {
+        Document doc = getMetadataDoc(metadata);
+        NodeList nodeList = evaluateXPathExpression(doc, "//*[local-name()='KeyDescriptor' and @*[local-name() = 'use']='"+ type +"']//*[local-name()='X509Certificate']/text()");
+        assertNotNull(nodeList);
+        List<String> result = new LinkedList<>();
+        for (int i=0; i<nodeList.getLength(); i++) {
+            result.add(nodeList.item(i).getNodeValue().replace("\n", ""));
+        }
+        return result;
+    }
+
+    public static NodeList evaluateXPathExpression(Document doc, String xpath) throws XPathExpressionException {
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        XPathExpression expression = xPath.compile(xpath);
+        return (NodeList) expression.evaluate(doc, XPathConstants.NODESET);
+    }
+
+    public static Document getMetadataDoc(String metadata) throws SAXException, IOException, ParserConfigurationException {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(false);
+        InputSource is = new InputSource(new StringReader(metadata));
+        return documentBuilderFactory.newDocumentBuilder().parse(is);
+    }
 
 }

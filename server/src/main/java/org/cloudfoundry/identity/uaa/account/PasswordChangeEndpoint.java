@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -82,11 +83,11 @@ public class PasswordChangeEndpoint {
     @ResponseBody
     public ActionResult changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         checkPasswordChangeIsAllowed(userId, change.getOldPassword());
-        if (dao.checkPasswordMatches(userId, change.getPassword())) {
+        if (dao.checkPasswordMatches(userId, change.getPassword(), IdentityZoneHolder.get().getId())) {
             throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(change.getPassword());
-        dao.changePassword(userId, change.getOldPassword(), change.getPassword());
+        dao.changePassword(userId, change.getOldPassword(), change.getPassword(), IdentityZoneHolder.get().getId());
         return new ActionResult("ok", "password updated");
     }
 

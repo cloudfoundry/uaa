@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -37,7 +38,7 @@ public class GroupRoleCheckTests {
 
         ScimGroupMembershipManager manager = mock(ScimGroupMembershipManager.class);
         ScimGroupMember member = new ScimGroupMember("member-id", ScimGroupMember.Type.USER, Collections.singletonList(ScimGroupMember.Role.MEMBER));
-        when(manager.getMembers("group-id", ScimGroupMember.Role.MEMBER)).thenReturn(Arrays.asList(member));
+        when(manager.getMembers("group-id", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId())).thenReturn(Arrays.asList(member));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/Groups/group-id");
@@ -55,7 +56,7 @@ public class GroupRoleCheckTests {
 
         ScimGroupMembershipManager manager = mock(ScimGroupMembershipManager.class);
         ScimGroupMember member = new ScimGroupMember("member-id", ScimGroupMember.Type.USER, Collections.singletonList(ScimGroupMember.Role.MEMBER));
-        when(manager.getMembers("group-id", ScimGroupMember.Role.MEMBER)).thenReturn(Arrays.asList(member));
+        when(manager.getMembers("group-id", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId())).thenReturn(Arrays.asList(member));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/uaa/Groups/group-id");

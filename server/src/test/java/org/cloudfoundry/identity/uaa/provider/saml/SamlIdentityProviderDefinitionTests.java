@@ -124,7 +124,7 @@ public class SamlIdentityProviderDefinitionTests {
 
     @Test
     public void test_Get_URL_When_Valid() throws Exception {
-        definition.setMetaDataLocation("http://login.identity.cf-app.com/saml/metadata");
+        definition.setMetaDataLocation("http://login.uaa-acceptance.cf-app.com/saml/metadata");
         assertEquals(URL, definition.getType());
     }
 
@@ -192,6 +192,18 @@ public class SamlIdentityProviderDefinitionTests {
         assertEquals("test.com", def.getEmailDomain().get(0));
     }
 
+    @Test
+    public void testDefaultAuthnContext() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        assertEquals(null, def.getAuthnContext());
+    }
+
+    @Test
+    public void testSetAuthnContext() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setAuthnContext(Arrays.asList("a-custom-context"));
+        assertEquals("a-custom-context", def.getAuthnContext().get(0));
+    }
 
     @Test
     public void testGetSocketFactoryClassName() throws Exception {

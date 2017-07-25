@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
@@ -73,10 +74,17 @@ public abstract class UaaUrlUtils {
         return builder;
     }
 
+    private static final Pattern allowedRedirectUriPattern = Pattern.compile(
+        "^http(\\*|s)?://" +            //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
+        "(.*:.*@)?" +                   //username/password in URL
+        "(([a-zA-Z0-9\\-\\*]+\\.)*" +   //subdomains
+        "[a-zA-Z0-9\\-]+\\.)?" +        //hostname
+        "[a-zA-Z0-9\\-]+" +             //tld
+        "(:[0-9]+)?(/.*|$)"             //port and path
+    );
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
-            final String permittedURLs = "http(\\*|s)?://[^\\*/]+(/.*|$)";
-            return Pattern.matches(permittedURLs, url);
+            return allowedRedirectUriPattern.matcher(url).matches();
         }
         return false;
     }
@@ -112,10 +120,10 @@ public abstract class UaaUrlUtils {
 
     public static String getBaseURL(HttpServletRequest request) {
         //returns scheme, host and context path
-        //for example http://localhost:8080/uaa or http://login.identity.cf-app.com
+        //for example http://localhost:8080/uaa or http://login.uaa-acceptance.cf-app.com
         String requestURL = request.getRequestURL().toString();
         return hasText(request.getServletPath()) ?
-            requestURL.substring(0, requestURL.indexOf(request.getServletPath())) :
+            requestURL.substring(0, requestURL.lastIndexOf(request.getServletPath())) :
             requestURL;
     }
 

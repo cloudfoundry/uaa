@@ -12,17 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -31,25 +22,29 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jca.cci.InvalidResultSetAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<ScimGroupExternalMember>
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.List;
+
+public class JdbcScimGroupExternalMembershipManager
     implements ScimGroupExternalMembershipManager {
 
     private JdbcTemplate jdbcTemplate;
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String EXTERNAL_GROUP_MAPPING_FIELDS = "group_id,external_group,added,origin";
+    public static final String EXTERNAL_GROUP_MAPPING_FIELDS = "group_id,external_group,added,origin,identity_zone_id";
 
     public static final String JOIN_EXTERNAL_GROUP_MAPPING_FIELDS = "gm.group_id,gm.external_group,gm.added,g.displayName,gm.origin";
 
@@ -61,88 +56,65 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
 
     public static final String JOIN_WHERE_ID = "g.id = gm.group_id and gm.origin = ?";
 
-    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,lower(?),?,?)",
-                    EXTERNAL_GROUP_MAPPING_TABLE, EXTERNAL_GROUP_MAPPING_FIELDS);
+    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL =
+        String.format("insert into %s ( %s ) values (?,lower(?),?,?,?)",
+                      EXTERNAL_GROUP_MAPPING_TABLE,
+                      EXTERNAL_GROUP_MAPPING_FIELDS
+        );
 
     public static final String GET_EXTERNAL_GROUP_MAPPINGS_SQL =
-        String.format("select %s from %s where gm.group_id=? and %s",
-            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, JOIN_WHERE_ID);
+        String.format("select %s from %s where gm.identity_zone_id = ? and gm.group_id=? and %s",
+                      JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                      JOIN_GROUP_TABLE,
+                      JOIN_WHERE_ID
+        );
 
-    public static final String GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL = String.format("select %s from %s where %s and lower(external_group)=lower(?)",
-            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, JOIN_WHERE_ID);
+    public static final String GET_EXTERNAL_GROUP_MAPPINGS_IN_ZONE_SQL =
+        String.format("select %s from %s where gm.identity_zone_id=? and g.id = gm.group_id ",
+                      JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                      JOIN_GROUP_TABLE
+        );
+
+    public static final String GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL =
+        String.format("select %s from %s where gm.identity_zone_id = ? and %s and lower(external_group)=lower(?)",
+                      JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                      JOIN_GROUP_TABLE,
+                      JOIN_WHERE_ID
+        );
 
     public static final String GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL =
-        String.format("select %s from %s where g.id=? and %s and lower(external_group) like lower(?)",
-            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, JOIN_WHERE_ID);
+        String.format("select %s from %s where gm.identity_zone_id = ? and g.id=? and %s and lower(external_group) like lower(?)",
+                      JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                      JOIN_GROUP_TABLE,
+                      JOIN_WHERE_ID
+        );
 
     public static final String DELETE_EXTERNAL_GROUP_MAPPING_SQL =
-        String.format("delete from %s where group_id=? and lower(external_group)=lower(?) and origin=?",
-            EXTERNAL_GROUP_MAPPING_TABLE);
+        String.format("delete from %s where group_id=? and lower(external_group)=lower(?) and origin=? and identity_zone_id = ?",
+                      EXTERNAL_GROUP_MAPPING_TABLE
+        );
 
     public static final String DELETE_ALL_MAPPINGS_FOR_GROUP_SQL =
-        String.format("delete from %s where group_id = ?", EXTERNAL_GROUP_MAPPING_TABLE);
+        String.format("delete from %s where group_id = ? and identity_zone_id = ?",
+                      EXTERNAL_GROUP_MAPPING_TABLE
+        );
 
     private final RowMapper<ScimGroupExternalMember> rowMapper = new ScimGroupExternalMemberRowMapper();
 
     private ScimGroupProvisioning scimGroupProvisioning;
 
-    public JdbcScimGroupExternalMembershipManager(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
-        super(jdbcTemplate, pagingListFactory, new ScimGroupExternalMemberRowMapper());
+    public JdbcScimGroupExternalMembershipManager(JdbcTemplate jdbcTemplate) {
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
-        setQueryConverter(new ScimSearchQueryConverter());
     }
-
-    protected String adjustFilterForJoin(String filter) {
-        if (StringUtils.hasText(filter)) {
-            filter = filter.replace("displayName", "g.displayName");
-            filter = filter.replace("externalGroup", "gm.external_group");
-            filter = filter.replace("groupId", "g.id");
-            filter = filter.replace("origin", "gm.origin");
-        }
-        return filter;
-    }
-
-    @Override
-    protected String getTableName() {
-        return EXTERNAL_GROUP_MAPPING_TABLE;
-    }
-
-    @Override
-    public List<ScimGroupExternalMember> query(String filter) {
-        return super.query(filter);
-    }
-
-    @Override
-    public int delete(String filter) {
-        SearchQueryConverter.ProcessedFilter where = getQueryConverter().convert(filter, null, false);
-        logger.debug("Filtering groups with SQL: " + where);
-        try {
-            String completeSql = "DELETE FROM "+getTableName()+" WHERE ";
-            if (StringUtils.hasText(where.getSql())) {
-                completeSql +=  where.getSql() + " AND ";
-            }
-            completeSql += "group_id IN (SELECT id FROM groups WHERE identity_zone_id='"+ IdentityZoneHolder.get().getId()+"')";
-            logger.debug("delete sql: " + completeSql + ", params: " + where.getParams());
-            return new NamedParameterJdbcTemplate(jdbcTemplate).update(completeSql, where.getParams());
-        } catch (DataAccessException e) {
-            logger.debug("Filter '" + filter + "' generated invalid SQL", e);
-            throw new IllegalArgumentException("Invalid delete filter: " + filter);
-        }
-    }
-
-    @Override
-    public List<ScimGroupExternalMember> query(String filter, String sortBy, boolean ascending) {
-        return super.query(adjustFilterForJoin(filter), sortBy, ascending);
-    }
-
     @Override
     public ScimGroupExternalMember mapExternalGroup(final String groupId,
                                                     final String externalGroup,
-                                                    final String origin)
+                                                    final String origin,
+                                                    final String zoneId)
         throws ScimResourceNotFoundException, MemberAlreadyExistsException {
 
-        ScimGroup group = scimGroupProvisioning.retrieve(groupId);
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
         if (!StringUtils.hasText(externalGroup)) {
             throw new ScimResourceConstraintFailedException("external group must not be null when mapping an external group");
         }
@@ -158,6 +130,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                         ps.setString(2, externalGroup);
                         ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
                         ps.setString(4, origin);
+                        ps.setString(5, zoneId);
 
                     }
                 });
@@ -172,7 +145,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                 // group.getDisplayName() + " and external group " +
                 // externalGroup + " already exists");
             }
-            return getExternalGroupMap(groupId, externalGroup, origin);
+            return getExternalGroupMap(groupId, externalGroup, origin, zoneId);
         } else {
             throw new ScimResourceNotFoundException("Group does not exist");
         }
@@ -181,11 +154,12 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     @Override
     public ScimGroupExternalMember unmapExternalGroup(final String groupId,
                                                       final String externalGroup,
-                                                      final String origin)
+                                                      final String origin,
+                                                      final String zoneId)
         throws ScimResourceNotFoundException {
 
-        ScimGroup group = scimGroupProvisioning.retrieve(groupId);
-        ScimGroupExternalMember result = getExternalGroupMap(groupId, externalGroup, origin);
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
+        ScimGroupExternalMember result = getExternalGroupMap(groupId, externalGroup, origin, zoneId);
         if (null != group && null != result) {
             int count = jdbcTemplate.update(DELETE_EXTERNAL_GROUP_MAPPING_SQL, new PreparedStatementSetter() {
                 @Override
@@ -193,6 +167,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                     ps.setString(1, groupId);
                     ps.setString(2, externalGroup);
                     ps.setString(3, origin);
+                    ps.setString(4, zoneId);
                 }
             });
             if (count==1) {
@@ -208,32 +183,46 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     }
 
     @Override
+    public List<ScimGroupExternalMember> getExternalGroupMappings(String zoneId) throws ScimResourceNotFoundException {
+        return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_IN_ZONE_SQL, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                ps.setString(1, zoneId);
+            }
+        }, rowMapper);
+    }
+
+    @Override
     public List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(final String groupId,
-                                                                       final String origin)
+                                                                       final String origin,
+                                                                       final String zoneId)
         throws ScimResourceNotFoundException {
-        scimGroupProvisioning.retrieve(groupId);
+        scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
         return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setString(1, groupId);
-                ps.setString(2, origin);
+                ps.setString(1, zoneId);
+                ps.setString(2, groupId);
+                ps.setString(3, origin);
             }
         }, rowMapper);
     }
 
     @Override
     public List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(final String groupName,
-                                                                         final String origin)
+                                                                         final String origin,
+                                                                         final String zoneId)
         throws ScimResourceNotFoundException {
 
-        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", groupName));
+        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", groupName), IdentityZoneHolder.get().getId());
 
         if (null != groups && groups.size() > 0) {
             return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, groups.get(0).getId());
-                    ps.setString(2, origin);
+                    ps.setString(1, zoneId);
+                    ps.setString(2, groups.get(0).getId());
+                    ps.setString(3, origin);
                 }
             }, rowMapper);
         } else {
@@ -242,8 +231,8 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     }
 
     @Override
-    public void unmapAll(String groupId) throws ScimResourceNotFoundException {
-            ScimGroup group = scimGroupProvisioning.retrieve(groupId);
+    public void unmapAll(String groupId, final String zoneId) throws ScimResourceNotFoundException {
+            ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
             if (null == group) {
                 throw new ScimResourceNotFoundException("Group not found for ID " + groupId);
             }
@@ -252,40 +241,36 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
                     ps.setString(1, groupId);
+                    ps.setString(2, zoneId);
                 }
             });
     }
 
     @Override
     public List<ScimGroupExternalMember> getExternalGroupMapsByExternalGroup(final String externalGroup,
-                                                                             final String origin)
+                                                                             final String origin,
+                                                                             final String zoneId)
         throws ScimResourceNotFoundException {
 
         return jdbcTemplate.query(GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setString(1, origin);
-                ps.setString(2, externalGroup);
+                ps.setString(1, zoneId);
+                ps.setString(2, origin);
+                ps.setString(3, externalGroup);
 
             }
         }, rowMapper);
     }
 
-    @Override
-    protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
-        boolean containsWhereClause = getBaseSqlQuery().contains(" where ");
-        return filter == null || filter.trim().length()==0 ?
-            getBaseSqlQuery() :
-            getBaseSqlQuery() + (containsWhereClause ? " and " : " where ") + where.getSql();
-    }
-
     private ScimGroupExternalMember getExternalGroupMap(final String groupId,
                                                         final String externalGroup,
-                                                        final String origin)
+                                                        final String origin,
+                                                        final String zoneId)
                     throws ScimResourceNotFoundException {
         try {
             ScimGroupExternalMember u = jdbcTemplate.queryForObject(GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL,
-                            rowMapper, groupId, origin, externalGroup);
+                                                                    rowMapper, zoneId, groupId, origin, externalGroup);
             return u;
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("The mapping between groupId " + groupId + " and external group "
@@ -314,14 +299,4 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         this.scimGroupProvisioning = scimGroupProvisioning;
     }
 
-    @Override
-    protected String getBaseSqlQuery() {
-        return String.format("select %s from %s where %s",
-            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, "g.id = gm.group_id and g.identity_zone_id='"+IdentityZoneHolder.get().getId()+"'");
-    }
-
-    @Override
-    protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
-        super.validateOrderBy(orderBy, EXTERNAL_GROUP_MAPPING_FIELDS);
-    }
 }

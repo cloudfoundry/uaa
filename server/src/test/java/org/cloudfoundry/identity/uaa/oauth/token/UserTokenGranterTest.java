@@ -16,6 +16,8 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,7 +28,6 @@ import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -44,6 +45,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKE
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -58,7 +60,7 @@ public class UserTokenGranterTest {
 
     private UserTokenGranter granter;
     private AuthorizationServerTokenServices tokenServices;
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private UaaOauth2Authentication authentication;
     private TokenRequest tokenRequest;
@@ -71,7 +73,7 @@ public class UserTokenGranterTest {
     @Before
     public void setup() {
         tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(ClientDetailsService.class);
+        clientDetailsService = mock(ClientServicesExtension.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
         tokenStore = mock(RevocableTokenProvisioning.class);
@@ -87,8 +89,8 @@ public class UserTokenGranterTest {
 
         requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_USER_TOKEN, null);
         receivingClient =  new BaseClientDetails("receivingId",null,"test.scope",GRANT_TYPE_REFRESH_TOKEN, null);
-        when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()))).thenReturn(requestingClient);
-        when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()))).thenReturn(receivingClient);
+        when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
+        when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()), anyString())).thenReturn(receivingClient);
         requestParameters = new HashMap<>();
         requestParameters.put(USER_TOKEN_REQUESTING_CLIENT_ID, requestingClient.getClientId());
         requestParameters.put(GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
@@ -160,7 +162,7 @@ public class UserTokenGranterTest {
         assertSame(token, result);
         assertEquals(refreshToken.getValue(), result.getAdditionalInformation().get(JTI));
         assertNull(result.getValue());
-        verify(tokenStore).delete(eq(tokenId), anyInt());
+        verify(tokenStore).delete(eq(tokenId), anyInt(), eq(IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -183,7 +185,7 @@ public class UserTokenGranterTest {
         };
 
         granter.getAccessToken(requestingClient, tokenRequest);
-        verify(clientDetailsService, times(1)).loadClientByClientId(eq(receivingClient.getClientId()));
+        verify(clientDetailsService, times(1)).loadClientByClientId(eq(receivingClient.getClientId()), anyString());
 
     }
 

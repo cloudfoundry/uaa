@@ -160,6 +160,13 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
         Set<String> filteredExternalGroups = filterSamlAuthorities(samlConfig, samlAuthorities);
         MultiValueMap<String, String> userAttributes = retrieveUserAttributes(samlConfig, (SAMLCredential) result.getCredentials());
+
+        if (samlConfig.getAuthnContext() != null) {
+            if (Collections.disjoint(userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE), samlConfig.getAuthnContext())) {
+                throw new BadCredentialsException("Identity Provider did not authenticate with the requested AuthnContext.");
+            }
+        }
+
         UaaUser user = createIfMissing(samlPrincipal, addNew, authorities, userAttributes);
         UaaPrincipal principal = new UaaPrincipal(user);
         UaaAuthentication resultUaaAuthentication = new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups, userAttributes);
@@ -194,7 +201,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Collection<GrantedAuthority> result = new LinkedList<>();
             for (GrantedAuthority authority : authorities ) {
                 String externalGroup = authority.getAuthority();
-                    for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin)) {
+                    for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
                         result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
                     }
             }

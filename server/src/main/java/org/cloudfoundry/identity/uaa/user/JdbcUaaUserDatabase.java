@@ -12,12 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-
-import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -69,8 +68,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
 
-    private Set<String> defaultAuthorities = new HashSet<String>();
-
     private boolean caseInsensitive = false;
 
     public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
@@ -87,10 +84,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     public RowMapper<UaaUser> getMapper() {
         return mapper;
-    }
-
-    public void setDefaultAuthorities(Set<String> defaultAuthorities) {
-        this.defaultAuthorities = defaultAuthorities;
     }
 
     public JdbcUaaUserDatabase(JdbcTemplate jdbcTemplate, TimeService timeService) {
@@ -217,18 +210,10 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return new UaaUser(prototype.withAuthorities(authorities));
         }
 
-        private List<GrantedAuthority> getDefaultAuthorities(String defaultAuth) {
-            List<String> authorities = new ArrayList<String>();
-            authorities.addAll(StringUtils.commaDelimitedListToSet(defaultAuth));
-            authorities.addAll(defaultAuthorities);
-            String authsString = StringUtils.collectionToCommaDelimitedString(new HashSet<String>(authorities));
-            return AuthorityUtils.commaSeparatedStringToAuthorityList(authsString);
-        }
-
         private String getAuthorities(final String userId) {
             Set<String> authorities = new HashSet<>();
             getAuthorities(authorities, Arrays.asList(userId));
-            authorities.addAll(defaultAuthorities);
+            authorities.addAll(IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups());
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 
@@ -238,8 +223,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                 return;
             }
             StringBuffer dynamicAuthoritiesQuery = new StringBuffer("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
-            for(int i=0;i<memberIdList.size()-1;i++)
-            {
+            for (int i = 0; i < memberIdList.size() - 1; i++) {
                 dynamicAuthoritiesQuery.append("?,");
             }
             dynamicAuthoritiesQuery.append("?);");

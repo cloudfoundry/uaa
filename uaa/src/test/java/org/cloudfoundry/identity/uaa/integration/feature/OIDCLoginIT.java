@@ -56,11 +56,9 @@ import java.net.Inet4Address;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -72,6 +70,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -178,6 +177,7 @@ public class OIDCLoginIT {
 
     public void updateProvider() {
         identityProvider = IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
+        assertNull(identityProvider.getConfig().getRelyingPartySecret());
     }
 
     public static boolean doesSupportZoneDNS() {
@@ -242,11 +242,9 @@ public class OIDCLoginIT {
     @Test
     public void successfulLoginWithOIDCProviderSetsLastLogin() throws Exception {
         login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
-        SimpleDateFormat dateFormat =  new SimpleDateFormat("EEE MMM dd");
-        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
         doLogout(zoneUrl);
         login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
-        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString((expectedLastLoginTime)));
+        assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
     }
 
     @Test

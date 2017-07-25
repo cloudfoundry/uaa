@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.zone;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +24,6 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IdentityZoneConfiguration {
 
-    private LockoutPolicy clientLockoutPolicy = new LockoutPolicy();
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
     private CorsPolicy corsPolicy = new CorsPolicy();
@@ -38,19 +36,12 @@ public class IdentityZoneConfiguration {
     private boolean idpDiscoveryEnabled = false;
     private BrandingInformation branding;
     private boolean accountChooserEnabled;
+    private UserConfig userConfig = new UserConfig();
 
     public IdentityZoneConfiguration() {}
 
     public IdentityZoneConfiguration(TokenPolicy tokenPolicy) {
         this.tokenPolicy = tokenPolicy;
-    }
-
-    public LockoutPolicy getClientLockoutPolicy() {
-        return clientLockoutPolicy;
-    }
-
-    public void setClientLockoutPolicy(LockoutPolicy clientLockoutPolicy) {
-        this.clientLockoutPolicy = clientLockoutPolicy;
     }
 
     public TokenPolicy getTokenPolicy() {
@@ -117,5 +108,13 @@ public class IdentityZoneConfiguration {
     }
     public boolean isAccountChooserEnabled() {
         return accountChooserEnabled;
+    }
+
+    public UserConfig getUserConfig() {
+        return userConfig;
+    }
+
+    public void setUserConfig(UserConfig userConfig) {
+        this.userConfig = userConfig;
     }
 }

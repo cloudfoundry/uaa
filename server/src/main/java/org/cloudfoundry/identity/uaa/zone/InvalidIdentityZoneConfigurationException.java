@@ -1,7 +1,3 @@
-package org.cloudfoundry.identity.uaa.zone;
-
-import java.security.GeneralSecurityException;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
@@ -14,8 +10,14 @@ import java.security.GeneralSecurityException;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.zone;
+
 public class InvalidIdentityZoneConfigurationException extends Exception {
     public InvalidIdentityZoneConfigurationException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    public InvalidIdentityZoneConfigurationException(String message) {
+        super(message);
     }
 }

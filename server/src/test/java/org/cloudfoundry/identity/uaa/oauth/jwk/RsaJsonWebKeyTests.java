@@ -127,8 +127,6 @@ public class RsaJsonWebKeyTests {
     public void test_required_properties() {
         Map<String,Object> map = new HashMap();
         test_create_with_error(map);
-        map.put("kty", "invalid");
-        test_create_with_error(map);
         map.put("kty", "RSA");
         new VerificationKeyResponse(map);
     }

@@ -56,9 +56,12 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -508,8 +511,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
             .contentType(APPLICATION_JSON);
 
         MvcResult result = getMockMvc().perform(requestBuilder).andExpect(status().isOk()).andReturn();
-        List<IdentityProvider> identityProviderList = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityProvider>>() {
-        });
+        List<IdentityProvider> identityProviderList = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityProvider>>() {});
         assertEquals(numberOfIdps + 1, identityProviderList.size());
         assertTrue(identityProviderList.contains(newIdp));
     }
@@ -601,8 +603,10 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
                                                        .content(JsonUtils.writeValueAsString(identityProvider))
                                                        .contentType(APPLICATION_JSON)
         ).andExpect(status().isCreated()).andReturn();
-        identityProvider = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {
-        });
+
+        String response = mvcResult.getResponse().getContentAsString();
+        assertThat(response, not(containsString("relyingPartySecret")));
+        identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {});
         identityProvider.getConfig().setTokenUrl(null);
 
         getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
@@ -636,9 +640,9 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        config.setAuthUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
+        config.setTokenUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("http://oidc10.uaa-acceptance.cf-app.com/token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);

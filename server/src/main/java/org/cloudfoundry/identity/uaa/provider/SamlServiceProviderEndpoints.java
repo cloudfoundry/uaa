@@ -61,17 +61,15 @@ public class SamlServiceProviderEndpoints {
         throws MetadataProviderException {
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
-
-        samlConfigurator.addSamlServiceProvider(body);
-
-        SamlServiceProvider createdSp = serviceProviderProvisioning.create(body);
+        samlConfigurator.validateSamlServiceProvider(body);
+        SamlServiceProvider createdSp = serviceProviderProvisioning.create(body, zoneId);
         return new ResponseEntity<>(createdSp, HttpStatus.CREATED);
     }
 
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<SamlServiceProvider> updateServiceProvider(@PathVariable String id,
                                                                      @RequestBody SamlServiceProvider body) throws MetadataProviderException {
-        SamlServiceProvider existing = serviceProviderProvisioning.retrieve(id);
+        SamlServiceProvider existing = serviceProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
         String zoneId = IdentityZoneHolder.get().getId();
         body.setId(id);
         body.setIdentityZoneId(zoneId);
@@ -80,9 +78,9 @@ public class SamlServiceProviderEndpoints {
         }
         body.setEntityId(existing.getEntityId());
 
-        samlConfigurator.addSamlServiceProvider(body);
+        samlConfigurator.validateSamlServiceProvider(body);
 
-        SamlServiceProvider updatedSp = serviceProviderProvisioning.update(body);
+        SamlServiceProvider updatedSp = serviceProviderProvisioning.update(body, zoneId);
         return new ResponseEntity<>(updatedSp, OK);
     }
 
@@ -98,14 +96,14 @@ public class SamlServiceProviderEndpoints {
 
     @RequestMapping(value = "{id}", method = GET)
     public ResponseEntity<SamlServiceProvider> retrieveServiceProvider(@PathVariable String id) {
-        SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id);
+        SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(serviceProvider, OK);
     }
 
     @RequestMapping(value = "{id}", method = DELETE)
     public ResponseEntity<SamlServiceProvider> deleteServiceProvider(@PathVariable String id) {
-        SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id);
-        serviceProviderProvisioning.delete(id);
+        SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
+        serviceProviderProvisioning.delete(id, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(serviceProvider, OK);
     }
 

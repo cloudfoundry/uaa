@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -475,7 +476,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     private ExpiringCode getExpiringCode(Object data) {
         Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
-        return codeStore.generateCode(JsonUtils.writeValueAsString(data), fiveMinutes, null);
+        return codeStore.generateCode(JsonUtils.writeValueAsString(data), fiveMinutes, null, IdentityZoneHolder.get().getId());
     }
 
     private CookieCsrfPostProcessor cookieCsrf() {

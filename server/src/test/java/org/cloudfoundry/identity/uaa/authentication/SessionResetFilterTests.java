@@ -41,8 +41,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -165,7 +165,7 @@ public class SessionResetFilterTests {
         //user is not forwarded, and error response is generated right away
         Mockito.verifyZeroInteractions(chain);
         //user redirect
-        verify(response, times(1)).sendRedirect(anyString());
+        verify(response, times(1)).sendRedirect(any());
         //session was requested
         verify(request, times(2)).getSession(false);
         //session was invalidated

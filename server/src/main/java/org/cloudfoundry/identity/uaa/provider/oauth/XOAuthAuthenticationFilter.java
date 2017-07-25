@@ -77,8 +77,12 @@ public class XOAuthAuthenticationFilter implements Filter {
         String idToken = request.getParameter("id_token");
         String accessToken = request.getParameter("access_token");
         String redirectUrl = request.getRequestURL().toString();
-        XOAuthCodeToken codeToken = new XOAuthCodeToken(code, origin, redirectUrl, idToken, accessToken);
-        codeToken.setDetails(new UaaAuthenticationDetails(request));
+        XOAuthCodeToken codeToken = new XOAuthCodeToken(code,
+                                                        origin,
+                                                        redirectUrl,
+                                                        idToken,
+                                                        accessToken,
+                                                        new UaaAuthenticationDetails(request));
         try {
             Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);

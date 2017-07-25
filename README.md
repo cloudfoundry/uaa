@@ -105,7 +105,7 @@ obtain an access token:
 
     $ gem install cf-uaac
     $ uaac target http://localhost:8080/uaa
-    $ uaac token get marissa koala
+    $ uaac token owner get cf marissa -s "" -p koala
 
 If you omit the username or password the CLI will prompt you for those
 fields.

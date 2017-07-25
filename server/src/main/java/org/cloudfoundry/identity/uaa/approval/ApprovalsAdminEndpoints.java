@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,47 +12,53 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
-import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
+import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Controller
 public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsControllerService {
 
     private ApprovalStore approvalStore = null;
 
-    private ClientDetailsService clientDetailsService = null;
+    private ClientServicesExtension clientDetailsService = null;
 
     private UaaUserDatabase userDatabase;
 
@@ -64,10 +70,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     private final Log logger = LogFactory.getLog(getClass());
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
-
-    private static final String USER_FILTER_TEMPLATE = "user_id eq \"%s\"";
-
-    private static final String USER_AND_CLIENT_FILTER_TEMPLATE = "user_id eq \"%s\" and client_id eq \"%s\"";
 
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.statuses = statuses;
@@ -92,13 +94,12 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @RequestMapping(value = "/approvals", method = RequestMethod.GET)
     @ResponseBody
     @Override
-    public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String filter,
+    public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String ignored,
                                        @RequestParam(required = false, defaultValue = "1") int startIndex,
                                        @RequestParam(required = false, defaultValue = "100") int count) {
         String userId = getCurrentUserId();
         logger.debug("Fetching all approvals for user: " + userId);
-        List<Approval> input = approvalStore.getApprovals(
-                        String.format("%s and " + USER_FILTER_TEMPLATE, filter, userId));
+        List<Approval> input = approvalStore.getApprovalsForUser(userId, IdentityZoneHolder.get().getId());
         List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
 
         // Find the clients for these approvals
@@ -110,7 +111,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         // Find the auto approved scopes for these clients
         Map<String, Set<String>> clientAutoApprovedScopes = new HashMap<String, Set<String>>();
         for (String clientId : clientIds) {
-            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
+            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
             Set<String> autoApproved = client.getAutoApproveScopes();
             Set<String> autoApprovedScopes = new HashSet<String>();
@@ -150,7 +151,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
-        approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
+        approvalStore.revokeApprovalsForUser(currentUserId, IdentityZoneHolder.get().getId());
+        List<Approval> result = new LinkedList<>();
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) &&  !isValidUser(approval.getUserId())) {
                 logger.warn(String.format("Error[2] %s attempting to update approvals for %s", currentUserId, approval.getUserId()));
@@ -159,18 +161,21 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             } else {
                 approval.setUserId(currentUserId);
             }
-            approvalStore.addApproval(approval);
+            if (approvalStore.addApproval(approval, IdentityZoneHolder.get().getId())) {
+                result.add(approval);
+            }
         }
-        return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
+        return result;
     }
 
     @RequestMapping(value = "/approvals/{clientId}", method = RequestMethod.PUT)
     @ResponseBody
     @Override
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
+        clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
-        approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
+        approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
                 logger.warn(String.format("Error[1] %s attemting to update approvals for %s.", currentUserId, approval.getUserId()));
@@ -179,9 +184,9 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             } else {
                 approval.setUserId(currentUserId);
             }
-            approvalStore.addApproval(approval);
+            approvalStore.addApproval(approval, IdentityZoneHolder.get().getId());
         }
-        return approvalStore.getApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
+        return approvalStore.getApprovals(currentUserId, clientId, IdentityZoneHolder.get().getId());
     }
 
     private boolean isValidUser(String userId) {
@@ -200,10 +205,17 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ResponseBody
     @Override
     public ActionResult revokeApprovals(@RequestParam(required = true) String clientId) {
-        String username = getCurrentUserId();
-        logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
-        approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
-        return new ActionResult("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
+        clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        String userId = getCurrentUserId();
+        logger.debug("Revoking all existing approvals for user: " + userId + " and client " + clientId);
+        approvalStore.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
+        return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
+    }
+
+    @ExceptionHandler
+    public View handleException(NoSuchClientException nsce) {
+        logger.debug("Client not found:" + nsce.getMessage());
+        return handleException(new UaaException(nsce.getMessage(), 404));
     }
 
     @ExceptionHandler
@@ -227,7 +239,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         Assert.notNull(userDatabase, "Please supply a user database");
     }
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

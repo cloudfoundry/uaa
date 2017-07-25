@@ -8,9 +8,7 @@ dependencies {
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
   compile group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion
-  compile (group: 'org.springframework.security.oauth', name: 'spring-security-oauth', version: parent.springSecurityOAuthVersion) {
-    exclude(module: 'spring-security-web')
-  }
+
   compile (group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'jackson-mapper-asl')
     exclude(module: 'spring-security-web')

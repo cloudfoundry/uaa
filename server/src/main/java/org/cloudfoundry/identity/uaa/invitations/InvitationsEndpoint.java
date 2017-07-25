@@ -10,23 +10,20 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -55,13 +52,13 @@ public class InvitationsEndpoint {
 
     private ScimUserProvisioning users;
     private IdentityProviderProvisioning providers;
-    private ClientDetailsService clients;
+    private ClientServicesExtension clients;
     private ExpiringCodeStore expiringCodeStore;
     private Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
 
     public InvitationsEndpoint(ScimUserProvisioning users,
                                IdentityProviderProvisioning providers,
-                               ClientDetailsService clients,
+                               ClientServicesExtension clients,
                                ExpiringCodeStore expiringCodeStore) {
         this.users = users;
         this.providers = providers;
@@ -94,7 +91,7 @@ public class InvitationsEndpoint {
         ClientDetails client = null;
 
         if (!hasText(subdomainHeader) && !hasText(zoneIdHeader)) {
-            client = clients.loadClientByClientId(clientId);
+            client = clients.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         }
 
         for (String email : invitations.getEmails()) {
@@ -112,7 +109,7 @@ public class InvitationsEndpoint {
                         data.put(REDIRECT_URI, redirectUri);
                         data.put(ORIGIN, user.getOrigin());
                         Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
-                        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name());
+                        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name(), IdentityZoneHolder.get().getId());
 
                         String invitationLink = accountsUrl + "?code=" + code.getCode();
                         try {
@@ -140,14 +137,14 @@ public class InvitationsEndpoint {
 
     protected ScimUser findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
-        List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin));
+        List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin), IdentityZoneHolder.get().getId());
         if (results == null || results.size() == 0) {
             ScimUser user = new ScimUser(null, email, "", "");
             user.setPrimaryEmail(email.toLowerCase());
             user.setOrigin(origin);
             user.setVerified(false);
             user.setActive(true);
-            return users.createUser(user, new RandomValueStringGenerator(12).generate());
+            return users.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId());
         } else if (results.size() == 1) {
             return results.get(0);
         } else {

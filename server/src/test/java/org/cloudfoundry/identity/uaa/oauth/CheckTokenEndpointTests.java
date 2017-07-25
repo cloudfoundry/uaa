@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
@@ -39,19 +40,17 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.AdditionalMatchers;
-import org.mockito.stubbing.Answer;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.net.URISyntaxException;
@@ -70,7 +69,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -84,13 +83,11 @@ public class CheckTokenEndpointTests {
 
     private OAuth2Authentication authentication;
 
-    private int expiresIn = 60 * 60 * 12;
-
     private OAuth2AccessToken accessToken;
 
     private UaaTokenServices tokenServices = new UaaTokenServices();
 
-    private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+    private InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
 
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
 
@@ -105,12 +102,10 @@ public class CheckTokenEndpointTests {
 
     private UaaUser user;
 
-    private UaaUserDatabase userDatabase = null;
-
     private BaseClientDetails defaultClient;
 
-    private Map<String, ? extends ClientDetails> clientDetailsStore;
-    private List userAuthorities;
+    private Map<String, BaseClientDetails> clientDetailsStore;
+    private List<GrantedAuthority> userAuthorities;
     private final IdentityZoneProvisioning zoneProvisioning = mock(IdentityZoneProvisioning.class);
 
     private RevocableTokenProvisioning tokenProvisioning;
@@ -121,6 +116,8 @@ public class CheckTokenEndpointTests {
     public ExpectedException exception = ExpectedException.none();
 
     private MockHttpServletRequest request = new MockHttpServletRequest();
+
+    IdentityZone zone;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -203,7 +200,7 @@ public class CheckTokenEndpointTests {
 
     public void setUp(boolean opaque) throws URISyntaxException {
         defaultZone = IdentityZone.getUaa();
-
+        zone = MultitenancyFixture.identityZone("id", "subdomain");
         userAuthorities = new ArrayList<>();
         userAuthorities.add(new SimpleGrantedAuthority("read"));
         userAuthorities.add(new SimpleGrantedAuthority("write"));
@@ -232,12 +229,12 @@ public class CheckTokenEndpointTests {
         tokenProvisioning = mock(RevocableTokenProvisioning.class);
         if (opaque) {
             tokenMap = new HashMap<>();
-            when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
+            when(tokenProvisioning.create(any(), anyString())).thenAnswer(invocation -> {
                 RevocableToken token = (RevocableToken) invocation.getArguments()[0];
                 tokenMap.put(token.getTokenId(), token);
                 return token;
             });
-            when(tokenProvisioning.retrieve(anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
+            when(tokenProvisioning.retrieve(anyString(), anyString())).thenAnswer(invocation -> {
                 String id = (String) invocation.getArguments()[0];
                 return tokenMap.get(id);
             });
@@ -262,14 +259,14 @@ public class CheckTokenEndpointTests {
             .setScope("read")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
             .setScope("write")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setTokenPolicy(IdentityZoneHolder.get().getConfig().getTokenPolicy());
 
@@ -279,7 +276,8 @@ public class CheckTokenEndpointTests {
                 "client",
                 defaultClient
             );
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(zone.getId(), clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setIssuer("http://localhost:8080/uaa");
@@ -297,8 +295,8 @@ public class CheckTokenEndpointTests {
         tokenPolicy.setKeys(keys);
     }
 
-    protected void mockUserDatabase(String userId, UaaUser user) {
-        userDatabase = mock(UaaUserDatabase.class);
+    private void mockUserDatabase(String userId, UaaUser user) {
+        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
         when(userDatabase.retrieveUserById(eq(userId))).thenReturn(user);
         when(userDatabase.retrieveUserById(AdditionalMatchers.not(eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
         tokenServices.setUserDatabase(userDatabase);
@@ -309,9 +307,9 @@ public class CheckTokenEndpointTests {
         BaseClientDetails theclient = new BaseClientDetails("client", "zones", "zones.*.admin", "authorization_code, password",
             "scim.read, scim.write", "http://localhost:8080/uaa");
         theclient.setAutoApproveScopes(Arrays.asList("zones.*.admin"));
-        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", theclient);
+        Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", theclient);
 
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
 
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("zones.myzone.admin"));
@@ -333,7 +331,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testRejectInvalidIssuer() throws URISyntaxException, HttpRequestMethodNotSupportedException {
+    public void testRejectInvalidIssuer() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         tokenServices.setIssuer("http://some.other.issuer");
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
@@ -464,7 +462,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidScopeException.class)
-    public void testValidateScopesNotPresent() throws HttpRequestMethodNotSupportedException {
+    public void testValidateScopesNotPresent() throws Exception {
         try {
             authentication = new OAuth2Authentication(new AuthorizationRequest("client",
                 Collections.singleton("scim.read")).createOAuth2Request(), null);
@@ -478,7 +476,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidScopeException.class)
-    public void testValidateScopesMultipleNotPresent() throws HttpRequestMethodNotSupportedException {
+    public void testValidateScopesMultipleNotPresent() throws Exception {
         try {
             authentication = new OAuth2Authentication(new AuthorizationRequest("client",
                 Collections.singletonList("cat.pet")).createOAuth2Request(), null);
@@ -492,7 +490,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testValidateScopeSinglePresent() throws HttpRequestMethodNotSupportedException {
+    public void testValidateScopeSinglePresent() throws Exception {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
             Collections.singleton("scim.read")).createOAuth2Request(), null);
         setAccessToken(tokenServices.createAccessToken(authentication));
@@ -501,7 +499,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testValidateScopesMultiplePresent() throws HttpRequestMethodNotSupportedException {
+    public void testValidateScopesMultiplePresent() throws Exception {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
             Arrays.asList("scim.read", "scim.write")).createOAuth2Request(), null);
         setAccessToken(tokenServices.createAccessToken(authentication));
@@ -510,7 +508,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidScopeException.class)
-    public void testValidateScopesSomeNotPresent() throws HttpRequestMethodNotSupportedException {
+    public void testValidateScopesSomeNotPresent() throws Exception {
         try {
             authentication = new OAuth2Authentication(new AuthorizationRequest("client",
                 Arrays.asList("scim.read", "scim.write")).createOAuth2Request(), null);
@@ -539,7 +537,7 @@ public class CheckTokenEndpointTests {
             "client",
             defaultClient
         );
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
@@ -550,7 +548,7 @@ public class CheckTokenEndpointTests {
             "client",
             defaultClient
         );
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         mockUserDatabase(userId, user);
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
             Collections.singleton("scim.read")).createOAuth2Request(), null);
@@ -568,11 +566,12 @@ public class CheckTokenEndpointTests {
             endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
             fail("Token validation should fail");
         } catch (InvalidTokenException ex) {
+            assertTrue("expected - rewrite to use a rule", true);
         }
     }
 
     @Test
-    public void testClientAddSecret() throws HttpRequestMethodNotSupportedException {
+    public void testClientAddSecret() throws Exception {
         String firstClientSecret = "oldsecret";
         String secondClientSecret = "newsecret";
         defaultClient.setClientSecret(firstClientSecret);
@@ -585,7 +584,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testClientDeleteSecret() throws HttpRequestMethodNotSupportedException {
+    public void testClientDeleteSecret() throws Exception {
         String firstClientSecret = "oldsecret";
         String secondClientSecret = "newsecret";
 
@@ -599,7 +598,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testUserIdInResult() throws HttpRequestMethodNotSupportedException {
+    public void testUserIdInResult() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals("olds", result.getUserName());
@@ -608,7 +607,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testExtAttrInResult() throws HttpRequestMethodNotSupportedException {
+    public void testExtAttrInResult() throws Exception {
         tokenServices.setUaaTokenEnhancer(new TestTokenEnhancer());
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
@@ -629,7 +628,6 @@ public class CheckTokenEndpointTests {
     @Test
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
-            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
             IdentityZoneHolder.set(zone);
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
@@ -648,7 +646,6 @@ public class CheckTokenEndpointTests {
         setAccessToken(tokenServices.createAccessToken(authentication));
 
         try {
-            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
             zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("testKey",
                 "-----BEGIN RSA PRIVATE KEY-----\n" +
                     "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
@@ -663,7 +660,7 @@ public class CheckTokenEndpointTests {
             tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
-            Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+            endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();
         }
@@ -674,7 +671,6 @@ public class CheckTokenEndpointTests {
     public void testZoneValidatesTokenSignedWithOwnKey() throws Exception {
 
         try {
-            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
             zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
                 "-----BEGIN RSA PRIVATE KEY-----\n" +
                     "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
@@ -689,7 +685,7 @@ public class CheckTokenEndpointTests {
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
             setAccessToken(tokenServices.createAccessToken(authentication));
-            Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+            endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();
         }
@@ -717,7 +713,7 @@ public class CheckTokenEndpointTests {
         configureDefaultZoneKeys(keys);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
 
-        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
     @Test
@@ -743,17 +739,16 @@ public class CheckTokenEndpointTests {
             configureDefaultZoneKeys(keys);
             IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
 
-            Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+            endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
 
             fail("Token validation should fail");
         } catch (InvalidTokenException ex) {
+            assertTrue("expected - rewrite to use a rule", true);
         }
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testDefaultZoneRejectsTokenSignedWithOtherZoneKey() throws Exception {
-
-        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
             "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
@@ -773,7 +768,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testValidateAudParameter() throws HttpRequestMethodNotSupportedException {
+    public void testValidateAudParameter() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         List<String> aud = result.getAud();
@@ -783,7 +778,36 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testClientId() throws HttpRequestMethodNotSupportedException {
+    public void by_default_query_string_is_allowed() throws Exception {
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        request.setQueryString("token="+getAccessToken());
+        request.setParameter("token", getAccessToken());
+        Claims claims = endpoint.checkToken(request);
+        assertNotNull(claims);
+    }
+
+    @Test
+    public void by_default_get_is_allowed() throws Exception {
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        request.setQueryString("token="+getAccessToken());
+        request.setParameter("token", getAccessToken());
+        endpoint.checkToken(request);
+    }
+
+    @Test(expected = HttpRequestMethodNotSupportedException.class)
+    public void disable_query_string() throws Exception {
+        endpoint.setAllowQueryString(false);
+        by_default_query_string_is_allowed();
+    }
+
+    @Test(expected = HttpRequestMethodNotSupportedException.class)
+    public void disable_get_method() throws Exception {
+        endpoint.setAllowQueryString(false);
+        by_default_get_is_allowed();
+    }
+
+    @Test
+    public void testClientId() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals("client", result.getAzp());
@@ -792,7 +816,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void validateAuthTime() throws HttpRequestMethodNotSupportedException {
+    public void validateAuthTime() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertNotNull(result.getAuthTime());
@@ -801,7 +825,7 @@ public class CheckTokenEndpointTests {
     @Test(expected = TokenRevokedException.class)
     public void revokedToken_ThrowsTokenRevokedException() throws Exception {
         setUp();
-        when(tokenProvisioning.retrieve(anyString())).thenThrow(new EmptyResultDataAccessException(1));
+        when(tokenProvisioning.retrieve(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
 
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(true);
         setAccessToken(tokenServices.createAccessToken(authentication));
@@ -809,7 +833,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void validateIssuedAtIsSmallerThanExpiredAt() throws HttpRequestMethodNotSupportedException {
+    public void validateIssuedAtIsSmallerThanExpiredAt() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         Integer iat = result.getIat();
@@ -820,21 +844,21 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testEmailInResult() throws HttpRequestMethodNotSupportedException {
+    public void testEmailInResult() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals("olds@vmware.com", result.getEmail());
     }
 
     @Test
-    public void testClientIdInResult() throws HttpRequestMethodNotSupportedException {
+    public void testClientIdInResult() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals("client", result.getClientId());
     }
 
     @Test
-    public void testClientIdInAud() throws HttpRequestMethodNotSupportedException {
+    public void testClientIdInAud() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertTrue(result.getAud().contains("client"));
@@ -842,21 +866,22 @@ public class CheckTokenEndpointTests {
 
 
     @Test
-    public void testExpiryResult() throws HttpRequestMethodNotSupportedException {
+    public void testExpiryResult() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        int expiresIn = 60 * 60 * 12;
         assertTrue(expiresIn + System.currentTimeMillis() / 1000 >= result.getExp());
     }
 
     @Test
-    public void testUserAuthoritiesNotInResult() throws HttpRequestMethodNotSupportedException {
+    public void testUserAuthoritiesNotInResult() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals(null, result.getAuthorities());
     }
 
     @Test
-    public void testClientAuthoritiesNotInResult() throws HttpRequestMethodNotSupportedException {
+    public void testClientAuthoritiesNotInResult() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals(null, result.getAuthorities());
@@ -867,8 +892,8 @@ public class CheckTokenEndpointTests {
         BaseClientDetails clientDetails = new BaseClientDetails("client", "scim, cc", "read, write",
             "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
         clientDetails.setAccessTokenValiditySeconds(1);
-        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
-        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
         setAccessToken(tokenServices.createAccessToken(authentication));
         Thread.sleep(1000);
@@ -876,7 +901,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testDeniedApprovals() throws HttpRequestMethodNotSupportedException {
+    public void testDeniedApprovals() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
@@ -886,39 +911,39 @@ public class CheckTokenEndpointTests {
             .setScope("read")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
             .setScope("read")
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.DENIED)
-            .setLastUpdatedAt(oneSecondAgo));
+            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals(null, result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testExpiredApprovals() throws HttpRequestMethodNotSupportedException {
+    public void testExpiredApprovals() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         approvalStore.revokeApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
             .setScope("read")
             .setExpiresAt(new Date())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
             .setScope("read")
             .setExpiresAt(new Date())
-            .setStatus(ApprovalStatus.APPROVED));
+            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals(null, result.getAuthorities());
     }
 
     @Test
-    public void testClientOnly() throws HttpRequestMethodNotSupportedException {
+    public void testClientOnly() throws Exception {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
             Collections.singleton("scim.read")).createOAuth2Request(), null);
         setAccessToken(tokenServices.createAccessToken(authentication));

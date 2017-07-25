@@ -188,6 +188,10 @@
                            @config['cors']['xhr']['max_age']}"/>
     </bean>
 
+    <bean id="allowQueryStringForTokens" class="java.lang.Boolean">
+        <constructor-arg value="${jwt.token.queryString.enabled:true}"/>
+    </bean>
+
     <bean id="sessionFixationProtectionStrategy"
           class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
 
@@ -216,15 +220,17 @@
         </property>
         <property name="additionalFilters">
             <map>
-                <entry value-ref="utf8ConversionFilter"
+                <entry value-ref="headerFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}" />
-                <entry value-ref="corsFilter"
+                <entry value-ref="utf8ConversionFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}" />
+                <entry value-ref="corsFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}" />
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -235,6 +241,18 @@
                 <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
         </property>
+    </bean>
+
+    <util:list id="defaultFilteredHeaders" value-type="java.lang.String">
+        <value>X-Forwarded-For</value>
+        <value>X-Forwarded-Host</value>
+        <value>X-Forwarded-Proto</value>
+        <value>X-Forwarded-Prefix</value>
+        <value>Forwarded</value>
+    </util:list>
+
+    <bean id="headerFilter" class="org.cloudfoundry.identity.uaa.web.HeaderFilter">
+        <constructor-arg value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
 
     <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
@@ -275,7 +293,7 @@
         <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
-    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
+    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
@@ -401,6 +419,16 @@
         <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
     </bean>
 
+    <bean id="globalLinks" class="org.cloudfoundry.identity.uaa.zone.Links">
+        <property name="selfService">
+            <bean class="org.cloudfoundry.identity.uaa.zone.Links$SelfService">
+                <property name="passwd" value="${links.global.passwd:#{null}}"/>
+                <property name="signup" value="${links.global.signup:#{null}}"/>
+            </bean>
+        </property>
+        <property name="homeRedirect" value="${links.global.homeRedirect:#{null}}"/>
+    </bean>
+
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
@@ -412,6 +440,7 @@
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
         <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
+        <property name="globalLinks" ref="globalLinks"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
@@ -441,10 +470,11 @@
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="validator" ref="identityZoneValidator"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="selfServiceLinks" ref="links" />
-        <property name="homeRedirect" value="${login.homeRedirect:null}"/>
+        <property name="homeRedirect" value="${links.homeRedirect:${login.homeRedirect:#{null}}}"/>
         <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}" />
         <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}" />
         <property name="logoutRedirectWhitelist"
@@ -457,9 +487,15 @@
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
         <property name="prompts" ref="prompts"/>
         <property name="branding" value="#{@config['login']['branding']}" />
-        <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
-        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword}" />
-        <property name="samlSpCertificate" value="${login.serviceProviderCertificate}" />
+        <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}" />
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}" />
+        <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}" />
+        <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
+        <property name="samlKeys"
+                  value="#{@config['login']==null ? null :
+                           @config['login']['saml']==null ? null :
+                           @config['login']['saml']['keys']}"/>
+        <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

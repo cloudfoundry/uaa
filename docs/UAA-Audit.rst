@@ -122,11 +122,11 @@ Client Administration Events
 
 * ClientCreateSuccess
     - Happens: When a client is created
-    - Data Recorded: Client ID
+    - Data Recorded: Client ID, Scopes, Authorities
 
 * ClientUpdateSuccess
     - Happens: When a client is updated
-    - Data Recorded: Client ID
+    - Data Recorded: Client ID, Scopes, Authorities
 
 * SecretChangeFailure
     - Happens: When a client secret fails to change

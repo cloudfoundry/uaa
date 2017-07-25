@@ -17,6 +17,8 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -72,6 +74,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.Arrays;
@@ -139,7 +142,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         String clientId;
         try {
             clientId = parameters.get("client_id");
-            client = getClientDetailsService().loadClientByClientId(clientId);
+            client = getClientServiceExtention().loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         }
         catch (NoSuchClientException x) {
             throw new InvalidClientException(x.getMessage());
@@ -382,8 +385,20 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private View getAuthorizationCodeResponse(AuthorizationRequest authorizationRequest, Authentication authUser) {
         try {
-            return new RedirectView(getSuccessfulRedirect(authorizationRequest,
-                generateCode(authorizationRequest, authUser)), false, true, false);
+            return new RedirectView(
+                getSuccessfulRedirect(
+                    authorizationRequest,
+                    generateCode(authorizationRequest, authUser)
+                ),
+                false,
+                false, //so that we send absolute URLs always
+                false
+            ) {
+                @Override
+                protected HttpStatus getHttp11StatusCode(HttpServletRequest request, HttpServletResponse response, String targetUrl) {
+                    return HttpStatus.FOUND; //Override code, defaults to 303
+                }
+            };
         } catch (OAuth2Exception e) {
             return new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, false), false, true, false);
         }
@@ -601,8 +616,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         try {
             authorizationRequest = getAuthorizationRequestForError(webRequest);
             String requestedRedirectParam = authorizationRequest.getRequestParameters().get(OAuth2Utils.REDIRECT_URI);
-            String requestedRedirect = redirectResolver.resolveRedirect(requestedRedirectParam,
-                getClientDetailsService().loadClientByClientId(authorizationRequest.getClientId()));
+            String requestedRedirect =
+                redirectResolver.resolveRedirect(
+                    requestedRedirectParam,
+                getClientServiceExtention().loadClientByClientId(authorizationRequest.getClientId(), IdentityZoneHolder.get().getId()));
             authorizationRequest.setRedirectUri(requestedRedirect);
             String redirect = getUnsuccessfulRedirect(authorizationRequest, translate.getBody(), authorizationRequest
                 .getResponseTypes().contains("token"));
@@ -640,5 +657,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             return getDefaultOAuth2RequestFactory().createAuthorizationRequest(parameters);
         }
 
+    }
+
+    protected ClientServicesExtension getClientServiceExtention() {
+        return (ClientServicesExtension )super.getClientDetailsService();
+    }
+
+
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+        super.setClientDetailsService(clientDetailsService);
     }
 }

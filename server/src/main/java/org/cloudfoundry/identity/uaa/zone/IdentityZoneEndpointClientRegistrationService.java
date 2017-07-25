@@ -4,22 +4,18 @@ import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 
 public class IdentityZoneEndpointClientRegistrationService {
-    
-    private final ClientRegistrationService clientRegistrationService;
-    private final ClientDetailsService clientDetailsService;
+
+    private final ClientServicesExtension clientDetailsService;
     private final ClientDetailsValidator clientDetailsValidator;
     private final ApprovalStore approvalStore;
-    
 
-    public IdentityZoneEndpointClientRegistrationService(ClientRegistrationService clientRegistrationService,
-            ClientDetailsService clientDetailsService, ClientDetailsValidator clientDetailsValidator,
-            ApprovalStore approvalStore) {
+
+    public IdentityZoneEndpointClientRegistrationService(ClientServicesExtension clientDetailsService,
+                                                         ClientDetailsValidator clientDetailsValidator,
+                                                         ApprovalStore approvalStore) {
         super();
-        this.clientRegistrationService = clientRegistrationService;
         this.clientDetailsService = clientDetailsService;
         this.clientDetailsValidator = clientDetailsValidator;
         this.approvalStore = approvalStore;
@@ -27,15 +23,16 @@ public class IdentityZoneEndpointClientRegistrationService {
 
     public ClientDetails createClient(ClientDetails clientDetails) {
         ClientDetails validated = clientDetailsValidator.validate(clientDetails, Mode.CREATE);
-        clientRegistrationService.addClientDetails(validated);
+        clientDetailsService.addClientDetails(validated, IdentityZoneHolder.get().getId());
         return validated;
     }
-    
+
     public ClientDetails deleteClient(String clientId) {
-        ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+        String zoneId = IdentityZoneHolder.get().getId();
+        ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, zoneId);
         clientDetailsValidator.validate(clientDetails, Mode.DELETE);
-        clientRegistrationService.removeClientDetails(clientId);
-        approvalStore.revokeApprovals(String.format("client_id eq \"%s\"", clientId));
+        clientDetailsService.removeClientDetails(clientId, zoneId);
+        approvalStore.revokeApprovalsForClient(clientId, zoneId);
         return clientDetails;
     }
 }

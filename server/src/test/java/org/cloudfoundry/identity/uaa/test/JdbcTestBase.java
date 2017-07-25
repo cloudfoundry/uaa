@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 import javax.sql.DataSource;
 import java.util.Arrays;
 
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
@@ -46,6 +48,7 @@ public class JdbcTestBase extends TestClassNullifier {
 
     @Before
     public void setUp() throws Exception {
+        IdentityZoneHolder.clear();
         MockEnvironment environment = new MockEnvironment();
         if (System.getProperty("spring.profiles.active")!=null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
@@ -64,6 +67,8 @@ public class JdbcTestBase extends TestClassNullifier {
         dataSource = webApplicationContext.getBean(DataSource.class);
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         validationQuery = webApplicationContext.getBean("validationQuery", String.class);
+        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 
     public void cleanData() {
@@ -97,13 +102,24 @@ public class JdbcTestBase extends TestClassNullifier {
                 .setType(origin);
             idp.create(provider);
         }
-
     }
 
     @After
-    public void tearDown() throws Exception {
-        cleanData();
+    public final void tearDown() throws Exception {
+        tearDown(needsToCleanData());
+    }
+
+    public final void tearDown(boolean cleandata) throws Exception {
+        if (cleandata) {
+            cleanData();
+        }
+        IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
         ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).close(true);
         webApplicationContext.destroy();
+    }
+
+    protected boolean needsToCleanData() {
+        return true;
     }
 }

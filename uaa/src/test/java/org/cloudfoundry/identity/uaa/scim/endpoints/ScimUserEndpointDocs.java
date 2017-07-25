@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -23,6 +24,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
@@ -117,6 +119,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
         fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
         fieldWithPath("resources").type(ARRAY).description(resourceDescription),
+        fieldWithPath("resources[].schemas").type(ARRAY).description(schemasDescription),
         fieldWithPath("resources[].id").type(STRING).description(userIdDescription),
         fieldWithPath("resources[].userName").type(STRING).description(usernameDescription),
         fieldWithPath("resources[].name").type(OBJECT).description(nameObjectDescription),
@@ -140,13 +143,13 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].approvals[].expiresAt").type(STRING).description(approvalsExpiresAtDescription),
         fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
         fieldWithPath("resources[].lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
-        fieldWithPath("resources[].previoousLogonTime").optional(null).type(NUMBER).description(userPreviousLogonTimeDescription),
+        fieldWithPath("resources[].previousLogonTime").optional(null).type(NUMBER).description(userPreviousLogonTimeDescription),
         fieldWithPath("resources[].verified").type(BOOLEAN).description(userVerifiedDescription),
         fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
         fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("resources[].meta").type(STRING).description(metaDesc),
+        fieldWithPath("resources[].meta").type(OBJECT).description(metaDesc),
         fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
         fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
         fieldWithPath("resources[].meta.created").type(STRING).description(metaCreatedDesc)
@@ -156,6 +159,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("userName").required().type(STRING).description(usernameDescription),
         fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
         fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
+        fieldWithPath("name.formatted").ignored().type(STRING).description("First and last name combined"),
         fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
         fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
         fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
@@ -168,7 +172,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
         fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
-        fieldWithPath("meta").optional().ignored().type(STRING).description("SCIM object meta data not read.")
+        fieldWithPath("meta.*").optional().ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
     FieldDescriptor[] createResponse = {
@@ -194,7 +198,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(STRING).description(metaDesc),
+        fieldWithPath("meta").type(OBJECT).description(metaDesc),
         fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
         fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
         fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
@@ -220,7 +224,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").ignored().type(STRING).description("SCIM object meta data not read.")
+        fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
     FieldDescriptor[] updateResponse = {
@@ -254,7 +258,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
         fieldWithPath("previousLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(STRING).description(metaDesc),
+        fieldWithPath("meta").type(OBJECT).description(metaDesc),
         fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
         fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
         fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
@@ -280,14 +284,16 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").ignored().type(STRING).description("SCIM object meta data not read."),
+        fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read."),
         fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
     );
 
     private final String scimFilterDescription = "SCIM filter for searching";
+    private final String scimAttributeDescription = "Comma separated list of attribute names to be returned.";
     private final String sortByDescription = "Sorting field name, like email or id";
     private final String sortOrderDescription = "Sort order, ascending/descending";
     private final String countDescription = "Max number of results to be returned";
+
     ParameterDescriptor[] searchUsersParameters = {
         parameterWithName("filter").optional(null).description(scimFilterDescription).attributes(key("type").value(STRING)),
         parameterWithName("sortBy").optional("created").description(sortByDescription).attributes(key("type").value(STRING)),
@@ -295,6 +301,26 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         parameterWithName("startIndex").optional("1").description(startIndexDescription).attributes(key("type").value(NUMBER)),
         parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER))
     };
+
+    ParameterDescriptor[] searchWithAttributes = ArrayUtils.addAll(
+        searchUsersParameters,
+        new ParameterDescriptor[] {parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING))}
+    );
+
+    FieldDescriptor[] searchWithAttributesResponseFields = {
+        fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
+        fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
+        fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
+        fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
+        fieldWithPath("resources").type(ARRAY).description(resourceDescription),
+        fieldWithPath("resources[].id").type(STRING).description(userIdDescription),
+        fieldWithPath("resources[].userName").type(STRING).description(usernameDescription),
+        fieldWithPath("resources[].emails").type(ARRAY).description(emailListDescription),
+        fieldWithPath("resources[].emails[].value").type(STRING).description(emailDescription),
+        fieldWithPath("resources[].emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
+        fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
+    };
+
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
@@ -334,7 +360,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                 .setUserId(user.getId())
                 .setExpiresAt(new Date(System.currentTimeMillis() + 10000))
                 .setScope("scim.read")
-                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId()
         );
     }
 
@@ -350,14 +376,11 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
 
     @Test
     public void test_Find_Users() throws Exception {
-
-
         Snippet responseFields = responseFields(searchResponseFields);
         Snippet requestParameters = requestParameters(searchUsersParameters);
 
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
-
 
         getMockMvc().perform(
             get("/Users")
@@ -383,6 +406,39 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                     ),
                     requestParameters,
                     responseFields
+                )
+            );
+    }
+
+    @Test
+    public void test_Find_With_Attributes_Users() throws Exception {
+        Snippet responseFields = responseFields(searchWithAttributesResponseFields);
+        Snippet requestParameters = requestParameters(searchWithAttributes);
+
+        getMockMvc().perform(
+            get("/Users")
+                .accept(APPLICATION_JSON)
+                .header("Authorization", "Bearer " + scimReadToken)
+                .param("attributes", "id,userName,emails,active")
+                .param("filter", String.format("id eq \"%s\"", user.getId()))
+                .param("sortBy", "email")
+                .param("count", "50")
+                .param("sortOrder", "ascending")
+                .param("startIndex", "1")
+        )
+            .andExpect(status().isOk())
+            .andDo(print())
+            .andDo(
+                document("{ClassName}/{methodName}",
+                         preprocessRequest(prettyPrint()),
+                         preprocessResponse(prettyPrint()),
+                         requestHeaders(
+                             headerWithName("Authorization").description("Access token with scim.read or uaa.admin required"),
+                             IDENTITY_ZONE_ID_HEADER,
+                             IDENTITY_ZONE_SUBDOMAIN_HEADER
+                         ),
+                         requestParameters,
+                         responseFields
                 )
             );
     }
@@ -489,7 +545,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
         user.setGroups(Collections.emptyList());
 
         getMockMvc().perform(
@@ -528,7 +584,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
         user.setGroups(Collections.emptyList());
 
         getMockMvc().perform(
@@ -565,7 +621,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
 
         getMockMvc().perform(
             RestDocumentationRequestBuilders.delete("/Users/{userId}", user.getId())
@@ -602,7 +658,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .setClientId("identity")
             .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
             .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
-        store.addApproval(approval);
+        store.addApproval(approval, IdentityZoneHolder.get().getId());
 
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
@@ -663,7 +719,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                     ),
                     requestFields(
-                        fieldWithPath("oldPassword").required().description("Old password.").type(STRING),
+                        fieldWithPath("oldPassword").required().description("Old password. Optional when resetting another users password as an admin with uaa.admin scope").type(STRING),
                         fieldWithPath("password").required().description("New password.").type(STRING)
                     ),
                     responseFields(
@@ -682,7 +738,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.setVerified(false);
         joel.addEmail(email);
-        joel = userProvisioning.createUser(joel, "pas5Word");
+        joel = userProvisioning.createUser(joel, "pas5Word", IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/Users/{userId}/verify-link", joel.getId())
             .header("Authorization", "Bearer " + accessToken)
@@ -713,7 +769,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         billy.setVerified(false);
         billy.addEmail(email);
         billy.setVersion(12);
-        billy = userProvisioning.createUser(billy, "pas5Word");
+        billy = userProvisioning.createUser(billy, "pas5Word", IdentityZoneHolder.get().getId());
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"),
             headerWithName("If-Match").description("(Optional) The expected current version of the user, which will prevent update if the version does not match"),

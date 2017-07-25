@@ -88,7 +88,9 @@ public final class LdapUtils {
             return definition;
         }
 
-
+        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_STORE_CUSTOM_ATTRIBUTES)!=null) {
+            definition.setStoreCustomAttributes((boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_STORE_CUSTOM_ATTRIBUTES));
+        }
 
         if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN)!=null) {
             definition.setEmailDomain((List<String>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN));

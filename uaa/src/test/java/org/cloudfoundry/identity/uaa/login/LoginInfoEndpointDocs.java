@@ -69,7 +69,8 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("app.version").type(STRING).description("The UAA version"),
             fieldWithPath("commit_id").type(STRING).description("The GIT sha for the UAA version"),
             fieldWithPath("timestamp").type(STRING).description("JSON timestamp for the commit of the UAA version"),
-            fieldWithPath("idpDefinitions").type(OBJECT).description("A list of alias/url pairs of SAML IDP providers configured. Each url is the starting point to initiate the authentication process for the SAML identity provider."),
+            fieldWithPath("idpDefinitions").optional().type(OBJECT).description("A list of alias/url pairs of SAML IDP providers configured. Each url is the starting point to initiate the authentication process for the SAML identity provider."),
+            fieldWithPath("idpDefinitions.*").optional().type(ARRAY).description("A list of alias/url pairs of SAML IDP providers configured. Each url is the starting point to initiate the authentication process for the SAML identity provider."),
             fieldWithPath("links").type(OBJECT).description("A list of alias/url pairs of configured action URLs for the UAA"),
             fieldWithPath("links.login").type(STRING).description("The link to the login host alias of the UAA"),
             fieldWithPath("links.uaa").type(STRING).description("The link to the uaa alias host of the UAA"),
@@ -139,7 +140,7 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
     @Test
     public void passcode_request() throws Exception {
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
+        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
 

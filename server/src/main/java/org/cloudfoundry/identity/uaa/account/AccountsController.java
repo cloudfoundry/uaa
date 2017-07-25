@@ -15,8 +15,11 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
@@ -37,6 +40,8 @@ import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -47,14 +52,21 @@ public class AccountsController {
 
     private final AccountCreationService accountCreationService;
 
-    public AccountsController(AccountCreationService accountCreationService) {
+    private final IdentityProviderProvisioning identityProviderProvisioning;
+
+    public AccountsController(AccountCreationService accountCreationService, IdentityProviderProvisioning identityProviderProvisioning) {
         this.accountCreationService = accountCreationService;
+        this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
     @RequestMapping(value = "/create_account", method = GET)
     public String activationEmail(Model model,
                                   @RequestParam(value = "client_id", required = false) String clientId,
-                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
+                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri,
+                                  HttpServletResponse response) {
+        if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+            return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
+        }
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
         return "accounts/new_activation_email";
@@ -67,8 +79,18 @@ public class AccountsController {
                                       @Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
                                       @RequestParam("password") String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation) {
+        if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+            return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
+        }
         if(result.hasErrors()) {
             return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email");
+        }
+
+        List<IdentityProvider> identityProviderList = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId()), email.getEmail());
+        identityProviderList = identityProviderList.stream().filter(idp -> !idp.getOriginKey().equals(OriginKeys.UAA)).collect(Collectors.toList());
+        if(!identityProviderList.isEmpty()) {
+            model.addAttribute("email", email.getEmail());
+            return handleUnprocessableEntity(model, response, "error_message_code", "other_idp");
         }
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
         if (!validation.valid()) {
@@ -120,6 +142,12 @@ public class AccountsController {
         model.addAttribute(attributeKey, attributeValue);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "accounts/new_activation_email";
+    }
+
+    private String handleSelfServiceDisabled(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
+        model.addAttribute(attributeKey, attributeValue);
+        response.setStatus(HttpStatus.NOT_FOUND.value());
+        return "error";
     }
 
     public static class ValidEmail {

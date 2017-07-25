@@ -15,17 +15,13 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.security.authentication.AuthenticationDetailsSource;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -36,21 +32,15 @@ import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 /**
  * Provides an implementation that sets the UserAuthentication
@@ -73,20 +63,24 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final SAMLProcessingFilter samlAuthenticationFilter;
 
+    private final XOAuthAuthenticationManager xoAuthAuthenticationManager;
+
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory) {
-        this(authenticationManager, oAuth2RequestFactory, null);
+        this(authenticationManager, oAuth2RequestFactory, null, null);
     }
     /**
      * @param authenticationManager an AuthenticationManager for the incoming request
      */
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory,
-                                                                SAMLProcessingFilter samlAuthenticationFilter) {
+                                                                SAMLProcessingFilter samlAuthenticationFilter,
+                                                                XOAuthAuthenticationManager xoAuthAuthenticationManager) {
         super();
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;
         this.samlAuthenticationFilter = samlAuthenticationFilter;
+        this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
     }
 
     /**
@@ -115,7 +109,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         final HttpServletResponse response = (HttpServletResponse) res;
 
         try {
-            Authentication userAuthentication = extractCredentials(request, response);
+            Authentication userAuthentication = attemptTokenAuthentication(request, response);
 
             if (userAuthentication != null) {
                 Authentication clientAuth = SecurityContextHolder.getContext().getAuthentication();
@@ -144,24 +138,17 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
                 onSuccessfulAuthentication(request, response, userAuthentication);
             }
-        } catch (UnauthorizedClientException failed) {
-            //happens when all went well, but the client is not authorized for the identity provider
-            UnapprovedClientAuthenticationException ex = new UnapprovedClientAuthenticationException(failed.getMessage(), failed);
-            SecurityContextHolder.clearContext();
-            logger.debug("Authentication request for failed: " + failed);
-            onUnsuccessfulAuthentication(request, response, ex);
-            authenticationEntryPoint.commence(request, response, ex);
-            return;
         } catch (AuthenticationException failed) {
-            SecurityContextHolder.clearContext();
-            logger.debug("Authentication request for failed: " + failed);
+            logger.debug("Authentication request failed: " + failed.getMessage());
             onUnsuccessfulAuthentication(request, response, failed);
             authenticationEntryPoint.commence(request, response, failed);
             return;
-        } catch (InvalidScopeException ex) {
-            String message = ex.getMessage();
-            response.sendError(UNAUTHORIZED.value(), message);
-            authenticationEntryPoint.commence(request, response, new InsufficientAuthenticationException(message, ex));
+        } catch (OAuth2Exception failed) {
+            String message = failed.getMessage();
+            logger.debug("Authentication request failed with Oauth exception: " + message);
+            InsufficientAuthenticationException  ex = new InsufficientAuthenticationException (message, failed);
+            onUnsuccessfulAuthentication(request, response, ex);
+            authenticationEntryPoint.commence(request, response, ex);
             return;
         }
 
@@ -178,12 +165,15 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         return map;
     }
 
-    protected void onSuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+    protected void onSuccessfulAuthentication(HttpServletRequest request,
+                                              HttpServletResponse response,
                                               Authentication authResult) throws IOException {
     }
 
-    protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+    protected void onUnsuccessfulAuthentication(HttpServletRequest request,
+                                                HttpServletResponse response,
                                                 AuthenticationException failed) throws IOException {
+        SecurityContextHolder.clearContext();
     }
 
     /**
@@ -202,8 +192,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         return credentials;
     }
 
-    protected Authentication extractCredentials(HttpServletRequest request, HttpServletResponse response) {
+    protected Authentication attemptTokenAuthentication(HttpServletRequest request, HttpServletResponse response) {
         String grantType = request.getParameter("grant_type");
+        logger.debug("Processing token user authentication for grant:"+grantType);
         Authentication authResult = null;
         if ("password".equals(grantType)) {
             Authentication credentials = extractCredentials(request);
@@ -218,6 +209,19 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
             } else {
                 logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
+                throw new InsufficientAuthenticationException("SAML Assertion is missing");
+            }
+        } else if (GRANT_TYPE_JWT_BEARER.equals(grantType)) {
+            logger.debug(GRANT_TYPE_JWT_BEARER +" found. Attempting authentication with assertion");
+            String assertion = request.getParameter("assertion");
+            if (assertion != null && xoAuthAuthenticationManager != null) {
+                logger.debug("Attempting OIDC JWT authentication for token endpoint.");
+                XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, assertion, null);
+                token.setRequestContextPath(getContextPath(request));
+                authResult = xoAuthAuthenticationManager.authenticate(token);
+            } else {
+                logger.debug("No assertion or authentication manager, not attempting JWT bearer authentication for token endpoint.");
+                throw new InsufficientAuthenticationException("Assertion is missing");
             }
         }
         if (authResult != null && authResult.isAuthenticated()) {
@@ -227,16 +231,16 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         return null;
     }
 
-    private Set<String> getScope(HttpServletRequest request) {
-        return OAuth2Utils.parseParameterList(request.getParameter("scope"));
-    }
-
+    @Override
     public void init(FilterConfig filterConfig) throws ServletException {
     }
 
+    @Override
     public void destroy() {
     }
 
-
-
+    private String getContextPath(HttpServletRequest request) {
+        StringBuffer requestURL = request.getRequestURL();
+        return requestURL.substring(0, requestURL.length() - request.getServletPath().length());
+    }
 }

@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -65,9 +66,9 @@ public class TokenRevocationEndpoint {
     @RequestMapping("/oauth/token/revoke/user/{userId}")
     public ResponseEntity<Void> revokeTokensForUser(@PathVariable String userId) {
         logger.debug("Revoking tokens for user: " + userId);
-        ScimUser user = userProvisioning.retrieve(userId);
+        ScimUser user = userProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         user.setSalt(generator.generate());
-        userProvisioning.update(userId, user);
+        userProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
         logger.debug("Tokens revoked for user: " + userId);
         return new ResponseEntity<>(OK);
     }
@@ -75,9 +76,9 @@ public class TokenRevocationEndpoint {
     @RequestMapping("/oauth/token/revoke/client/{clientId}")
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
-        BaseClientDetails client = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId);
+        BaseClientDetails client = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         client.addAdditionalInformation(ClientConstants.TOKEN_SALT,generator.generate());
-        clientDetailsService.updateClientDetails(client);
+        clientDetailsService.updateClientDetails(client, IdentityZoneHolder.get().getId());
         logger.debug("Tokens revoked for client: " + clientId);
         return new ResponseEntity<>(OK);
     }
@@ -85,7 +86,7 @@ public class TokenRevocationEndpoint {
     @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = DELETE)
     public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
         logger.debug("Revoking token with ID:"+tokenId);
-        tokenProvisioning.delete(tokenId, -1);
+        tokenProvisioning.delete(tokenId, -1, IdentityZoneHolder.get().getId());
         logger.debug("Revoked token with ID: " + tokenId);
         return new ResponseEntity<>(OK);
     }
@@ -96,7 +97,7 @@ public class TokenRevocationEndpoint {
         String userId = principal.getId();
         String clientId = authentication.getOAuth2Request().getClientId();
         logger.debug("Listing revocable tokens access token userId:"+ userId +" clientId:"+ clientId);
-        List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, clientId);
+        List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, clientId, IdentityZoneHolder.get().getId());
         removeTokenValues(result);
         return new ResponseEntity<>(result, OK);
     }
@@ -109,7 +110,7 @@ public class TokenRevocationEndpoint {
     public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId, OAuth2Authentication authentication) {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for user:" + userId);
-            List<RevocableToken> result = tokenProvisioning.getUserTokens(userId);
+            List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, IdentityZoneHolder.get().getId());
             removeTokenValues(result);
             return new ResponseEntity<>(result, OK);
         } else {
@@ -121,7 +122,7 @@ public class TokenRevocationEndpoint {
     public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId, OAuth2Authentication authentication) {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for client:" + clientId);
-            List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId);
+            List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId, IdentityZoneHolder.get().getId());
             removeTokenValues(result);
             return new ResponseEntity<>(result, OK);
         } else {

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.account.OpenIdConfiguration;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -40,6 +41,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTR
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -96,10 +98,46 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testGetUserInfo() throws Exception {
-        get_user_info("openid");
+        getUserInfo("/userinfo", "openid");
     }
 
-    public Map<String, Object> get_user_info(String scopes) throws Exception {
+    @Test
+    public void testGetUserInfoEndpointFromWellKnownConfiguration() throws Exception {
+        MockHttpServletResponse response = getMockMvc().perform(get("/.well-known/openid-configuration")
+            .servletPath("/.well-known/openid-configuration")
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
+
+        OpenIdConfiguration openIdConfiguration = JsonUtils.readValue(response.getContentAsString(), OpenIdConfiguration.class);
+        getUserInfo(openIdConfiguration.getUserInfoUrl(), "openid");
+    }
+
+    @Test
+    public void attributesWithRolesAndUserAttributes() throws Exception {
+        Map<String, Object> info = getUserInfo("/userinfo", "openid roles user_attributes");
+        Object ua = info.get(USER_ATTRIBUTES);
+        assertNotNull(ua);
+        assertEquals(userAttributes, ua);
+        Object r = info.get(ROLES);
+        assertNotNull(r);
+        assertEquals(roles, r);
+    }
+
+    @Test
+    public void attributesWithNoExtraScopes() throws Exception {
+        Map<String, Object> info = getUserInfo("/userinfo", "openid");
+        assertNull(info.get(USER_ATTRIBUTES));
+        assertNull(info.get(ROLES));
+    }
+
+    @Test
+    public void testGetUserInfoWithoutPIIToken() throws Exception {
+        tokenServices.setExcludedClaims(new HashSet<>(Arrays.asList("user_name", "email")));
+        getUserInfo("/userinfo", "openid");
+    }
+
+    private Map<String, Object> getUserInfo(String url, String scopes) throws Exception {
 
         String userInfoToken = testClient.getUserOAuthAccessToken(
             clientId,
@@ -110,7 +148,7 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
         );
 
         MockHttpServletResponse response = getMockMvc().perform(
-            get("/userinfo")
+            get(url)
                 .header("Authorization", "Bearer " + userInfoToken))
             .andExpect(status().isOk())
             .andReturn().getResponse();
@@ -124,31 +162,6 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
         Long dbPreviousLogonTime = getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserById(userId).getPreviousLogonTime();
         assertEquals(dbPreviousLogonTime, map.get(ClaimConstants.PREVIOUS_LOGON_TIME));
         return map;
-    }
-
-    @Test
-    public void attributes_with_roles_and_user_attributes() throws Exception {
-        Map<String, Object> info = get_user_info("openid roles user_attributes");
-        Object ua = info.get(USER_ATTRIBUTES);
-        assertNotNull(ua);
-        assertEquals(userAttributes, ua);
-        Object r = info.get(ROLES);
-        assertNotNull(r);
-        assertEquals(roles, r);
-    }
-
-
-    @Test
-    public void attributes_with_no_extra_scopes() throws Exception {
-        Map<String, Object> info = get_user_info("openid");
-        assertNull(info.get(USER_ATTRIBUTES));
-        assertNull(info.get(ROLES));
-    }
-
-    @Test
-    public void testGetUserInfo_Without_PII_Token() throws Exception {
-        tokenServices.setExcludedClaims(new HashSet<>(Arrays.asList("user_name","email")));
-        get_user_info("openid");
     }
 
 }

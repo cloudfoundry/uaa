@@ -16,9 +16,12 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -30,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.hamcrest.Matchers.containsString;
@@ -45,8 +49,20 @@ public class ClientAdminEndpointsValidatorTests {
     BaseClientDetails caller;
     ClientAdminEndpointsValidator validator;
     private List wildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
-    private List httpWildCardUrls = Arrays.asList("http://*", "http://**", "http://*/**", "http://*/*", "http://**/*", "http://a*", "http://abc*.domain.com",
-        "http://*domain*", "http://*domain.com", "http://*domain/path", "http://**/path");
+    private List httpWildCardUrls = Arrays.asList(
+        "http://*",
+        "http://**",
+        "http://*/**",
+        "http://*/*",
+        "http://**/*",
+        "http://a*",
+        "http://*domain*",
+        "http://*domain.com",
+        "http://*domain/path",
+        "http://**/path");
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void createClient() throws Exception {
@@ -59,8 +75,10 @@ public class ClientAdminEndpointsValidatorTests {
         SecurityContextAccessor accessor = mock(SecurityContextAccessor.class);
         when(accessor.isAdmin()).thenReturn(false);
         when(accessor.getScopes()).thenReturn(Arrays.asList("clients.write"));
-        when(accessor.getClientId()).thenReturn(caller.getClientId());
-        when(clientDetailsService.retrieve(eq(caller.getClientId()))).thenReturn(caller);
+        String clientId = caller.getClientId();
+        when(accessor.getClientId()).thenReturn(clientId);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(clientDetailsService.retrieve(eq(clientId), eq(zoneId))).thenReturn(caller);
         validator.setClientDetailsService(clientDetailsService);
         validator.setSecurityContextAccessor(accessor);
 
@@ -77,6 +95,40 @@ public class ClientAdminEndpointsValidatorTests {
     public void test_validate_saml_bearer_grant_type() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_SAML2_BEARER));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        client.setScope(Arrays.asList(client.getClientId()+".read"));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type_without_secret_for_update() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        client.setScope(Collections.singleton(client.getClientId()+".write"));
+        client.setClientSecret("");
+        validator.validate(client, false, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type_without_secret() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        client.setScope(Collections.singleton(client.getClientId()+".write"));
+        client.setClientSecret("");
+        expectedException.expect(InvalidClientDetailsException.class);
+        expectedException.expectMessage("Client secret is required for grant type "+GRANT_TYPE_JWT_BEARER);
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type_without_scopes() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        expectedException.expect(InvalidClientDetailsException.class);
+        expectedException.expectMessage("Scope cannot be empty for grant_type "+GRANT_TYPE_JWT_BEARER);
         validator.validate(client, true, true);
     }
 

@@ -100,6 +100,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
 
     public static String sampleYaml = "  providers:\n" +
         "    okta-local:\n" +
+        "      storeCustomAttributes: true\n" +
         "      idpMetadata: |\n" +
         "        " + testXmlFileData.replace("\n","\n        ") + "\n"+
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
@@ -146,10 +147,16 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
 //        "      linkText: 'Log in with vCenter SSO'\n" +
 //        "      iconUrl: 'http://vsphere.local/iconurl.jpg'\n" +
         "    simplesamlphp-url:\n" +
+        "      storeCustomAttributes: false\n" +
         "      assertionConsumerIndex: 0\n" +
-        "      idpMetadata: http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php\n" +
+        "      idpMetadata: http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php\n" +
         "      metadataTrustCheck: false\n" +
-        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n"
+        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+        "    custom-authncontext:\n" +
+        "      authnContext: [\"custom-context\", \"another-context\"]\n" +
+        "      idpMetadata: |\n" +
+        "        " + testXmlFileData.replace("\n","\n        ") + "\n"
+
 //        +"    incomplete-provider:\n" +
 //        "      idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam\n"
         ;
@@ -196,14 +203,14 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
     public void testAddProviderDefinition() throws Exception {
         bootstrap.setIdentityProviders(sampleData);
         bootstrap.afterPropertiesSet();
-        testGetIdentityProviderDefinitions(3, false);
+        testGetIdentityProviderDefinitions(4, false);
     }
 
 
 
     @Test
     public void testGetIdentityProviderDefinitions() throws Exception {
-        testGetIdentityProviderDefinitions(3);
+        testGetIdentityProviderDefinitions(4);
     }
 
     protected void testGetIdentityProviderDefinitions(int count) throws Exception {
@@ -233,6 +240,8 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
                     assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));
+                    assertTrue(idp.isStoreCustomAttributes());
+                    assertEquals(null, idp.getAuthnContext());
                     break;
                 }
                 case "okta-local-2" : {
@@ -243,6 +252,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                     assertNull(idp.getIconUrl());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
+                    assertTrue(idp.isStoreCustomAttributes());
                     break;
                 }
                 case "okta-local-3" : {
@@ -263,8 +273,16 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
                 case "simplesamlphp-url" : {
                     assertTrue(idp.isShowSamlLink());
                     assertEquals("simplesamlphp-url", idp.getLinkText());
+                    assertFalse(idp.isStoreCustomAttributes());
                     break;
                 }
+                case "custom-authncontext" : {
+                    assertEquals(2, idp.getAuthnContext().size());
+                    assertEquals("custom-context", idp.getAuthnContext().get(0));
+                    assertEquals("another-context", idp.getAuthnContext().get(1));
+                    break;
+                }
+
                 default:
                     fail();
             }
@@ -277,12 +295,12 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
         bootstrap.setLegacyIdpIdentityAlias("okta-local-3");
         bootstrap.setLegacyShowSamlLink(true);
         bootstrap.setLegacyNameId("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
-        testGetIdentityProviderDefinitions(4);
+        testGetIdentityProviderDefinitions(5);
     }
 
     @Test
     public void testGetIdentityProviders() throws Exception {
-        testGetIdentityProviderDefinitions(3);
+        testGetIdentityProviderDefinitions(4);
     }
 
 
@@ -290,6 +308,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
     public void testSetAddShadowUserOnLoginFromYaml() throws Exception {
         String yaml = "  providers:\n" +
             "    provider-without-shadow-user-definition:\n" +
+            "      storeCustomAttributes: true\n" +
             "      idpMetadata: |\n" +
             "        <?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "        <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"provider1\">" +
@@ -300,6 +319,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
             "        </md:EntityDescriptor>\n" +
             "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
             "    provider-with-shadow-users-enabled:\n" +
+            "      storeCustomAttributes: false\n" +
             "      idpMetadata: |\n" +
             "        <?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "        <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"provider2\">" +
@@ -329,14 +349,17 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
             switch (def.getIdpEntityAlias()) {
                 case "provider-without-shadow-user-definition" : {
                     assertTrue("If not specified, addShadowUserOnLogin is set to true", def.isAddShadowUserOnLogin());
+                    assertTrue("Override store custom attributes to true", def.isStoreCustomAttributes());
                     break;
                 }
                 case "provider-with-shadow-users-enabled" : {
                     assertTrue("addShadowUserOnLogin can be set to true", def.isAddShadowUserOnLogin());
+                    assertFalse("Default store custom attributes is false", def.isStoreCustomAttributes());
                     break;
                 }
                 case "provider-with-shadow-user-disabled" : {
                     assertFalse("addShadowUserOnLogin can be set to false", def.isAddShadowUserOnLogin());
+                    assertTrue("Default store custom attributes is false", def.isStoreCustomAttributes());
                     break;
                 }
                 default: fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));

@@ -44,9 +44,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -55,6 +53,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -144,15 +144,12 @@ public class LoginIT {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd");
-        String expectedLastLoginTime = String.format("Last login %s", dateFormat.format(new Date(System.currentTimeMillis())));
         attemptLogin(newUserEmail, "sec3Tas");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
-        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.not(Matchers.containsString((expectedLastLoginTime))));
         webDriver.get(baseUrl + "/logout.do");
         attemptLogin(newUserEmail, "sec3Tas");
 
-        assertThat(webDriver.findElement(By.cssSelector(".footer")).getText(), Matchers.containsString(expectedLastLoginTime));
+        assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
 
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
@@ -216,6 +213,15 @@ public class LoginIT {
             String.class);
         assertEquals(HttpStatus.FORBIDDEN, loginResponse.getStatusCode());
         assertTrue("CSRF message should be shown", loginResponse.getBody().contains("Invalid login attempt, request does not meet our security standards, please try again."));
+    }
+
+    @Test
+    public void testCsrfIsResetDuringLoginPageReload() {
+        webDriver.get(baseUrl + "/login");
+        String csrf1 = webDriver.manage().getCookieNamed(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME).getValue();
+        webDriver.get(baseUrl + "/login");
+        String csrf2 = webDriver.manage().getCookieNamed(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME).getValue();
+        assertNotEquals(csrf1, csrf2);
     }
 
     @Test

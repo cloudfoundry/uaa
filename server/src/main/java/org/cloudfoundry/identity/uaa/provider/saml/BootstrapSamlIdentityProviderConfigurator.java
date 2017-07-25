@@ -34,6 +34,7 @@ import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.PROVIDER_DESCRIPTION;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.springframework.util.StringUtils.hasText;
 
 public class BootstrapSamlIdentityProviderConfigurator implements InitializingBean {
@@ -121,6 +122,13 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             String providerDescription = (String)((Map)entry.getValue()).get(PROVIDER_DESCRIPTION);
             Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             Boolean skipSslValidation = (Boolean)((Map)entry.getValue()).get("skipSslValidation");
+            Boolean storeCustomAttributes = (Boolean)((Map)entry.getValue()).get(STORE_CUSTOM_ATTRIBUTES_NAME);
+            List<String> authnContext = (List<String>) saml.get("authnContext");
+
+            if (storeCustomAttributes == null) {
+                storeCustomAttributes = true; //default value
+            }
+
             if (skipSslValidation==null) {
                 if (socketFactoryClassName != null) {
                     skipSslValidation = false;
@@ -133,6 +141,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             List<String> externalGroupsWhitelist = (List<String>) saml.get(EXTERNAL_GROUPS_WHITELIST);
             Map<String, Object> attributeMappings = (Map<String, Object>) saml.get(ATTRIBUTE_MAPPINGS);
             SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+            def.setStoreCustomAttributes(storeCustomAttributes);
             if (hasText(providerDescription)) {
                 def.setProviderDescription(providerDescription);
             }
@@ -158,6 +167,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             def.setZoneId(hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
             def.setSkipSslValidation(skipSslValidation);
+            def.setAuthnContext(authnContext);
             toBeFetchedProviders.add(def);
         }
     }

@@ -1,5 +1,3 @@
-package org.cloudfoundry.identity.uaa.zone;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
@@ -12,6 +10,9 @@ package org.cloudfoundry.identity.uaa.zone;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.zone;
+
+
 public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
     private final IdentityZoneConfigurationValidator configValidator;
 
@@ -26,15 +27,7 @@ public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
     @Override
     public IdentityZone validate(IdentityZone identityZone, Mode mode) throws InvalidIdentityZoneDetailsException {
         try {
-            IdentityZoneConfigurationValidator.Mode configValidateMode = null;
-            if (mode == Mode.CREATE) {
-                configValidateMode = IdentityZoneConfigurationValidator.Mode.CREATE;
-            } else if (mode == Mode.MODIFY) {
-                configValidateMode = IdentityZoneConfigurationValidator.Mode.MODIFY;
-            } else if (mode == Mode.DELETE) {
-                configValidateMode = IdentityZoneConfigurationValidator.Mode.DELETE;
-            }
-            identityZone.setConfig(configValidator.validate(identityZone.getConfig(), configValidateMode));
+            identityZone.setConfig(configValidator.validate(identityZone.getConfig(), mode));
         } catch (InvalidIdentityZoneConfigurationException ex) {
             throw new InvalidIdentityZoneDetailsException("The zone configuration is invalid.", ex);
         }

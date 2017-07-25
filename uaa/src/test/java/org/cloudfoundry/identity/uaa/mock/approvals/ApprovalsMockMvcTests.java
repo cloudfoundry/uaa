@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -50,6 +50,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -67,6 +68,37 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         client1 = setUpClients(generator.generate(), null, scopes, AUTHORIZATION_CODE, false);
     }
 
+
+    @Test
+    public void revoke() throws Exception {
+        test_oauth_authorize_without_csrf();
+        MockHttpSession session = getAuthenticatedSession(user1);
+        getMockMvc().perform(
+            post("/profile")
+                .with(cookieCsrf())
+                .param("delete", "true")
+                .param("clientId", client1.getClientId())
+                .session(session)
+        )
+            .andExpect(status().isFound())
+            .andExpect(header().string("Location", "profile"));
+
+    }
+
+    @Test
+    public void revoke_invalid_client() throws Exception {
+        test_oauth_authorize_without_csrf();
+        MockHttpSession session = getAuthenticatedSession(user1);
+        getMockMvc().perform(
+            post("/profile")
+                .with(cookieCsrf())
+                .param("delete", "true")
+                .param("clientId", "invalid_id")
+                .session(session)
+        )
+            .andExpect(status().isFound())
+            .andExpect(header().string("Location", "profile?error_message_code=request.invalid_parameter"));
+    }
 
     @Test
     public void test_oauth_authorize_without_csrf() throws Exception {

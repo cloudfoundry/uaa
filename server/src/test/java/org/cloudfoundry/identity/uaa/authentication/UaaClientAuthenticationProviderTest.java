@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
     @Before
     public void setUpForClientTests() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(dataSource);
+        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
         jdbcClientDetailsService.setPasswordEncoder(encoder);
         ClientDetailsUserDetailsService clientDetailsService = new ClientDetailsUserDetailsService(jdbcClientDetailsService);
         client = createClient();
@@ -73,19 +74,19 @@ public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
 
     @Test
     public void provider_authenticate_client_with_two_passwords_test_1() throws Exception {
-        jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2");
+        jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2", IdentityZoneHolder.get().getId());
         testClientAuthentication(getToken(client.getClientId(), SECRET));
     }
 
     @Test
     public void provider_authenticate_client_with_two_passwords_test_2() throws Exception {
-        jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2");
+        jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2", IdentityZoneHolder.get().getId());
         testClientAuthentication(getToken(client.getClientId(), "secret2"));
     }
 
     @Test(expected = AuthenticationException.class)
     public void provider_authenticate_client_with_two_passwords_test_3() throws Exception {
-        jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2");
+        jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2", IdentityZoneHolder.get().getId());
         testClientAuthentication(getToken(client.getClientId(), "secret3"));
     }
 

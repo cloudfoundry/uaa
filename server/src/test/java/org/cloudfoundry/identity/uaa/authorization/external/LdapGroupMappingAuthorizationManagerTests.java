@@ -69,12 +69,12 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
     public void initLdapGroupMappingAuthorizationManagerTests() throws Exception {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
+        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
-        assertEquals(0, gDB.retrieveAll().size());
+        assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
 
-        gDB.create(new ScimGroup(null, "acme", IdentityZoneHolder.get().getId()));
-        gDB.create(new ScimGroup(null, "acme.dev", IdentityZoneHolder.get().getId()));
+        gDB.create(new ScimGroup(null, "acme", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+        gDB.create(new ScimGroup(null, "acme.dev", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
 
         bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
 

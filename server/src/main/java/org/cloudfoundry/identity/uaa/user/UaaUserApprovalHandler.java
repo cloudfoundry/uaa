@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,20 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
@@ -34,9 +29,14 @@ import org.springframework.security.oauth2.provider.approval.UserApprovalHandler
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class UaaUserApprovalHandler implements UserApprovalHandler {
 
@@ -46,7 +46,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
 
     private String approvalParameter = OAuth2Utils.USER_OAUTH_APPROVAL;
 
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
 
     private OAuth2RequestFactory requestFactory;
 
@@ -67,7 +67,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     /**
      * @param clientDetailsService the clientDetailsService to set
      */
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -81,10 +81,10 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     /**
      * Allows automatic approval for a white list of clients in the implicit
      * grant case.
-     * 
+     *
      * @param authorizationRequest The authorization request.
      * @param userAuthentication the current user authentication
-     * 
+     *
      * @return Whether the specified request has been approved by the current
      *         user.
      */
@@ -102,7 +102,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
         String clientId = authorizationRequest.getClientId();
         boolean approved = false;
         if (clientDetailsService != null) {
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+            ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             Collection<String> requestedScopes = authorizationRequest.getScope();
             if (isAutoApprove(client, requestedScopes)) {
                 approved = true;
@@ -132,7 +132,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
         Set<String> scopes = authorizationRequest.getScope();
         if (clientDetailsService!=null) {
             try {
-                ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+                ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                 approved = true;
                 for (String scope : scopes) {
                     if (!client.isAutoApprove(scope)) {

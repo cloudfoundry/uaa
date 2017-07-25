@@ -19,11 +19,11 @@ import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -63,6 +63,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 public class TokenValidationTest {
 
@@ -122,7 +123,7 @@ public class TokenValidationTest {
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
             .thenReturn(new RevocableToken().setValue(UaaTokenUtils.constructToken(header, content, signer)));
 
         userDb = new MockUaaUserDatabase(u -> u
@@ -153,23 +154,23 @@ public class TokenValidationTest {
 
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
-            .checkRequiredUserGroups((Collection<String>) Matchers.argThat(containsInAnyOrder(new String[0])),
-                                     (Collection<String>) Matchers.argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+            .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
+                                     (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
             );
         Mockito.reset(validation);
 
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, null);
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
-            .checkRequiredUserGroups((Collection<String>) Matchers.argThat(containsInAnyOrder(new String[0])),
-                                     (Collection<String>) Matchers.argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+            .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
+                                     (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
             );
 
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group1", "group2"));
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
-            .checkRequiredUserGroups((Collection<String>) Matchers.argThat(containsInAnyOrder(new String[] {"group1", "group2"})),
-                                     (Collection<String>) Matchers.argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+            .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[] {"group1", "group2"})),
+                                     (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
             );
 
     }
@@ -367,9 +368,17 @@ public class TokenValidationTest {
     }
 
     @Test
+    public void emptyAudience() {
+        TokenValidation validation = validate(getToken())
+            .checkAudience("");
+        assertFalse(validation.isValid());
+        assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
+    }
+
+    @Test
     public void tokenIsRevoked() {
         RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
             .thenThrow(new EmptyResultDataAccessException(1));
 
         TokenValidation validation = validate(getToken())
@@ -382,7 +391,7 @@ public class TokenValidationTest {
     @Test
     public void nonRevocableToken() {
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
             .thenThrow(new EmptyResultDataAccessException(1)); // should not occur
 
         content.remove("revocable");

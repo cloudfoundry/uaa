@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+    Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
 
     This product is licensed to you under the Apache License, Version 2.0 (the "License").
     You may not use this product except in compliance with the License.
@@ -50,6 +50,20 @@
         <constructor-arg name="expirePasswordsInMonths" value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
     </bean>
 
+    <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher">
+        <constructor-arg ref="scimUserProvisioning" />
+    </bean>
+
+    <aop:config proxy-target-class="true">
+        <aop:aspect ref="passwordEventPublisher">
+            <aop:after-returning method="passwordChange"
+                                 pointcut="execution(* *..ScimUserProvisioning+.changePassword(String, ..)) and args(userId,..) and bean(scimUserProvisioning)" />
+            <aop:after-throwing method="passwordFailure"
+                                pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)"
+                                throwing="e" />
+        </aop:aspect>
+    </aop:config>
+
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
 
     <aop:config proxy-target-class="true">
@@ -80,17 +94,16 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
     </bean>
 
-    <bean id="groupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
+    <bean id="groupMembershipManager"
+          class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory"/>
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <property name="defaultUserGroups" ref="defaultUserAuthorities" />
+        <property name="zoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
     <bean id="externalGroupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager">
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
     </bean>
 
@@ -110,6 +123,7 @@
 
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
         <property name="scimUserResourceMonitor" ref="scimUserProvisioning"/>
         <property name="scimGroupMembershipManager" ref="groupMembershipManager" />
         <property name="approvalStore" ref="approvalStore" />
@@ -144,9 +158,11 @@
         <intercept-url pattern="/Groups/External/**" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
         <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
         <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or @groupRole.isGroupWriter(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
+        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or @groupRole.isGroupWriter(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.read') or @groupRole.isGroupReader(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
         <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or @groupRole.isGroupWriter(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PATCH" />
         <intercept-url pattern="/Groups" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
+        <intercept-url pattern="/**" access="denyAll"/>
         <!--<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />-->
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -175,24 +191,10 @@
         </property>
     </bean>
 
-    <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher">
-        <constructor-arg ref="scimUserProvisioning" />
-    </bean>
-
-    <aop:config proxy-target-class="true">
-        <aop:aspect ref="passwordEventPublisher">
-            <aop:after-returning method="passwordChange"
-                pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)" />
-            <aop:after-throwing method="passwordFailure"
-                pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)"
-                throwing="e" />
-        </aop:aspect>
-    </aop:config>
-
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"  use-expressions="false"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/User*/*/password" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
         <custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <csrf disabled="true"/>
@@ -213,7 +215,7 @@
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PUT" /> <!-- add self logic -->
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PATCH" />
         <intercept-url pattern="/Users" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
+        <intercept-url pattern="/**" access="denyAll" />
         <expression-handler ref="oauthWebExpressionHandler" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -253,6 +255,7 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <constructor-arg ref="users" /> <!--Conversion happens with org.cloudfoundry.identity.uaa.user.UaaUserEditor -->
         <property name="override" value="${scim.user.override:false}" />
+        <property name="usersToDelete" value="#{@config['delete']==null ? null : @config['delete']['users']}" />
     </bean>
 
     <bean id="scimGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap">
@@ -261,7 +264,7 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <property name="groups" ref="groups" />
         <property name="groupMembers" ref="members" />
-        <property name="defaultUserGroups" value="#{@config['oauth'] != null and @config['oauth']['user'] != null ? @config['oauth']['user']['authorities'] : {}}" />
+        <property name="defaultUserGroups" ref="defaultUserAuthorities" />
         <property name="nonDefaultUserGroups" ref="nonDefaultUserGroups"/>
     </bean>
 

@@ -126,7 +126,7 @@ public class InvitationsController {
     @RequestMapping(value = "/accept", method = GET, params = {"code"})
     public String acceptInvitePage(@RequestParam String code, Model model, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if ((null == expiringCode) || (null != expiringCode.getIntent() && !INVITATION.name().equals(expiringCode.getIntent()))) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
@@ -137,7 +137,7 @@ public class InvitationsController {
         String origin = codeData.get(ORIGIN);
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
+            final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
             if (user.isVerified()) {
@@ -250,19 +250,34 @@ public class InvitationsController {
 
         UaaPrincipal principal =  (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
+        final ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+
+        if (expiringCode == null || expiringCode.getData() == null) {
+            logger.debug("Failing invitation. Code not found.");
+            SecurityContextHolder.clearContext();
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
+        }
+        Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
+        if (principal == null || data.get("user_id") == null || !data.get("user_id").equals(principal.getId())) {
+            logger.debug("Failing invitation. Code and user ID mismatch.");
+            SecurityContextHolder.clearContext();
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
+        }
+
+        final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
         if (!validation.valid()) {
-           return processErrorReload(code, model, principal.getEmail(), response, "error_message_code", validation.getMessageCode());
+           return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", validation.getMessageCode());
 //           return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode(), "invitations/accept_invite");
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
-            return processErrorReload(code, model, principal.getEmail(), response, "error_message", e.getMessagesAsOneString());
+            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message", e.getMessagesAsOneString());
 //            return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
         AcceptedInvitation invitation;
         try {
-            invitation = invitationsService.acceptInvitation(code, password);
+            invitation = invitationsService.acceptInvitation(newCode, password);
         } catch (HttpClientErrorException e) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
@@ -280,12 +295,12 @@ public class InvitationsController {
     }
 
     private String processErrorReload(String code, Model model, String email, HttpServletResponse response, String errorCode, String error) {
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         try {
             String origin = codeData.get(ORIGIN);
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent()).getCode();
+            String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             model.addAttribute(errorCode, error);
             model.addAttribute("code", newCode);
@@ -304,12 +319,12 @@ public class InvitationsController {
                                        @RequestParam("code") String code,
                                        Model model, HttpServletResponse response) throws IOException {
 
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if (expiringCode==null) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_enterprise.do");
         }
 
-        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000*60*10)), null).getCode();
+        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000*60*10)), null, IdentityZoneHolder.get().getId()).getCode();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
         AuthenticationManager authenticationManager = null;
@@ -329,11 +344,11 @@ public class InvitationsController {
         try {
             authentication = authenticationManager.authenticate(token);
             Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
-            ScimUser user = userProvisioning.retrieve(data.get("user_id"));
+            ScimUser user = userProvisioning.retrieve(data.get("user_id"), IdentityZoneHolder.get().getId());
             if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
                 model.addAttribute("email", data.get("email"));
                 model.addAttribute("provider", OriginKeys.LDAP);
-                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), null).getCode());
+                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), null, IdentityZoneHolder.get().getId()).getCode());
                 return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
             }
 
@@ -341,7 +356,7 @@ public class InvitationsController {
             if (authentication.isAuthenticated()) {
                 //change username from email to username
                 user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
-                userProvisioning.update(user.getId(), user);
+                userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
                 SecurityContextHolder.getContext().setAuthentication(zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token));
                 AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
                 return "redirect:" + accept.getRedirectUri();

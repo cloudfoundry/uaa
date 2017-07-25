@@ -24,8 +24,12 @@ import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinitio
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -63,6 +67,9 @@ import static org.springframework.http.HttpMethod.GET;
 
 
 public class XOAuthProviderConfiguratorTests {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     String jsonResponse = "{\n" +
         " \"issuer\": \"https://accounts.google.com\",\n" +
@@ -120,7 +127,7 @@ public class XOAuthProviderConfiguratorTests {
     private RawXOAuthIdentityProviderDefinition oauth;
 
 
-    private String baseExpect = "https://oidc10.identity.cf-app.com/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
+    private String baseExpect = "https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
     private String redirectUri;
     private MockHttpServletRequest request;
     XOAuthProviderConfigurator configurator;
@@ -145,9 +152,9 @@ public class XOAuthProviderConfiguratorTests {
         request.setServerPort(8443);
 
         for (AbstractXOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
-            def.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
-            def.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
-            def.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_keys"));
+            def.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
+            def.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
+            def.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_keys"));
             def.setScopes(Arrays.asList("openid","password.write"));
             def.setRelyingPartyId("clientId");
             if (def == oidc) {
@@ -188,7 +195,6 @@ public class XOAuthProviderConfiguratorTests {
         oauthProvider.setType(OAUTH20);
         oauthProvider.setConfig(new RawXOAuthIdentityProviderDefinition());
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
-
     }
 
     @Test
@@ -203,6 +209,41 @@ public class XOAuthProviderConfiguratorTests {
         List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaa().getId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    public void retrieve_by_issuer() throws Exception {
+        String issuer = "https://accounts.google.com";
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    public void issuer_not_found() throws Exception {
+        String issuer = "https://accounts.google.com";
+        exception.expect(IncorrectResultSizeDataAccessException.class);
+        exception.expectMessage(String.format("Active provider with issuer[%s] not found", issuer));
+        reset(provisioning);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(0)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    public void duplicate_issuer_found() throws Exception {
+        String issuer = "https://accounts.google.com";
+        exception.expect(IncorrectResultSizeDataAccessException.class);
+        exception.expectMessage(String.format("Duplicate providers with issuer[%s] not found", issuer));
+        reset(provisioning);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(2)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
     }
 
@@ -311,6 +352,15 @@ public class XOAuthProviderConfiguratorTests {
     public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() throws UnsupportedEncodingException {
         String expected = String.format(baseExpect, oauth.getRelyingPartyId(), URLEncoder.encode("code"), redirectUri, URLEncoder.encode("openid password.write"), "");
         assertEquals(configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth), expected);
+    }
+
+    @Test
+    public void getCompleteAuthorizationURI_withOnlyDiscoveryUrlForOIDCProvider() throws MalformedURLException {
+        oidc.setDiscoveryUrl(new URL(discoveryUrl));
+        oidc.setAuthUrl(null);
+        String authorizationURI = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
+        verify(configurator).overlay(oidc);
+        assertThat(authorizationURI, Matchers.startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
     }
 
     @Test

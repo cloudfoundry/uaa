@@ -65,7 +65,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     public void process(UaaAuditService auditor) {
-        auditor.log(getAuditEvent());
+        auditor.log(getAuditEvent(), getAuditEvent().getIdentityZoneId());
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin) {

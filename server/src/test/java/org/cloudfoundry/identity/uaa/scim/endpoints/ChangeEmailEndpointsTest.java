@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,13 +61,13 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testGenerateEmailChangeCode() throws Exception {
         String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
-        when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name())))
+        when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), eq(IdentityZoneHolder.get().getId())))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, EMAIL.name()));
 
         ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
         userChangingEmail.setOrigin("test");
         userChangingEmail.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(userChangingEmail);
 
         MockHttpServletRequestBuilder post = post("/email_verifications")
             .contentType(APPLICATION_JSON)
@@ -84,10 +85,10 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
         ScimUser userChangingEmail = new ScimUser("id001", "user@example.com", null, null);
         userChangingEmail.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(userChangingEmail);
 
         ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
-        when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
             .thenReturn(Arrays.asList(existingUser));
 
         MockHttpServletRequestBuilder post = post("/email_verifications")
@@ -101,7 +102,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangeEmail() throws Exception {
-        when(expiringCodeStore.retrieveCode("the_secret_code"))
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
             .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}", EMAIL.name()));
 
         BaseClientDetails clientDetails = new BaseClientDetails();
@@ -109,14 +110,14 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
         additionalInformation.put(ChangeEmailEndpoints.CHANGE_EMAIL_REDIRECT_URL, "app_callback_url");
         clientDetails.setAdditionalInformation(additionalInformation);
 
-        when(clientDetailsService.retrieve("app"))
+        when(clientDetailsService.retrieve("app", IdentityZoneHolder.get().getId()))
             .thenReturn(clientDetails);
 
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName("user@example.com");
         scimUser.setPrimaryEmail("user@example.com");
 
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
 
         mockMvc.perform(post("/email_changes")
             .contentType(APPLICATION_JSON)
@@ -129,7 +130,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
             .andExpect(MockMvcResultMatchers.status().isOk());
 
         ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
-        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture());
+        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture(), eq(IdentityZoneHolder.get().getId()));
         Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
         Assert.assertEquals("new@example.com", user.getValue().getUserName());
 
@@ -142,14 +143,14 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangeEmailWhenUsernameNotTheSame() throws Exception {
-        when(expiringCodeStore.retrieveCode("the_secret_code"))
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
             .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", EMAIL.name()));
 
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName("username");
         scimUser.setPrimaryEmail("user@example.com");
 
-        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
 
         mockMvc.perform(post("/email_changes")
             .contentType(APPLICATION_JSON)
@@ -158,7 +159,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
             .andExpect(MockMvcResultMatchers.status().isOk());
 
         ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
-        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture());
+        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture(), eq(IdentityZoneHolder.get().getId()));
 
         Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
         Assert.assertEquals("username", user.getValue().getUserName());
@@ -166,7 +167,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void changeEmail_withIncorrectCode() throws Exception {
-        when(expiringCodeStore.retrieveCode("the_secret_code"))
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
             .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", "incorrect-code"));
 
         mockMvc.perform(post("/email_changes")

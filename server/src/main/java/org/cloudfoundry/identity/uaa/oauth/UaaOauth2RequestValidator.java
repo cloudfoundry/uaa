@@ -13,12 +13,13 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
 import org.springframework.security.oauth2.provider.TokenRequest;
 
@@ -33,9 +34,9 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
 
     private static String CLIENT_CREDENTIALS = "client_credentials";
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -51,7 +52,7 @@ public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
         if (CLIENT_CREDENTIALS.equalsIgnoreCase(tokenRequest.getGrantType())) {
             validateScope(tokenRequest.getScope(), getAuthorities(client.getAuthorities()), false);
         } else if (GRANT_TYPE_USER_TOKEN.equalsIgnoreCase(tokenRequest.getGrantType())) {
-            client = clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID));
+            client = clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID), IdentityZoneHolder.get().getId());
             validateScope(tokenRequest.getScope(), client.getScope(), true);
         } else {
             validateScope(tokenRequest.getScope(), client.getScope(), true);

@@ -13,13 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.unboundid.scim.sdk.InvalidResourceException;
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.apache.commons.logging.Log;
@@ -27,16 +21,89 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import static com.unboundid.scim.sdk.SCIMException.createException;
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter.ORDER_BY;
 
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
+
+    //LOWER
+    public static final List<String> VALID_ATTRIBUTE_NAMES = Collections.unmodifiableList(
+        Arrays.asList(
+            "id",
+            "created",
+            "lastmodified",
+            "version",
+            "username",
+            "password",
+            "email",
+            "givenname",
+            "familyname",
+            "name.familyname",
+            "name.givenname",
+            "active",
+            "phonenumber",
+            "verified",
+            "origin",
+            "identity_zone_id",
+            "passwd_lastmodified",
+            "passwd_change_required",
+            "last_logon_success_time",
+            "previous_logon_success_time",
+            "displayname",
+            "scope",
+            "group_id",
+            "member_id",
+            "member_type",
+            "description",
+            "client_id",
+            "authorized_grant_types",
+            "web_server_redirect_uri",
+            "redirect_uri",
+            "access_token_validity",
+            "refresh_token_validity",
+            "autoapprove",
+            "show_on_home_page",
+            "created_by",
+            "required_user_groups",
+            "user_id",
+            "meta.lastmodified",
+            "meta.created",
+            "meta.location",
+            "meta.resourcetype",
+            "meta.version",
+            "emails.value",
+            "groups.display",
+            "phonenumbers.value",
+            "gm.external_group",
+            "gm.origin",
+            "g.displayname",
+            "g.id"
+        )
+    );
 
     private static Log logger = LogFactory.getLog(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> emptyMap());
 
     private boolean dbCaseInsensitive = false;
+
+    public SimpleSearchQueryConverter() {
+    }
 
     public boolean isDbCaseInsensitive() {
         return dbCaseInsensitive;
@@ -92,7 +159,20 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
-    private SCIMFilter scimFilter(String filter) throws SCIMException {
+    @Override
+    public MultiValueMap<String,Object> getFilterValues(String filter, List<String> validAttributes) throws IllegalArgumentException {
+        try {
+            SCIMFilter scimFilter = SCIMFilter.parse(filter);
+            validateFilterAttributes(scimFilter, validAttributes);
+            MultiValueMap<String, Object> result = new LinkedMultiValueMap<>();
+            extractValues(scimFilter, result);
+            return result;
+        } catch (SCIMException x) {
+            throw new IllegalArgumentException(x.getMessage());
+        }
+    }
+
+    protected SCIMFilter scimFilter(String filter) throws SCIMException {
         SCIMFilter scimFilter;
         try {
             scimFilter = SCIMFilter.parse(filter);
@@ -101,7 +181,63 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             filter = filter.replaceAll("'","\"");
             scimFilter = SCIMFilter.parse(filter);
         }
+        validateFilterAttributes(scimFilter, VALID_ATTRIBUTE_NAMES);
         return scimFilter;
+    }
+
+    private void validateFilterAttributes(SCIMFilter filter, List<String> validAttributeNames) throws SCIMException {
+        List<String> invalidAttributes = new LinkedList<>();
+        validateFilterAttributes(filter, invalidAttributes, validAttributeNames);
+        if (!invalidAttributes.isEmpty()) {
+            throw new InvalidResourceException("Invalid filter attributes:"+StringUtils.collectionToCommaDelimitedString(invalidAttributes));
+        }
+    }
+
+    private void validateFilterAttributes(SCIMFilter filter, List<String> invalidAttribues, List<String> validAttributeNames) {
+        if (filter.getFilterAttribute()!=null && filter.getFilterAttribute().getAttributeName()!=null) {
+            String name = filter.getFilterAttribute().getAttributeName();
+            if (filter.getFilterAttribute().getSubAttributeName()!=null) {
+                name = name + "." + filter.getFilterAttribute().getSubAttributeName();
+            }
+            if (!validAttributeNames.contains(name.toLowerCase())) {
+                invalidAttribues.add(name);
+            }
+        }
+        for (SCIMFilter subfilter : ofNullable(filter.getFilterComponents()).orElse(emptyList())) {
+            validateFilterAttributes(subfilter, invalidAttribues, validAttributeNames);
+        }
+    }
+
+    private void extractValues(SCIMFilter filter, MultiValueMap<String,Object> values) throws SCIMException {
+        switch (filter.getFilterType()) {
+            case AND:
+                extractValues(filter.getFilterComponents().get(0), values);
+                extractValues(filter.getFilterComponents().get(1), values);
+                break;
+            case OR:
+                throw createException(400, "[or] operator is not supported.");
+            case EQUALITY:
+                Object value = getStringOrDate(filter.getFilterValue());
+                String key = filter.getFilterAttribute().getAttributeName();
+                values.add(key, value);
+                break;
+            case CONTAINS:
+                throw createException(400, "[co] operator is not supported.");
+            case STARTS_WITH:
+                throw createException(400, "[sw] operator is not supported.");
+            case PRESENCE:
+                throw createException(400, "[pr] operator is not supported.");
+            case GREATER_THAN:
+                throw createException(400, "[gt] operator is not supported.");
+            case GREATER_OR_EQUAL:
+                throw createException(400, "[ge] operator is not supported.");
+            case LESS_THAN:
+                throw createException(400, "[lt] operator is not supported.");
+            case LESS_OR_EQUAL:
+                throw createException(400, "[le] operator is not supported.");
+            default:
+                throw createException(400, "Unknown filter operator:"+filter.getFilterType());
+        }
     }
 
     private String createFilter(SCIMFilter filter, Map<String,Object> values, AttributeNameMapper mapper, String paramPrefix) {
@@ -130,7 +266,12 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         return null;
     }
 
-    protected String comparisonClause(SCIMFilter filter, String comparator, Map<String, Object> values, String valuePrefix, String valueSuffix, String paramPrefix) {
+    protected String comparisonClause(SCIMFilter filter,
+                                      String comparator,
+                                      Map<String, Object> values,
+                                      String valuePrefix,
+                                      String valueSuffix,
+                                      String paramPrefix) {
         String pName = getParamName(values, paramPrefix);
         String paramName = ":"+pName;
         if (filter.getFilterValue() == null) {

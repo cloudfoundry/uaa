@@ -110,6 +110,7 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -454,12 +455,9 @@ public final class MockMvcUtils {
         }
     }
 
-    public static IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
-            ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
+    public static IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(MockMvc mockMvc, ApplicationContext webApplicationContext, ClientDetails bootstrapClient, IdentityZone identityZone) throws Exception {
         String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
                 "zones.write,scim.zones", null);
-
-        IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
 
         mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + identityToken)
@@ -488,14 +486,21 @@ public final class MockMvcUtils {
 
         if (bootstrapClient!=null) {
             mockMvc.perform(post("/oauth/clients")
-                .header("Authorization", "Bearer " + zoneAdminAuthcodeToken)
-                .header("X-Identity-Zone-Id", identityZone.getId())
-                .contentType(APPLICATION_JSON)
-                .accept(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(bootstrapClient)))
-                .andExpect(status().isCreated());
+                    .header("Authorization", "Bearer " + zoneAdminAuthcodeToken)
+                    .header("X-Identity-Zone-Id", identityZone.getId())
+                    .contentType(APPLICATION_JSON)
+                    .accept(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(bootstrapClient)))
+                    .andExpect(status().isCreated());
         }
         return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
+    }
+
+    public static IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
+            ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
+
+        IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        return createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, bootstrapClient, identityZone);
     }
 
     public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
@@ -512,6 +517,21 @@ public final class MockMvcUtils {
         client.setClientSecret("admin-secret");
 
         return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client);
+    }
+
+    public static IdentityZone updateIdentityZone(IdentityZone zone, ApplicationContext context) {
+        return context.getBean(IdentityZoneProvisioning.class).update(zone);
+    }
+
+    public static void deleteIdentityZone(String zoneId, MockMvc mockMvc) throws Exception {
+        String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
+            "zones.write,scim.zones", null);
+
+        mockMvc.perform(delete("/identity-zones/" + zoneId)
+            .header("Authorization", "Bearer " + identityToken)
+            .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk());
     }
 
     public static IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
@@ -998,14 +1018,23 @@ public final class MockMvcUtils {
     }
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context) {
-        ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
-        ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
-        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
-        SecurityContext securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(principal);
-        return securityContext;
+        return getUaaSecurityContext(username, context, IdentityZoneHolder.get());
     }
+
+    public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, IdentityZone zone) {
+            try {
+                IdentityZoneHolder.set(zone);
+                ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
+                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
+                UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
+                UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
+                SecurityContext securityContext = new SecurityContextImpl();
+                securityContext.setAuthentication(principal);
+                return securityContext;
+            } finally {
+                IdentityZoneHolder.clear();
+            }
+        }
 
 
     public static <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {

@@ -17,12 +17,13 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -47,11 +48,11 @@ public class AuthorizePromptNoneEntryPoint implements AuthenticationEntryPoint {
     private static Log logger = LogFactory.getLog(AuthorizePromptNoneEntryPoint.class);
 
     private final AuthenticationFailureHandler failureHandler;
-    private final ClientDetailsService clientDetailsService;
+    private final ClientServicesExtension clientDetailsService;
     private final RedirectResolver redirectResolver;
 
     public AuthorizePromptNoneEntryPoint(AuthenticationFailureHandler failureHandler,
-                                         ClientDetailsService clientDetailsService,
+                                         ClientServicesExtension clientDetailsService,
                                          RedirectResolver redirectResolver) {
         this.failureHandler = failureHandler;
         this.clientDetailsService = clientDetailsService;
@@ -73,7 +74,7 @@ public class AuthorizePromptNoneEntryPoint implements AuthenticationEntryPoint {
 
         ClientDetails client;
         try {
-            client = clientDetailsService.loadClientByClientId(clientId);
+            client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         } catch (ClientRegistrationException e) {
             logger.debug("[prompt=none] Unable to look up client for client_id="+clientId, e);
             response.setStatus(HttpStatus.BAD_REQUEST.value());

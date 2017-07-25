@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Claims {
 
     @JsonProperty(ClaimConstants.USER_ID)
@@ -83,6 +85,10 @@ public class Claims {
     private boolean revocable;
     @JsonProperty(ClaimConstants.EXTERNAL_ATTR)
     private Map<String,String> extAttr;
+    @JsonProperty(ClaimConstants.PREVIOUS_LOGON_TIME)
+    private Long previousLogonTime;
+    @JsonProperty(ClaimConstants.AMR)
+    private String[] amr;
 
     public String getUserId() {
         return userId;
@@ -305,6 +311,7 @@ public class Claims {
     public void setUserAttributes(String userAttributes) {
         this.userAttributes = userAttributes;
     }
+
     public boolean isRevocable() {
         return revocable;
     }
@@ -320,4 +327,21 @@ public class Claims {
     public void setExtAttr(Map<String,String> extAttr) {
         this.extAttr = extAttr;
     }
+
+    public Long getPreviousLogonTime() {
+        return previousLogonTime;
+    }
+
+    public void setPreviousLogonTime(Long previousLogonTime) {
+        this.previousLogonTime = previousLogonTime;
+    }
+
+    public String[] getAmr() {
+        return amr;
+    }
+
+    public void setAmr(String[] amr) {
+        this.amr = amr;
+    }
+
 }

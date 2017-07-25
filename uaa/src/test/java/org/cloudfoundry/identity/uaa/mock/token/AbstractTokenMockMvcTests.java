@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.Before;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -43,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,19 +103,27 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
         ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        ScimUser scimUser = provisioning.retrieve(user.getId());
+        ScimUser scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
         return username;
     }
 
     protected IdentityZone setupIdentityZone(String subdomain) {
+        return setupIdentityZone(subdomain, UserConfig.DEFAULT_ZONE_GROUPS);
+    }
+
+    protected IdentityZone setupIdentityZone(String subdomain, List<String> defaultUserGroups) {
         IdentityZone zone = new IdentityZone();
+        zone.getConfig().getUserConfig().setDefaultGroups(defaultUserGroups);
         zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
         zone.setId(UUID.randomUUID().toString());
         zone.setName(subdomain);
         zone.setSubdomain(subdomain);
         zone.setDescription(subdomain);
+        List<String> defaultGroups = new LinkedList(zone.getConfig().getUserConfig().getDefaultGroups());
+        defaultGroups.add("cloud_controller.read");
+        zone.getConfig().getUserConfig().setDefaultGroups(defaultGroups);
         identityZoneProvisioning.create(zone);
         return zone;
     }
@@ -143,6 +153,9 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, null);
     }
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, zone, Collections.emptyMap());
+    }
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String,Object> additionalInfo) {
         IdentityZone original = IdentityZoneHolder.get();
         if (zone!=null) {
             IdentityZoneHolder.set(zone);
@@ -157,6 +170,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         if (allowedIdps!=null && !allowedIdps.isEmpty()) {
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
+        additional.putAll(additionalInfo);
         c.setAdditionalInformation(additional);
         if (hasText(redirectUri)) {
             c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));
@@ -191,7 +205,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             user.setOrigin(origin);
 
 
-            user = userProvisioning.createUser(user, SECRET);
+            user = userProvisioning.createUser(user, SECRET, IdentityZoneHolder.get().getId());
 
             Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
             Set<ScimGroup> groups = new HashSet<>();
@@ -201,7 +215,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
                 addMember(user, g);
             }
 
-            return userProvisioning.retrieve(user.getId());
+            return userProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.set(original);
         }
@@ -212,8 +226,8 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             return user;
         }
 
-        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true);
+        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false, IdentityZoneHolder.get().getId());
+        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZoneHolder.get().getId());
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {
@@ -230,18 +244,18 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     protected ScimGroupMember addMember(ScimUser user, ScimGroup group) {
         ScimGroupMember gm = new ScimGroupMember(user.getId());
         try {
-            return groupMembershipManager.addMember(group.getId(), gm);
+            return groupMembershipManager.addMember(group.getId(), gm, IdentityZoneHolder.get().getId());
         }catch (MemberAlreadyExistsException x) {
             return gm;
         }
     }
 
     protected ScimGroup createIfNotExist(String scope, String zoneId) {
-        List<ScimGroup> exists = groupProvisioning.query("displayName eq \"" + scope + "\" and identity_zone_id eq \""+zoneId+"\"");
+        List<ScimGroup> exists = groupProvisioning.query("displayName eq \"" + scope + "\" and identity_zone_id eq \""+zoneId+"\"", IdentityZoneHolder.get().getId());
         if (exists.size() > 0) {
             return exists.get(0);
         } else {
-            return groupProvisioning.create(new ScimGroup(null,scope,zoneId));
+            return groupProvisioning.create(new ScimGroup(null,scope,zoneId), IdentityZoneHolder.get().getId());
         }
     }
 }
