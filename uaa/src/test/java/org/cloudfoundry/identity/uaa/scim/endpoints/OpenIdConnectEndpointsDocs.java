@@ -20,6 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 public class OpenIdConnectEndpointsDocs extends InjectedMockContextTest {
 
+    final static String WELL_KNOWN_ENDPOINT = "/oauth/token/.well-known/openid-configuration";
+
     @Test
     public void getWellKnownOpenidConf() throws Exception {
 
@@ -43,9 +45,10 @@ public class OpenIdConnectEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("ui_locales_supported").description("Languages and scripts supported for the user interface.")
         );
 
+
         getMockMvc().perform(
-            get("/.well-known/openid-configuration")
-            .servletPath("/.well-known/openid-configuration")
+            get(WELL_KNOWN_ENDPOINT)
+            .servletPath(WELL_KNOWN_ENDPOINT)
             .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}",

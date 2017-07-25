@@ -103,8 +103,8 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testGetUserInfoEndpointFromWellKnownConfiguration() throws Exception {
-        MockHttpServletResponse response = getMockMvc().perform(get("/.well-known/openid-configuration")
-            .servletPath("/.well-known/openid-configuration")
+        MockHttpServletResponse response = getMockMvc().perform(get("/oauth/token/.well-known/openid-configuration")
+            .servletPath("/oauth/token/.well-known/openid-configuration")
             .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn().getResponse();
