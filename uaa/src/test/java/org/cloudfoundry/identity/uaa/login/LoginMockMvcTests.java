@@ -73,9 +73,11 @@ import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
@@ -1419,6 +1421,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        
+        identityZone.setConfig(config);
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(identityZone);
 
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
@@ -1462,9 +1470,77 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                         )
                 );
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void testLoginHintFallbackToLoginPage() throws Exception {
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        
+        identityZone.setConfig(config);
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(identityZone);
+
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+
+        definition.setAuthUrl(new URL("http://auth.url"));
+        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setTokenKey("key");
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        definition.setScopes(asList("openid", "roles"));
+        String oauthAlias = "login-oauth-" + generator.generate();
+
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        oauthIdentityProvider.setConfig(definition);
+        oauthIdentityProvider.setActive(true);
+        oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
+
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+
+        IdentityZoneHolder.set(identityZone);
+
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = mock(DefaultSavedRequest.class);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "other.com" });
+        session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
 
+        MvcResult result = getMockMvc().perform(get("/")
+                .accept(TEXT_HTML)
+                .session(session)
+                .servletPath("")
+                .param("login_hint", "other.com")
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+        )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://" + identityZone.getSubdomain() + ".localhost/login")).andReturn();
 
+        MockHttpSession redirectSession = new MockHttpSession();
+        SavedRequest redirectSavedRequest = mock(DefaultSavedRequest.class);
+        when(redirectSavedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "other.com" });
+        redirectSession.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, redirectSavedRequest);
+        
+        MvcResult result2 = getMockMvc().perform(get(result.getResponse().getRedirectedUrl())
+                .accept(TEXT_HTML)
+                .session(redirectSession)
+                .param("login_hint", "other.com")
+                .servletPath("/login")
+                .cookie(result.getResponse().getCookies())
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+        ).andReturn();
+        System.out.println("result2 " + result2.getResponse().getContentAsString());
+        //.andExpect(xpath("//input[@name='password']").exists()).andReturn();
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -2328,13 +2404,20 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
 
-        getMockMvc().perform(post("/login/idp_discovery")
+        MvcResult result = getMockMvc().perform(post("/login/idp_discovery")
             .header("Accept", TEXT_HTML)
             .session(session)
             .param("email", "marissa@other.domain")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(model().attributeExists("zone_name"))
-            .andExpect(view().name("idp_discovery/password"));
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true")).andReturn();
+
+        getMockMvc().perform(get(result.getResponse().getRedirectedUrl())
+                .accept(TEXT_HTML)
+                .session(session)
+        )
+                .andExpect(xpath("//input[@name='username']").exists())
+                .andExpect(xpath("//input[@name='password']").exists());
     }
 
     @Test
@@ -2361,36 +2444,18 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void passwordPageDisplayed_ifUaaIsFallbackIDPForEmailDomain() throws Exception {
-        getMockMvc().perform(post("/login/idp_discovery")
+    public void loginPageDisplayed_ifUaaIsFallbackIDPForEmailDomain() throws Exception {
+        MvcResult result = getMockMvc().perform(post("/login/idp_discovery")
             .header("Accept", TEXT_HTML)
             .param("email", "marissa@koala.com"))
-            .andExpect(status().isOk())
-            .andExpect(view().name("idp_discovery/password"))
-            .andExpect(xpath("//input[@name='password']").exists())
-            .andExpect(xpath("//h4[@id='email']").string("marissa@koala.com"))
-            .andExpect(xpath("//div[@class='action pull-right']//a").string("Reset password"))
-            .andExpect(xpath("//input[@type='submit']/@value").string("Sign in"));
-    }
-
-    @Test
-    public void passwordPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
-        setSelfServiceLinksEnabled(false);
-
-        getMockMvc().perform(post("/login/idp_discovery")
-            .header("Accept", TEXT_HTML)
-            .param("email", "marissa@koala.org"))
-            .andExpect(status().isOk())
-            .andExpect(xpath("//div[@class='action pull-right']//a").doesNotExist());
-    }
-
-    @Test
-    public void userNamePresentInPasswordPage() throws Exception {
-        getMockMvc().perform(post("/login/idp_discovery")
-            .with(cookieCsrf())
-            .param("email", "test@email.com"))
-            .andExpect(xpath("//input[@name='username']/@value").string("test@email.com"))
-            .andExpect(xpath("//input[@name='X-Uaa-Csrf']").exists());
+	        .andExpect(status().is3xxRedirection())
+	        .andExpect(redirectedUrl("/login?discoveryPerformed=true")).andReturn();
+        
+        getMockMvc().perform(get(result.getResponse().getRedirectedUrl())
+                .accept(TEXT_HTML)
+        )
+        .andExpect(xpath("//input[@name='username']").exists())
+        .andExpect(xpath("//input[@name='password']").exists());
     }
 
     @Test
