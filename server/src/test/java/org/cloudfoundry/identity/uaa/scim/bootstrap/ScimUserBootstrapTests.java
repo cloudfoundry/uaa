@@ -510,15 +510,15 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
 
-        List<ScimUser> scimUsers = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        List<ScimUser> scimUsers = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"", IdentityZoneHolder.get().getId());
         assertEquals(1, scimUsers.size());
         ScimUser scimUser = scimUsers.get(0);
         ScimGroupMember member = new ScimGroupMember<>(scimUser);
         user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, member.getMemberId(), username);
         for (int i = 0; i < numgroups; i++) {
-            gdb.create(new ScimGroup("group" + i, "group" + i, "uaa"));
-            String gid = gdb.query("displayName eq \"group"+i+"\"").get(0).getId();
-            mdb.addMember(gid, member);
+            gdb.create(new ScimGroup("group" + i, "group" + i, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+            String gid = gdb.query("displayName eq \"group"+i+"\"", IdentityZoneHolder.get().getId()).get(0).getId();
+            mdb.addMember(gid, member, IdentityZoneHolder.get().getId());
         }
 
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities), true));
