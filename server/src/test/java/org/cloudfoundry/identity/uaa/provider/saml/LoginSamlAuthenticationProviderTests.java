@@ -38,9 +38,11 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.core.Assertion;
@@ -64,6 +66,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -78,7 +81,9 @@ import org.springframework.security.saml.websso.WebSSOProfileConsumer;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.context.request.ServletWebRequest;
 
+import javax.servlet.ServletContext;
 import javax.xml.namespace.QName;
 import java.util.Arrays;
 import java.util.Collections;
@@ -201,6 +206,12 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Before
     public void configureProvider() throws Exception {
+        RequestContextHolder.resetRequestAttributes();
+        MockHttpServletRequest request = new MockHttpServletRequest(mock(ServletContext.class));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ServletWebRequest servletWebRequest = new ServletWebRequest(request, response);
+        RequestContextHolder.setRequestAttributes(servletWebRequest);
+
         ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("uaa.user"));
         groupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
@@ -305,9 +316,37 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
             "localEntityID");
     }
 
+    @After
+    public void clearRequestAttributes() {
+        RequestContextHolder.resetRequestAttributes();
+    }
+
     @Test
     public void testAuthenticateSimple() {
         authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
+    }
+
+    @Test
+    public void relay_sets_attribute() {
+        for (String url : Arrays.asList("test", "www.google.com", null)) {
+            authprovider.configureRelayRedirect(url);
+            assertNull(RequestContextHolder.currentRequestAttributes().getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST));
+        }
+    }
+
+    @Test
+    public void test_relay_state_when_url() {
+        String redirectUrl = "https://www.cloudfoundry.org";
+        SAMLAuthenticationToken samlAuthenticationToken = mockSamlAuthentication(OriginKeys.SAML);
+        when(samlAuthenticationToken.getCredentials().getRelayState()).thenReturn(redirectUrl);
+        Authentication authentication = authprovider.authenticate(samlAuthenticationToken);
+        assertNotNull("Authentication cannot be null", authentication);
+        assertTrue("Authentication should be of type:"+UaaAuthentication.class.getName(), authentication instanceof UaaAuthentication);
+        UaaAuthentication uaaAuthentication = (UaaAuthentication)authentication;
+        assertThat(uaaAuthentication.getAuthContextClassRef(),containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+        SAMLMessageContext context = samlAuthenticationToken.getCredentials();
+        verify(context, times(1)).getRelayState();
+        assertEquals(redirectUrl, RequestContextHolder.currentRequestAttributes().getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST));
     }
 
     @Test
@@ -321,6 +360,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         SAMLMessageContext context = samlAuthenticationToken.getCredentials();
         verify(context, times(1)).getRelayState();
+        assertNull(RequestContextHolder.currentRequestAttributes().getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST));
     }
 
 

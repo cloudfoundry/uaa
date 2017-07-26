@@ -33,6 +33,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
@@ -179,7 +181,21 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                                            .setRoles(new LinkedList(resultUaaAuthentication.getExternalGroups()))
             );
         }
+        configureRelayRedirect(relayState);
+
         return resultUaaAuthentication;
+    }
+
+    public void configureRelayRedirect(String relayState) {
+        //configure relay state
+        if (UaaUrlUtils.isUrl(relayState)) {
+            RequestContextHolder.currentRequestAttributes()
+                .setAttribute(
+                    UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE,
+                    relayState,
+                    RequestAttributes.SCOPE_REQUEST
+                );
+        }
     }
 
     protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
