@@ -88,11 +88,11 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     public static final String DELETE_MEMBER_IN_GROUPS_SQL_GROUP = String.format("delete from %s where member_id=? and member_type='GROUP' and identity_zone_id=?",MEMBERSHIP_TABLE);
 
-    public static final String GROUP_FIELDS = "id,displayName,description,created,lastModified,version,identity_zone_id";
+    public static final String GROUP_FIELDS = "id,displayName,description,created,lastModified,version,groups.identity_zone_id";
 
     public static final String GROUP_TABLE = "groups";
 
-    public static final String GET_GROUPS_BY_EXTERNAL_MEMBER_SQL = String.format("select %s from %s , %s where group_id = id and identity_zone_id=? and LOWER(member_id) = LOWER(?) and LOWER(origin) = LOWER(?)", GROUP_FIELDS, MEMBERSHIP_TABLE, GROUP_TABLE);
+    public static final String GET_GROUPS_BY_EXTERNAL_MEMBER_SQL = String.format("select %s from %s , %s where group_id = id and groups.identity_zone_id=? and LOWER(member_id) = LOWER(?) and LOWER(origin) = LOWER(?)", GROUP_FIELDS, MEMBERSHIP_TABLE, GROUP_TABLE);
 
 
     private ScimUserProvisioning userProvisioning;
