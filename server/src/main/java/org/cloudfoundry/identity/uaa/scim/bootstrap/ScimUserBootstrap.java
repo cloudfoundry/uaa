@@ -52,6 +52,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
@@ -254,7 +255,7 @@ public class ScimUserBootstrap implements
             String origin = exEvent.getUser().getOrigin();
             if (!OriginKeys.UAA.equals(origin)) {
                 Set<ScimGroup> groupsWithMember = membershipManager.getGroupsWithExternalMember(exEvent.getUser().getId(), origin);
-                Map<String, String> groupsMap = groupsWithMember.stream().collect(Collectors.toMap(ScimGroup::getDisplayName, ScimGroup::getId));
+                Map<String, ScimGroup> groupsMap = groupsWithMember.stream().collect(Collectors.toMap(ScimGroup::getDisplayName, Function.identity()));
                 Collection<? extends GrantedAuthority> externalAuthorities = exEvent.getExternalAuthorities();
                 for (GrantedAuthority authority : externalAuthorities) {
                     if (groupsMap.containsKey(authority.getAuthority())) {
@@ -263,8 +264,8 @@ public class ScimUserBootstrap implements
                         addToGroup(exEvent.getUser().getId(), authority.getAuthority(), origin, exEvent.isAddGroups());
                     }
                 }
-                for (String groupId : groupsMap.values()) {
-                    membershipManager.removeMemberById(groupId, exEvent.getUser().getId());
+                for (ScimGroup group : groupsMap.values()) {
+                    membershipManager.removeMemberById(group.getId(), exEvent.getUser().getId(), group.getZoneId());
                 }
             }
             //update the user itself

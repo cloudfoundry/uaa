@@ -514,6 +514,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     @Override
     public void deleteMembersByOrigin(String origin, String zoneId) throws ScimResourceNotFoundException {
         jdbcTemplate.update(DELETE_MEMBERS_WITH_ORIGIN_GROUP_SQL, origin, zoneId);
+    }
+
     private static final class ScimGroupRowMapper implements RowMapper<ScimGroup> {
 
         @Override
