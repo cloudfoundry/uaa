@@ -130,6 +130,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
+        String relayState = context.getRelayState();
         boolean addNew;
         IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;

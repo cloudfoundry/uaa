@@ -100,6 +100,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
@@ -310,11 +312,15 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void saml_authentication_contains_acr() {
-        Authentication authentication = authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
+        SAMLAuthenticationToken samlAuthenticationToken = mockSamlAuthentication(OriginKeys.SAML);
+        Authentication authentication = authprovider.authenticate(samlAuthenticationToken);
         assertNotNull("Authentication cannot be null", authentication);
         assertTrue("Authentication should be of type:"+UaaAuthentication.class.getName(), authentication instanceof UaaAuthentication);
         UaaAuthentication uaaAuthentication = (UaaAuthentication)authentication;
         assertThat(uaaAuthentication.getAuthContextClassRef(),containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+
+        SAMLMessageContext context = samlAuthenticationToken.getCredentials();
+        verify(context, times(1)).getRelayState();
     }
 
 

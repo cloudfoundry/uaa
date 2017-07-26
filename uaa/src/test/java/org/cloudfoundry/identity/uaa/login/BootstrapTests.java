@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlEntryPoint;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -191,6 +192,9 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        LoginSamlEntryPoint samlEntryPoint = context.getBean(LoginSamlEntryPoint.class);
+        assertEquals("cloudfoundry-uaa-sp", samlEntryPoint.getDefaultProfileOptions().getRelayState());
 
         Collection<String> defaultZoneGroups = context.getBean("defaultUserAuthorities", Collection.class);
         String[] expectedZoneGroups = CheckDefaultAuthoritiesMvcMockTests.EXPECTED_DEFAULT_GROUPS;
