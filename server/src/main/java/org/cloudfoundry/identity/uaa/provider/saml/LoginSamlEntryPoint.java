@@ -35,6 +35,10 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
         this.providerDefinitionList = providerDefinitionList;
     }
 
+    public WebSSOProfileOptions getDefaultProfileOptions() {
+        return defaultOptions;
+    }
+
     @Override
     protected WebSSOProfileOptions getProfileOptions(SAMLMessageContext context, AuthenticationException exception) throws MetadataProviderException {
         WebSSOProfileOptions options = super.getProfileOptions(context, exception);
