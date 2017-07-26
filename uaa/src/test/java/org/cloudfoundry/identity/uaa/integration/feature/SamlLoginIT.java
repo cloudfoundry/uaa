@@ -201,7 +201,7 @@ public class SamlLoginIT {
         // create a UAA user with the email address as the username.
         deleteUser(SAML_ORIGIN, testAccounts.getEmail());
 
-        IdentityProvider provider = IntegrationTestUtils.createIdentityProvider("simplesamlphp", false, baseUrl, serverRunning);
+        IdentityProvider provider = IntegrationTestUtils.createIdentityProvider(SAML_ORIGIN, false, baseUrl, serverRunning);
         String clientId = "app-addnew-false"+ new RandomValueStringGenerator().generate();
         String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
         BaseClientDetails client = createClientAndSpecifyProvider(clientId, provider, redirectUri);
@@ -262,7 +262,7 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP("simplesamlphp", "testzone3");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(SAML_ORIGIN, "testzone3");
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -309,7 +309,7 @@ public class SamlLoginIT {
     @Test
     public void testSimpleSamlPhpLoginDisplaysLastLogin() throws Exception {
         Long beforeTest = System.currentTimeMillis();
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         login(provider);
         logout();
         login(provider);
@@ -323,7 +323,7 @@ public class SamlLoginIT {
 
     @Test
     public void testSingleLogout() throws Exception {
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
 
         webDriver.get(baseUrl + "/login");
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
@@ -376,7 +376,7 @@ public class SamlLoginIT {
                 "identitysecret",
                 email,
                 "secr3T");
-        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured("simplesamlphp");
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -408,7 +408,7 @@ public class SamlLoginIT {
 
     @Test
     public void testSingleLogoutWithNoLogoutUrlOnIDP() throws Exception {
-        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured("simplesamlphp");
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(OriginKeys.UAA);
         provider.setType(OriginKeys.SAML);
@@ -457,7 +457,7 @@ public class SamlLoginIT {
         //tells us that we are on travis
         assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
 
         webDriver.get(baseUrl + firstUrl);
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
@@ -565,7 +565,7 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone2IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone2IDP(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -664,7 +664,7 @@ public class SamlLoginIT {
                                                            email,
                                                            "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -680,7 +680,7 @@ public class SamlLoginIT {
 
         webDriver.get(zoneUrl + "/logout.do");
 
-        String samlUrl = "http://simplesamlphp.identity.cf-app.com/saml2/idp/SSOService.php?"+
+        String samlUrl = "http://simplesamlphp.cfapps.io/saml2/idp/SSOService.php?"+
             "spentityid=testzone1.cloudfoundry-saml-login&" +
             "RelayState=https://www.google.com";
         webDriver.get(samlUrl);
@@ -727,7 +727,7 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -798,7 +798,7 @@ public class SamlLoginIT {
                                                            email,
                                                            "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
         samlIdentityProviderDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
         samlIdentityProviderDefinition.addWhiteListedGroup("saml.user");
         samlIdentityProviderDefinition.addWhiteListedGroup("saml.admin");
@@ -905,7 +905,7 @@ public class SamlLoginIT {
                                                            email,
                                                            "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
         samlIdentityProviderDefinition.setStoreCustomAttributes(true);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, MANAGER);
@@ -1138,7 +1138,7 @@ public class SamlLoginIT {
                                                            email,
                                                            "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZoneIDP("simplesamlphp", zoneId);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZoneIDP(SAML_ORIGIN, zoneId);
         samlIdentityProviderDefinition.addAttributeMapping(EMAIL_ATTRIBUTE_NAME, "emailAddress");
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
@@ -1238,7 +1238,7 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -1314,7 +1314,7 @@ public class SamlLoginIT {
 
     @Test
     public void testLoginPageShowsIDPsForAuthcodeClient() throws Exception {
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(
             provider.getConfig().getIdpEntityAlias(),
@@ -1337,7 +1337,7 @@ public class SamlLoginIT {
 
     @Test
     public void testLoginSamlOnlyProviderNoUsernamePassword() throws Exception {
-        IdentityProvider provider = createIdentityProvider("simplesamlphp");
+        IdentityProvider provider = createIdentityProvider(SAML_ORIGIN);
         IdentityProvider provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(provider.getOriginKey(), provider2.getOriginKey());
         webDriver.get(baseUrl + "/logout.do");
@@ -1362,7 +1362,7 @@ public class SamlLoginIT {
 
     @Test
     public void testSamlLoginClientIDPAuthorizationAutomaticRedirect() throws Exception {
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         assertEquals(provider.getOriginKey(), provider.getConfig().getIdpEntityAlias());
         List<String> idps = Arrays.asList(provider.getOriginKey());
         webDriver.get(baseUrl + "/logout.do");
