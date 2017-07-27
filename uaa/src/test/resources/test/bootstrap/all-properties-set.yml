@@ -511,6 +511,17 @@ password:
     requireSpecialCharacter: 1
     requireUpperCaseCharacter: 0
 scim:
+  external_groups:
+    ldap:
+      cn=admins,ou=user accounts,dc=mydomain,dc=com:
+        - bosh.admin
+        - scim.read
+    some-saml-provider:
+      saml-bosh-admin-group:
+        - bosh.admin
+      saml-admin-group:
+        - scim.read
+        - scim.write
   groups:
     cat: The cat
     pony: The magic of friendship

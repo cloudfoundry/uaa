@@ -44,8 +44,11 @@ import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlEntryPoint;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
@@ -166,13 +169,12 @@ public class BootstrapTests {
 
     @After
     public synchronized void cleanup() throws Exception {
+        TestUtils.cleanTestDatabaseData(context.getBean(JdbcTemplate.class));
         System.clearProperty("spring.profiles.active");
         System.clearProperty("uaa.url");
         System.clearProperty("login.url");
         System.clearProperty("require_https");
-        if (context != null) {
-            context.close();
-        }
+        context.close();
         Set<String> removeme = new HashSet<>();
         for ( Map.Entry<Object,Object> entry : System.getProperties().entrySet()) {
             if (entry.getKey().toString().startsWith("login.") || entry.getKey().toString().startsWith("database.")) {
@@ -408,6 +410,57 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        ScimGroupExternalMembershipManager externalMembershipManager = context.getBean(ScimGroupExternalMembershipManager.class);
+        List<ScimGroupExternalMember> externalGroupMappings = externalMembershipManager.getExternalGroupMappings(IdentityZone.getUaa().getId());
+        Set<String> externalLdapGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> OriginKeys.LDAP.equals(eq.getOrigin()))
+            .map(eg -> eg.getExternalGroup())
+            .collect(Collectors.toSet());
+        System.out.println("ExternalGroups:"+externalLdapGroups);
+        assertThat(externalLdapGroups,
+                   containsInAnyOrder(
+                       "cn=admins,ou=user accounts,dc=mydomain,dc=com"
+                   )
+        );
+        Set<String> internalLdapGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> OriginKeys.LDAP.equals(eq.getOrigin()))
+            .map(eg -> eg.getDisplayName())
+            .collect(Collectors.toSet());
+        System.out.println("InternalLdapGroups:"+internalLdapGroups);
+        assertThat(internalLdapGroups,
+                   containsInAnyOrder(
+                       "bosh.admin",
+                       "scim.read"
+                   )
+        );
+        Set<String> externalSamlGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> "some-saml-provider".equals(eq.getOrigin()))
+            .map(eg -> eg.getExternalGroup())
+            .collect(Collectors.toSet());
+        assertThat(externalSamlGroups,
+                   containsInAnyOrder(
+                       "saml-bosh-admin-group",
+                       "saml-admin-group"
+                   )
+        );
+        Set<String> internalSamlGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> "some-saml-provider".equals(eq.getOrigin()))
+            .map(eg -> eg.getDisplayName())
+            .collect(Collectors.toSet());
+        assertThat(internalSamlGroups,
+                   containsInAnyOrder(
+                       "bosh.admin",
+                       "scim.read",
+                       "scim.write"
+                   )
+        );
+
+
 
         Collection<String> defaultZoneGroups = context.getBean("defaultUserAuthorities", Collection.class);
         String[] expectedZoneGroups = {
