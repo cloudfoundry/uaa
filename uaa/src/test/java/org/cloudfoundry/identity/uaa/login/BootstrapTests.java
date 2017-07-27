@@ -48,6 +48,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
@@ -168,13 +169,12 @@ public class BootstrapTests {
 
     @After
     public synchronized void cleanup() throws Exception {
+        TestUtils.cleanTestDatabaseData(context.getBean(JdbcTemplate.class));
         System.clearProperty("spring.profiles.active");
         System.clearProperty("uaa.url");
         System.clearProperty("login.url");
         System.clearProperty("require_https");
-        if (context != null) {
-            context.close();
-        }
+        context.close();
         Set<String> removeme = new HashSet<>();
         for ( Map.Entry<Object,Object> entry : System.getProperties().entrySet()) {
             if (entry.getKey().toString().startsWith("login.") || entry.getKey().toString().startsWith("database.")) {
@@ -418,6 +418,7 @@ public class BootstrapTests {
             .filter(eq -> OriginKeys.LDAP.equals(eq.getOrigin()))
             .map(eg -> eg.getExternalGroup())
             .collect(Collectors.toSet());
+        System.out.println("ExternalGroups:"+externalLdapGroups);
         assertThat(externalLdapGroups,
                    containsInAnyOrder(
                        "cn=admins,ou=user accounts,dc=mydomain,dc=com"
@@ -428,6 +429,7 @@ public class BootstrapTests {
             .filter(eq -> OriginKeys.LDAP.equals(eq.getOrigin()))
             .map(eg -> eg.getDisplayName())
             .collect(Collectors.toSet());
+        System.out.println("InternalLdapGroups:"+internalLdapGroups);
         assertThat(internalLdapGroups,
                    containsInAnyOrder(
                        "bosh.admin",

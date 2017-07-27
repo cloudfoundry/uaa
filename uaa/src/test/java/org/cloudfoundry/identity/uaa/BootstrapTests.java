@@ -12,10 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import java.io.IOException;
-import javax.servlet.RequestDispatcher;
-import javax.sql.DataSource;
-
 import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -39,9 +35,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 
+import javax.servlet.RequestDispatcher;
+import javax.sql.DataSource;
+import java.io.IOException;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * @author Dave Syer
