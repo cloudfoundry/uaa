@@ -29,7 +29,7 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
 
     public static final String DEFAULT_CSRF_HEADER_NAME = "X-CSRF-TOKEN";
     public static final String DEFAULT_CSRF_COOKIE_NAME = "X-Uaa-Csrf";
-    public static final int DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24 *30;
+    public static final int DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24;
 
     // 22 characters of the 62-ary codec gives about 131 bits of entropy, 62 ^ 22 ~ 2^ 130.9923
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(22);
