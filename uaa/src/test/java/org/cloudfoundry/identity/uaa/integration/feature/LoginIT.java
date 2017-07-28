@@ -253,6 +253,12 @@ public class LoginIT {
     }
 
     @Test
+    public void testLoginPageReloadBasedOnCsrf() {
+        webDriver.get(baseUrl + "/login");
+        assertTrue(webDriver.getPageSource().contains("http-equiv=\"refresh\""));
+    }
+
+    @Test
     public void userLockedoutAfterFailedAttempts() throws Exception {
         String userEmail = createAnotherUser();
 
