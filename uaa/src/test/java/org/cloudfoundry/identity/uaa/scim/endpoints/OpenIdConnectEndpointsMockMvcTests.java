@@ -26,6 +26,8 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
 
     private IdentityZone identityZone;
 
+    static final String WELL_KNOWN_PATH = "/oauth/token/.well-known/openid-configuration";
+
     @Before
     public void setUp() throws Exception {
         identityZone = createOtherIdentityZone("subdomain", getMockMvc(), getWebApplicationContext());
@@ -38,9 +40,9 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
 
     @Test
     public void testWellKnownEndpoint() throws Exception {
-        MockHttpServletResponse response = getMockMvc().perform(get("/.well-known/openid-configuration")
+        MockHttpServletResponse response = getMockMvc().perform(get(WELL_KNOWN_PATH)
             .with(new SetServerNameRequestPostProcessor("subdomain.localhost"))
-            .servletPath("/.well-known/openid-configuration")
+            .servletPath(WELL_KNOWN_PATH)
             .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn().getResponse();
@@ -68,9 +70,9 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
     public void testUserInfoEndpointIsCorrect() throws Exception {
         SetServerNameRequestPostProcessor inZone = new SetServerNameRequestPostProcessor("subdomain.localhost");
 
-        MockHttpServletResponse response = getMockMvc().perform(get("/.well-known/openid-configuration")
+        MockHttpServletResponse response = getMockMvc().perform(get(WELL_KNOWN_PATH)
             .with(inZone)
-            .servletPath("/.well-known/openid-configuration")
+            .servletPath(WELL_KNOWN_PATH)
             .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn().getResponse();

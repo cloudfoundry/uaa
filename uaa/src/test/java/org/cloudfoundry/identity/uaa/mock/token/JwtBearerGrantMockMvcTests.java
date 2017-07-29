@@ -193,6 +193,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         createAuth0Provider(IdentityZone.getUaa(),
                             "73hk1Cjb49KaDrLjvaU0OU7C2Tyof7pd",
                             "https://cf-identity-eng.auth0.com/.well-known/openid-configuration");
+// TODO                     "https://cf-identity-eng.auth0.com/oauth/token/.well-known/openid-configuration");
 
         ClientDetails client = createJwtBearerClient(theZone);
 

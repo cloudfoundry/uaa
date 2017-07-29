@@ -194,6 +194,17 @@
         <csrf disabled="true"/>
     </http>
 
+    <http name="wellKnown"
+          pattern="/oauth/token/.well-known/**"
+          disable-url-rewriting="true"
+          entry-point-ref="loginEntryPoint"
+          use-expressions="false"
+          xmlns="http://www.springframework.org/schema/security"
+          authentication-manager-ref="emptyAuthenticationManager">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+        <csrf disabled="true"/>
+    </http>
+
     <!--/oauth/token with any match -->
     <http name="tokenEndpointSecurity" create-session="stateless" authentication-manager-ref="clientAuthenticationManager" use-expressions="false"
         pattern="/oauth/token/**" entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
