@@ -97,6 +97,8 @@
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
     <sec:http name="secFilterOpen18" pattern="/session" security="none" />
+    <sec:http name="secFilterWellKnownOpen19" pattern="/oauth/token/.well-known/openid-configuration" security="none" />
+    <sec:http name="secFilterWellKnownOpen20" pattern="/.well-known/openid-configuration" security="none" />
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
