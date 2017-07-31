@@ -97,7 +97,7 @@ public class UaaResetPasswordServiceTests {
 
     @Test
     public void forgotPassword_ResetCodeIsReturnedSuccessfully() throws Exception {
-        ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
+        ScimUser user = new ScimUser("user-id-001","exampleUser","firstName","lastName");
         user.setPasswordLastModified(new Date(1234));
         user.setPrimaryEmail("user@example.com");
         String zoneID = IdentityZoneHolder.get().getId();
@@ -106,14 +106,15 @@ public class UaaResetPasswordServiceTests {
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
-        when(codeStore.generateCode(eq("{\"user_id\":\"user-id-001\",\"username\":\"user@example.com\",\"passwordModifiedTime\":1234,\"client_id\":\"example\",\"redirect_uri\":\"redirect.example.com\"}"),
+        when(codeStore.generateCode(eq("{\"user_id\":\"user-id-001\",\"username\":\"exampleUser\",\"passwordModifiedTime\":1234,\"client_id\":\"example\",\"redirect_uri\":\"redirect.example.com\"}"),
                                     any(Timestamp.class), anyString(), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
-        ForgotPasswordInfo forgotPasswordInfo = uaaResetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com");
+        ForgotPasswordInfo forgotPasswordInfo = uaaResetPasswordService.forgotPassword("exampleUser", "example", "redirect.example.com");
 
         verify(codeStore).expireByIntent(captor.capture(), anyString());
         assertEquals(UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX+user.getId(), captor.getValue());
         assertThat(forgotPasswordInfo.getUserId(), equalTo("user-id-001"));
+        assertThat(forgotPasswordInfo.getEmail(), equalTo("user@example.com"));
         ExpiringCode resetPasswordCode = forgotPasswordInfo.getResetPasswordCode();
         assertThat(resetPasswordCode.getCode(), equalTo("code"));
         assertThat(resetPasswordCode.getExpiresAt(), equalTo(expiresAt));
@@ -128,34 +129,35 @@ public class UaaResetPasswordServiceTests {
         Authentication authentication = mock(Authentication.class);
         uaaResetPasswordService.setApplicationEventPublisher(publisher);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        ScimUser user = new ScimUser("user-id-001", "user@example.com", "firstName", "lastName");
+        ScimUser user = new ScimUser("user-id-001", "exampleUser", "firstName", "lastName");
         user.setPrimaryEmail("user@example.com");
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Arrays.asList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
         when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
-        uaaResetPasswordService.forgotPassword("user@example.com", "", "");
+        uaaResetPasswordService.forgotPassword("exampleUser", "", "");
         ArgumentCaptor<ResetPasswordRequestEvent> captor = ArgumentCaptor.forClass(ResetPasswordRequestEvent.class);
         verify(publisher).publishEvent(captor.capture());
         ResetPasswordRequestEvent event = captor.getValue();
-        assertThat(event.getSource(), equalTo("user@example.com"));
+        assertThat(event.getSource(), equalTo("exampleUser"));
         assertThat(event.getCode(), equalTo("code"));
+        assertThat(event.getEmail(), equalTo("user@example.com"));
         assertThat(event.getAuthentication(), sameInstance(authentication));
     }
 
     @Test
     public void forgotPassword_ThrowsConflictException() throws Exception {
-        ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
+        ScimUser user = new ScimUser("user-id-001","exampleUser","firstName","lastName");
         user.setPrimaryEmail("user@example.com");
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{}));
-        when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(scimUserProvisioning.query(eq("userName eq \"exampleUser\""), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
         when(codeStore.retrieveCode(anyString(), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
 
         try {
-            uaaResetPasswordService.forgotPassword("user@example.com", "", "");
+            uaaResetPasswordService.forgotPassword("exampleUser", "", "");
             fail();
         } catch (ConflictException e) {
             assertThat(e.getUserId(), equalTo("user-id-001"));
@@ -164,7 +166,7 @@ public class UaaResetPasswordServiceTests {
 
     @Test(expected = NotFoundException.class)
     public void forgotPassword_ThrowsNotFoundException_ScimUserNotFoundInUaa() throws Exception {
-        uaaResetPasswordService.forgotPassword("user@example.com", "", "");
+        uaaResetPasswordService.forgotPassword("exampleUser", "", "");
     }
 
     @Test

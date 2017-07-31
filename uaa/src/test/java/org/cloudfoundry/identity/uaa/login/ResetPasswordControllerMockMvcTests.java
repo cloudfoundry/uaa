@@ -166,9 +166,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     @Test
     public void testResettingAPassword_whenCodeIsValid_rendersTheChangePasswordForm() throws Exception {
 
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
         String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
@@ -230,9 +230,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
     @Test
     public void new_code_overwrite_old_code_for_repeated_request() throws Exception {
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
         String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
@@ -245,11 +245,11 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         String intent = FORGOT_PASSWORD_INTENT_PREFIX+user.getId();
 
         getMockMvc().perform(post("/forgot_password.do")
-                                 .param("email", user.getUserName()))
+                                 .param("username", user.getUserName()))
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
 
         getMockMvc().perform(post("/forgot_password.do")
-                                 .param("email", user.getUserName()))
+                                 .param("username", user.getUserName()))
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
 
         assertEquals(1, (int)template.queryForObject("select count(*) from expiring_code_store where intent=?", new Object[] {intent}, Integer.class));
@@ -258,9 +258,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
     @Test
     public void redirectToSavedRequest_ifPresent() throws Exception {
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate() ;
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
         String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
@@ -294,7 +294,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         getMockMvc().perform(post("/forgot_password.do")
                 .session(session)
-                .param("email", user.getUserName()))
+                .param("username", user.getUserName()))
                 .andExpect(redirectedUrl("email_sent?code=reset_password"));
 
         getMockMvc().perform(createChangePasswordRequest(user, "test" + generator.counter.get(), true, "secret1", "secret1")
@@ -306,9 +306,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
     @Test
     public void testResettingAPasswordFailsWhenPasswordChanged() throws Exception {
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
         String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
