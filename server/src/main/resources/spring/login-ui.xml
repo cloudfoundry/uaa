@@ -642,7 +642,6 @@
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="userDatabase"/>
-        <constructor-arg ref="accountSavingAuthenticationSuccessHandler"/>
     </bean>
 
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.account.ChangeEmailController">

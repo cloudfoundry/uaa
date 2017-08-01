@@ -17,7 +17,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
@@ -44,7 +43,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.sql.Timestamp;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -55,21 +53,19 @@ public class ResetPasswordController {
     private final ResetPasswordService resetPasswordService;
     private final MessageService messageService;
     private final TemplateEngine templateEngine;
-    private final Pattern emailPattern;
     private final ExpiringCodeStore codeStore;
     private final UaaUserDatabase userDatabase;
-    private final AccountSavingAuthenticationSuccessHandler successHandler;
 
-    public ResetPasswordController(ResetPasswordService resetPasswordService,
-                                   MessageService messageService,
-                                   TemplateEngine templateEngine,
-                                   ExpiringCodeStore codeStore,
-                                   UaaUserDatabase userDatabase, AccountSavingAuthenticationSuccessHandler successHandler) {
+    public ResetPasswordController(
+        ResetPasswordService resetPasswordService,
+        MessageService messageService,
+        TemplateEngine templateEngine,
+        ExpiringCodeStore codeStore,
+        UaaUserDatabase userDatabase
+    ) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
-        this.successHandler = successHandler;
-        emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
         this.codeStore = codeStore;
         this.userDatabase = userDatabase;
     }
@@ -88,33 +84,32 @@ public class ResetPasswordController {
     }
 
     @RequestMapping(value = "/forgot_password.do", method = RequestMethod.POST)
-    public String forgotPassword(Model model, @RequestParam("email") String email, @RequestParam(value = "client_id", defaultValue = "") String clientId,
+    public String forgotPassword(Model model, @RequestParam("username") String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
                                  @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
         if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
-        if (emailPattern.matcher(email).matches()) {
-            forgotPassword(email, clientId, redirectUri);
-            return "redirect:email_sent?code=reset_password";
-        } else {
-            return handleUnprocessableEntity(model, response, "message_code", "form_error");
-        }
+        forgotPassword(username, clientId, redirectUri);
+        return "redirect:email_sent?code=reset_password";
     }
 
-    private void forgotPassword(String email, String clientId, String redirectUri) {
+    private void forgotPassword(String username, String clientId, String redirectUri) {
         String subject = getSubjectText();
         String htmlContent = null;
         String userId = null;
+        String email = null;
 
         try {
-            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, clientId, redirectUri);
+            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(username, clientId, redirectUri);
             userId = forgotPasswordInfo.getUserId();
+            email = forgotPasswordInfo.getEmail();
             htmlContent = getCodeSentEmailHtml(forgotPasswordInfo.getResetPasswordCode().getCode());
         } catch (ConflictException e) {
+            email = e.getEmail();
             htmlContent = getResetUnavailableEmailHtml(email);
             userId = e.getUserId();
         } catch (NotFoundException e) {
-            logger.error("User with email address " + email + " not found.");
+            logger.error("User with email address " + username + " not found.");
         }
 
         if (htmlContent != null && userId != null) {
@@ -183,7 +178,7 @@ public class ResetPasswordController {
         }
     }
 
-    public ExpiringCode checkIfUserExists(ExpiringCode code) {
+    private ExpiringCode checkIfUserExists(ExpiringCode code) {
         if (code==null) {
             logger.debug("reset_password ExpiringCode object is null. Aborting.");
             return null;
