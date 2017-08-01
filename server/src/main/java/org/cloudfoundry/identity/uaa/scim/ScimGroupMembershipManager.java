@@ -144,4 +144,12 @@ public interface ScimGroupMembershipManager  {
 
     void deleteMembersByOrigin(String origin, String zoneId) throws ScimResourceNotFoundException;
 
+    /**
+     * @param memberId
+     * @param origin
+     * @return
+     * @throws ScimResourceNotFoundException
+     */
+    Set<ScimGroup> getGroupsWithExternalMember(String memberId, String origin) throws ScimResourceNotFoundException;
+
 }
