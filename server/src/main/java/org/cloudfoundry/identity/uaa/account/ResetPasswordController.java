@@ -17,7 +17,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
@@ -44,7 +43,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.sql.Timestamp;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -55,21 +53,19 @@ public class ResetPasswordController {
     private final ResetPasswordService resetPasswordService;
     private final MessageService messageService;
     private final TemplateEngine templateEngine;
-    private final Pattern emailPattern;
     private final ExpiringCodeStore codeStore;
     private final UaaUserDatabase userDatabase;
-    private final AccountSavingAuthenticationSuccessHandler successHandler;
 
-    public ResetPasswordController(ResetPasswordService resetPasswordService,
-                                   MessageService messageService,
-                                   TemplateEngine templateEngine,
-                                   ExpiringCodeStore codeStore,
-                                   UaaUserDatabase userDatabase, AccountSavingAuthenticationSuccessHandler successHandler) {
+    public ResetPasswordController(
+        ResetPasswordService resetPasswordService,
+        MessageService messageService,
+        TemplateEngine templateEngine,
+        ExpiringCodeStore codeStore,
+        UaaUserDatabase userDatabase
+    ) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
-        this.successHandler = successHandler;
-        emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
         this.codeStore = codeStore;
         this.userDatabase = userDatabase;
     }
@@ -182,7 +178,7 @@ public class ResetPasswordController {
         }
     }
 
-    public ExpiringCode checkIfUserExists(ExpiringCode code) {
+    private ExpiringCode checkIfUserExists(ExpiringCode code) {
         if (code==null) {
             logger.debug("reset_password ExpiringCode object is null. Aborting.");
             return null;

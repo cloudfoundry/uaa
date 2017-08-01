@@ -55,7 +55,6 @@ import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -89,7 +88,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         codeStore = new InMemoryExpiringCodeStore();
         userDatabase = mock(UaaUserDatabase.class);
         when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
 
         mockMvc = MockMvcBuilders
             .standaloneSetup(controller)
@@ -149,7 +148,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         IdentityZoneHolder.get().setConfig(config);
 
         try {
-            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
+            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
             String domain = zoneDomain == null ? "localhost" : zoneDomain + ".localhost";
             when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd", "user@example.com"));
             MockHttpServletRequestBuilder post = post("/forgot_password.do")
@@ -202,7 +201,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, successHandler);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())

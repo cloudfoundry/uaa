@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
@@ -57,8 +55,6 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
     public static final String FORGOT_PASSWORD_INTENT_PREFIX = "forgot_password_for_id:";
-    
-    private final Log logger = LogFactory.getLog(getClass());
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
@@ -127,7 +123,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             if (scimUserProvisioning.checkPasswordMatches(userId, newPassword, IdentityZoneHolder.get().getId())) {
                 throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
-            if (isUserModified(user, expiringCode.getExpiresAt(), userName, passwordLastModified)) {
+            if (isUserModified(user, userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
             }
             if (!user.isVerified()) {
@@ -184,10 +180,10 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         return new ForgotPasswordInfo(scimUser.getId(), email, code);
     }
 
-    private boolean isUserModified(ScimUser user, Timestamp expiresAt, String userName, Date passwordLastModified) {
+    private boolean isUserModified(ScimUser user, String userName, Date passwordLastModified) {
         boolean modified = false;
-        if (userName!=null) {
-            modified = ! (userName.equals(user.getUserName()));
+        if (userName != null) {
+            modified = !(userName.equals(user.getUserName()));
         }
         if (passwordLastModified != null && (!modified)) {
             modified = user.getPasswordLastModified().getTime() != passwordLastModified.getTime();

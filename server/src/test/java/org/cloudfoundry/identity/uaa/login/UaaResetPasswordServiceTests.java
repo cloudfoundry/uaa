@@ -72,7 +72,6 @@ public class UaaResetPasswordServiceTests {
     private ScimUserProvisioning scimUserProvisioning;
     private PasswordValidator passwordValidator;
     private ClientServicesExtension clientDetailsService;
-    private ResourcePropertySource resourcePropertySource;
 
     @Before
     public void setUp() throws Exception {
@@ -82,7 +81,8 @@ public class UaaResetPasswordServiceTests {
         codeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
         clientDetailsService = mock(ClientServicesExtension.class);
-        resourcePropertySource = mock(ResourcePropertySource.class);
+
+        ResourcePropertySource resourcePropertySource = mock(ResourcePropertySource.class);
         uaaResetPasswordService = new UaaResetPasswordService(scimUserProvisioning, codeStore, passwordValidator, clientDetailsService, resourcePropertySource);
     }
 
@@ -100,8 +100,10 @@ public class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser("user-id-001","exampleUser","firstName","lastName");
         user.setPasswordLastModified(new Date(1234));
         user.setPrimaryEmail("user@example.com");
+
         String zoneID = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.query(contains("origin"), eq(zoneID))).thenReturn(Arrays.asList(user));
+
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);

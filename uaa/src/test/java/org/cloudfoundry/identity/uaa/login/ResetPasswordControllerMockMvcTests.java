@@ -127,7 +127,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
 
-        MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
+        getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/"))
             .andReturn();
@@ -218,7 +218,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertThat(sender.getSentMessages().get(0).getContentString(), not(containsString("other.host.com")));
     }
 
-    public ScimUser getScimUser() throws Exception {
+    private ScimUser getScimUser() throws Exception {
         String username = new RandomValueStringGenerator().generate() + "@test.org";
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username);
