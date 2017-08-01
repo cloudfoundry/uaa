@@ -211,7 +211,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             post("/forgot_password.do")
                 .header("Host", "localhost")
                 .header("X-Forwarded-Host", "other.host.com")
-                .param("email", user.getUserName())
+                .param("username", user.getUserName())
         )
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
         assertThat(sender.getSentMessages().get(0).getContentString(), containsString("http://localhost/reset_password?code="));

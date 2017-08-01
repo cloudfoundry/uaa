@@ -174,8 +174,14 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         String intent = FORGOT_PASSWORD_INTENT_PREFIX+scimUser.getId();
         expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), intent, IdentityZoneHolder.get().getId());
-        publish(new ResetPasswordRequestEvent(username, scimUser.getPrimaryEmail(), code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
-        return new ForgotPasswordInfo(scimUser.getId(), scimUser.getPrimaryEmail(), code);
+
+        String email = scimUser.getPrimaryEmail();
+        if (email == null) {
+            email = scimUser.getUserName();
+        }
+
+        publish(new ResetPasswordRequestEvent(username, email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
+        return new ForgotPasswordInfo(scimUser.getId(), email, code);
     }
 
     private boolean isUserModified(ScimUser user, Timestamp expiresAt, String userName, Date passwordLastModified) {

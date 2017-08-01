@@ -121,7 +121,22 @@ public class UaaResetPasswordServiceTests {
         assertThat(resetPasswordCode.getData(), equalTo("user-id-001"));
     }
 
+    @Test
+    public void forgotPasswordFallsBackToUsernameIfNoPrimaryEmail() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "firstName", "lastName");
 
+        String zoneID = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(contains("origin"), eq(zoneID))).thenReturn(Arrays.asList(user));
+
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
+
+        when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString()))
+            .thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
+
+        ForgotPasswordInfo forgotPasswordInfo = uaaResetPasswordService.forgotPassword("exampleUser", "example", "redirect.example.com");
+
+        assertThat(forgotPasswordInfo.getEmail(), equalTo("user@example.com"));
+    }
 
     @Test
     public void forgotPassword_PublishesResetPasswordRequestEvent() throws Exception {
