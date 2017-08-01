@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -88,8 +87,11 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     public static final String DELETE_MEMBER_IN_GROUPS_SQL_GROUP = String.format("delete from %s where member_id=? and member_type='GROUP' and identity_zone_id=?",MEMBERSHIP_TABLE);
 
-    public static final String GET_GROUPS_BY_EXTERNAL_MEMBER_SQL = String.format("select %s from %s m, %s g where m.group_id = g.id and g.identity_zone_id = ? and m.member_id = ? and m.origin = ?",
-        JdbcScimGroupProvisioning.GROUP_FIELDS, MEMBERSHIP_TABLE, JdbcScimGroupProvisioning.GROUP_TABLE);
+    public static final String GROUP_TABLE = "groups";
+
+    public static final String GET_GROUPS_BY_EXTERNAL_MEMBER_SQL = String.format("select g.id, g.displayName, g.description, g.created, g.lastModified, g.version, g.identity_zone_id" +
+            " from %s m, %s g where m.group_id = g.id and g.identity_zone_id = ? and m.member_id = ? and m.origin = ?",
+        MEMBERSHIP_TABLE, GROUP_TABLE);
 
     private ScimUserProvisioning userProvisioning;
 
