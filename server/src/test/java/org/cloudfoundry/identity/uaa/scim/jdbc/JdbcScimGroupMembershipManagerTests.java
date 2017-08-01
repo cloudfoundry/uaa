@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -50,6 +51,8 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -78,7 +81,6 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     private IdentityZone zone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
-    private JdbcScimGroupExternalMembershipManager egdao;
 
     @Before
     public void initJdbcScimGroupMembershipManagerTests() {
@@ -93,24 +95,23 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         dao.setScimUserProvisioning(udao);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(asList("uaa.user"));
         gdao.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
-        egdao = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
 
         for (String id : Arrays.asList(zone.getId(), IdentityZone.getUaa().getId())) {
-            String g1 = id.equals(zone.getId()) ? zone.getId()+"-"+"g1" : "g1";
-            String g2 = id.equals(zone.getId()) ? zone.getId()+"-"+"g2" : "g2";
-            String g3 = id.equals(zone.getId()) ? zone.getId()+"-"+"g3" : "g3";
-            String m1 = id.equals(zone.getId()) ? zone.getId()+"-"+"m1" : "m1";
-            String m2 = id.equals(zone.getId()) ? zone.getId()+"-"+"m2" : "m2";
-            String m3 = id.equals(zone.getId()) ? zone.getId()+"-"+"m3" : "m3";
+            String g1 = id.equals(zone.getId()) ? zone.getId() + "-g1" : "g1";
+            String g2 = id.equals(zone.getId()) ? zone.getId() + "-g2" : "g2";
+            String g3 = id.equals(zone.getId()) ? zone.getId() + "-g3" : "g3";
+            String m1 = id.equals(zone.getId()) ? zone.getId() + "-m1" : "m1";
+            String m2 = id.equals(zone.getId()) ? zone.getId() + "-m2" : "m2";
+            String m3 = id.equals(zone.getId()) ? zone.getId() + "-m3" : "m3";
             addGroup(g1, "test1", id);
             addGroup(g2, "test2", id);
             addGroup(g3, "test3", id);
             addUser(m1, "test", id);
             addUser(m2, "test", id);
             addUser(m3, "test", id);
-            mapExternalGroup(g1, g1+"-external", UAA);
-            mapExternalGroup(g2, g2+"-external", LOGIN_SERVER);
-            mapExternalGroup(g3, g3+"-external", UAA);
+            mapExternalGroup(g1, g1 + "-external", UAA);
+            mapExternalGroup(g2, g2 + "-external", LOGIN_SERVER);
+            mapExternalGroup(g3, g3 + "-external", UAA);
         }
         validateCount(0);
     }
@@ -621,4 +622,19 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         validateUserGroups("m2", "test2");
 
     }
+
+    @Test
+    public void canGetGroupsWithExternalMember() {
+        addMember("g1", "m1", "MEMBER", "", zone.getId());
+        addMember("g2", "m1", "MEMBER", "", zone.getId());
+
+        Set<ScimGroup> groups = dao.getGroupsWithExternalMember("m1", zone.getId());
+
+        assertThat(groups.size(), equalTo(2));
+
+        List<String> groupIds = groups.stream().map(ScimGroup::getId).collect(Collectors.toList());
+        assertThat(groupIds, hasItem("g1"));
+        assertThat(groupIds, hasItem("g2"));
+    }
+
 }

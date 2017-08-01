@@ -88,12 +88,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     public static final String DELETE_MEMBER_IN_GROUPS_SQL_GROUP = String.format("delete from %s where member_id=? and member_type='GROUP' and identity_zone_id=?",MEMBERSHIP_TABLE);
 
-    public static final String GROUP_FIELDS = "id,displayName,description,created,lastModified,version,groups.identity_zone_id";
-
-    public static final String GROUP_TABLE = "groups";
-
-    public static final String GET_GROUPS_BY_EXTERNAL_MEMBER_SQL = String.format("select %s from %s , %s where group_id = id and groups.identity_zone_id=? and LOWER(member_id) = LOWER(?) and LOWER(origin) = LOWER(?)", GROUP_FIELDS, MEMBERSHIP_TABLE, GROUP_TABLE);
-
+    public static final String GET_GROUPS_BY_EXTERNAL_MEMBER_SQL = String.format("select %s from %s m, %s g where m.group_id = g.id and g.identity_zone_id = ? and m.member_id = ? and m.origin = ?",
+        JdbcScimGroupProvisioning.GROUP_FIELDS, MEMBERSHIP_TABLE, JdbcScimGroupProvisioning.GROUP_TABLE);
 
     private ScimUserProvisioning userProvisioning;
 
@@ -249,21 +245,19 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public Set<ScimGroup> getGroupsWithExternalMember(final String memberId, String origin)
-                    throws ScimResourceNotFoundException {
-        List<ScimGroup> results = new ArrayList<>();
+    public Set<ScimGroup> getGroupsWithExternalMember(final String memberId, final String origin) throws ScimResourceNotFoundException {
+        List<ScimGroup> results;
+
         try {
-            results = jdbcTemplate.query(GET_GROUPS_BY_EXTERNAL_MEMBER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, IdentityZoneHolder.get().getId());
-                    ps.setString(2, memberId);
-                    ps.setString(3, origin);
-                }
+            results = jdbcTemplate.query(GET_GROUPS_BY_EXTERNAL_MEMBER_SQL, ps -> {
+                ps.setString(1, IdentityZoneHolder.get().getId());
+                ps.setString(2, memberId);
+                ps.setString(3, origin);
             }, new ScimGroupRowMapper());
         } catch (EmptyResultDataAccessException ex) {
-            results = Collections.EMPTY_LIST;
+            results = Collections.emptyList();
         }
+
         return new HashSet<>(results);
     }
 
@@ -516,23 +510,4 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         jdbcTemplate.update(DELETE_MEMBERS_WITH_ORIGIN_GROUP_SQL, origin, zoneId);
     }
 
-    private static final class ScimGroupRowMapper implements RowMapper<ScimGroup> {
-
-        @Override
-        public ScimGroup mapRow(ResultSet rs, int rowNum) throws SQLException {
-            int pos = 1;
-            String id = rs.getString(pos++);
-            String name = rs.getString(pos++);
-            String description = rs.getString(pos++);
-            Date created = rs.getTimestamp(pos++);
-            Date modified = rs.getTimestamp(pos++);
-            int version = rs.getInt(pos++);
-            String zoneId = rs.getString(pos++);
-            ScimGroup group = new ScimGroup(id, name, zoneId);
-            group.setDescription(description);
-            ScimMeta meta = new ScimMeta(created, modified, version);
-            group.setMeta(meta);
-            return group;
-        }
-    }
 }
