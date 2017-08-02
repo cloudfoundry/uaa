@@ -50,7 +50,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -246,16 +249,24 @@ public class ScimUserBootstrap implements
             updateUser(user, event.getUser(), false);
             return;
         }
-
         if (event instanceof ExternalGroupAuthorizationEvent) {
             ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent)event;
             //delete previous membership relation ships
             String origin = exEvent.getUser().getOrigin();
-            if (!OriginKeys.UAA.equals(origin)) {//only delete non UAA relationships
-                membershipManager.removeMembersByMemberId(event.getUser().getId(), origin, IdentityZoneHolder.get().getId());
-            }
-            for (GrantedAuthority authority : exEvent.getExternalAuthorities()) {
-                addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
+            if (!OriginKeys.UAA.equals(origin)) {
+                Set<ScimGroup> groupsWithMember = membershipManager.getGroupsWithExternalMember(exEvent.getUser().getId(), origin);
+                Map<String, ScimGroup> groupsMap = groupsWithMember.stream().collect(Collectors.toMap(ScimGroup::getDisplayName, Function.identity()));
+                Collection<? extends GrantedAuthority> externalAuthorities = exEvent.getExternalAuthorities();
+                for (GrantedAuthority authority : externalAuthorities) {
+                    if (groupsMap.containsKey(authority.getAuthority())) {
+                        groupsMap.remove(authority.getAuthority());
+                    } else {
+                        addToGroup(exEvent.getUser().getId(), authority.getAuthority(), origin, exEvent.isAddGroups());
+                    }
+                }
+                for (ScimGroup group : groupsMap.values()) {
+                    membershipManager.removeMemberById(group.getId(), exEvent.getUser().getId(), group.getZoneId());
+                }
             }
             //update the user itself
             if(event.isUserModified()) {
