@@ -471,8 +471,14 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         body.add("redirect_uri", codeToken.getRedirectUrl());
 
         HttpHeaders headers = new HttpHeaders();
-        String clientAuthHeader = getClientAuthHeader(config);
-        headers.add("Authorization", clientAuthHeader);
+
+        if(config.isClientAuthInBody()) {
+            body.add("client_id", config.getRelyingPartyId());
+            body.add("client_secret", config.getRelyingPartySecret());
+        } else {
+            String clientAuthHeader = getClientAuthHeader(config);
+            headers.add("Authorization", clientAuthHeader);
+        }
         headers.add("Accept", "application/json");
 
         URI requestUri;
