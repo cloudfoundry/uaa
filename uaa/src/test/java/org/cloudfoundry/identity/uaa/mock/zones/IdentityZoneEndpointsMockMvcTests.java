@@ -313,6 +313,14 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         }
     }
 
+    @Test
+    public void create_zone_using_no_token() throws Exception {
+        createZone(generator.generate().toLowerCase(),
+                   HttpStatus.UNAUTHORIZED,
+                   "",
+                   new IdentityZoneConfiguration());
+    }
+
 
     @Test
     public void delete_zone_as_with_uaa_admin() throws Exception {
@@ -1108,6 +1116,13 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                     .content(JsonUtils.writeValueAsString(client)))
                 .andExpect(status().isForbidden());
         }
+
+        //create client without token
+        getMockMvc().perform(post("/identity-zones/" + zone.getId() + "/clients")
+            .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(client)))
+            .andExpect(status().isUnauthorized());
 
         MvcResult result = getMockMvc().perform(
             post("/identity-zones/" + zone.getId() + "/clients")
