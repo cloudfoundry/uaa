@@ -72,7 +72,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor membersRequestField = fieldWithPath("members").optional(null).type(ARRAY).description("Members to be included in the group");
     private final FieldDescriptor memberValueRequestField = fieldWithPath("members[].value").constrained("Required for each item in `members`").type(STRING).description("The globally-unique ID of the member entity, either a user ID or another group ID");
     private final FieldDescriptor memberTypeRequestField = fieldWithPath("members[].type").optional(USER).type(STRING).description("Either `\"USER\"` or `\"GROUP\"`");
-    private final FieldDescriptor memberOriginRequestField = fieldWithPath("members[].origin").optional("uaa").type(STRING).description("The alias of the identity provider that authenticated this user. `\"uaa\"` is an internal UAA user.");
+    private final FieldDescriptor memberOriginRequestField = fieldWithPath("members[].origin").optional("uaa").type(STRING).description("The alias of the identity provider that authenticated this user. `\"uaa\"` is an internal UAA user. This value will NOT change during an update (put request) if the membership already exists under a different origin.");
     private final FieldDescriptor memberOperationRequestField = fieldWithPath("members[].operation").optional(null).type(STRING).description("\"delete\" if the corresponding member shall be deleted");
     private final FieldDescriptor metaAttributesRequestField = fieldWithPath("meta.attributes").optional(null).type(ARRAY).description("Names of attributes that shall be deleted");
     private String scimReadToken;
