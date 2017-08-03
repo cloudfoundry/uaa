@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -38,13 +39,23 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.thymeleaf.spring4.SpringTemplateEngine;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.thymeleaf.TemplateEngine;
 
 import java.sql.Timestamp;
 
@@ -65,34 +76,40 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
+@WebAppConfiguration
+@ContextConfiguration(classes = ResetPasswordControllerTest.ContextConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class ResetPasswordControllerTest extends TestClassNullifier {
     private MockMvc mockMvc;
-    private ResetPasswordService resetPasswordService;
-    private MessageService messageService;
-    private ExpiringCodeStore codeStore;
-    private UaaUserDatabase userDatabase;
     private String companyName = "Best Company";
 
     @Autowired
+    WebApplicationContext webApplicationContext;
+
+    @Autowired
+    ExpiringCodeStore codeStore;
+
+    @Autowired
+    ResetPasswordService resetPasswordService;
+
+    @Autowired
+    MessageService messageService;
+
+    @Autowired
     @Qualifier("mailTemplateEngine")
-    private SpringTemplateEngine templateEngine;
+    TemplateEngine templateEngine;
+
+    @Autowired
+    UaaUserDatabase userDatabase;
+
     private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
 
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        resetPasswordService = mock(ResetPasswordService.class);
-        messageService = mock(MessageService.class);
-        codeStore = new InMemoryExpiringCodeStore();
-        userDatabase = mock(UaaUserDatabase.class);
-        when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
 
-        mockMvc = MockMvcBuilders
-            .standaloneSetup(controller)
-            .setViewResolvers(getResolver())
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();
     }
 
@@ -148,7 +165,6 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         IdentityZoneHolder.get().setConfig(config);
 
         try {
-            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
             String domain = zoneDomain == null ? "localhost" : zoneDomain + ".localhost";
             when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd", "user@example.com"));
             MockHttpServletRequestBuilder post = post("/forgot_password.do")
@@ -304,6 +320,62 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("forgot_password"))
             .andExpect(model().attribute("message_code", "bad_code"));
+    }
+
+
+    @Configuration
+    @EnableWebMvc
+    @Import(ThymeleafConfig.class)
+    static class ContextConfiguration extends WebMvcConfigurerAdapter {
+
+        @Override
+        public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+            configurer.enable();
+        }
+
+        @Bean
+        BuildInfo buildInfo() {
+            return new BuildInfo();
+        }
+
+        @Bean
+        public ResourceBundleMessageSource messageSource() {
+            ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
+            resourceBundleMessageSource.setBasename("messages");
+            return resourceBundleMessageSource;
+        }
+
+        @Bean
+        public ResetPasswordService resetPasswordService() {
+            return mock(ResetPasswordService.class);
+        }
+
+        @Bean
+        public MessageService messageService() {
+            return mock(MessageService.class);
+        }
+
+        @Bean
+        public ExpiringCodeStore codeStore() {
+            return new InMemoryExpiringCodeStore();
+        }
+
+        @Bean
+        public UaaUserDatabase userDatabase() {
+            UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+            when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
+            return userDatabase;
+        }
+
+        @Bean
+        ResetPasswordController resetPasswordController(ResetPasswordService resetPasswordService,
+                                                        MessageService messageService,
+                                                        TemplateEngine mailTemplateEngine,
+                                                        ExpiringCodeStore codeStore,
+                                                        UaaUserDatabase userDatabase) {
+            ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase);
+            return controller;
+        }
     }
 
 }
