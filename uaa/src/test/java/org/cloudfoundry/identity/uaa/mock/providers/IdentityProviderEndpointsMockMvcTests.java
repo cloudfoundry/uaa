@@ -598,6 +598,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     @Test
     public void validateOauthProviderConfigDuringUpdate() throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getOAuthProviderConfig();
+        identityProvider.getConfig().setClientAuthInBody(true);
         MvcResult mvcResult = getMockMvc().perform(post("/identity-providers")
                                                        .header("Authorization", "bearer " + adminToken)
                                                        .content(JsonUtils.writeValueAsString(identityProvider))
@@ -607,7 +608,31 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         String response = mvcResult.getResponse().getContentAsString();
         assertThat(response, not(containsString("relyingPartySecret")));
         identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {});
+        assertTrue(identityProvider.getConfig().isClientAuthInBody());
+
+        assertTrue(
+            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
+                .isClientAuthInBody()
+        );
+
+        identityProvider.getConfig().setClientAuthInBody(false);
+
+        mvcResult = getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
+                                             .header("Authorization", "bearer " + adminToken)
+                                             .content(JsonUtils.writeValueAsString(identityProvider))
+                                             .contentType(APPLICATION_JSON)
+        ).andExpect(status().isOk()).andReturn();
+        response = mvcResult.getResponse().getContentAsString();
+        assertThat(response, not(containsString("relyingPartySecret")));
+        identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {});
+        assertFalse(identityProvider.getConfig().isClientAuthInBody());
+        assertFalse(
+            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
+                .isClientAuthInBody()
+        );
+
         identityProvider.getConfig().setTokenUrl(null);
+
 
         getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
                                  .header("Authorization", "bearer " + adminToken)
