@@ -595,7 +595,19 @@ public class SamlLoginWithLocalIdpIT {
         idp.setName("Local SAML IdP for testzone1");
         idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
         assertNotNull(idp.getId());
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+
+        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
+        assertNotNull(elements);
+        assertEquals(1, elements.size());
+        WebElement element = elements.get(0);
+        assertNotNull(element);
+        String url = element.getAttribute("href");
+        webDriver.get(url);
+        String errorMessage = "No Supported binding was found for SAML SSO profile - browser. Supported SAML SSO browser profile bindings are HTTP-POST and HTTP-Redirect.";
+        elements = webDriver.findElements(By.xpath("//p[text()='" + errorMessage + "']"));
+        assertNotNull(elements);
+        assertEquals(1, elements.size());
+        assertNotNull(elements.get(0));
     }
 
 
