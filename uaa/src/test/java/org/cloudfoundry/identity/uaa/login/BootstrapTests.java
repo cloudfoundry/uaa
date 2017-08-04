@@ -602,6 +602,7 @@ public class BootstrapTests {
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
         assertNotNull(oidcProvider);
+        assertTrue(oidcProvider.getConfig().isClientAuthInBody());
         assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
         assertNull(oidcProvider.getConfig().getIssuer());
@@ -620,6 +621,7 @@ public class BootstrapTests {
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
         assertNotNull(oauthProvider);
+        assertFalse(oauthProvider.getConfig().isClientAuthInBody());
         assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oauthProvider.getConfig().getTokenUrl().toString());
         assertEquals("http://issuer-my-token.com", oauthProvider.getConfig().getIssuer());

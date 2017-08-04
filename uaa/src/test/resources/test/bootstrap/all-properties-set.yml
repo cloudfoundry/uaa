@@ -180,6 +180,7 @@ login:
         type: oidc1.0
         userInfoUrl: http://my-token.com/userinfo
         storeCustomAttributes: false
+        clientAuthInBody: true
       default-discovery-provider:
         discoveryUrl: https://accounts.google.com/.well-known/openid-configuration
         relyingPartyId: uaa
