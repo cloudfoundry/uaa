@@ -39,7 +39,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
         new TestColumn("response_type", "varchar/nvarchar", 25),
         new TestColumn("issued_at", "bigint/int8", 64),
         new TestColumn("expires_at", "bigint/int8", 64),
-        new TestColumn("scope", "varchar/nvarchar", 4000),
+        new TestColumn("scope", "varchar/nvarchar", 1000),
         new TestColumn("data", "nvarchar/longvarchar/mediumtext", 0),
         new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );

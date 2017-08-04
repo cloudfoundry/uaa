@@ -60,7 +60,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName) && (scopeColumnName.equalsIgnoreCase(rscolumnName)
                         || authoritiesColumnName.equalsIgnoreCase(rscolumnName))) {
-                    assertEquals(String.format("Table: %s Column: %s should be 4000 in size.", rstableName, rscolumnName), 4000,  columnSize);
+                    assertTrue(String.format("Table: %s Column: %s should be 4000 in size.", rstableName, rscolumnName), columnSize > 4000);
                     foundTable = true;
                     if(scopeColumnName.equalsIgnoreCase(rscolumnName)) {
                         foundColumnScope = true;
@@ -71,7 +71,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
 
                     String columnType = rs.getString("TYPE_NAME");
                     assertNotNull(String.format("Table: %s Column: %s should have a column type", rstableName, rscolumnName), columnType);
-                    assertThat(String.format("Table: %s Column: %s should be varchar or nvarchar", rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("varchar","nvarchar")));
+                    assertEquals(String.format("Table: %s Column: %s should be varchar or nvarchar", rstableName, rscolumnName), columnType.toLowerCase(), "clob");
                 } else {
                     continue;
                 }
