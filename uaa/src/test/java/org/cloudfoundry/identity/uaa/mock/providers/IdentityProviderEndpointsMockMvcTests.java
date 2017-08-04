@@ -611,7 +611,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertTrue(identityProvider.getConfig().isClientAuthInBody());
 
         assertTrue(
-            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
+            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
                 .isClientAuthInBody()
         );
 
@@ -627,7 +627,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {});
         assertFalse(identityProvider.getConfig().isClientAuthInBody());
         assertFalse(
-            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(IdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
+            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
                 .isClientAuthInBody()
         );
 
