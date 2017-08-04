@@ -22,6 +22,10 @@ public interface ResourceManager<T> {
 
     T create(T resource, String zoneId);
 
+    default T create(T resource, String zoneId, boolean isBatchCall) {
+        return null;
+    };
+
     T update(String id, T resource, String zoneId);
 
     T delete(String id, int version, String zoneId);

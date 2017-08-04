@@ -215,13 +215,14 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimUser createUser(@RequestBody ScimUser user, HttpServletRequest request, HttpServletResponse response) {
-        ScimUser scimUser = createScimUserHelper(user, request);
+        boolean isBatchCall = false;
+        ScimUser scimUser = createScimUserHelper(user, request, isBatchCall);
 
         addETagHeader(response, scimUser);
         return scimUser;
     }
 
-    private ScimUser createScimUserHelper(@RequestBody ScimUser user, HttpServletRequest request) {
+    private ScimUser createScimUserHelper(ScimUser user, HttpServletRequest request, boolean isBatchCall) {
         //default to UAA origin
         if (isEmpty(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
@@ -243,7 +244,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             passwordValidator.validate(user.getPassword());
         }
 
-        ScimUser scimUser = scimUserProvisioning.createUser(user, user.getPassword(), IdentityZoneHolder.get().getId());
+        ScimUser scimUser = scimUserProvisioning.createUser(user, user.getPassword(), IdentityZoneHolder.get().getId(), isBatchCall);
         if (user.getApprovals()!=null) {
             for (Approval approval : user.getApprovals()) {
                 approval.setUserId(scimUser.getId());
@@ -477,9 +478,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @ResponseBody
     @Transactional
     public ScimUser[] createUsersTx(@RequestBody ScimUser[] users, HttpServletRequest request, HttpServletResponse response) {
+        boolean isBatchCall = true;
         ScimUser[] res = new ScimUser[users.length];
         for(int i = 0; i < users.length; i++){
-            res[i] = createScimUserHelper(users[i], request);
+            res[i] = createScimUserHelper(users[i], request, isBatchCall);
         }
         return res;
     }
