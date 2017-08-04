@@ -176,6 +176,15 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     }
 
     @Override
+    public ScimGroup getOrCreate(ScimGroup group, String zoneId) {
+        try {
+            return getByName(group.getDisplayName(), zoneId);
+        }catch (IncorrectResultSizeDataAccessException ignore){
+        }
+        return create(new ScimGroup(null, group.getDisplayName(), zoneId), zoneId);
+    }
+
+    @Override
     public ScimGroup getByName(String displayName, String zoneId) {
         if (!hasText(displayName)) {
             throw new IncorrectResultSizeDataAccessException("group name must contain text", 1, 0);

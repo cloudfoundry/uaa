@@ -139,4 +139,8 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         }
     }
 
+    public SearchQueryConverter getQueryConverter() {
+        return queryConverter;
+    }
+
 }

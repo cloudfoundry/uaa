@@ -1214,7 +1214,7 @@ public class ScimUserEndpointsTests {
         ScimUser[] usersCreated = endpoints.createUsersTx(users, new MockHttpServletRequest(), new MockHttpServletResponse());
 
         for(ScimUser user : usersCreated) {
-            ScimUser dbUser = dao.retrieve(user.getId(), IdentityZoneHolder.get().getId());
+            ScimUser dbUser = dao.retrieve(user.getId());
             assertEquals(user.getId(), dbUser.getId());
             assertEquals(user.getUserName(), dbUser.getUserName());
         }
