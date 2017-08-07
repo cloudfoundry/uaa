@@ -236,9 +236,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                                 .collect(Collectors.toList());
                             userAttributes.put(key, strings);
                         } else if (values instanceof String) {
-                            userAttributes.put(key, Arrays.asList((String) values));
+                            userAttributes.put(key, Collections.singletonList((String) values));
                         } else {
-                            userAttributes.put(key, Arrays.asList(values.toString()));
+                            userAttributes.put(key, Collections.singletonList(values.toString()));
                         }
                     }
                 }
@@ -273,19 +273,25 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             String phoneClaim = (String) authenticationData.getAttributeMappings().get(PHONE_NUMBER_ATTRIBUTE_NAME);
 
             Map<String, Object> claims = authenticationData.getClaims();
-            //TODO call userinfo?
+
             String username = authenticationData.getUsername();
-            String email = (String) claims.get(emailClaim != null ? emailClaim : "email");
+            String givenName = (String) claims.get(givenNameClaim == null ? "given_name" : givenNameClaim);
+            String familyName = (String) claims.get(familyNameClaim == null ? "family_name" : familyNameClaim);
+            String phoneNumber = (String) claims.get(phoneClaim == null ? "phone_number" : phoneClaim);
+            String email = (String) claims.get(emailClaim == null ? "email" : emailClaim);
+
             if (email == null) {
                 email = generateEmailIfNull(username);
             }
+
             logger.debug(String.format("Returning user data for username:%s, email:%s", username, email));
+
             return new UaaUser(
                 new UaaUserPrototype()
                     .withEmail(email)
-                    .withGivenName((String) claims.get(givenNameClaim != null ? givenNameClaim : "given_name"))
-                    .withFamilyName((String) claims.get(familyNameClaim != null ? familyNameClaim : "family_name"))
-                    .withPhoneNumber((String) claims.get(phoneClaim != null ? phoneClaim : "phone_number"))
+                    .withGivenName(givenName)
+                    .withFamilyName(familyName)
+                    .withPhoneNumber(phoneNumber)
                     .withModified(new Date())
                     .withUsername(username)
                     .withPassword("")

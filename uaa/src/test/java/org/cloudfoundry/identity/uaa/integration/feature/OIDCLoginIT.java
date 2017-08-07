@@ -102,13 +102,11 @@ public class OIDCLoginIT {
     @Autowired
     TestClient testClient;
 
-    ServerRunning serverRunning = ServerRunning.isRunning();
+    private ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private String originKey = null;
     private IdentityZone zone;
     private String adminToken;
     private String subdomain;
-    private String zoneHost;
     private String zoneUrl;
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private String clientCredentialsToken;
@@ -131,9 +129,8 @@ public class OIDCLoginIT {
         zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, subdomain, subdomain, zoneConfiguration);
         adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
-        zoneHost = zone.getSubdomain()+".localhost";
-        zoneUrl = "http://"+ zoneHost + ":8080/uaa";
-
+        String zoneHost = zone.getSubdomain() + ".localhost";
+        zoneUrl = "http://" + zoneHost + ":8080/uaa";
 
         String urlBase = "http://localhost:8080/uaa";
         identityProvider = new IdentityProvider<>();
@@ -165,7 +162,6 @@ public class OIDCLoginIT {
         identityProvider.setIdentityZoneId(zone.getId());
         clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         updateProvider();
-        originKey = "puppy";
 
         zoneClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         zoneClient.setClientSecret("secret");
