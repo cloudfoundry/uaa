@@ -40,11 +40,19 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
 
     @Override
     public String getEntityId() {
+        if (!IdentityZoneHolder.isUaa()) {
+            String url = getZoneDefinition().getSamlConfig().getEntityID();
+            if (url != null) {
+                return url;
+            }
+        }
+
         String entityId = super.getEntityId();
+
         if (UaaUrlUtils.isUrl(entityId)) {
             return UaaUrlUtils.addSubdomainToUrl(entityId);
         } else {
-            return UaaUrlUtils.getSubdomain()+entityId;
+            return UaaUrlUtils.getSubdomain() + entityId;
         }
     }
 
