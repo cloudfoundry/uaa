@@ -141,6 +141,7 @@ public class OIDCLoginIT {
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
+        config.addAttributeMapping("given_name", "user_name");
         config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
         config.setStoreCustomAttributes(true);
 
@@ -237,6 +238,7 @@ public class OIDCLoginIT {
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+        assertEquals(user.getGivenName(), user.getUserName());
     }
 
     @Test
