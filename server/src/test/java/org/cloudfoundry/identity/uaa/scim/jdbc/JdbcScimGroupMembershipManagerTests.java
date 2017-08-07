@@ -31,6 +31,8 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -60,7 +62,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
@@ -103,12 +105,14 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             String m1 = id.equals(zone.getId()) ? zone.getId() + "-m1" : "m1";
             String m2 = id.equals(zone.getId()) ? zone.getId() + "-m2" : "m2";
             String m3 = id.equals(zone.getId()) ? zone.getId() + "-m3" : "m3";
+            String m4 = id.equals(zone.getId()) ? zone.getId() + "-m4" : "m4";
             addGroup(g1, "test1", id);
             addGroup(g2, "test2", id);
             addGroup(g3, "test3", id);
             addUser(m1, "test", id);
             addUser(m2, "test", id);
             addUser(m3, "test", id);
+            addUser(m4, "test", id);
             mapExternalGroup(g1, g1 + "-external", UAA);
             mapExternalGroup(g2, g2 + "-external", LOGIN_SERVER);
             mapExternalGroup(g3, g3 + "-external", UAA);
@@ -545,19 +549,33 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canUpdateOrAddMembers() {
-        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN), IdentityZoneHolder.get().getId());
-        validateCount(3);
+        String zoneId = IdentityZoneHolder.get().getId();
+
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), zoneId);
+        dao.addMember("g1", new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), zoneId);
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER), zoneId);
+
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN), zoneId);
+
+        validateCount(4);
         validateUserGroups("m1", "test1");
         validateUserGroups("m2", "test2", "test1.i");
 
-        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
-        ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        List<ScimGroupMember> members = dao.updateOrAddMembers("g1", Arrays.asList(g2, m3), IdentityZoneHolder.get().getId());
+        JdbcScimGroupMembershipManager spy = Mockito.spy(dao);
 
-        validateCount(3);
-        assertEquals(2, members.size());
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN); // update role member->admin
+        ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER); // new member
+        ScimGroupMember m4 = new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER); // does not change
+
+        List<ScimGroupMember> members = spy.updateOrAddMembers("g1", Arrays.asList(g2, m3, m4), zoneId);
+
+        validateCount(4);
+        verify(spy).updateMember("g1", g2, zoneId);
+        verify(spy).addMember("g1", m3, zoneId);
+        verify(spy, times(0)).updateMember("g1", m4, zoneId);
+        verify(spy, times(0)).addMember("g1", m4, zoneId);
+        verify(spy).removeMemberById("g1", "m1", zoneId);
+        assertEquals(3, members.size());
         assertTrue(members.contains(new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, null)));
         assertTrue(members.contains(new ScimGroupMember("m3", ScimGroupMember.Type.USER, null)));
         assertFalse(members.contains(new ScimGroupMember("m1", ScimGroupMember.Type.USER, null)));

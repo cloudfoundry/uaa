@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -20,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
@@ -47,7 +49,11 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
@@ -340,11 +346,27 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         List<ScimGroupMember> membersToUpdate = new ArrayList<>(members);
         membersToUpdate.retainAll(currentMembers);
         logger.debug("updating members: " + membersToUpdate);
-        for (ScimGroupMember member : membersToUpdate) {
-            updateMember(groupId, member, zoneId);
+
+        Map<String, ScimGroupMember> idToMember = currentMembers
+                .stream()
+                .collect(Collectors.toMap(ScimGroupMember::getMemberId, Function.identity()));
+
+        for (ScimGroupMember memberToUpdate : membersToUpdate) {
+            ScimGroupMember memberAsIs = idToMember.get(memberToUpdate.getMemberId());
+
+            if (!membersHaveSameRoles(memberToUpdate, memberAsIs)) {
+                updateMember(groupId, memberToUpdate, zoneId);
+            }
         }
 
         return getMembers(groupId, false, zoneId);
+    }
+
+    private boolean membersHaveSameRoles(ScimGroupMember member1, ScimGroupMember member2) {
+        List<Role> member1Roles = member1.getRoles() == null ? Collections.emptyList() : member1.getRoles();
+        List<Role> member2Roles = member2.getRoles() == null ? Collections.emptyList() : member2.getRoles();
+
+        return CollectionUtils.isEqualCollection(member1Roles, member2Roles);
     }
 
     @Override
