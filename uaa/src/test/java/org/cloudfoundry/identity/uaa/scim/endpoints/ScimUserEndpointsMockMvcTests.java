@@ -172,6 +172,19 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void unauthorized_put_returns_401() throws Exception {
+        getMockMvc().perform(
+            put("/Users/some-user")
+        )
+            .andExpect(status().isUnauthorized());
+
+        getMockMvc().perform(
+            put("/Users")
+        )
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     public void testCanCreateUserWithExclamationMark() throws Exception {
         String email = "joe!!@"+generator.generate().toLowerCase()+".com";
         ScimUser user = getScimUser();
