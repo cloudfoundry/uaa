@@ -378,7 +378,8 @@ public final class MockMvcUtils {
         IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
         BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite", redirectUri);
         appClient.setClientSecret("secret");
-        appClient = utils().createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone());
+        appClient = utils().createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone(),
+                                                                            status().isCreated());
         appClient.setClientSecret("secret");
         String adminToken = utils().getClientCredentialsOAuthAccessToken(
             mockMvc,
@@ -709,10 +710,11 @@ public final class MockMvcUtils {
     }
 
     public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
-        return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa());
+        return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa(), status().isCreated());
     }
 
-    public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
+    public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails,
+                                                 IdentityZone zone, ResultMatcher status)
             throws Exception {
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + accessToken)
@@ -724,7 +726,7 @@ public final class MockMvcUtils {
         }
         return JsonUtils.readValue(
             mockMvc.perform(createClientPost)
-                .andExpect(status().isCreated())
+                .andExpect(status)
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
@@ -742,7 +744,7 @@ public final class MockMvcUtils {
 
     public static ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris, IdentityZone zone) throws Exception {
         ClientDetailsModification client = getClientDetailsModification(id, secret, resourceIds, scopes, grantTypes, authorities, redirectUris);
-        return createClient(mockMvc,adminAccessToken, client, zone);
+        return createClient(mockMvc,adminAccessToken, client, zone, status().isCreated());
     }
 
     public static ClientDetailsModification getClientDetailsModification(String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris) {

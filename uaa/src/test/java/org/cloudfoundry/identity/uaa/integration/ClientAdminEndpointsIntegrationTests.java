@@ -15,16 +15,18 @@ package org.cloudfoundry.identity.uaa.integration;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -33,6 +35,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -40,6 +43,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,8 +56,10 @@ import static java.util.stream.Collectors.toList;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assume.assumeTrue;
 
 
 /**
@@ -62,6 +68,9 @@ import static org.junit.Assert.assertNull;
  */
 public class ClientAdminEndpointsIntegrationTests {
 
+    public static final String SECRET_TOO_LONG = "adfdfdasgdasgasdgafsgasfgfasgfadsgfagsagasddsafdsafsdfdafsdafdsfasdffasfasdfasdfdsfds" +
+            "ewrewrewqrweqrewqrewqrewerwqqweewqrdsadsfewqrewqrtewrewrewrewrererererererererererdfadsafasfdasfsdaf" +
+            "dsfasdfdsagfdsao43o4p43adfsfasdvcdasfmdsafzxcvaddsaaddfsafdsafdsfdsdfsfdsfdsasdfadfsadfsasadfsdfadfs";
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -143,16 +152,77 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    public void nonImplicitGrantClientWithoutSecretIsRejected() throws Exception {
+    public void createClientWithoutSecretIsRejected() throws Exception {
+        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
+        HttpHeaders headers = getAuthenticatedHeaders(token);
+        BaseClientDetails invalidSecretClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                        "client_credentials", "uaa.none");
+        invalidSecretClient.setClientSecret("tooLongSecret");
+        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                        new HttpEntity<BaseClientDetails>(invalidSecretClient, headers), UaaException.class);
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertEquals("invalid_client", result.getBody().getErrorCode());
+    }
+
+
+    @Test
+    public void createClientWithTooLongSecretIsRejected() throws Exception {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
         HttpHeaders headers = getAuthenticatedHeaders(token);
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-                        "client_credentials", "uaa.none");
+                "client_credentials", "uaa.none");
+        client.setClientSecret(SECRET_TOO_LONG);
         ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
-                        serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-                        new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
+                serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
         assertEquals("invalid_client", result.getBody().getErrorCode());
+    }
+
+    @Test
+    public void createClientWithStrictSecretPolicyTest() throws Exception {
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String testZoneId = "testzone1";
+
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
+        RestTemplate identityClient = IntegrationTestUtils
+                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                        new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        //min length 5, max length 12, requires 1 uppercase lowercase digit and specialChar, expries 6 months.
+        config.setClientSecretPolicy(new ClientSecretPolicy(5,12,1,1,1,1,6));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
+
+
+        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "client_credentials", "uaa.none");
+        client.setClientSecret("Secret1@");
+
+        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(serverRunning.getBaseUrl(),serverRunning,testZoneId);
+        HttpHeaders xZoneHeaders = getAuthenticatedHeaders(zoneAdminToken);
+        xZoneHeaders.add(IdentityZoneSwitchingFilter.HEADER, testZoneId);
+        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getBaseUrl() + "/oauth/clients", HttpMethod.POST,
+                new HttpEntity<BaseClientDetails>(client, xZoneHeaders), UaaException.class);
+        
+        Assert.assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+        //Negative Test
+        BaseClientDetails failClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "client_credentials", "uaa.none");
+        failClient.setClientSecret("badsecret");
+        result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getBaseUrl() + "/oauth/clients", HttpMethod.POST,
+                new HttpEntity<BaseClientDetails>(failClient, xZoneHeaders), UaaException.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+
+        //cleanup
+        config.setClientSecretPolicy(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
     }
 
     @Test
@@ -372,6 +442,24 @@ public class ClientAdminEndpointsIntegrationTests {
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 
+
+    @Test
+    public void testCreateClientsWithStrictSecretPolicy() throws Exception {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
+        BaseClientDetails client = createClient("client_credentials");
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        SecretChangeRequest change = new SecretChangeRequest();
+        change.setOldSecret(client.getClientSecret());
+        change.setSecret(SECRET_TOO_LONG);
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/secret"),
+                HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change, headers), Void.class,
+                client.getClientId());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+    }
+
     @Test
     public void testDeleteClient() throws Exception {
         BaseClientDetails client = createClient("client_credentials");
@@ -581,13 +669,17 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     private ClientDetailsModification createClient(String... grantTypes) throws Exception {
+        return createClientWithSecret("secret", grantTypes);
+    }
+
+    private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) throws Exception {
         ClientDetailsModification detailsModification = new ClientDetailsModification();
         detailsModification.setClientId(new RandomValueStringGenerator().generate());
         detailsModification.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
         detailsModification.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
         detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         ClientDetailsModification client = detailsModification;
-        client.setClientSecret("secret");
+        client.setClientSecret(secret);
         client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
         client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),

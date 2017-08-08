@@ -1,7 +1,7 @@
 /**
  * ****************************************************************************
  * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  * <p>
  * This product is licensed to you under the Apache License, Version 2.0 (the "License").
  * You may not use this product except in compliance with the License.
@@ -12,22 +12,18 @@
  * subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
-package org.cloudfoundry.identity.uaa.provider;
+package org.cloudfoundry.identity.uaa.zone;
 
-
-import java.util.Date;
 import org.cloudfoundry.identity.uaa.authentication.GenericPasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 
-public class PasswordPolicy extends GenericPasswordPolicy<PasswordPolicy> {
-
+public class ClientSecretPolicy extends GenericPasswordPolicy<ClientSecretPolicy> {
+    
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        result = prime * result + expirePasswordInMonths;
-        result = prime * result + ((passwordNewerThan == null)
-                ? 0
-                : passwordNewerThan.hashCode());
+        result = prime * result + expireSecretInMonths;
         return result;
     }
 
@@ -36,58 +32,46 @@ public class PasswordPolicy extends GenericPasswordPolicy<PasswordPolicy> {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        PasswordPolicy that = (PasswordPolicy) obj;
-        return super.equals(obj) && this.expirePasswordInMonths == that.expirePasswordInMonths;
+        ClientSecretPolicy that = (ClientSecretPolicy) obj;
+        return super.equals(obj) && this.expireSecretInMonths == that.expireSecretInMonths;
     }
 
-    public static final String PASSWORD_POLICY_FIELD = "passwordPolicy";
+    public static final String CLIENT_SECRET_POLICY_FIELD = "clientSecretPolicy";
 
-    private Date passwordNewerThan;
-    private int expirePasswordInMonths;
+    private int expireSecretInMonths;
 
-
-
-    public PasswordPolicy() {
+    public ClientSecretPolicy() {
         super();
-        this.expirePasswordInMonths = -1;
+        this.expireSecretInMonths = -1;
     }
 
-    public PasswordPolicy(int minLength,
+    public ClientSecretPolicy(int minLength,
                           int maxLength,
                           int requireUpperCaseCharacter,
                           int requireLowerCaseCharacter,
                           int requireDigit,
                           int requireSpecialCharacter,
-                          int expirePasswordInMonths) {
-
+                          int expireSecretInMonths) {
         super(minLength,
                 maxLength,
                 requireUpperCaseCharacter,
                 requireLowerCaseCharacter,
                 requireDigit,
                 requireSpecialCharacter);
-        this.setExpirePasswordInMonths(expirePasswordInMonths);
+        this.setExpireSecretInMonths(expireSecretInMonths);
     }
 
-    public Date getPasswordNewerThan() {
-        return passwordNewerThan;
+    public int getExpireSecretInMonths() {
+        return expireSecretInMonths;
     }
 
-    public void setPasswordNewerThan(Date passwordNewerThan) {
-        this.passwordNewerThan = passwordNewerThan;
-    }
-
-    public int getExpirePasswordInMonths() {
-        return expirePasswordInMonths;
-    }
-
-    public PasswordPolicy setExpirePasswordInMonths(int expirePasswordInMonths) {
-        this.expirePasswordInMonths = expirePasswordInMonths;
+    public ClientSecretPolicy setExpireSecretInMonths(int expireSecretInMonths) {
+        this.expireSecretInMonths = expireSecretInMonths;
         return this;
     }
-
+    
     @Override
     public boolean allPresentAndPositive() {
-        return super.allPresentAndPositive() && expirePasswordInMonths >= 0;
+        return super.allPresentAndPositive() && expireSecretInMonths >= 0;
     }
 }
