@@ -34,79 +34,8 @@ buildscript {
   }
 }
 
-apply plugin: 'com.bmuschko.docker-remote-api'
-apply plugin: 'java'
-
-import com.bmuschko.gradle.docker.tasks.image.Dockerfile
-import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
-import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
-import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
-import com.bmuschko.gradle.docker.DockerRegistryCredentials
-import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
-import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
-
-task createDockerfile(type: Dockerfile) {
-    dependsOn assemble
-    destFile = project.file('build/docker/Dockerfile')
-    from 'tomcat:8.5-jre8'
-    maintainer 'UAA team "$MAINTAINER_EMAIL"'
-    instruction 'ENV LOGIN_CONFIG_URL WEB-INF/classes/required_configuration.yml'
-    instruction 'ENV ARTIFACTORY_READER $ARTIFACTORY_READER'
-    instruction 'ENV ARTIFACTORY_READER_PW $ARTIFACTORY_READER_PW'
-    instruction 'ENV CLOUD_FOUNDRY_CONFIG_PATH /uaa'
-    instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/ROOT"'
-    instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/host-manager"'
-    instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/manager"'
-    instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/examples"'
-    instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/docs"'
-    instruction 'ADD cloudfoundry-identity-uaa-' + version + '.war /usr/local/tomcat/webapps/uaa.war'
-    instruction 'ADD uaa.yml /uaa/uaa.yml'
-    instruction 'RUN bash -c "echo $LOGIN_CONFIG_URL"'
-    instruction 'EXPOSE 8080'
-}
-
-task deleteDockerfile() {
-    delete file('build/docker')
-}
-
-task copyContainerFiles(type: Copy) {
-    dependsOn createDockerfile
-    from 'uaa/build/libs'
-    from 'uaa/build/resources/main/tomcat-server.xml'
-    from 'uaa/build/resources/main/uaa.yml'
-    into 'build/docker'
-}
-
-task buildImage(type: DockerBuildImage) {
-    dependsOn copyContainerFiles
-    inputDir = createDockerfile.destFile.parentFile
-    tag = System.getenv('DOCKER_REPO_URL') + '/' + System.getenv('DOCKER_REPO_USER') + '/uaa:' + version
-}
-
-task createUaaContainer(type: DockerCreateContainer) {
-    dependsOn buildImage
-    targetImageId { buildImage.getImageId() }
-    containerName = System.getenv('DOCKER_CONTAINER_NAME')
-    portBindings = ['8080:8080']
-    env = [ "CATALINA_OPTS='-Dspring.profiles.active=default'" ]
-}
-
-task startUaaContainer(type: DockerStartContainer) {
-    dependsOn createUaaContainer
-    targetContainerId { createUaaContainer.getContainerId() }
-}
-
-task pushUaaImage(type: DockerPushImage) {
-    dependsOn buildImage
-    imageName = System.getenv('DOCKER_REPO_URL') + '/' + System.getenv('DOCKER_REPO_USER') + '/uaa:' + version
-    registryCredentials = new DockerRegistryCredentials()
-    registryCredentials.url = System.getenv('DOCKER_REPO_URL')
-    registryCredentials.username = System.getenv('DOCKER_REPO_USER')
-    registryCredentials.password = System.getenv('DOCKER_REPO_USER_PW')
-}
-
-
 apply plugin: "com.dorongold.task-tree"
+apply from: file('docker.gradle')
 
 ext {
   databaseType = {
