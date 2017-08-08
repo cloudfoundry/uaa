@@ -208,6 +208,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void invalid_accept_media_type() throws Exception {
+        getMockMvc().perform(
+            get("/login")
+                .header("Accept", MediaType.TEXT_XML_VALUE)
+        )
+            .andExpect(status().isNotAcceptable());
+    }
+
+    @Test
     public void testLogin() throws Exception {
         getMockMvc().perform(get("/login"))
             .andExpect(status().isOk())
