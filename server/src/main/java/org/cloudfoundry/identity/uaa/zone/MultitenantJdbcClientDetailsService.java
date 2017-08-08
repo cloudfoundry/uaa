@@ -130,7 +130,6 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
     public ClientDetails loadClientByClientId(String clientId, String zoneId) throws InvalidClientException {
         ClientDetails details;
         try {
-
             details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, zoneId);
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchClientException("No client with requested id: " + clientId);

@@ -457,7 +457,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     private BaseClientDetails createBasicClientWithAdditionalInformation(List<String> scopes) {
-        BaseClientDetails clientDetails = createBaseClient(null, null, scopes, scopes);
+        BaseClientDetails clientDetails = createBaseClient(null, SECRET, null, scopes, scopes);
         clientDetails.setAdditionalInformation(additionalInfo());
         return clientDetails;
     }

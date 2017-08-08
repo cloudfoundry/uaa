@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -421,6 +422,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 clientId = change[i].getClientId();
                 clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
+                clientDetailsValidator.getClientSecretValidator().validate(change[i].getSecret());
                 clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), IdentityZoneHolder.get().getId());
                 if (!oldPasswordOk) {
                     deleteApprovals(clientId);
@@ -523,7 +525,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 if(!validateCurrentClientSecretAdd(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
                 }
-
+                clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
                 clientRegistrationService.addClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "Secret is added");
                 break;
@@ -538,6 +540,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 break;
 
             default:
+                clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
                 clientRegistrationService.updateClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "secret updated");
         }
@@ -558,6 +561,12 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
             return true;
         }
         return false;
+    }
+
+    @ExceptionHandler(InvalidClientSecretException.class)
+    public ResponseEntity<InvalidClientSecretException> handleInvalidClientSecret(InvalidClientSecretException e) {
+        incrementErrorCounts(e);
+        return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(InvalidClientDetailsException.class)
