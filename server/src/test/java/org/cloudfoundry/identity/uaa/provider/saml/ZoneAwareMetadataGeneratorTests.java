@@ -49,6 +49,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class ZoneAwareMetadataGeneratorTests {
@@ -133,6 +135,43 @@ public class ZoneAwareMetadataGeneratorTests {
         assertThat(s, containsString("md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:URI\" Location=\"http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityAlias\" index=\"2\"/>"));
     }
 
+    @Test
+    public void test_zonified_entityID() {
+        generator.setEntityId("local-name");
+        assertEquals("local-name", generator.getEntityId());
+        assertEquals("local-name", SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId()));
+
+        generator.setEntityId(null);
+        assertNotNull(generator.getEntityId());
+        assertNotNull(SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId()));
+
+        IdentityZoneHolder.set(otherZone);
+
+        assertNotNull(generator.getEntityId());
+        assertNotNull(SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId()));
+    }
+
+    @Test
+    public void test_zonified_valid_and_invalid_entityID() {
+        IdentityZone newZone = new IdentityZone();
+        newZone.setId("new-zone-id");
+        newZone.setName("new-zone-id");
+        newZone.setSubdomain("new-zone-id");
+        newZone.getConfig().getSamlConfig().setEntityID("local-name");
+        IdentityZoneHolder.set(newZone);
+
+        // valid entityID from SamlConfig
+        assertEquals("local-name", generator.getEntityId());
+        assertEquals("local-name", SamlRedirectUtils.getZonifiedEntityId("local-name"));
+        assertNotNull(generator.getEntityId());
+
+        // remove SamlConfig
+        newZone.getConfig().setSamlConfig(null);
+        assertNotNull(SamlRedirectUtils.getZonifiedEntityId("local-idp"));
+        // now the entityID is generated id as before this change
+        assertEquals("new-zone-id.local-name", SamlRedirectUtils.getZonifiedEntityId("local-name"));
+    }
+
     public String getMetadata() throws MarshallingException {
         IdentityZoneHolder.set(otherZone);
         return SAMLUtil.getMetadataAsString(mock(MetadataManager.class), keyManager , generator.generateMetadata(), extendedMetadata);
@@ -199,6 +238,5 @@ public class ZoneAwareMetadataGeneratorTests {
     public List<String> getCertificates(String metadata, String type) throws Exception {
         return SamlTestUtils.getCertificates(metadata, type);
     }
-
 
 }

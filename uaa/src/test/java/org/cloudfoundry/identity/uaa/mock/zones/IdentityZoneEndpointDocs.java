@@ -56,6 +56,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String REFRESH_TOKEN_FORMAT = "The format for the refresh token. Allowed values are `jwt`, `opaque`. Defaults to `jwt`.";
     private static final String REFRESH_TOKEN_UNIQUE = "If true, uaa will only issue one refresh token per client_id/user_id combination. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
+    private static final String ENTITY_ID_DESC = "Unique ID of the SAML2 entity";
     private static final String ASSERTION_SIGNED_DESC = "If `true`, the SAML provider will sign all assertions";
     private static final String WANT_ASSERTION_SIGNED_DESC = "Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.";
     private static final String REQUEST_SIGNED_DESC = "Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.";
@@ -124,6 +125,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
     public static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
     public static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
+    private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
 
     @Before
     public void setUp() throws Exception {
@@ -149,6 +151,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         identityZone.getConfig().setSamlConfig(samlConfig);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
@@ -175,6 +178,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
@@ -182,8 +186,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.passphrase` and `keys.<key-id>.certificate`")),
             fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.certificate`")),
             fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.passphrase`")),
-
-
+            fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
@@ -307,6 +310,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
+            fieldWithPath("[].config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
             fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
 
             fieldWithPath("[].config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
@@ -402,6 +406,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         updatedIdentityZone.getConfig().setSamlConfig(samlConfig);
         IdentityZoneConfiguration brandingConfig = setBranding(updatedIdentityZone.getConfig());
         updatedIdentityZone.setConfig(brandingConfig);
@@ -426,6 +431,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
+          
+            fieldWithPath("config.samlConfig.entityID").description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
@@ -539,6 +546,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         identityZone.getConfig().setSamlConfig(samlConfig);
         identityZone.setId(id);
         identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
@@ -576,6 +584,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
+          
+            fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
             fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.activeKeyId").optional().type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
             fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC),

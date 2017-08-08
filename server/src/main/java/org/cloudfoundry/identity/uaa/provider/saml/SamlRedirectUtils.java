@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml2.core.Assertion;
@@ -43,6 +44,17 @@ public class SamlRedirectUtils {
     }
 
     public static String getZonifiedEntityId(String entityID) {
+        String url = null;
+        try{
+            if(!IdentityZoneHolder.isUaa()) {
+               url = IdentityZoneHolder.get().getConfig().getSamlConfig().getEntityID();
+               if(url != null) {
+                   return url;
+               }
+            }
+        } catch(Exception e) {
+            url = null;
+        }
         if (UaaUrlUtils.isUrl(entityID)) {
             return UaaUrlUtils.addSubdomainToUrl(entityID);
         } else {
