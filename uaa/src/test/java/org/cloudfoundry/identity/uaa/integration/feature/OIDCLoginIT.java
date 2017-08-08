@@ -72,6 +72,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 @RunWith(LoginServerClassRunner.class)
@@ -237,6 +238,15 @@ public class OIDCLoginIT {
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+    }
+
+    @Test
+    public void successfulLoginWithOIDCProviderAndClientAuthInBody() throws Exception {
+        identityProvider.getConfig().setClientAuthInBody(true);
+        assertTrue(identityProvider.getConfig().isClientAuthInBody());
+        updateProvider();
+        assertTrue(identityProvider.getConfig().isClientAuthInBody());
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test
