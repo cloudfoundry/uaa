@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -26,6 +27,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.StringUtils;
 
@@ -38,6 +40,11 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class ScimGroupBootstrapTests extends JdbcTestBase {
 
@@ -83,6 +90,31 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         assertNotNull(bootstrap.getGroup("org1.engg"));
         assertNotNull(bootstrap.getGroup("org1.mgr"));
         assertNotNull(bootstrap.getGroup("org1.hr"));
+    }
+    
+
+    @Test
+    public void allowsBootstrapFromOtherInstance() throws Exception {
+        //original bootstrap
+        bootstrap.setGroups(StringUtils.commaDelimitedListToSet("multiple_bootstrap_group").stream().collect(new MapCollector<>(s -> s, s -> null)));
+        bootstrap.afterPropertiesSet();
+        
+        //mock external bootstrap in between getOrCreate and update calls
+        ScimGroup multipleBootstrapGroupBefore = bootstrap.getGroup("multiple_bootstrap_group");
+        ScimGroup multipleBootstrapGroupAfter= bootstrap.getGroup("multiple_bootstrap_group");
+        multipleBootstrapGroupAfter.setVersion(multipleBootstrapGroupAfter.getVersion() + 1);
+        
+        gDB = mock(JdbcScimGroupProvisioning.class);
+        when(gDB.create(anyObject(), anyString())).thenReturn(multipleBootstrapGroupBefore);
+        when(gDB.update(anyString(), anyObject(), anyString())).thenThrow(new IncorrectResultSizeDataAccessException(1, 0));
+        when(gDB.query(anyString(), anyString())).thenReturn(Arrays.asList(multipleBootstrapGroupAfter));
+
+        //second bootstrap
+        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
+        bootstrap.setGroups(StringUtils.commaDelimitedListToSet("multiple_bootstrap_group").stream().collect(new MapCollector<>(s -> s, s -> s)));
+        bootstrap.afterPropertiesSet();
+        
+        assertNotNull(bootstrap.getGroup("multiple_bootstrap_group"));
     }
 
     @Test

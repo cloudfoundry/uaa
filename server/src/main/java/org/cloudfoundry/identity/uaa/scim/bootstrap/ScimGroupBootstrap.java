@@ -187,7 +187,16 @@ public class ScimGroupBootstrap implements InitializingBean {
             String description = groups.get(g.getDisplayName());
             if (StringUtils.hasText(description)) {
                 g.setDescription(description);
-                groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g, IdentityZoneHolder.get().getId()));
+                try{
+                    groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g, IdentityZoneHolder.get().getId()));
+                } catch(IncorrectResultSizeDataAccessException e) {
+                    ScimGroup updatedGroup = getGroup(g.getDisplayName());
+                    if(updatedGroup != null && updatedGroup.getVersion() > g.getVersion()) {
+                        logger.debug("Group has already been updated by another instance, ignore error.");
+                    } else {
+                        throw e;
+                    }
+                }
             }
         }
 
