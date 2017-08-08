@@ -69,8 +69,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.springframework.util.StringUtils.hasText;
@@ -237,9 +236,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                                 .collect(Collectors.toList());
                             userAttributes.put(key, strings);
                         } else if (values instanceof String) {
-                            userAttributes.put(key, Arrays.asList((String) values));
+                            userAttributes.put(key, Collections.singletonList((String) values));
                         } else {
-                            userAttributes.put(key, Arrays.asList(values.toString()));
+                            userAttributes.put(key, Collections.singletonList(values.toString()));
                         }
                     }
                 }
@@ -268,19 +267,31 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     protected UaaUser getUser(Authentication request, AuthenticationData authenticationData) {
         if (authenticationData != null) {
 
+            String emailClaim = (String) authenticationData.getAttributeMappings().get(EMAIL_ATTRIBUTE_NAME);
+            String givenNameClaim = (String) authenticationData.getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME);
+            String familyNameClaim = (String) authenticationData.getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME);
+            String phoneClaim = (String) authenticationData.getAttributeMappings().get(PHONE_NUMBER_ATTRIBUTE_NAME);
+
             Map<String, Object> claims = authenticationData.getClaims();
+
             String username = authenticationData.getUsername();
-            String email = (String) claims.get("email");
+            String givenName = (String) claims.get(givenNameClaim == null ? "given_name" : givenNameClaim);
+            String familyName = (String) claims.get(familyNameClaim == null ? "family_name" : familyNameClaim);
+            String phoneNumber = (String) claims.get(phoneClaim == null ? "phone_number" : phoneClaim);
+            String email = (String) claims.get(emailClaim == null ? "email" : emailClaim);
+
             if (email == null) {
                 email = generateEmailIfNull(username);
             }
+
             logger.debug(String.format("Returning user data for username:%s, email:%s", username, email));
+
             return new UaaUser(
                 new UaaUserPrototype()
                     .withEmail(email)
-                    .withGivenName((String) claims.get("given_name"))
-                    .withFamilyName((String) claims.get("family_name"))
-                    .withPhoneNumber((String) claims.get("phone_number"))
+                    .withGivenName(givenName)
+                    .withFamilyName(familyName)
+                    .withPhoneNumber(phoneNumber)
                     .withModified(new Date())
                     .withUsername(username)
                     .withPassword("")
