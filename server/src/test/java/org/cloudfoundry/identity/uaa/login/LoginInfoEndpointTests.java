@@ -43,6 +43,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -53,6 +54,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
@@ -140,7 +142,7 @@ public class LoginInfoEndpointTests {
     public void testLoginReturnsSystemZone() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
         assertFalse(model.containsAttribute("zone_name"));
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
         assertEquals(OriginKeys.UAA, model.asMap().get("zone_name"));
     }
 
@@ -149,7 +151,7 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         UaaAuthentication authentication = mock(UaaAuthentication.class);
         when(authentication.isAuthenticated()).thenReturn(true);
-        String result = endpoint.loginForHtml(model, authentication, new MockHttpServletRequest());
+        String result = endpoint.loginForHtml(model, authentication, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
         assertEquals("redirect:/home", result);
     }
 
@@ -187,7 +189,7 @@ public class LoginInfoEndpointTests {
         Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
         request.setCookies(cookie1, cookie2);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         assertThat(model, hasKey("savedAccounts"));
         assertThat(model.get("savedAccounts"), instanceOf(List.class));
@@ -226,7 +228,7 @@ public class LoginInfoEndpointTests {
         Cookie cookieBadJson = new Cookie("Saved-Account-Bad", "{");
 
         request.setCookies(cookieGood, cookieBadJson);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         assertThat(model, hasKey("savedAccounts"));
         assertThat(model.get("savedAccounts"), instanceOf(List.class));
@@ -256,7 +258,7 @@ public class LoginInfoEndpointTests {
         Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
         request.setCookies(cookie1, cookie2);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         assertThat(model, hasKey("savedAccounts"));
         assertThat(model.get("savedAccounts"), instanceOf(List.class));
@@ -293,7 +295,7 @@ public class LoginInfoEndpointTests {
         Cookie cookie1 = new Cookie("Saved-Account-xxxx", "%2");
 
         request.setCookies(cookie1);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
         
         assertThat(model, hasKey("savedAccounts"));
         assertThat(model.get("savedAccounts"), instanceOf(List.class));
@@ -311,7 +313,7 @@ public class LoginInfoEndpointTests {
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         assertFalse(model.containsAttribute("zone_name"));
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
         assertEquals("some_other_zone", model.asMap().get("zone_name"));
     }
 
@@ -326,7 +328,7 @@ public class LoginInfoEndpointTests {
         IdentityZoneHolder.set(zone);
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
         validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", model);
         validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", endpoint.getSelfServiceLinks());
 
@@ -592,7 +594,7 @@ public class LoginInfoEndpointTests {
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
@@ -617,7 +619,7 @@ public class LoginInfoEndpointTests {
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
@@ -657,7 +659,7 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
@@ -696,7 +698,7 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
@@ -725,12 +727,12 @@ public class LoginInfoEndpointTests {
         // mock SamlIdentityProviderConfigurator
         SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
         verify(mockIDPConfigurator).getIdentityProviderDefinitions(null, zone);
     }
 
     @Test
-    public void allowedIdpsforClientOIDCProvider() throws MalformedURLException {
+    public void allowedIdpsforClientOIDCProvider() throws Exception {
         // mock session and saved request
         MockHttpServletRequest request = getMockHttpServletRequest();
 
@@ -752,7 +754,7 @@ public class LoginInfoEndpointTests {
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
-        endpoint.loginForHtml(model, null, request);
+        endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) model.asMap().get(OAUTH_LINKS);
         assertEquals(2, idpDefinitions.size());
@@ -770,7 +772,7 @@ public class LoginInfoEndpointTests {
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
 
         assertThat(model.get(SHOW_LOGIN_LINKS), equalTo(true));
     }
@@ -830,6 +832,12 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         String redirectUrl = endpoint.handleXOAuthCallback(session);
         assertEquals("redirect:/some.redirect.url", redirectUrl);
+    }
+
+    @Test(expected = HttpMediaTypeNotAcceptableException.class)
+    public void testLoginWithInvalidMediaType() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Arrays.asList(MediaType.TEXT_XML));
     }
 
     private MockHttpServletRequest getMockHttpServletRequest() {

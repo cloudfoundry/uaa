@@ -46,6 +46,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -63,6 +65,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -240,7 +243,15 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
-    public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
+    public String loginForHtml(
+        Model model, Principal principal, HttpServletRequest request,
+        @RequestHeader(value = "Accept", required = false) List<MediaType> headers)
+        throws HttpMediaTypeNotAcceptableException
+    {
+        boolean match = headers == null || headers.stream().anyMatch(mediaType -> mediaType.isCompatibleWith(MediaType.TEXT_HTML));
+        if (!match) {
+            throw new HttpMediaTypeNotAcceptableException(request.getHeader(HttpHeaders.ACCEPT));
+        }
 
         Cookie[] cookies = request.getCookies();
         List<SavedAccountOptionModel> savedAccounts = getSavedAccounts(cookies, SavedAccountOptionModel.class);
@@ -388,7 +399,7 @@ public class LoginInfoEndpoint {
             model.addAttribute(IDP_DEFINITIONS, samlIdps.values());
             Map<String, String> oauthLinks = new HashMap<>();
             ofNullable(oauthIdentityProviderDefinitions).orElse(emptyMap()).entrySet().stream()
-                .filter(e -> e.getValue().isShowLinkText() == true)
+                .filter(e -> e.getValue().isShowLinkText())
                 .forEach(e ->
                     oauthLinks.put(
                         xoAuthProviderConfigurator.getCompleteAuthorizationURI(
