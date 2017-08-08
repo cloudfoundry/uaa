@@ -40,6 +40,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -105,9 +106,10 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         multipleBootstrapGroupAfter.setVersion(multipleBootstrapGroupAfter.getVersion() + 1);
         
         gDB = mock(JdbcScimGroupProvisioning.class);
-        when(gDB.create(anyObject(), anyString())).thenReturn(multipleBootstrapGroupBefore);
-        when(gDB.update(anyString(), anyObject(), anyString())).thenThrow(new IncorrectResultSizeDataAccessException(1, 0));
-        when(gDB.query(anyString(), anyString())).thenReturn(Arrays.asList(multipleBootstrapGroupAfter));
+        when(gDB.create(any(), anyString())).thenReturn(multipleBootstrapGroupBefore);
+        when(gDB.createOrGet(any(), anyString())).thenReturn(multipleBootstrapGroupBefore);
+        when(gDB.update(anyString(), any(), anyString())).thenThrow(new IncorrectResultSizeDataAccessException(1, 0));
+        when(gDB.getByName(anyString(), anyString())).thenReturn(multipleBootstrapGroupAfter);
 
         //second bootstrap
         bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
