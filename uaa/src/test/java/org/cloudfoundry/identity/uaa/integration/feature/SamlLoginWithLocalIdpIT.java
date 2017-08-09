@@ -681,7 +681,7 @@ public class SamlLoginWithLocalIdpIT {
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
-        samlIdentityProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_IDP_METADATA_REDIRECT_FIRST);
+        samlIdentityProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_IDP_METADATA_REDIRECT_ONLY);
         IdentityProvider<SamlIdentityProviderDefinition> idp = new IdentityProvider<>();
         idp.setIdentityZoneId(spZoneId);
         idp.setType(OriginKeys.SAML);
@@ -709,7 +709,7 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.get(spZoneUrl + "/logout.do");
 
         // Switch up the Identity Provider SSO binding list to start with HTTP-POST
-        samlIdentityProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_IDP_METADATA_POST_FIRST);
+        samlIdentityProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_IDP_METADATA_POST_ONLY);
         idp.setConfig(samlIdentityProviderDefinition);
         idp.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         idp.setName("Local SAML IdP for testzone1");
