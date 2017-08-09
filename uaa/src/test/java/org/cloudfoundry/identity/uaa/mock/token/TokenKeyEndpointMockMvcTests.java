@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
@@ -42,7 +43,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
@@ -84,8 +85,8 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         "jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\n" +
         "JwIDAQAB\n" +
         "-----END PUBLIC KEY-----";
-    private String subdomain;
     private BaseClientDetails defaultClient;
+    private IdentityZone testZone;
 
     @Before
     public void setUp() throws Exception {
@@ -93,14 +94,14 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     public void setUp(String signKey) throws Exception {
-        subdomain = new RandomValueStringGenerator().generate().toLowerCase();
+        String subdomain = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
-        IdentityZone testZone = new IdentityZone();
+        testZone = new IdentityZone();
         testZone.setConfig(new IdentityZoneConfiguration()).setId(subdomain).setSubdomain(subdomain).setName(subdomain);
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap("testKey", signKey));
         testZone.getConfig().setTokenPolicy(tokenPolicy);
-        provisioning.create(testZone);
+        testZone = provisioning.create(testZone);
 
         defaultClient = new BaseClientDetails("app", "", "", "password", "uaa.resource");
         defaultClient.setClientSecret("appclientsecret");
@@ -111,7 +112,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     public void checkTokenKeyValues() throws Exception {
         MvcResult result = getMockMvc().perform(
             get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", getBasicAuth(defaultClient)))
             .andExpect(status().isOk())
@@ -129,11 +130,11 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
                                                          "client_credentials,password",
                                                          "uaa.none");
         client.setClientSecret("secret");
-        getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, subdomain);
+        getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
 
         MvcResult result = getMockMvc().perform(
             get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", getBasicAuth(client)))
             .andExpect(status().isOk())
@@ -158,11 +159,11 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
                                                              "client_credentials,password",
                                                              "uaa.none");
             client.setClientSecret("secret");
-            getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, subdomain);
+            getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
 
             getMockMvc().perform(
                 get("/token_key")
-                    .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+                    .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
                     .accept(MediaType.APPLICATION_JSON)
                     .header("Authorization", getBasicAuth(client)))
                 .andExpect(status().isForbidden())
@@ -174,10 +175,9 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void checkTokenKeyValuesAnonymous() throws Exception {
-
         MvcResult result = getMockMvc().perform(
             get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
@@ -189,12 +189,12 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     @Test
     public void checkTokenKeysValues() throws Exception {
         MvcResult result = getMockMvc().perform(
-                get("/token_keys")
-                    .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
-                    .accept(MediaType.APPLICATION_JSON)
-                    .header("Authorization", getBasicAuth(defaultClient)))
-                .andExpect(status().isOk())
-                .andReturn();
+            get("/token_keys")
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization", getBasicAuth(defaultClient)))
+            .andExpect(status().isOk())
+            .andReturn();
 
         Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         validateKeys(keys);
@@ -203,15 +203,50 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     @Test
     public void checkTokenKeysValuesAnonymous() throws Exception {
         MvcResult result = getMockMvc().perform(
-                get("/token_keys")
-                    .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
-                    .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andDo(print())
-                .andReturn();
+            get("/token_keys")
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
 
         Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         validateKeys(keys);
+    }
+
+    @Test
+    public void endpointsReturnETag() throws Exception {
+        getMockMvc().perform(
+            get("/token_key")
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(header().string("ETag", any(String.class)))
+            .andReturn();
+
+        getMockMvc().perform(
+            get("/token_keys")
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(header().string("ETag", any(String.class)))
+            .andReturn();
+    }
+
+    @Test
+    public void return304IfResourceUnchanged() throws Exception {
+        getMockMvc().perform(
+            get("/token_key")
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+                .header("If-None-Match", testZone.getLastModified().getTime()))
+            .andExpect(status().isNotModified())
+            .andReturn();
+
+        getMockMvc().perform(
+            get("/token_keys")
+                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+                .header("If-None-Match", testZone.getLastModified().getTime()))
+            .andExpect(status().isNotModified())
+            .andReturn();
     }
 
     public void validateKey(Map<String,Object> key) {
