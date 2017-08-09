@@ -385,34 +385,49 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void artifact_binding_not_present_in_sp_metadata() throws Exception {
+        String binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact";
+        String zoneName = new RandomValueStringGenerator().generate().toLowerCase();
+        IdentityZone zone = createZone(zoneName, true, true);
+
+        getMockMvc().perform(
+            get("/saml/metadata")
+        )
+            .andExpect(status().isOk())
+            .andExpect(content().string(not(containsString(binding))));
+
+        getMockMvc().perform(
+            get("/saml/metadata")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
+        )
+            .andExpect(status().isOk())
+            .andExpect(content().string(not(containsString(binding))));
+    }
+
+    private IdentityZone createZone(String zoneName, boolean requestSigned, boolean wantAssertionSigned) {
+        IdentityZone zone = new IdentityZone();
+        zone.setName(zoneName);
+        zone.setSubdomain(zoneName);
+        zone.setId(zoneName);
+        IdentityZoneConfiguration config1 = new IdentityZoneConfiguration(null);
+        config1.getSamlConfig().setRequestSigned(requestSigned);
+        config1.getSamlConfig().setWantAssertionSigned(wantAssertionSigned);
+        zone.setConfig(config1);
+        zone = zoneProvisioning.create(zone);
+        assertEquals(requestSigned, zone.getConfig().getSamlConfig().isRequestSigned());
+        assertEquals(wantAssertionSigned, zone.getConfig().getSamlConfig().isWantAssertionSigned());
+        return zone;
+    }
+
+    @Test
     public void metadataInZoneGeneratesCorrectId() throws Exception {
         String zone1Name = new RandomValueStringGenerator().generate().toLowerCase();
         String zone2Name = new RandomValueStringGenerator().generate().toLowerCase();
 
 
-        IdentityZone zone1 = new IdentityZone();
-        zone1.setName(zone1Name);
-        zone1.setSubdomain(zone1Name);
-        zone1.setId(zone1Name);
-        IdentityZoneConfiguration config1 = new IdentityZoneConfiguration(null);
-        config1.getSamlConfig().setRequestSigned(true);
-        config1.getSamlConfig().setWantAssertionSigned(true);
-        zone1.setConfig(config1);
-        zone1 = zoneProvisioning.create(zone1);
-        assertTrue(zone1.getConfig().getSamlConfig().isRequestSigned());
-        assertTrue(zone1.getConfig().getSamlConfig().isWantAssertionSigned());
+        IdentityZone zone1 = createZone(zone1Name, true, true);
 
-        IdentityZone zone2 = new IdentityZone();
-        zone2.setName(zone2Name);
-        zone2.setSubdomain(zone2Name);
-        zone2.setId(zone2Name);
-        IdentityZoneConfiguration config2 = new IdentityZoneConfiguration(null);
-        config2.getSamlConfig().setRequestSigned(false);
-        config2.getSamlConfig().setWantAssertionSigned(false);
-        zone2.setConfig(config2);
-        zone2 = zoneProvisioning.create(zone2);
-        assertFalse(zone2.getConfig().getSamlConfig().isRequestSigned());
-        assertFalse(zone2.getConfig().getSamlConfig().isWantAssertionSigned());
+        IdentityZone zone2 = createZone(zone2Name, false, false);
 
         getMockMvc().perform(
             get("/saml/metadata")
@@ -428,9 +443,8 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("ID=\""+zone2Name+".cloudfoundry-saml-login\" entityID=\""+zone2Name+".cloudfoundry-saml-login\"")))
             .andExpect(content().string(containsString("<md:SPSSODescriptor AuthnRequestsSigned=\"false\" WantAssertionsSigned=\"false\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">")));
 
-        config2.getSamlConfig().setRequestSigned(true);
-        config2.getSamlConfig().setWantAssertionSigned(true);
-        zone2.setConfig(config2);
+        zone2.getConfig().getSamlConfig().setRequestSigned(true);
+        zone2.getConfig().getSamlConfig().setWantAssertionSigned(true);
         zone2 = zoneProvisioning.update(zone2);
         assertTrue(zone2.getConfig().getSamlConfig().isRequestSigned());
         assertTrue(zone2.getConfig().getSamlConfig().isWantAssertionSigned());
