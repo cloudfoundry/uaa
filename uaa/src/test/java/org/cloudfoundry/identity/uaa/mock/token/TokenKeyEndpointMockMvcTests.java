@@ -16,9 +16,12 @@ import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +84,8 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         "jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\n" +
         "JwIDAQAB\n" +
         "-----END PUBLIC KEY-----";
+    private String subdomain;
+    private BaseClientDetails defaultClient;
 
     @Before
     public void setUp() throws Exception {
@@ -88,24 +93,27 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     public void setUp(String signKey) throws Exception {
+        subdomain = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaa = provisioning.retrieve("uaa");
+        IdentityZone testZone = new IdentityZone();
+        testZone.setConfig(new IdentityZoneConfiguration()).setId(subdomain).setSubdomain(subdomain).setName(subdomain);
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap("testKey", signKey));
-        uaa.getConfig().setTokenPolicy(tokenPolicy);
-        provisioning.update(uaa);
+        testZone.getConfig().setTokenPolicy(tokenPolicy);
+        provisioning.create(testZone);
+
+        defaultClient = new BaseClientDetails("app", "", "", "password", "uaa.resource");
+        defaultClient.setClientSecret("appclientsecret");
+        getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(defaultClient, subdomain);
     }
 
     @Test
     public void checkTokenKeyValues() throws Exception {
-
-        String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
-
         MvcResult result = getMockMvc().perform(
             get("/token_key")
+                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
                 .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", basicDigestHeaderValue))
+                .header("Authorization", getBasicAuth(defaultClient)))
             .andExpect(status().isOk())
             .andReturn();
 
@@ -121,20 +129,23 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
                                                          "client_credentials,password",
                                                          "uaa.none");
         client.setClientSecret("secret");
-        getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client);
-
-        String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((client.getClientId()+":secret").getBytes()));
+        getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, subdomain);
 
         MvcResult result = getMockMvc().perform(
             get("/token_key")
+                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
                 .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", basicDigestHeaderValue))
+                .header("Authorization", getBasicAuth(client)))
             .andExpect(status().isOk())
             .andReturn();
 
         Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         validateKey(key);
+    }
+
+    private String getBasicAuth(BaseClientDetails client) {
+        return "Basic "
+            + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
     }
 
     @Test
@@ -147,15 +158,13 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
                                                              "client_credentials,password",
                                                              "uaa.none");
             client.setClientSecret("secret");
-            getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client);
-
-            String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((client.getClientId() + ":secret").getBytes()));
+            getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, subdomain);
 
             getMockMvc().perform(
                 get("/token_key")
+                    .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
                     .accept(MediaType.APPLICATION_JSON)
-                    .header("Authorization", basicDigestHeaderValue))
+                    .header("Authorization", getBasicAuth(client)))
                 .andExpect(status().isForbidden())
                 .andReturn();
         } finally {
@@ -168,6 +177,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
         MvcResult result = getMockMvc().perform(
             get("/token_key")
+                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
@@ -178,13 +188,11 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void checkTokenKeysValues() throws Exception {
-        String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
-
         MvcResult result = getMockMvc().perform(
                 get("/token_keys")
-                        .accept(MediaType.APPLICATION_JSON)
-                        .header("Authorization", basicDigestHeaderValue))
+                    .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .header("Authorization", getBasicAuth(defaultClient)))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -194,10 +202,10 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void checkTokenKeysValuesAnonymous() throws Exception {
-
         MvcResult result = getMockMvc().perform(
                 get("/token_keys")
-                        .accept(MediaType.APPLICATION_JSON))
+                    .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+                    .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andDo(print())
                 .andReturn();
