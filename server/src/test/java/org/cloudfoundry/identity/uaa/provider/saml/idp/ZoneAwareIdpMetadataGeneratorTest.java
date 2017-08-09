@@ -14,7 +14,6 @@ import org.opensaml.DefaultBootstrap;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
-import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataManager;
@@ -36,6 +35,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.springframework.security.saml.SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_REDIRECT_BINDING_URI;
 import static org.opensaml.common.xml.SAMLConstants.SAML2_ARTIFACT_BINDING_URI;
 
 public class ZoneAwareIdpMetadataGeneratorTest {
@@ -52,7 +53,7 @@ public class ZoneAwareIdpMetadataGeneratorTest {
         Security.addProvider(new BouncyCastleProvider());
         DefaultBootstrap.bootstrap();
         NamedKeyInfoGeneratorManager keyInfoGeneratorManager = Configuration.getGlobalSecurityConfiguration().getKeyInfoGeneratorManager();
-        keyInfoGeneratorManager.getManager(SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR);
+        keyInfoGeneratorManager.getManager(SAML_METADATA_KEY_INFO_GENERATOR);
     }
 
     @Before
@@ -178,5 +179,18 @@ public class ZoneAwareIdpMetadataGeneratorTest {
                                 );
 
         assertThat(idpSSODescriptor.getSingleSignOnServices(), not(hasItem(hasProperty("binding", equalTo(SAML2_ARTIFACT_BINDING_URI)))));
+    }
+
+    @Test
+    public void redirectBindingFirstInSSOList() {
+        IdentityZoneHolder.set(otherZone);
+        IDPSSODescriptor idpSSODescriptor = generator.buildIDPSSODescriptor(
+            generator.getEntityBaseURL(),
+            generator.getEntityAlias(),
+            false,
+            Arrays.asList("email")
+        );
+
+        assertEquals(SAML2_REDIRECT_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(0).getBinding());;
     }
 }
