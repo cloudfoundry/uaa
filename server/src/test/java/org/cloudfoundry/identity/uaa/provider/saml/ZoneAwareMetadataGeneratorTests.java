@@ -132,7 +132,7 @@ public class ZoneAwareMetadataGeneratorTests {
     @Test
     public void test_metadata_contains_saml_bearer_grant_endpoint() throws Exception {
         String s = getMetadata();
-        assertThat(s, containsString("md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:URI\" Location=\"http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityAlias\" index=\"2\"/>"));
+        assertThat(s, containsString("md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:URI\" Location=\"http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityAlias\" index=\"1\"/>"));
     }
 
     @Test
