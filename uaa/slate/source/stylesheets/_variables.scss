@@ -23,18 +23,18 @@ under the License.
 
 // BACKGROUND COLORS
 ////////////////////
-$nav-bg: #2E3336 !default;
-$examples-bg: #2E3336 !default;
-$code-bg: #1E2224 !default;
-$code-annotation-bg: #191D1F !default;
-$nav-subitem-bg: #1E2224 !default;
+$nav-bg: #393939 !default;
+$examples-bg: #393939 !default;
+$code-bg: #292929 !default;
+$code-annotation-bg: #1c1c1c !default;
+$nav-subitem-bg: #262626 !default;
 $nav-active-bg: #0F75D4 !default;
-$nav-active-parent-bg: #1E2224 !default; // parent links of the current section
+$nav-active-parent-bg: #262626 !default; // parent links of the current section
 $lang-select-border: #000 !default;
-$lang-select-bg: #1E2224 !default;
+$lang-select-bg: #222 !default;
 $lang-select-active-bg: $examples-bg !default; // feel free to change this to blue or something
 $lang-select-pressed-bg: #111 !default; // color of language tab bg when mouse is pressed
-$main-bg: #F3F7F9 !default;
+$main-bg: #eaf2f6 !default;
 $aside-notice-bg: #8fbcd4 !default;
 $aside-warning-bg: #c97a7e !default;
 $aside-success-bg: #6ac174 !default;
@@ -70,8 +70,8 @@ $phone-width: $tablet-width - $nav-width !default; // min width before reverting
 // FONTS
 ////////////////////
 %default-font {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-size: 14px;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft Yahei","微软雅黑", STXihei, "华文细黑", sans-serif;
+  font-size: 13px;
 }
 
 %header-font {
