@@ -19,8 +19,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.restdocs.headers.HeaderDocumentation;
+import org.springframework.restdocs.headers.RequestHeadersSnippet;
 import org.springframework.restdocs.snippet.Snippet;
 
+import java.util.Calendar;
 import java.util.Collections;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -65,6 +68,13 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
         "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
         "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
         "-----END RSA PRIVATE KEY-----";
+    public static final String ETAG_HEADER_DESCRIPTION = "The ETag version of the resource - used to decide if the client's version of the resource is already up to date. The UAA will set the ETag value to the epoch time in milliseconds of the last zone configuration change.";
+    public static final String IF_NONE_MATCH_DESCRIPTION = "See [Ref: RFC 2616](https://tools.ietf.org/html/rfc2616#section-14.26) ";
+    public static final RequestHeadersSnippet TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
+        headerWithName("Authorization").description("No authorization is required for requesting public keys.").optional(),
+        headerWithName("If-None-Match").description(IF_NONE_MATCH_DESCRIPTION).optional()
+    );
+    public static final Snippet TOKEN_KEY_RESPONSE_HEADERS = HeaderDocumentation.responseHeaders(headerWithName("ETag").description(ETAG_HEADER_DESCRIPTION));
 
     @Before
     public void setUp() throws Exception {
@@ -100,9 +110,14 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
                 .accept(APPLICATION_JSON)
                 .header("Authorization", basicDigestHeaderValue))
             .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),requestHeaders(
-                headerWithName("Authorization").description("No authorization is required for requesting public keys.").optional()
-            ), responseFields));
+            .andDo(document(
+                "{ClassName}/{methodName}",
+                preprocessResponse(prettyPrint()),
+                TOKEN_KEY_REQUEST_HEADERS,
+                responseFields,
+                TOKEN_KEY_RESPONSE_HEADERS
+            )
+        );
     }
 
     @Test
@@ -123,10 +138,12 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
             getMockMvc().perform(
                 get("/token_key")
                     .accept(APPLICATION_JSON)
-                    .header("Authorization", basicDigestHeaderValue))
+                    .header("Authorization", basicDigestHeaderValue)
+                    .header("If-None-Match", String.valueOf(Calendar.getInstance().getTimeInMillis())))
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders(
-                    headerWithName("Authorization").description("Uses basic authorization with `base64(resource_server:shared_secret)` assuming the caller (a resource server) is actually also a registered client and has `uaa.resource` authority")
+                    headerWithName("Authorization").description("Uses basic authorization with `base64(resource_server:shared_secret)` assuming the caller (a resource server) is actually also a registered client and has `uaa.resource` authority"),
+                    headerWithName("If-None-Match").description(IF_NONE_MATCH_DESCRIPTION).optional()
                 ), responseFields));
         } finally {
             setUp(signKey);
@@ -151,10 +168,18 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
         getMockMvc().perform(
             get("/token_keys")
                 .accept(APPLICATION_JSON)
-                .header("Authorization", basicDigestHeaderValue))
+                .header("Authorization", basicDigestHeaderValue)
+                .header("If-None-Match", String.valueOf(Calendar.getInstance().getTimeInMillis()))
+        )
             .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders(
-                headerWithName("Authorization").description("Basic authorization with `base64(resource_server:shared_secret)` assuming the caller (a resource server) is actually also a registered client and has `uaa.resource` authority. Header not required (anonymous) for obtaining only asymmetric keys. `uaa.resource` authority also not required for obtaining only asymmetric keys should you choose to provide this header.")
-            ), responseFields));
+            .andDo(
+                document(
+                    "{ClassName}/{methodName}",
+                    preprocessResponse(prettyPrint()),
+                    TOKEN_KEY_REQUEST_HEADERS,
+                    responseFields,
+                    TOKEN_KEY_RESPONSE_HEADERS
+                )
+            );
     }
 }
