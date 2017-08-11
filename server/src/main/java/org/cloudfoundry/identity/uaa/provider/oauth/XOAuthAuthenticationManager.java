@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -46,6 +47,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -58,8 +60,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 
 
 import java.net.MalformedURLException;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -72,7 +72,6 @@ import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
@@ -387,7 +386,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return restTemplateFactory.getRestTemplate(config.isSkipSslValidation());
     }
 
-    private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
+    protected String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             if ("signed_request".equals(config.getResponseType()))
                 return "signed_request";
@@ -433,7 +432,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                     return null;
                 }
                 //check if data is signed correctly
-                if(!hmacSHA256(signedRequests[1], secret).equals(signature)) {
+                if(!hmacSignAndEncode(signedRequests[1], secret).equals(signature)) {
                     logger.debug("Signature is not correct, possibly the data was tampered with! No claims returned.");
                     return null;
                 }
@@ -457,13 +456,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    //HmacSHA256 implementation
-    private String hmacSHA256(String data, String key) throws Exception {
-        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(secretKey);
-        byte[] hmacData = mac.doFinal(data.getBytes("UTF-8"));
-        return new String(Base64.encodeBase64URLSafe(hmacData), "UTF-8");
+    protected String hmacSignAndEncode(String data, String key) throws Exception {
+        Signer signer = new CommonSigner("",key);
+        return new String(Base64.encodeBase64URLSafe(signer.sign(data.getBytes("UTF-8"))), "UTF-8");
     }
 
     private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
@@ -536,7 +531,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         body.add("code", codeToken.getCode());
         body.add("redirect_uri", codeToken.getRedirectUrl());
 
-        //DRE: Add client_id and secret for Salesforce
         logger.debug("Adding new client_id and client_secret for token exchange");
         body.add("client_id", config.getRelyingPartyId());
         body.add("client_secret", config.getRelyingPartySecret());
@@ -574,7 +568,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                               }
                     );
             logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-            //DRE: Read proper field from response depending on configuration (id_token, signed_request etc)
             return responseEntity.getBody().get(getResponseType(config));
         } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;

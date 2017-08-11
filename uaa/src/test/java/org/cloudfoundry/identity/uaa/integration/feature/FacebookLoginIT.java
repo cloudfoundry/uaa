@@ -33,7 +33,6 @@ import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestOperations;
@@ -97,6 +96,7 @@ public class FacebookLoginIT {
         config.setRelyingPartySecret("2a5114552531768058add1f8f5a6b632");
         config.setTokenKey("2a5114552531768058add1f8f5a6b632");
         config.setResponseType("signed_request");
+        config.addAttributeMapping("user_name", "user_id");
 
         identityProvider = new IdentityProvider<>();
         identityProvider.setName("facebook provider");
@@ -136,19 +136,20 @@ public class FacebookLoginIT {
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
-    private void login(String zoneUrl, String userName, String password) {
-        webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/");
+    private void login(String url, String userName, String password) {
+        webDriver.get(url + "/logout.do");
+        webDriver.get(url + "/");
         Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
         assertNotNull(beforeLogin);
         assertNotNull(beforeLogin.getValue());
         webDriver.findElement(By.linkText(LINK_TEXT)).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("www.facebook.com"));
 
         webDriver.findElement(By.name("email")).sendKeys(userName);
         webDriver.findElement(By.name("pass")).sendKeys(password);
         webDriver.findElement(By.name("login")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(url));
+        IntegrationTestUtils.takeScreenShot(webDriver);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
         assertNotNull(afterLogin);

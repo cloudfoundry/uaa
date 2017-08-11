@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
@@ -72,6 +73,8 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
@@ -271,6 +274,41 @@ public class XOAuthAuthenticationManagerTest {
         }
     }
 
+    @Test
+    public void get_response_type_for_oauth2() {
+        RawXOAuthIdentityProviderDefinition signed = new RawXOAuthIdentityProviderDefinition();
+        signed.setResponseType("signed_request");
+        RawXOAuthIdentityProviderDefinition token = new RawXOAuthIdentityProviderDefinition();
+        OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
+
+        assertEquals("signed_request", xoAuthAuthenticationManager.getResponseType(signed));
+        assertEquals("token", xoAuthAuthenticationManager.getResponseType(token));
+        assertEquals("id_token", xoAuthAuthenticationManager.getResponseType(oidcIdentityProviderDefinition));
+    }
+
+    @Test
+    public void unknown_config_class() {
+        exception.expect(IllegalArgumentException.class);
+        exception.expectMessage("Unknown type for provider.");
+
+        xoAuthAuthenticationManager.getResponseType(new AbstractXOAuthIdentityProviderDefinition() {
+            @Override
+            public URL getAuthUrl() {
+                return super.getAuthUrl();
+            }
+        });
+    }
+
+    @Test
+    public void verify_hmac_256_signature() throws Exception {
+        String key = "key";
+        String data = "data";
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(secretKey);
+        byte[] hmacData = mac.doFinal(data.getBytes("UTF-8"));
+        assertThat(new String(Base64.encodeBase64URLSafe(hmacData)), equalTo(xoAuthAuthenticationManager.hmacSignAndEncode(data, key)));
+    }
 
     @Test
     public void race_condition_in_get_auth_details() throws Exception {
