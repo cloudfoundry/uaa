@@ -394,14 +394,42 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.zoneId").type(STRING).description("This will be set to the ID of the zone where the provider is being created")
         }));
 
-        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+        ResultActions resultActionsMetadata = getMockMvc().perform(post("/identity-providers")
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
             .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.zoneId", "config.idpEntityAlias", "config.additionalConfiguration")))
             .andExpect(status().isCreated());
 
-        resultActions.andDo(document("{ClassName}/{methodName}",
+        resultActionsMetadata.andDo(document("{ClassName}/{methodName}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestHeaders(
+                headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+            ),
+            commonRequestParams,
+            requestFields,
+            responseFields
+        ));
+
+        SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
+            .setMetaDataLocation("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php")
+            .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:transient")
+            .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
+            .setZoneId(IdentityZone.getUaa().getId());
+
+        identityProvider.setConfig(providerDefinition);
+        identityProvider.setOriginKey(identityProvider.getOriginKey() + "MetadataUrl");
+
+        ResultActions resultActionsUrl = getMockMvc().perform(post("/identity-providers")
+            .param("rawConfig", "true")
+            .header("Authorization", "Bearer " + adminToken)
+            .contentType(APPLICATION_JSON)
+            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.zoneId", "config.idpEntityAlias", "config.additionalConfiguration")))
+            .andExpect(status().isCreated());
+
+        resultActionsUrl.andDo(document("{ClassName}/{methodName}MetadataUrl",
             preprocessRequest(prettyPrint()),
             preprocessResponse(prettyPrint()),
             requestHeaders(
