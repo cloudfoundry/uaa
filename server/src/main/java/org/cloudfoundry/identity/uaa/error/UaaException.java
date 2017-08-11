@@ -30,11 +30,11 @@ public class UaaException extends RuntimeException {
 
     private static final String DEFAULT_ERROR = "unknown_error";
 
-    private static final int DEFAULT_STATUS = 400;
+    static final int DEFAULT_STATUS = 400;
 
-    public static final String ERROR = "error";
+    private static final String ERROR = "error";
 
-    public static final String DESCRIPTION = "error_description";
+    private static final String DESCRIPTION = "error_description";
 
     private static final String STATUS = "status";
 
