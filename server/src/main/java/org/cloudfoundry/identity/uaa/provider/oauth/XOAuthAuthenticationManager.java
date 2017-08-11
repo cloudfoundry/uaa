@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -46,6 +47,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -56,7 +58,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
+
 import java.net.MalformedURLException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -68,7 +72,6 @@ import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
@@ -383,9 +386,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return restTemplateFactory.getRestTemplate(config.isSkipSslValidation());
     }
 
-    private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
+    protected String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
         if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
-            return "token";
+            if ("signed_request".equals(config.getResponseType()))
+                return "signed_request";
+            else
+                return "token";
         } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             return "id_token";
         } else {
@@ -407,12 +413,52 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return null;
         }
 
-        TokenValidation validation = validateToken(idToken, config);
-        logger.debug("Decoding id_token");
-        Jwt decodeIdToken = validation.getJwt();
-        logger.debug("Deserializing id_token claims");
+        if ("signed_request".equals(config.getResponseType())) {
+            String signedRequest = idToken;
+            String secret = config.getRelyingPartySecret();
+            logger.debug("Validating signed_request: " + signedRequest);
+            //split request into signature and data
+            String[] signedRequests = signedRequest.split("\\.", 2);
+            //parse signature
+            String signature = signedRequests[0];
+            //parse data and convert to json object
+            String data = signedRequests[1];
+            Map<String, Object> jsonData = null;
+            try {
+                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), "UTF-8"), new TypeReference<Map<String,Object>>() {});
+                //check signature algorithm
+                if(!jsonData.get("algorithm").equals("HMAC-SHA256")) {
+                    logger.debug("Unknown algorithm was used to sign request! No claims returned.");
+                    return null;
+                }
+                //check if data is signed correctly
+                if(!hmacSignAndEncode(signedRequests[1], secret).equals(signature)) {
+                    logger.debug("Signature is not correct, possibly the data was tampered with! No claims returned.");
+                    return null;
+                }
+                //logger.debug("Deserializing id_token claims: " + decodeIdToken.getClaims());
+                return jsonData;
+            } catch (UnsupportedEncodingException e) {
+                logger.error(e);
+                return null;
+            } catch (Exception e) {
+                logger.error(e);
+                return null;
+            }
+        } else {
+            TokenValidation validation = validateToken(idToken, config);
+            logger.debug("Decoding id_token");
+            Jwt decodeIdToken = validation.getJwt();
+            logger.debug("Deserializing id_token claims");
 
-        return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>() {});
+            return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>() {});
+
+        }
+    }
+
+    protected String hmacSignAndEncode(String data, String key) throws Exception {
+        Signer signer = new CommonSigner("",key);
+        return new String(Base64.encodeBase64URLSafe(signer.sign(data.getBytes("UTF-8"))), "UTF-8");
     }
 
     private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
@@ -475,11 +521,19 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             logger.debug("XOauthCodeToken contains id_token, not exchanging code.");
             return codeToken.getIdToken();
         }
+        if (StringUtils.hasText(codeToken.getSignedRequest()) && "signed_request".equals(getResponseType(config))) {
+            logger.debug("XOauthCodeToken contains signed_request, not exchanging code.");
+            return codeToken.getSignedRequest();
+        }
         MultiValueMap<String, String> body = new LinkedMaskingMultiValueMap<>("code");
         body.add("grant_type", "authorization_code");
         body.add("response_type", getResponseType(config));
         body.add("code", codeToken.getCode());
         body.add("redirect_uri", codeToken.getRedirectUrl());
+
+        logger.debug("Adding new client_id and client_secret for token exchange");
+        body.add("client_id", config.getRelyingPartyId());
+        body.add("client_secret", config.getRelyingPartySecret());
 
         HttpHeaders headers = new HttpHeaders();
 
@@ -514,7 +568,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                               }
                     );
             logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-            return responseEntity.getBody().get(ID_TOKEN);
+            return responseEntity.getBody().get(getResponseType(config));
         } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;
         }

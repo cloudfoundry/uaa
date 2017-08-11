@@ -25,6 +25,7 @@ public class XOAuthCodeToken implements Authentication {
     private String redirectUrl;
     private String idToken;
     private String accessToken;
+    private String signedRequest;
     private String requestContextPath;
     private UaaAuthenticationDetails details;
 
@@ -34,14 +35,15 @@ public class XOAuthCodeToken implements Authentication {
         this.redirectUrl = redirectUrl;
     }
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken) {
+    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest) {
         this(code, origin, redirectUrl);
         this.idToken = idToken;
         this.accessToken = accessToken;
+        this.signedRequest = signedRequest;
     }
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, UaaAuthenticationDetails details) {
-        this(code, origin, redirectUrl, idToken, accessToken);
+    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest, UaaAuthenticationDetails details) {
+        this(code, origin, redirectUrl, idToken, accessToken, signedRequest);
         this.details = details;
     }
 
@@ -121,6 +123,14 @@ public class XOAuthCodeToken implements Authentication {
 
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
+    }
+
+    public String getSignedRequest() {
+        return signedRequest;
+    }
+
+    public void setSignedRequest(String signedRequest) {
+        this.signedRequest = signedRequest;
     }
 
     public String getRequestContextPath() {
