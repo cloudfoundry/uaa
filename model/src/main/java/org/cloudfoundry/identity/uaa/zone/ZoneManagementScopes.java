@@ -36,6 +36,9 @@ public class ZoneManagementScopes {
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.write",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.create",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".idps.read",
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".idps.write",
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".sps.read",
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".sps.write",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.invite"
     };
 
