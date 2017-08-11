@@ -353,7 +353,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void resolve_provider_by_issuer_null_id_token() throws Exception {
-        xCodeToken = new XOAuthCodeToken(null,null,null,null,null);
+        xCodeToken = new XOAuthCodeToken(null,null,null,null,null,null);
         exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage("Unable to decode expected id_token");
         getAuthenticationData(xCodeToken);
@@ -363,7 +363,7 @@ public class XOAuthAuthenticationManagerTest {
     public void unable_to_resolve_to_single_provider() throws Exception {
         String issuer = "http://oidc10.uaa-acceptance.cf-app.com/oauth/token";
         CompositeAccessToken token = getCompositeAccessToken();
-        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);
+        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null,null);
         exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
         when(provisioning.retrieveAll(eq(true), eq(IdentityZoneHolder.get().getId()))).thenReturn(emptyList());
@@ -376,7 +376,7 @@ public class XOAuthAuthenticationManagerTest {
         exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage("Issuer is missing in id_token");
         CompositeAccessToken token = getCompositeAccessToken(Arrays.asList(ClaimConstants.ISS));
-        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);
+        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null,null);
         //perform test
         getAuthenticationData(xCodeToken);
     }
@@ -384,7 +384,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void origin_is_resolved_based_on_issuer_and_id_token() throws Exception {
         CompositeAccessToken token = getCompositeAccessToken();
-        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null);
+        xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null,null);
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(getProvider()));
         //perform test
         getAuthenticationData(xCodeToken);

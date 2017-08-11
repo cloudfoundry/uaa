@@ -216,7 +216,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             String assertion = request.getParameter("assertion");
             if (assertion != null && xoAuthAuthenticationManager != null) {
                 logger.debug("Attempting OIDC JWT authentication for token endpoint.");
-                XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, assertion, null);
+                XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, assertion, null, null);
                 token.setRequestContextPath(getContextPath(request));
                 authResult = xoAuthAuthenticationManager.authenticate(token);
             } else {
