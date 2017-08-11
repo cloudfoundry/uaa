@@ -108,7 +108,9 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
         getMockMvc().perform(
             get("/token_key")
                 .accept(APPLICATION_JSON)
-                .header("Authorization", basicDigestHeaderValue))
+                .header("Authorization", basicDigestHeaderValue)
+                .header("If-None-Match", "1501570800000"))
+
             .andExpect(status().isOk())
             .andDo(document(
                 "{ClassName}/{methodName}",
@@ -139,7 +141,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
                 get("/token_key")
                     .accept(APPLICATION_JSON)
                     .header("Authorization", basicDigestHeaderValue)
-                    .header("If-None-Match", String.valueOf(Calendar.getInstance().getTimeInMillis())))
+                    .header("If-None-Match", "1501570800000"))
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders(
                     headerWithName("Authorization").description("Uses basic authorization with `base64(resource_server:shared_secret)` assuming the caller (a resource server) is actually also a registered client and has `uaa.resource` authority"),
@@ -169,7 +171,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
             get("/token_keys")
                 .accept(APPLICATION_JSON)
                 .header("Authorization", basicDigestHeaderValue)
-                .header("If-None-Match", String.valueOf(Calendar.getInstance().getTimeInMillis()))
+                .header("If-None-Match", "1501570800000")
         )
             .andExpect(status().isOk())
             .andDo(
