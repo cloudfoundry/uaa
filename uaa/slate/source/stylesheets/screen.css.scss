@@ -171,8 +171,18 @@ html, body {
     font-weight: 500;
   }
 
+  .toc-list-h3 {
+    display: none;
+    background-color: $nav-subitem-bg;
+  }
+
   .toc-h2 {
     padding-left: $nav-padding + $nav-indent;
+    font-size: 12px;
+  }
+
+  .toc-h3 {
+    padding-left: $nav-padding + 2 * $nav-indent;
     font-size: 12px;
   }
 
@@ -342,7 +352,7 @@ html, body {
   }
 
   // the div is the tocify hidden div for placeholding stuff
-  &>h1, &>h2, &>div {
+  &>h1, &>h2, &>h3, &>div {
     clear:both;
   }
 

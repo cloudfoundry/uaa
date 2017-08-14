@@ -21,7 +21,7 @@ def toc_data(page_content)
         header_to_nest[:children].push header if header_to_nest
         true
       else
-        header_to_nest = header if header[:level] == (header_level - 1)
+        header_to_nest = header if header[:level] < header_level
         false
       end
     end
