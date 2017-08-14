@@ -29,7 +29,7 @@ matrix:
         - TESTENV=sqlserver,default
         - TEST_COMMAND=cloudfoundry-identity-uaa:test
     - os: linux
-      dist: precise
+      dist: trusty
       jdk: oraclejdk8
       sudo: required
       language: java
@@ -39,7 +39,7 @@ matrix:
         - TESTENV=mysql,default
         - TEST_COMMAND=jacocoRootReportTest
     - os: linux
-      dist: precise
+      dist: trusty
       jdk: oraclejdk8
       sudo: required
       language: java
@@ -65,7 +65,7 @@ matrix:
         - TESTENV=default
         - TEST_COMMAND=jacocoRootReportTest
     - os: linux
-      dist: precise
+      dist: trusty
       jdk: oraclejdk8
       sudo: required
       language: java
@@ -75,7 +75,7 @@ matrix:
         - TESTENV=mysql,default
         - TEST_COMMAND=jacocoRootReportIntegrationTest
     - os: linux
-      dist: precise
+      dist: trusty
       jdk: oraclejdk8
       sudo: required
       language: java
@@ -85,7 +85,7 @@ matrix:
         - TESTENV=postgresql,default
         - TEST_COMMAND=jacocoRootReportIntegrationTest
     - os: linux
-      dist: precise
+      dist: trusty
       jdk: oraclejdk8
       sudo: required
       language: java
@@ -93,7 +93,7 @@ matrix:
         - TESTENV=ldap,default
         - TEST_COMMAND=jacocoRootReportIntegrationTest
     - os: linux
-      dist: precise
+      dist: trusty
       jdk: oraclejdk8
       sudo: required
       language: java
