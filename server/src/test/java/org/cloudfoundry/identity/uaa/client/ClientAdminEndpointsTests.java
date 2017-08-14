@@ -26,17 +26,19 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -51,6 +53,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,12 +66,15 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
@@ -337,8 +343,30 @@ public class ClientAdminEndpointsTests {
         assertNull(endpoints.getRestrictedClientScopes());
     }
 
+    @Test
+    public void testCannot_Create_Restricted_Client_Sp_Scopes() throws Exception {
+        List<String> badScopes = new ArrayList<>();
+        badScopes.add("sps.write");
+        badScopes.add("sps.read");
+        badScopes.add("zones.*.sps.read");
+        badScopes.add("zones.*.sps.write");
+        badScopes.add("zones.*.idps.write");
+        input.setScope(badScopes);
+        for (String scope :
+            badScopes) {
+            input.setScope(Collections.singletonList(scope));
+            try {
+                endpoints.createRestrictedClientDetails(input);
+                fail("no error thrown for restricted scope "+scope);
+            } catch (InvalidClientDetailsException e) {
+                assertThat(e.getMessage(), containsString("is a restricted scope."));
+            }
+        }
+    }
+
     @Test(expected = InvalidClientDetailsException.class)
     public void testCannot_Create_Restricted_Client_Invalid_Scopes() throws Exception {
+        input.setClientId("admin");
         input.setScope(new UaaScopes().getUaaScopes());
         endpoints.createRestrictedClientDetails(input);
     }

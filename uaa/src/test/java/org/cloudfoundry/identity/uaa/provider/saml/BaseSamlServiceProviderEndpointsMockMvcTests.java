@@ -44,7 +44,7 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
         clientSecret = generator.generate().toLowerCase();
 
         zone = zoneSwitching ? MockMvcUtils.createOtherIdentityZone(generator.generate().toLowerCase(), getMockMvc(), getWebApplicationContext()) : IdentityZone.getUaa();
-        String scope = zoneSwitching ? "zones." + zone.getId() + ".admin" : "sps.write";
+        String scope = zoneSwitching ? "zones." + zone.getId() + ".sps.write" : "sps.write";
         MockMvcUtils.createClient(this.getMockMvc(), adminToken, clientId, clientSecret, null, null, Arrays.asList("client_credentials", "password"), scope);
 
         spsWriteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), clientId, clientSecret, scope, null);
