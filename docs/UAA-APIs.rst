@@ -969,7 +969,7 @@ Example::
 
     uaac token client get admin -s adminsecret
 
-    uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.testzone1.admin,zones.write"
+    uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.write"
 
     uaac token client get admin -s adminsecret
 
