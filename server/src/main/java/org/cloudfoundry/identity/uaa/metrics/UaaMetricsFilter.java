@@ -31,7 +31,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ManagedResource(description = "UAA Performance Metrics")
+@ManagedResource(
+    objectName="cloudfoundry.identity:name=ServerRequests",
+    description = "UAA Performance Metrics"
+)
 public class UaaMetricsFilter extends OncePerRequestFilter {
 
 

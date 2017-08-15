@@ -110,7 +110,10 @@ import static org.springframework.util.StringUtils.isEmpty;
  * @see <a href="http://www.simplecloud.info">SCIM specs</a>
  */
 @Controller
-@ManagedResource
+@ManagedResource(
+    objectName="cloudfoundry.identity:name=UserEndpoint",
+    description = "UAA User API Metrics"
+)
 public class ScimUserEndpoints implements InitializingBean, ApplicationEventPublisherAware {
     private static final String USER_APPROVALS_FILTER_TEMPLATE = "user_id eq \"%s\"";
 
