@@ -6,6 +6,7 @@ dependencies {
 
   compile(identityModel)
 
+  compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
 
