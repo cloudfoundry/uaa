@@ -15,17 +15,22 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.concurrent.atomic.AtomicLong;
 
-public class RequestMetricTotals {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class RequestMetricSummary {
     AtomicLong count = new AtomicLong(0);
     AtomicLong totalTime = new AtomicLong(0);
     AtomicLong intolerableCount = new AtomicLong(0);
     AtomicLong intolerableTime = new AtomicLong(0);
     AtomicLong databaseQueryCount = new AtomicLong(0);
     AtomicLong databaseQueryTime = new AtomicLong(0);
+    AtomicLong databaseFailedQueryCount = new AtomicLong(0);
+    AtomicLong databaseFailedQueryTime = new AtomicLong(0);
 
-    public void add(long time, long dbQueries, long dbTime) {
+    public void add(long time, long dbQueries, long dbTime, long failedDbQueries, long failedDbQueryTime) {
         count.incrementAndGet();
         totalTime.addAndGet(time);
         if (time > MetricsQueue.MAX_TIME) {
@@ -34,6 +39,8 @@ public class RequestMetricTotals {
         }
         databaseQueryCount.addAndGet(dbQueries);
         databaseQueryTime.addAndGet(dbTime);
+        databaseFailedQueryCount.addAndGet(failedDbQueries);
+        databaseFailedQueryTime.addAndGet(failedDbQueryTime);
     }
 
     public long getCount() {
@@ -58,5 +65,13 @@ public class RequestMetricTotals {
 
     public long getDatabaseQueryTime() {
         return databaseQueryTime.get();
+    }
+
+    public long getDatabaseFailedQueryCount() {
+        return databaseFailedQueryCount.get();
+    }
+
+    public long getDatabaseFailedQueryTime() {
+        return databaseFailedQueryTime.get();
     }
 }

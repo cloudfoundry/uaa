@@ -22,30 +22,35 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MetricsQueue  {
 
-    public static final int MAX_ENTRIES = 10000;
+    public static final int MAX_ENTRIES = 1000;
     public static final int MAX_TIME = 3000;
 
     ConcurrentLinkedDeque<RequestMetric> queue = new ConcurrentLinkedDeque<>();
     AtomicInteger size = new AtomicInteger(0);
-    Map<Integer, RequestMetricTotals> statistics = new ConcurrentHashMap<>();
+    Map<Integer, RequestMetricSummary> statistics = new ConcurrentHashMap<>();
 
-    public boolean offer(RequestMetric t) {
-        if (queue.offer(t)) {
+    public boolean offer(RequestMetric metric) {
+        if (queue.offer(metric)) {
             size.incrementAndGet();
         }
         while (size.decrementAndGet() >= MAX_ENTRIES) {
             queue.removeLast();
         }
-        Integer statusCode = t.getStatusCode();
+        Integer statusCode = metric.getStatusCode();
         if (!statistics.containsKey(statusCode)) {
-            statistics.putIfAbsent(statusCode, new RequestMetricTotals());
+            statistics.putIfAbsent(statusCode, new RequestMetricSummary());
         }
-        RequestMetricTotals totals = statistics.get(statusCode);
-        totals.add(t.getRequestCompleteTime()-t.getRequestStartTime(), t.getNrOfDatabaseQueries(), t.getDatabaseQueryTime());
+        RequestMetricSummary totals = statistics.get(statusCode);
+        totals.add(metric.getRequestCompleteTime()- metric.getRequestStartTime(),
+                   metric.getNrOfDatabaseQueries(),
+                   metric.getDatabaseQueryTime(),
+                   metric.getQueries().stream().filter(q -> !q.isSuccess()).count(),
+                   metric.getQueries().stream().filter(q -> !q.isSuccess()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
+        );
         return true;
     }
 
-    public Map<Integer, RequestMetricTotals> getSummary() {
+    public Map<Integer, RequestMetricSummary> getSummary() {
         return statistics;
     }
 

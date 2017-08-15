@@ -15,9 +15,13 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.LinkedList;
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RequestMetric {
     private String uri;
     private int statusCode;
@@ -39,6 +43,11 @@ public class RequestMetric {
 
     public void addQuery(QueryMetric query) {
         queries.add(query);
+    }
+
+    @JsonIgnore
+    protected List<QueryMetric> getQueries() {
+        return queries;
     }
 
     public String getUri() {

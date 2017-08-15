@@ -15,35 +15,38 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.junit.Before;
+import org.junit.Test;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class QueryMetric {
-    private String query;
-    private boolean success;
-    private long requestStartTime;
-    private long requestCompleteTime;
+import static org.junit.Assert.assertEquals;
 
-    public QueryMetric(String query, long start, long delta, boolean success) {
-        this.query = query;
-        this.success = success;
-        this.requestStartTime = start;
-        this.requestCompleteTime = start + delta;
+public class QueryMetricTests {
+
+    private QueryMetric metric;
+
+    @Before
+    public void setup() throws Exception {
+        metric = new QueryMetric("query", 1, 5, true);
     }
 
-    public String getQuery() {
-        return query;
+    @Test
+    public void getQuery() throws Exception {
+        assertEquals("query", metric.getQuery());
     }
 
-    public boolean isSuccess() {
-        return success;
+    @Test
+    public void isSuccess() throws Exception {
+        assertEquals(true, metric.isSuccess());
     }
 
-    public long getRequestStartTime() {
-        return requestStartTime;
+    @Test
+    public void getRequestStartTime() throws Exception {
+        assertEquals(1, metric.getRequestStartTime());
     }
 
-    public long getRequestCompleteTime() {
-        return requestCompleteTime;
+    @Test
+    public void getRequestCompleteTime() throws Exception {
+        assertEquals(6, metric.getRequestCompleteTime());
     }
+
 }
