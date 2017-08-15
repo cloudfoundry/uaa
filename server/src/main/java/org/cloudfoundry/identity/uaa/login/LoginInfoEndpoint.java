@@ -59,6 +59,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -231,7 +232,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
     public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Arrays.asList(PASSCODE), false, request);
+        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -263,7 +264,7 @@ public class LoginInfoEndpoint {
 
         model.addAttribute("savedAccounts", savedAccounts);
 
-        return login(model, principal, Arrays.asList(PASSCODE), false, request);
+        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
@@ -447,7 +448,7 @@ public class LoginInfoEndpoint {
             excludedPrompts.add("password");
         }
 
-        populatePrompts(model, excludedPrompts, jsonResponse);
+        populatePrompts(model, excludedPrompts);
 
         if (principal == null) {
             boolean accountChooserNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
@@ -468,6 +469,11 @@ public class LoginInfoEndpoint {
             String formRedirectUri = request.getParameter(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER);
             if(hasText(formRedirectUri)) {
                 model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
+            }
+
+            String providedUsername = request.getParameter("providedUsername");
+            if (StringUtils.hasText(providedUsername)) {
+                model.addAttribute("providedUsername", providedUsername);
             }
 
             return "login";
@@ -558,7 +564,7 @@ public class LoginInfoEndpoint {
     }
 
 
-    public void populatePrompts(Model model, List<String> exclude, boolean jsonResponse) {
+    public void populatePrompts(Model model, List<String> exclude) {
         IdentityZoneConfiguration zoneConfiguration = IdentityZoneHolder.get().getConfig();
         if (isNull(zoneConfiguration)) {
             zoneConfiguration = new IdentityZoneConfiguration();
@@ -600,7 +606,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/idp_discovery", method = RequestMethod.POST)
-    public String discoverIdentityProvider(@RequestParam String email, Model model, HttpSession session, HttpServletRequest request) {
+    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, Model model, HttpSession session, HttpServletRequest request) {
         ClientDetails clientDetails = null;
         if (hasSavedOauthAuthorizeRequest(session)) {
             SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
@@ -611,7 +617,8 @@ public class LoginInfoEndpoint {
             }
         }
         List<IdentityProvider> identityProviders = DomainFilter.filter(providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), clientDetails, email);
-        if (identityProviders.size() == 1) {
+
+        if (!StringUtils.hasText(skipDiscovery) && identityProviders.size() == 1) {
             IdentityProvider matchedIdp = identityProviders.get(0);
             if (matchedIdp.getType().equals(UAA)) {
                 return goToPasswordPage(email, model);
@@ -621,6 +628,10 @@ public class LoginInfoEndpoint {
                     return redirectUrl;
                 }
             }
+        }
+
+        if (StringUtils.hasText(email)) {
+            model.addAttribute("providedUsername", email);
         }
         return "redirect:/login?discoveryPerformed=true";
     }

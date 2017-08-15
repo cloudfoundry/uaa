@@ -136,8 +136,6 @@ public class LoginInfoEndpointTests {
         IdentityZoneHolder.get().setConfig(originalConfiguration);
     }
 
-
-
     @Test
     public void testLoginReturnsSystemZone() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -373,9 +371,18 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void discoverIdentityProviderCarriesEmailIfProvided() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", model, session, request);
+
+        assertEquals(model.get("providedUsername"), "testuser@fake.com");
+    }
+
+    @Test
     public void use_login_url_if_present() throws Exception {
         check_links_urls(IdentityZone.getUaa());
-
     }
 
     @Test

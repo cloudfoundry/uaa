@@ -9,8 +9,12 @@
         <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
     </div>
     <div class="form-group email_address_field">
-        <label class="control-label" for="email">Email address</label>
-        <input class="form-control" id="email" name="email" type="email" autofocus="true"/>
+        <div style="height: 42px">
+            <input class="form-control" id="email" name="email" autofocus="true" placeholder="Email address" style="width: 70%; float: left"/>
+            <a style="float: right; margin-top: 8px" href="#">
+                <input type="submit" name="skipDiscovery" value="Skip Discovery" style="border: 0; background: 0"/>
+            </a>
+        </div>
         <div class="help-block has-error" style="display: none;">
             Please enter your email address
         </div>
