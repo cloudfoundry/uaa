@@ -35,6 +35,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_POST_BINDING_URI;
 import static org.springframework.security.saml.SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR;
 import static org.opensaml.common.xml.SAMLConstants.SAML2_REDIRECT_BINDING_URI;
 import static org.opensaml.common.xml.SAMLConstants.SAML2_ARTIFACT_BINDING_URI;
@@ -182,7 +183,7 @@ public class ZoneAwareIdpMetadataGeneratorTest {
     }
 
     @Test
-    public void redirectBindingFirstInSSOList() {
+    public void bindingOrderSSOList() {
         IdentityZoneHolder.set(otherZone);
         IDPSSODescriptor idpSSODescriptor = generator.buildIDPSSODescriptor(
             generator.getEntityBaseURL(),
@@ -190,7 +191,7 @@ public class ZoneAwareIdpMetadataGeneratorTest {
             false,
             Arrays.asList("email")
         );
-
-        assertEquals(SAML2_REDIRECT_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(0).getBinding());;
+        assertEquals(SAML2_POST_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(0).getBinding());;
+        assertEquals(SAML2_REDIRECT_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(1).getBinding());;
     }
 }
