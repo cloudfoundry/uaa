@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,15 +25,24 @@ import org.opensaml.xml.signature.SignatureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml.context.SAMLMessageContext;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class IdpWebSsoProfileImplTest {
 
     private final SamlTestUtils samlTestUtils = new SamlTestUtils();
+    private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning = mock(JdbcSamlServiceProviderProvisioning.class);
+    private JdbcScimUserProvisioning scimUserProvisioning = mock(JdbcScimUserProvisioning.class);
 
     @Before
     public void setup() throws ConfigurationException {
@@ -149,6 +160,50 @@ public class IdpWebSsoProfileImplTest {
         assertEquals(request.getID(), subjectConfirmationData.getInResponseTo());
 
         verifyAssertionAttributes(authenticationId, assertion);
+    }
+
+    @Test
+    public void verifyAttributeMappings() throws Exception {
+        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
+        profile.setSamlServiceProviderProvisioning(samlServiceProviderProvisioning);
+        profile.setScimUserProvisioning(scimUserProvisioning);
+
+        ScimUser user = new ScimUser(null, "johndoe", "John", "Doe");
+        user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber("123")));
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        attributeMappings.put("family_name", "last_name");
+        attributeMappings.put("phone_number", "cell_phone");
+
+        SamlServiceProvider sp = new SamlServiceProvider();
+        SamlServiceProviderDefinition config = new SamlServiceProviderDefinition();
+        config.setAttributeMappings(attributeMappings);
+        sp.setConfig(config);
+
+        when(scimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
+        when(samlServiceProviderProvisioning.retrieveByEntityId(any(), any())).thenReturn(sp);
+
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+            samlTestUtils.mockAuthnRequest(NameIDType.UNSPECIFIED));
+
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+
+        profile.buildAttributeStatement(assertion, authentication, sp.getEntityId());
+
+        List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
+
+        assertAttributeValue(attributes, "first_name", user.getGivenName());
+        assertAttributeValue(attributes, "last_name", user.getFamilyName());
+        assertAttributeValue(attributes, "cell_phone", user.getPhoneNumbers().get(0).getValue());
+
     }
 
     private void verifyAssertionAttributes(String authenticationId, Assertion assertion) {

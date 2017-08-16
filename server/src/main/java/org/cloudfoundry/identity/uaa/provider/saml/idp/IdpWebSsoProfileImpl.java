@@ -13,6 +13,9 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.common.SAMLException;
@@ -61,10 +64,15 @@ import org.springframework.security.saml.websso.WebSSOProfileImpl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 
 public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSsoProfile {
+
+    private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning;
+    private JdbcScimUserProvisioning scimUserProvisioning;
 
     @Override
     public void sendResponse(Authentication authentication, SAMLMessageContext context, IdpWebSSOProfileOptions options)
@@ -144,7 +152,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         buildAssertionConditions(assertion, options.getAssertionTimeToLiveSeconds(), audienceURI);
         buildAssertionSubject(assertion, authnRequest, options.getAssertionTimeToLiveSeconds(),
                 (UaaPrincipal) authentication.getPrincipal());
-        buildAttributeStatement(assertion, authentication);
+        buildAttributeStatement(assertion, authentication, audienceURI);
 
         return assertion;
     }
@@ -251,7 +259,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         assertion.setSubject(subject);
     }
 
-    private void buildAttributeStatement(Assertion assertion, Authentication authentication) {
+    protected void buildAttributeStatement(Assertion assertion, Authentication authentication, String providerEntityId) {
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<AttributeStatement> attributeStatementBuilder = (SAMLObjectBuilder<AttributeStatement>) builderFactory
                 .getBuilder(AttributeStatement.DEFAULT_ELEMENT_NAME);
@@ -275,6 +283,30 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         attributeStatement.getAttributes().add(originAttribute);
         Attribute zoneAttribute = buildStringAttribute("zoneId", Arrays.asList(new String[] { principal.getZoneId() }));
         attributeStatement.getAttributes().add(zoneAttribute);
+
+        Map<String, Object> attributeMappings = samlServiceProviderProvisioning.retrieveByEntityId(providerEntityId, IdentityZoneHolder.get().getId()).getConfig().getAttributeMappings();
+
+        if (attributeMappings.size() > 0) {
+            ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());
+
+            if (attributeMappings.containsKey("given_name")) {
+                String givenName = user.getGivenName();
+                Attribute givenNameAttribute = buildStringAttribute(attributeMappings.get("given_name").toString(), Collections.singletonList(givenName));
+                attributeStatement.getAttributes().add(givenNameAttribute);
+            }
+
+            if (attributeMappings.containsKey("family_name")) {
+                String familyName = user.getFamilyName();
+                Attribute lastNameAttribute = buildStringAttribute(attributeMappings.get("family_name").toString(), Collections.singletonList(familyName));
+                attributeStatement.getAttributes().add(lastNameAttribute);
+            }
+
+            if (attributeMappings.containsKey("phone_number")) {
+                String phoneNumber = user.getPhoneNumbers().get(0).getValue();
+                Attribute phoneNumberAttribute = buildStringAttribute(attributeMappings.get("phone_number").toString(), Collections.singletonList(phoneNumber));
+                attributeStatement.getAttributes().add(phoneNumberAttribute);
+            }
+        }
 
         assertion.getAttributeStatements().add(attributeStatement);
     }
@@ -335,4 +367,11 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         Signer.signObject(signature);
     }
 
+    public void setSamlServiceProviderProvisioning(JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning) {
+        this.samlServiceProviderProvisioning = samlServiceProviderProvisioning;
+    }
+
+    public void setScimUserProvisioning(JdbcScimUserProvisioning scimUserProvisioning) {
+        this.scimUserProvisioning = scimUserProvisioning;
+    }
 }
