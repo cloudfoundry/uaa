@@ -104,7 +104,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
-import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
@@ -398,7 +397,7 @@ public final class MockMvcUtils {
         user.setPassword("password");
 
         ScimGroup group = new ScimGroup("scim.invite");
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER, Arrays.asList(MEMBER))));
+        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER)));
 
         return new ZoneScimInviteData(
                 adminToken,
@@ -952,7 +951,7 @@ public final class MockMvcUtils {
         user = (zone == null) ? createUser(mockMvc, adminToken, user) : createUserInZone(mockMvc,adminToken,user,zone.getSubdomain(), null);
 
         String scope = "scim.invite";
-        ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
+        ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
         ScimGroup inviteGroup = new ScimGroup(scope);
 
         if (zone!=null) {

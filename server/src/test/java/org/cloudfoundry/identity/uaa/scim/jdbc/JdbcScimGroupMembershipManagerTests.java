@@ -32,13 +32,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -58,11 +56,12 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
@@ -76,7 +75,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     private static final String addGroupSqlFormat = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
 
-    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s', '%s')";
+    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s')";
 
     private static final String addExternalMapSql = "insert into external_group_mapping (group_id, external_group, added, origin, identity_zone_id) values (?, ?, ?, ?, ?)";
 
@@ -125,13 +124,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         jdbcTemplate.update(addExternalMapSql, gId, external, now, origin, IdentityZoneHolder.get().getId());
     }
 
-    private void addMember(String gId, String mId, String mType, String authorities) {
-        addMember(gId,mId,mType,authorities, OriginKeys.UAA);
-    }
-    private void addMember(String gId, String mId, String mType, String authorities, String origin) {
+    private void addMember(String gId, String mId, String mType, String origin) {
         gId = IdentityZoneHolder.isUaa() ? gId : IdentityZoneHolder.get().getId()+"-"+gId;
         mId = IdentityZoneHolder.isUaa() ? mId : IdentityZoneHolder.get().getId()+"-"+mId;
-        jdbcTemplate.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities, origin, IdentityZoneHolder.get().getId()));
+        jdbcTemplate.execute(String.format(addMemberSqlFormat, gId, mId, mType, origin, IdentityZoneHolder.get().getId()));
     }
 
     private void addGroup(String id, String name, String zoneId) {
@@ -182,10 +178,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void delete_by_member() throws Exception {
-        addMember("g1", "m3", "USER", "READER", LDAP);
-        addMember("g1", "g2", "GROUP", "READER", LDAP);
-        addMember("g3", "m2", "USER", "READER,WRITER", UAA);
-        addMember("g2", "m3", "USER", "READER", UAA);
+        addMember("g1", "m3", "USER", LDAP);
+        addMember("g1", "g2", "GROUP",LDAP);
+        addMember("g3", "m2", "USER", UAA);
+        addMember("g2", "m3", "USER", UAA);
         validateCount(4);
         dao.removeMembersByMemberId("m3", IdentityZoneHolder.get().getId());
         validateCount(2);
@@ -193,10 +189,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void delete_by_member_and_origin() throws Exception {
-        addMember("g1", "m3", "USER", "READER", LDAP);
-        addMember("g1", "g2", "GROUP", "READER", LDAP);
-        addMember("g3", "m2", "USER", "READER,WRITER", UAA);
-        addMember("g2", "m3", "USER", "READER", UAA);
+        addMember("g1", "m3", "USER", LDAP);
+        addMember("g1", "g2", "GROUP",LDAP);
+        addMember("g3", "m2", "USER", UAA);
+        addMember("g2", "m3", "USER", UAA);
         validateCount(4);
         dao.removeMembersByMemberId("m3", "non-existent-origin", IdentityZoneHolder.get().getId());
         validateCount(4);
@@ -256,10 +252,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     private void addMembers(String origin) {
-        addMember("g1", "m3", "USER", "READER", origin);
-        addMember("g1", "g2", "GROUP", "READER", origin);
-        addMember("g3", "m2", "USER", "READER,WRITER", origin);
-        addMember("g2", "m3", "USER", "READER", origin);
+        addMember("g1", "m3", "USER", origin);
+        addMember("g1", "g2", "GROUP",origin);
+        addMember("g3", "m2", "USER", origin);
+        addMember("g2", "m3", "USER", origin);
     }
     private void addMembers() {
         addMembers(OriginKeys.UAA);
@@ -317,7 +313,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     public void test_zone_deleted() {
         String zoneAdminId = generator.generate();
         addGroup(zoneAdminId, "zones." + zone.getId() + ".admin", IdentityZone.getUaa().getId());
-        addMember(zoneAdminId, "m1", "USER", "MEMBER", OriginKeys.UAA);
+        addMember(zoneAdminId, "m1", "USER", OriginKeys.UAA);
 
         IdentityZoneHolder.set(zone);
         addMembers();
@@ -396,11 +392,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     @Test
     public void canAddMember() throws Exception {
         validateCount(0);
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         ScimGroupMember m2 = dao.addMember("g2", m1, IdentityZoneHolder.get().getId());
         validateCount(1);
         assertEquals(ScimGroupMember.Type.USER, m2.getType());
-        assertEquals(ScimGroupMember.GROUP_MEMBER, m2.getRoles());
         assertEquals("m1", m2.getMemberId());
         validateUserGroups("m1", "test2");
     }
@@ -411,7 +406,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         IdentityZone otherZone = MultitenancyFixture.identityZone(subdomain, subdomain);
         otherZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(otherZone);
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         m1.setOrigin(OriginKeys.UAA);
         dao.addMember("g2", m1, IdentityZoneHolder.get().getId());
     }
@@ -423,7 +418,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         otherZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(otherZone);
         validateCount(0);
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         m1.setOrigin(OriginKeys.UAA);
         dao.addMember("g2", m1, IdentityZoneHolder.get().getId());
     }
@@ -432,17 +427,16 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     public void canAddNestedGroupMember() {
         addMember("g2", "m1", "USER", "READER");
 
-        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP);
         g2 = dao.addMember("g1", g2, IdentityZoneHolder.get().getId());
         assertEquals(ScimGroupMember.Type.GROUP, g2.getType());
-        assertEquals(ScimGroupMember.GROUP_ADMIN, g2.getRoles());
         assertEquals("g2", g2.getMemberId());
         validateUserGroups("m1", "test1.i", "test2");
     }
 
     @Test(expected = InvalidScimResourceException.class)
     public void cannotNestGroupWithinItself() {
-        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP);
         dao.addMember("g2", g2, IdentityZoneHolder.get().getId());
     }
 
@@ -472,25 +466,25 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void testBackwardsCompatibilityToMemberAuthorities() {
-        addMember("g1", "m1", "USER", "READ");
-        addMember("g1", "g2", "GROUP", "member");
-        addMember("g1", "m2", "USER", "READER,write");
+    public void canReadNullFromAuthoritiesColumn() {
+        String addNullAuthoritySQL =
+            "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', NULL, '%s', '%s')";
+        jdbcTemplate.execute(String.format(addNullAuthoritySQL, "g1", "m1", "USER", "uaa", IdentityZoneHolder.get().getId()));
 
-        List<ScimGroupMember> members = dao.getMembers("g1", false, IdentityZoneHolder.get().getId());
-        assertNotNull(members);
-        assertEquals(3, members.size());
-        List<ScimGroupMember> readers = new ArrayList<ScimGroupMember>(), writers = new ArrayList<ScimGroupMember>();
-        for (ScimGroupMember member : members) {
-            if (member.getRoles().contains(ScimGroupMember.Role.READER)) {
-                readers.add(member);
-            }
-            if (member.getRoles().contains(ScimGroupMember.Role.WRITER)) {
-                writers.add(member);
-            }
-        }
-        assertEquals(2, readers.size());
-        assertEquals(1, writers.size());
+        ScimGroupMember member = dao.getMemberById("g1", "m1", IdentityZoneHolder.get().getId());
+        assertNotNull(member);
+        assertEquals("m1", member.getMemberId());
+    }
+
+    @Test
+    public void canReadNonNullFromAuthoritiesColumn() {
+        String addNullAuthoritySQL =
+            "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s', '%s')";
+        jdbcTemplate.execute(String.format(addNullAuthoritySQL, "g1", "m1", "USER", "ANYTHING", "uaa", IdentityZoneHolder.get().getId()));
+
+        ScimGroupMember member = dao.getMemberById("g1", "m1", IdentityZoneHolder.get().getId());
+        assertNotNull(member);
+        assertEquals("m1", member.getMemberId());
     }
 
     @Test
@@ -501,61 +495,22 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetAdminMembers() {
-        addMember("g1", "m3", "USER", "READER,WRITER");
-        addMember("g1", "g2", "GROUP", "READER");
-
-        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
-        assertTrue(dao.getMembers("g1", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).contains(new ScimGroupMember("m3")));
-
-        assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
-    }
-
-    @Test
-    public void canGetMembersByAuthority() {
-        addMember("g1", "m3", "USER", "READER,WRITER");
-        addMember("g1", "g2", "GROUP", "READER,MEMBER");
-        addMember("g2", "g3", "GROUP", "MEMBER");
-
-        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId()).size());
-        assertEquals(2, dao.getMembers("g1", ScimGroupMember.Role.READER, IdentityZoneHolder.get().getId()).size());
-        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
-
-        assertEquals(1, dao.getMembers("g2", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId()).size());
-        assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
-    }
-
-    @Test
     public void canGetMemberById() throws Exception {
         addMember("g3", "m2", "USER", "READER,WRITER");
 
         ScimGroupMember m = dao.getMemberById("g3", "m2", IdentityZoneHolder.get().getId());
         assertEquals(ScimGroupMember.Type.USER, m.getType());
-        assertEquals(ScimGroupMember.GROUP_ADMIN, m.getRoles());
-    }
-
-    @Test
-    public void canUpdateMember() throws Exception {
-        addMember("g1", "m1", "USER", "READER");
-        validateCount(1);
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
-        ScimGroupMember m2 = dao.updateMember("g1", m1, IdentityZoneHolder.get().getId());
-        assertEquals(ScimGroupMember.GROUP_ADMIN, m2.getRoles());
-        assertNotSame(m1, m2);
-
-        validateCount(1);
-        validateUserGroups("m1", "test1");
     }
 
     @Test
     public void canUpdateOrAddMembers() {
         String zoneId = IdentityZoneHolder.get().getId();
 
-        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), zoneId);
-        dao.addMember("g1", new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), zoneId);
-        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER), zoneId);
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), zoneId);
+        dao.addMember("g1", new ScimGroupMember("m4", ScimGroupMember.Type.USER), zoneId);
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), zoneId);
 
-        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN), zoneId);
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER), zoneId);
 
         validateCount(4);
         validateUserGroups("m1", "test1");
@@ -563,22 +518,20 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
         JdbcScimGroupMembershipManager spy = Mockito.spy(dao);
 
-        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN); // update role member->admin
-        ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER); // new member
-        ScimGroupMember m4 = new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER); // does not change
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP); // update role member->admin
+        ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER); // new member
+        ScimGroupMember m4 = new ScimGroupMember("m4", ScimGroupMember.Type.USER); // does not change
 
         List<ScimGroupMember> members = spy.updateOrAddMembers("g1", Arrays.asList(g2, m3, m4), zoneId);
 
         validateCount(4);
-        verify(spy).updateMember("g1", g2, zoneId);
         verify(spy).addMember("g1", m3, zoneId);
-        verify(spy, times(0)).updateMember("g1", m4, zoneId);
         verify(spy, times(0)).addMember("g1", m4, zoneId);
         verify(spy).removeMemberById("g1", "m1", zoneId);
         assertEquals(3, members.size());
-        assertTrue(members.contains(new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, null)));
-        assertTrue(members.contains(new ScimGroupMember("m3", ScimGroupMember.Type.USER, null)));
-        assertFalse(members.contains(new ScimGroupMember("m1", ScimGroupMember.Type.USER, null)));
+        assertTrue(members.contains(new ScimGroupMember("g2", ScimGroupMember.Type.GROUP)));
+        assertTrue(members.contains(new ScimGroupMember("m3", ScimGroupMember.Type.USER)));
+        assertFalse(members.contains(new ScimGroupMember("m1", ScimGroupMember.Type.USER)));
         validateUserGroups("m3", "test1");
         validateUserGroups("m2", "test2", "test1.i");
         validateUserGroups("m1");
@@ -601,9 +554,9 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canRemoveNestedGroupMember() {
-        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN), IdentityZoneHolder.get().getId());
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), IdentityZoneHolder.get().getId());
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
         validateCount(3);
         validateUserGroups("m1", "test1");
         validateUserGroups("m2", "test2", "test1.i");
@@ -622,9 +575,9 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canRemoveAllMembers() {
-        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN), IdentityZoneHolder.get().getId());
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), IdentityZoneHolder.get().getId());
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
         validateCount(3);
         validateUserGroups("m1", "test1");
         validateUserGroups("m2", "test2", "test1.i");
@@ -643,8 +596,8 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canGetGroupsWithExternalMember() {
-        addMember("g1", "m1", "MEMBER", "", zone.getId());
-        addMember("g2", "m1", "MEMBER", "", zone.getId());
+        addMember("g1", "m1", "MEMBER", zone.getId());
+        addMember("g2", "m1", "MEMBER", zone.getId());
 
         Set<ScimGroup> groups = dao.getGroupsWithExternalMember("m1", zone.getId());
 

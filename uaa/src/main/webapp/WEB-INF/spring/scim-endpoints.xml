@@ -145,10 +145,6 @@
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
     </bean>
 
-    <bean id="groupRole" class="org.cloudfoundry.identity.uaa.scim.security.GroupRoleCheck">
-        <constructor-arg ref="groupMembershipManager"/>
-    </bean>
-
     <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/Groups/zones" access="#oauth2.hasScopeInAuthZone('scim.zones')" />
@@ -157,10 +153,10 @@
         <intercept-url pattern="/Groups/External" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/Groups/External/**" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
         <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or @groupRole.isGroupWriter(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or @groupRole.isGroupWriter(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.read') or @groupRole.isGroupReader(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or @groupRole.isGroupWriter(request, 1) or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PATCH" />
+        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
+        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
+        <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
+        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PATCH" />
         <intercept-url pattern="/Groups" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/**" access="denyAll"/>
         <!--<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />-->

@@ -47,18 +47,6 @@ public interface ScimGroupMembershipManager  {
         throws ScimResourceNotFoundException;
 
     /**
-     * Retrieve members that have the specified authority on the group
-     *
-     * @param groupId
-     * @param permission
-     * @param zoneId
-     * @return
-     * @throws ScimResourceNotFoundException
-     */
-    List<ScimGroupMember> getMembers(String groupId, ScimGroupMember.Role permission, final String zoneId)
-        throws ScimResourceNotFoundException;
-
-    /**
      * Retrieve all groups that the given member belongs to
      *
      * @param memberId
@@ -81,19 +69,6 @@ public interface ScimGroupMembershipManager  {
      * @throws MemberNotFoundException
      */
     ScimGroupMember getMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException, MemberNotFoundException;
-
-    /**
-     * Update a particular member's membership details
-     *
-     * @param groupId
-     * @param member
-     * @param zoneId
-     * @return
-     * @throws ScimResourceNotFoundException
-     * @throws MemberNotFoundException
-     */
-    ScimGroupMember updateMember(String groupId, ScimGroupMember member, final String zoneId) throws ScimResourceNotFoundException,
-        MemberNotFoundException;
 
     /**
      * Replace the members of the given group with the supplied member-list

@@ -264,7 +264,7 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void createGroupWithMemberGroupSucceeds() {
         ScimGroup g1 = createGroup(CFID, VIDYA);
-        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP);
         ScimGroup g2 = createGroup(CF_DEV, m2);
 
         // Check we can GET the group
@@ -317,7 +317,7 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void deleteMemberGroupUpdatesGroup() {
         ScimGroup g1 = createGroup(CFID, VIDYA);
-        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP);
         ScimGroup g2 = createGroup(CF_DEV, DALE, m2);
         assertTrue(g2.getMembers().contains(m2));
         validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
@@ -351,8 +351,8 @@ public class ScimGroupEndpointsIntegrationTests {
     public void testUpdateGroupUpdatesMemberUsers() {
         ScimGroup g1 = createGroup(CFID, JOEL, VIDYA);
         ScimGroup g2 = createGroup(CF_MGR, DALE);
-        ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember(g2.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP);
+        ScimGroupMember m2 = new ScimGroupMember(g2.getId(), ScimGroupMember.Type.GROUP);
         ScimGroup g3 = createGroup(CF_DEV, m1, m2);
 
         validateUserGroups(JOEL.getMemberId(), CFID, CF_DEV);

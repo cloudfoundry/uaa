@@ -174,8 +174,8 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     public ScimGroup internalCreateGroup(String groupName) throws Exception {
         ScimGroup g = new ScimGroup(null, groupName, zoneId);
         g.setDescription("description-create");
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
         g.setMembers(Arrays.asList(m1, m2));
         g = dao.create(g, zoneId);
         validateGroupCount(4);
@@ -217,8 +217,8 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         ScimGroup g = dao.retrieve("g1", zoneId);
         assertEquals("uaa.user", g.getDisplayName());
 
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER);
         g.setMembers(Arrays.asList(m1, m2));
         g.setDisplayName("uaa.none");
         g.setDescription("description-update");
