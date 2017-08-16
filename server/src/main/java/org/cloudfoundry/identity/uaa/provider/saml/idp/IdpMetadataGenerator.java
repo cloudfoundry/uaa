@@ -111,7 +111,7 @@ public class IdpMetadataGenerator {
     /**
      * Bindings for single sign-on
      */
-    private Collection<String> bindingsSSO = Arrays.asList("redirect", "post");
+    private Collection<String> bindingsSSO = Arrays.asList("post", "redirect");
 
     /**
      * Bindings for single sign-on holder of key
