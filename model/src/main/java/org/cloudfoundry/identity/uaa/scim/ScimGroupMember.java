@@ -36,6 +36,7 @@ public class ScimGroupMember<TEntity extends ScimCore> {
 
     public ScimGroupMember(TEntity entity) {
         this(entity.getId(), getEntityType(entity));
+        setEntity(entity);
     }
 
     public ScimGroupMember(String memberId, Type type) {
