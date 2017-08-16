@@ -32,12 +32,18 @@ public class GroupMembershipAuthoritiesNullableTest extends JdbcTestBase {
     public void testAuthoritiesNullable() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
-            ResultSet rs = meta.getColumns(connection.getCatalog(), null, "GROUP_MEMBERSHIP", "AUTHORITIES");
-            assertTrue(rs.next());
-            assertEquals("GROUP_MEMBERSHIP", rs.getString("TABLE_NAME").toUpperCase());
-            assertEquals("AUTHORITIES", rs.getString("COLUMN_NAME").toUpperCase());
-            assertEquals("YES", rs.getString("IS_NULLABLE").toUpperCase());
-            assertFalse(rs.next());
+            String profile = environment.getProperty("spring.profiles.active");
+            ResultSet rs;
+            rs = meta.getColumns(connection.getCatalog(), null, null, null);
+            boolean call = false;
+            while(rs.next()) {
+                if("GROUP_MEMBERSHIP".equalsIgnoreCase(rs.getString("TABLE_NAME")) &&
+                    "AUTHORITIES".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                    call = true;
+                    assertEquals("YES", rs.getString("IS_NULLABLE").toUpperCase());
+                }
+            }
+            assertTrue("authorities column not found.", call);
         }
     }
 
