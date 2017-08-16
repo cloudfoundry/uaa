@@ -27,11 +27,17 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ManagedResource(description = "UAA Performance Metrics")
+import static org.springframework.util.StringUtils.hasText;
+
+@ManagedResource(
+    objectName="cloudfoundry.identity:name=ServerRequests",
+    description = "UAA Performance Metrics"
+)
 public class UaaMetricsFilter extends OncePerRequestFilter {
 
 
@@ -40,7 +46,8 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        if (shouldMeasure(request)) {
+        String uriGroup = getUriGroup(request);
+        if (hasText(uriGroup)) {
             RequestMetric metric = RequestMetric.start(request.getRequestURI(), timeService.getCurrentTimeMillis());
             try {
                 MetricsAccessor.setCurrent(metric);
@@ -48,7 +55,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
             } finally {
                 MetricsAccessor.clear();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
-                MetricsQueue queue = getMetricsQueue(metric.getUri());
+                MetricsQueue queue = getMetricsQueue(uriGroup);
                 queue.offer(metric);
             }
         } else {
@@ -63,14 +70,51 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         return perUriMetrics.get(uri);
     }
 
-    private boolean shouldMeasure(HttpServletRequest request) {
+    /**
+     *
+     * @param request
+     * @return null if this request should not be measured.
+     */
+    protected String getUriGroup(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        if (uri != null && (uri.contains("/resources/") || uri.contains("/vendor/"))) {
-            return false;
+        String contextPath = request.getContextPath();
+        if (hasText(contextPath) && uri != null && uri.startsWith(contextPath)) {
+            uri = uri.substring(contextPath.length());
+        }
+        for (String urlGroup :
+            Arrays.asList(
+                "/oauth/token/list",
+                "/oauth/token/revoke",
+                "/oauth/token",
+                "/oauth/authorize",
+                "/approvals",
+                "/Users",
+                "/oauth/clients/tx",
+                "/oauth/clients",
+                "/Codes",
+                "/login/callback",
+                "/identity-providers",
+                "/saml/service-providers",
+                "/Groups/external",
+                "/Groups/zones",
+                "/Groups",
+                "/identity-zones",
+                "/saml/login"
+            )) {
+
+            if (uri.startsWith(urlGroup)) {
+                return urlGroup;
+            }
+        }
+        if (uri != null && (uri.startsWith("/resources/") || uri.startsWith("/vendor/"))) {
+            return "/static-content";
         } else {
-            return true;
+            return uri;
         }
     }
+
+
+
 
     @ManagedMetric(category = "performance", displayName = "Server Request Summary")
     public Map<String, String> getSummary() {

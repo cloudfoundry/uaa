@@ -22,6 +22,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import javax.servlet.FilterChain;
 import java.util.Arrays;
@@ -31,7 +33,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class UaaMetricsFilterTests {
 
@@ -50,12 +51,10 @@ public class UaaMetricsFilterTests {
 
 
     @Test
-    public void ignore_certain_paths() throws Exception {
+    public void group_static_content() throws Exception {
         for (String path : Arrays.asList("/vendor/test", "/resources/test")) {
             request.setRequestURI(path);
-            filter.doFilterInternal(request, response, chain);
-            assertNotNull(filter.getSummary());
-            assertTrue(filter.getSummary().isEmpty());
+            assertEquals("/static-content", filter.getUriGroup(request));
             assertNull(MetricsAccessor.getCurrent());
         }
     }
@@ -79,5 +78,50 @@ public class UaaMetricsFilterTests {
             assertEquals(1, total.getCount());
         }
         assertNull(MetricsAccessor.getCurrent());
+    }
+
+    @Test
+    public void uri_groups() throws Exception {
+        request.setContextPath("");
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("/oauth/token/list","/oauth/token/list");
+        map.add("/oauth/token/list","/oauth/token/list/some-value");
+        map.add("/oauth/token/revoke","/oauth/token/revoke");
+        map.add("/oauth/token/revoke","/oauth/token/revoke/some-value");
+        map.add("/oauth/token","/oauth/token");
+        map.add("/oauth/token","/oauth/token/some-value");
+        map.add("/oauth/authorize","/oauth/authorize");
+        map.add("/oauth/authorize","/oauth/authorize/some-value");
+        map.add("/Users","/Users");
+        map.add("/Users","/Users/some-value");
+        map.add("/oauth/clients/tx","/oauth/clients/tx");
+        map.add("/oauth/clients/tx","/oauth/clients/tx/some-value");
+        map.add("/oauth/clients","/oauth/clients");
+        map.add("/oauth/clients","/oauth/clients/some-value");
+        map.add("/Codes","/Codes");
+        map.add("/Codes","/Codes/some-value");
+        map.add("/approvals","/approvals");
+        map.add("/approvals","/approvals/some-value");
+        map.add("/login/callback","/login/callback");
+        map.add("/login/callback","/login/callback/some-value");
+        map.add("/identity-providers","/identity-providers");
+        map.add("/identity-providers","/identity-providers/some-value");
+        map.add("/saml/service-providers","/saml/service-providers");
+        map.add("/Groups/external","/Groups/external");
+        map.add("/Groups/external","/Groups/external/some-value");
+        map.add("/Groups/zones","/Groups/zones");
+        map.add("/Groups","/Groups");
+        map.add("/Groups","/Groups/some/value");
+        map.add("/identity-zones","/identity-zones");
+        map.add("/identity-zones","/identity-zones/some/value");
+        map.add("/saml/login","/saml/login/value");
+        map.entrySet().stream().forEach(
+            entry -> {
+                for (String s : entry.getValue()) {
+                    request.setRequestURI(s);
+                    assertEquals("Testing URL: "+s, entry.getKey(), filter.getUriGroup(request));
+                }
+            }
+        );
     }
 }

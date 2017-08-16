@@ -87,7 +87,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Controller for listing and manipulating OAuth2 clients.
  */
 @Controller
-@ManagedResource
+@ManagedResource(
+    objectName="cloudfoundry.identity:name=ClientEndpoint",
+    description = "UAA Oauth Clients API Metrics"
+)
 public class ClientAdminEndpoints implements InitializingBean, ApplicationEventPublisherAware {
 
     private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
