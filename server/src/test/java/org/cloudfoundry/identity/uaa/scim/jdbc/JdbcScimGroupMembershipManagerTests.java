@@ -32,13 +32,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -58,12 +56,12 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
@@ -77,7 +75,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     private static final String addGroupSqlFormat = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
 
-    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s', '%s')";
+    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s')";
 
     private static final String addExternalMapSql = "insert into external_group_mapping (group_id, external_group, added, origin, identity_zone_id) values (?, ?, ?, ?, ?)";
 
@@ -126,13 +124,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         jdbcTemplate.update(addExternalMapSql, gId, external, now, origin, IdentityZoneHolder.get().getId());
     }
 
-    private void addMember(String gId, String mId, String mType, String authorities) {
-        addMember(gId,mId,mType,authorities, OriginKeys.UAA);
-    }
-    private void addMember(String gId, String mId, String mType, String authorities, String origin) {
+    private void addMember(String gId, String mId, String mType, String origin) {
         gId = IdentityZoneHolder.isUaa() ? gId : IdentityZoneHolder.get().getId()+"-"+gId;
         mId = IdentityZoneHolder.isUaa() ? mId : IdentityZoneHolder.get().getId()+"-"+mId;
-        jdbcTemplate.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities, origin, IdentityZoneHolder.get().getId()));
+        jdbcTemplate.execute(String.format(addMemberSqlFormat, gId, mId, mType, origin, IdentityZoneHolder.get().getId()));
     }
 
     private void addGroup(String id, String name, String zoneId) {
@@ -183,10 +178,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void delete_by_member() throws Exception {
-        addMember("g1", "m3", "USER", "READER", LDAP);
-        addMember("g1", "g2", "GROUP", "READER", LDAP);
-        addMember("g3", "m2", "USER", "READER,WRITER", UAA);
-        addMember("g2", "m3", "USER", "READER", UAA);
+        addMember("g1", "m3", "USER", LDAP);
+        addMember("g1", "g2", "GROUP",LDAP);
+        addMember("g3", "m2", "USER", UAA);
+        addMember("g2", "m3", "USER", UAA);
         validateCount(4);
         dao.removeMembersByMemberId("m3", IdentityZoneHolder.get().getId());
         validateCount(2);
@@ -194,10 +189,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void delete_by_member_and_origin() throws Exception {
-        addMember("g1", "m3", "USER", "READER", LDAP);
-        addMember("g1", "g2", "GROUP", "READER", LDAP);
-        addMember("g3", "m2", "USER", "READER,WRITER", UAA);
-        addMember("g2", "m3", "USER", "READER", UAA);
+        addMember("g1", "m3", "USER", LDAP);
+        addMember("g1", "g2", "GROUP",LDAP);
+        addMember("g3", "m2", "USER", UAA);
+        addMember("g2", "m3", "USER", UAA);
         validateCount(4);
         dao.removeMembersByMemberId("m3", "non-existent-origin", IdentityZoneHolder.get().getId());
         validateCount(4);
@@ -257,10 +252,10 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     private void addMembers(String origin) {
-        addMember("g1", "m3", "USER", "READER", origin);
-        addMember("g1", "g2", "GROUP", "READER", origin);
-        addMember("g3", "m2", "USER", "READER,WRITER", origin);
-        addMember("g2", "m3", "USER", "READER", origin);
+        addMember("g1", "m3", "USER", origin);
+        addMember("g1", "g2", "GROUP",origin);
+        addMember("g3", "m2", "USER", origin);
+        addMember("g2", "m3", "USER", origin);
     }
     private void addMembers() {
         addMembers(OriginKeys.UAA);
@@ -318,7 +313,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     public void test_zone_deleted() {
         String zoneAdminId = generator.generate();
         addGroup(zoneAdminId, "zones." + zone.getId() + ".admin", IdentityZone.getUaa().getId());
-        addMember(zoneAdminId, "m1", "USER", "MEMBER", OriginKeys.UAA);
+        addMember(zoneAdminId, "m1", "USER", OriginKeys.UAA);
 
         IdentityZoneHolder.set(zone);
         addMembers();
@@ -601,8 +596,8 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canGetGroupsWithExternalMember() {
-        addMember("g1", "m1", "MEMBER", "", zone.getId());
-        addMember("g2", "m1", "MEMBER", "", zone.getId());
+        addMember("g1", "m1", "MEMBER", zone.getId());
+        addMember("g2", "m1", "MEMBER", zone.getId());
 
         Set<ScimGroup> groups = dao.getGroupsWithExternalMember("m1", zone.getId());
 

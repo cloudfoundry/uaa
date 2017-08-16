@@ -145,10 +145,6 @@
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
     </bean>
 
-    <bean id="groupRole" class="org.cloudfoundry.identity.uaa.scim.security.GroupRoleCheck">
-        <constructor-arg ref="groupMembershipManager"/>
-    </bean>
-
     <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/Groups/zones" access="#oauth2.hasScopeInAuthZone('scim.zones')" />

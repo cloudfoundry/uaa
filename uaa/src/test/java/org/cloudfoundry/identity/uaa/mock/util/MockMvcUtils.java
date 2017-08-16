@@ -104,7 +104,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
-import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
