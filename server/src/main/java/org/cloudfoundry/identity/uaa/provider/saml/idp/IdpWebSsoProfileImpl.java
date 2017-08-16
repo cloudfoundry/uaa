@@ -61,6 +61,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.websso.WebSSOProfileImpl;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -288,20 +289,20 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         if (attributeMappings.size() > 0) {
             ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());
 
-            if (attributeMappings.containsKey("given_name")) {
-                String givenName = user.getGivenName();
+            String givenName = user.getGivenName();
+            if (StringUtils.hasText(givenName) && attributeMappings.containsKey("given_name")) {
                 Attribute givenNameAttribute = buildStringAttribute(attributeMappings.get("given_name").toString(), Collections.singletonList(givenName));
                 attributeStatement.getAttributes().add(givenNameAttribute);
             }
 
-            if (attributeMappings.containsKey("family_name")) {
-                String familyName = user.getFamilyName();
+            String familyName = user.getFamilyName();
+            if (StringUtils.hasText(familyName) && attributeMappings.containsKey("family_name")) {
                 Attribute familyNameAttribute = buildStringAttribute(attributeMappings.get("family_name").toString(), Collections.singletonList(familyName));
                 attributeStatement.getAttributes().add(familyNameAttribute);
             }
 
-            if (attributeMappings.containsKey("phone_number")) {
-                String phoneNumber = user.getPhoneNumbers().get(0).getValue();
+            String phoneNumber = scimUserProvisioning.extractPhoneNumber(user);
+            if (StringUtils.hasText(phoneNumber) && attributeMappings.containsKey("phone_number")) {
                 Attribute phoneNumberAttribute = buildStringAttribute(attributeMappings.get("phone_number").toString(), Collections.singletonList(phoneNumber));
                 attributeStatement.getAttributes().add(phoneNumberAttribute);
             }

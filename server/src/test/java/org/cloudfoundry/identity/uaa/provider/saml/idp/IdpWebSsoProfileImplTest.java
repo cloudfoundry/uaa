@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -196,7 +197,34 @@ public class IdpWebSsoProfileImplTest {
         assertAttributeValue(attributes, "first_name", user.getGivenName());
         assertAttributeValue(attributes, "last_name", user.getFamilyName());
         assertAttributeValue(attributes, "cell_phone", user.getPhoneNumbers().get(0).getValue());
+    }
 
+    @Test
+    public void verifyAttributeMappingsIgnoredForNullValues() throws Exception {
+        user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber(null)));
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        attributeMappings.put("phone_number", "cell_phone");
+
+        samlServiceProvider.getConfig().setAttributeMappings(attributeMappings);
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+            samlTestUtils.mockAuthnRequest(NameIDType.UNSPECIFIED));
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+
+        profile.buildAttributeStatement(assertion, authentication, samlServiceProvider.getEntityId());
+
+        List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
+
+        assertAttributeValue(attributes, "first_name", user.getGivenName());
+        assertAttributeDoesNotExist(attributes, "last_name");
+        assertAttributeDoesNotExist(attributes, "cell_phone");
     }
 
     private void verifyAssertionAttributes(String authenticationId, Assertion assertion) {
@@ -208,8 +236,15 @@ public class IdpWebSsoProfileImplTest {
         assertAttributeValue(attributes, "zoneId", "uaa");
     }
 
-    private void assertAttributeValue(List<Attribute> attributeList, String name, String expectedValue) {
+    private void assertAttributeDoesNotExist(List<Attribute> attributeList, String name) {
+        List<String> matchedAttributes = attributeList.stream()
+            .map(Attribute::getName)
+            .filter(name::equals)
+            .collect(Collectors.toList());
+        assertEquals(0, matchedAttributes.size());
+    }
 
+    private void assertAttributeValue(List<Attribute> attributeList, String name, String expectedValue) {
         for (Attribute attribute : attributeList) {
             if (attribute.getName().equals(name)) {
                 if (1 != attribute.getAttributeValues().size()) {
