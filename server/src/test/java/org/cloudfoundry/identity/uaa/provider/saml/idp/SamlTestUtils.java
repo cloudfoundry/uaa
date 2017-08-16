@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -67,12 +69,15 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -384,7 +389,7 @@ public class SamlTestUtils {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = mockUaaAuthentication(authenticationId);
         SAMLMessageContext context = mockSamlMessageContext();
-        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
+        IdpWebSsoProfileImpl profile = mockSsoWebProfileImpl();
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
         options.setAssertionsSigned(false);
         profile.buildResponse(authentication, context, options);
@@ -947,16 +952,6 @@ public class SamlTestUtils {
                 .setConfig(singleAddDef);
     }
 
-    public static SamlServiceProvider mockSamlServiceProviderWithoutXmlHeaderInMetadata() {
-        SamlServiceProviderDefinition singleAddWithoutHeaderDef = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_HEADER,
-                        new RandomValueStringGenerator().generate()))
-                .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
-                .setMetadataTrustCheck(true).build();
-        return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId("uaa")
-                .setConfig(singleAddWithoutHeaderDef);
-    }
-
     public static SamlServiceProvider mockSamlServiceProviderForZoneWithoutSPSSOInMetadata(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
                 .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_ID_AND_ENTITY_ID,
@@ -990,4 +985,24 @@ public class SamlTestUtils {
         return documentBuilderFactory.newDocumentBuilder().parse(is);
     }
 
+    private static IdpWebSsoProfileImpl mockSsoWebProfileImpl() {
+        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
+        JdbcScimUserProvisioning scimUserProvisioning = mock(JdbcScimUserProvisioning.class);
+        profile.setScimUserProvisioning(scimUserProvisioning);
+        JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning = mock(JdbcSamlServiceProviderProvisioning.class);
+        profile.setSamlServiceProviderProvisioning(samlServiceProviderProvisioning);
+
+        ScimUser user = new ScimUser(null, "johndoe", "John", "Doe");
+
+        SamlServiceProvider samlServiceProvider = new SamlServiceProvider();
+        SamlServiceProviderDefinition config = new SamlServiceProviderDefinition();
+        config.setAttributeMappings(new HashMap<>());
+        samlServiceProvider.setConfig(config);
+
+        when(scimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
+        when(samlServiceProviderProvisioning.retrieveByEntityId(any(), any())).thenReturn(samlServiceProvider);
+        profile.setScimUserProvisioning(scimUserProvisioning);
+        profile.setSamlServiceProviderProvisioning(samlServiceProviderProvisioning);
+        return profile;
+    }
 }

@@ -63,7 +63,6 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.websso.WebSSOProfileImpl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -273,15 +272,15 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         attributeStatement.getAttributes().add(authoritiesAttribute);
 
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Attribute emailAttribute = buildStringAttribute("email", Arrays.asList(new String[] { principal.getEmail() }));
+        Attribute emailAttribute = buildStringAttribute("email", Collections.singletonList(principal.getEmail()));
         attributeStatement.getAttributes().add(emailAttribute);
-        Attribute idAttribute = buildStringAttribute("id", Arrays.asList(new String[] { principal.getId() }));
+        Attribute idAttribute = buildStringAttribute("id", Collections.singletonList(principal.getId()));
         attributeStatement.getAttributes().add(idAttribute);
-        Attribute nameAttribute = buildStringAttribute("name", Arrays.asList(new String[] { principal.getName() }));
+        Attribute nameAttribute = buildStringAttribute("name", Collections.singletonList(principal.getName()));
         attributeStatement.getAttributes().add(nameAttribute);
-        Attribute originAttribute = buildStringAttribute("origin", Arrays.asList(new String[] { principal.getOrigin() }));
+        Attribute originAttribute = buildStringAttribute("origin", Collections.singletonList(principal.getOrigin()));
         attributeStatement.getAttributes().add(originAttribute);
-        Attribute zoneAttribute = buildStringAttribute("zoneId", Arrays.asList(new String[] { principal.getZoneId() }));
+        Attribute zoneAttribute = buildStringAttribute("zoneId", Collections.singletonList(principal.getZoneId()));
         attributeStatement.getAttributes().add(zoneAttribute);
 
         Map<String, Object> attributeMappings = samlServiceProviderProvisioning.retrieveByEntityId(providerEntityId, IdentityZoneHolder.get().getId()).getConfig().getAttributeMappings();
@@ -297,8 +296,8 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
             if (attributeMappings.containsKey("family_name")) {
                 String familyName = user.getFamilyName();
-                Attribute lastNameAttribute = buildStringAttribute(attributeMappings.get("family_name").toString(), Collections.singletonList(familyName));
-                attributeStatement.getAttributes().add(lastNameAttribute);
+                Attribute familyNameAttribute = buildStringAttribute(attributeMappings.get("family_name").toString(), Collections.singletonList(familyName));
+                attributeStatement.getAttributes().add(familyNameAttribute);
             }
 
             if (attributeMappings.containsKey("phone_number")) {
