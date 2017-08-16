@@ -2097,7 +2097,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(containsString("Sign in")))
                 .andExpect(xpath("//input[@name='email']").exists())
                 .andExpect(xpath("//div[@class='action']//a").string("Create account"))
-                .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
+                .andExpect(xpath("//input[@name='skipDiscovery']/@value").string("Skip Discovery"))
+                .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
     }
 
     @Test
@@ -2140,7 +2141,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("Sign in to continue to "+clientName)))
             .andExpect(xpath("//input[@name='email']").exists())
             .andExpect(xpath("//div[@class='action']//a").string("Create account"))
-            .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
+            .andExpect(xpath("//input[@name='skipDiscovery']/@value").string("Skip Discovery"))
+            .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
     }
 
     @Test
@@ -2313,7 +2315,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@other.domain")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&providedUsername=marissa%40other.domain"));
     }
 
     @Test
@@ -2336,7 +2338,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@test.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&providedUsername=marissa%40test.org"));
     }
 
     @Test
@@ -2377,7 +2379,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@testLdap.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&providedUsername=marissa%40testLdap.org"));
     }
 
     @Test

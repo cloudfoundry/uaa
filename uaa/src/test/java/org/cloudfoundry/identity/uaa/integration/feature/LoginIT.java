@@ -16,6 +16,7 @@ import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -103,7 +104,7 @@ public class LoginIT {
         requestBody.add("username", testAccounts.getUserName());
         requestBody.add("password", testAccounts.getPassword());
 
-        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
                                                                  HttpMethod.GET,
                                                                  new HttpEntity<>(null, headers),
@@ -137,6 +138,33 @@ public class LoginIT {
             }
         }
         assertTrue("Did not find JSESSIONID", jsessionIdValidated);
+    }
+
+    @Test
+    public void skipDiscoveryWillCarryProvidedUsername() {
+        String zoneId = "testzone3";
+
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+
+        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+        webDriver.get(zoneUrl);
+        assertEquals(webDriver.findElement(By.cssSelector("input[name=skipDiscovery]")).getAttribute("value"), "Skip Discovery");
+
+        webDriver.findElement(By.cssSelector("input[name=skipDiscovery]")).click();
+        assertEquals(zoneUrl + "/login?discoveryPerformed=true", webDriver.getCurrentUrl());
+        assertEquals("true", webDriver.findElement(By.cssSelector("input[name=username]")).getAttribute("autofocus"));
+        webDriver.navigate().back();
+
+        webDriver.findElement(By.cssSelector("input#email")).sendKeys("someUser");
+        webDriver.findElement(By.cssSelector("input[name=skipDiscovery]")).click();
+        assertEquals(zoneUrl + "/login?discoveryPerformed=true&providedUsername=someUser", webDriver.getCurrentUrl());
+        assertEquals("someUser", webDriver.findElement(By.cssSelector("input[name=username]")).getAttribute("value"));
+        assertEquals("true", webDriver.findElement(By.cssSelector("input[name=password]")).getAttribute("autofocus"));
     }
 
     @Test
