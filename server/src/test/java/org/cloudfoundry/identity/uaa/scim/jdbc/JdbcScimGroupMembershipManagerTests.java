@@ -59,6 +59,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -469,58 +470,33 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         assertEquals(0, dao.getMembers("g1", false, IdentityZoneHolder.get().getId()).size());
     }
 
-//    @Test
-//    public void testBackwardsCompatibilityToMemberAuthorities() {
-//        addMember("g1", "m1", "USER", "READ");
-//        addMember("g1", "g2", "GROUP", "member");
-//        addMember("g1", "m2", "USER", "READER,write");
-//
-//        List<ScimGroupMember> members = dao.getMembers("g1", false, IdentityZoneHolder.get().getId());
-//        assertNotNull(members);
-//        assertEquals(3, members.size());
-//        List<ScimGroupMember> readers = new ArrayList<ScimGroupMember>(), writers = new ArrayList<ScimGroupMember>();
-//        for (ScimGroupMember member : members) {
-//            if (member.getRoles().contains(ScimGroupMember.Role.READER)) {
-//                readers.add(member);
-//            }
-//            if (member.getRoles().contains(ScimGroupMember.Role.WRITER)) {
-//                writers.add(member);
-//            }
-//        }
-//        assertEquals(2, readers.size());
-//        assertEquals(1, writers.size());
-//    }
+    @Test
+    public void canReadNullFromAuthoritiesColumn() {
+        String addNullAuthoritySQL =
+            "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', NULL, '%s', '%s')";
+        jdbcTemplate.execute(String.format(addNullAuthoritySQL, "g1", "m1", "USER", "uaa", IdentityZoneHolder.get().getId()));
+
+        ScimGroupMember member = dao.getMemberById("g1", "m1", IdentityZoneHolder.get().getId());
+        assertNotNull(member);
+        assertEquals("m1", member.getMemberId());
+    }
+
+    @Test
+    public void canReadNonNullFromAuthoritiesColumn() {
+        String addNullAuthoritySQL =
+            "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s', '%s')";
+        jdbcTemplate.execute(String.format(addNullAuthoritySQL, "g1", "m1", "USER", "ANYTHING", "uaa", IdentityZoneHolder.get().getId()));
+
+        ScimGroupMember member = dao.getMemberById("g1", "m1", IdentityZoneHolder.get().getId());
+        assertNotNull(member);
+        assertEquals("m1", member.getMemberId());
+    }
 
     @Test
     public void canGetDefaultGroupsUsingGetGroupsForMember() {
         Set<ScimGroup> groups = dao.getGroupsWithMember("m1", false, IdentityZoneHolder.get().getId());
         assertNotNull(groups);
         assertEquals(1, groups.size());
-    }
-
-    @Test
-    public void canGetAdminMembers() {
-        addMember("g1", "m3", "USER", "READER,WRITER");
-        addMember("g1", "g2", "GROUP", "READER");
-
-        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
-        assertTrue(dao.getMembers("g1", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).contains(new ScimGroupMember("m3")));
-
-        assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
-    }
-
-    @Test
-    public void canGetMembersByAuthority() {
-        addMember("g1", "m3", "USER", "READER,WRITER");
-        addMember("g1", "g2", "GROUP", "READER,MEMBER");
-        addMember("g2", "g3", "GROUP", "MEMBER");
-
-        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId()).size());
-        assertEquals(2, dao.getMembers("g1", ScimGroupMember.Role.READER, IdentityZoneHolder.get().getId()).size());
-        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
-
-        assertEquals(1, dao.getMembers("g2", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId()).size());
-        assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
     }
 
     @Test

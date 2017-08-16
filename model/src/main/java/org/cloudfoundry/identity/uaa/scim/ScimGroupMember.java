@@ -16,9 +16,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
-import java.util.Arrays;
-import java.util.List;
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScimGroupMember<TEntity extends ScimCore> {
 
@@ -30,13 +27,21 @@ public class ScimGroupMember<TEntity extends ScimCore> {
         this.entity = entity;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public enum Role {
-        MEMBER, READER, WRITER
+    public ScimGroupMember() {
     }
 
-    public static final List<Role> GROUP_MEMBER = Arrays.asList(Role.MEMBER);
-    public static final List<Role> GROUP_ADMIN = Arrays.asList(Role.READER, Role.WRITER);
+    public ScimGroupMember(String memberId) {
+        this(memberId, Type.USER);
+    }
+
+    public ScimGroupMember(TEntity entity) {
+        this(entity.getId(), getEntityType(entity));
+    }
+
+    public ScimGroupMember(String memberId, Type type) {
+        this.memberId = memberId;
+        this.type = type;
+    }
 
     @JsonProperty("value")
     private String memberId;
@@ -53,16 +58,6 @@ public class ScimGroupMember<TEntity extends ScimCore> {
     private Type type;
 
     private TEntity entity;
-
-//    @JsonIgnore
-//    private List<Role> roles;
-//
-//    public List<Role> getRoles() {
-//        return new LinkedList<>();
-//    }
-//
-//    public void setRoles(List<Role> permissions) {
-//    }
 
     public String getMemberId() {
         return memberId;
@@ -123,27 +118,7 @@ public class ScimGroupMember<TEntity extends ScimCore> {
         return result;
     }
 
-    public ScimGroupMember() {
-    }
 
-    public ScimGroupMember(String memberId) {
-        this(memberId, Type.USER);
-    }
-
-
-    public ScimGroupMember(String memberId, Type type) {
-        this.memberId = memberId;
-        this.type = type;
-    }
-
-    public ScimGroupMember(TEntity entity) {
-        this(entity, GROUP_MEMBER);
-    }
-
-    public ScimGroupMember(TEntity entity, List<Role> roles) {
-        this(entity.getId(), getEntityType(entity));
-        this.entity = entity;
-    }
 
     private static Type getEntityType(ScimCore entity) {
         Type type = null;

@@ -67,8 +67,6 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     public static final String GET_GROUPS_BY_MEMBER_SQL = String.format("select distinct(group_id) from %s where member_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
-    public static final String GET_MEMBERS_WITH_AUTHORITY_SQL = String.format("select %s from %s where group_id=? and lower(authorities) like ? and identity_zone_id=?", MEMBERSHIP_FIELDS,MEMBERSHIP_TABLE);
-
     public static final String GET_MEMBERS_SQL = String.format("select %s from %s where group_id=? and identity_zone_id=?",MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
     public static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id=? and identity_zone_id=?",MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
@@ -154,17 +152,14 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         final String type = (member.getType() == null ? ScimGroupMember.Type.USER : member.getType()).toString();
         try {
             logger.debug("Associating group:"+groupId+" with member:"+member);
-            jdbcTemplate.update(ADD_MEMBER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, groupId);
-                    ps.setString(2, member.getMemberId());
-                    ps.setString(3, type);
-                    ps.setNull(4, Types.NVARCHAR);
-                    ps.setTimestamp(5, new Timestamp(new Date().getTime()));
-                    ps.setString(6, member.getOrigin());
-                    ps.setString(7, zoneId);
-                }
+            jdbcTemplate.update(ADD_MEMBER_SQL, ps -> {
+                ps.setString(1, groupId);
+                ps.setString(2, member.getMemberId());
+                ps.setString(3, type);
+                ps.setNull(4, Types.VARCHAR);
+                ps.setTimestamp(5, new Timestamp(new Date().getTime()));
+                ps.setString(6, member.getOrigin());
+                ps.setString(7, zoneId);
             });
         } catch (DuplicateKeyException e) {
             throw new MemberAlreadyExistsException(member.getMemberId() + " is already part of the group: " + groupId);
@@ -258,23 +253,6 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         }
 
         return new HashSet<>(results);
-    }
-
-    @Override
-    public List<ScimGroupMember> getMembers(final String groupId, final ScimGroupMember.Role permission, final String zoneId)
-                    throws ScimResourceNotFoundException {
-        logger.debug("getting members of type: " + permission + " from group: " + groupId);
-        List<ScimGroupMember> members = new ArrayList<ScimGroupMember>();
-        members.addAll(jdbcTemplate.query(GET_MEMBERS_WITH_AUTHORITY_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setString(1, groupId);
-                ps.setString(2, "%" + permission.toString().toLowerCase() + "%");
-                ps.setString(3, zoneId);
-            }
-        }, rowMapper)
-                        );
-        return members;
     }
 
     @Override

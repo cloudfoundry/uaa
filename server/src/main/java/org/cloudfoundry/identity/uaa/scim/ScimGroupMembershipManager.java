@@ -47,18 +47,6 @@ public interface ScimGroupMembershipManager  {
         throws ScimResourceNotFoundException;
 
     /**
-     * Retrieve members that have the specified authority on the group
-     *
-     * @param groupId
-     * @param permission
-     * @param zoneId
-     * @return
-     * @throws ScimResourceNotFoundException
-     */
-    List<ScimGroupMember> getMembers(String groupId, ScimGroupMember.Role permission, final String zoneId)
-        throws ScimResourceNotFoundException;
-
-    /**
      * Retrieve all groups that the given member belongs to
      *
      * @param memberId

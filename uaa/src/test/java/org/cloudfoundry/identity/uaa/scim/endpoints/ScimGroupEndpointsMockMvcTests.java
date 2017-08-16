@@ -13,6 +13,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import net.minidev.json.JSONUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -1001,23 +1004,23 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
 
     @Test
-    public void add_member_to_group_with_useless_writer() throws Exception {
+    public void add_member_to_group_with_useless_role() throws Exception {
         ScimUser user = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.EMPTY_SET);
         String groupId = getGroupId("scim.read");
         ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
+        JsonNode memberAsJson = JsonUtils.readTree(JsonUtils.writeValueAsString(scimGroupMember));
+        ((ObjectNode)memberAsJson).putArray("roles").add("READER").add("WRITER");
+        String updatedMember = JsonUtils.writeValueAsString(memberAsJson);
+
         MockHttpServletRequestBuilder post = post("/Groups/" + groupId + "/members")
             .header("Authorization", "Bearer " + scimWriteToken)
             .header("Content-Type", APPLICATION_JSON_VALUE)
-            .content(JsonUtils.writeValueAsString(scimGroupMember));
+            .content(updatedMember);
         String responseBody = getMockMvc().perform(post)
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsString();
         assertEquals(JsonUtils.writeValueAsString(scimGroupMember), responseBody);
     }
-
-    //manually update JSON body and try saving it
-    //read null value from DB and make sure it works (after removibng roles)
-    //read non null value and make sure it works (after removibng roles)
 
     @Test
     public void add_member_to_group_twice() throws Exception {

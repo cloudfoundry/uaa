@@ -316,7 +316,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
 
         // Add Member
 
-        ScimGroupMember<ScimUser> groupMember = new ScimGroupMember<>(memberUser, asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        ScimGroupMember<ScimUser> groupMember = new ScimGroupMember<>(memberUser);
         groupMember.setEntity(null); // We don't need to include the serialized user in the request
         MockHttpServletRequestBuilder addMember = post("/Groups/{groupId}/members", scimGroup.getId())
             .header("Authorization", "Bearer " + scimWriteToken)
