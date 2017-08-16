@@ -1164,7 +1164,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         ScimGroup group = new ScimGroup("Delete Test Group");
         group.setZoneId(zone.getId());
         group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
-        membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER)), IdentityZoneHolder.get().getId());
+        membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
         assertEquals(zone.getId(), group.getZoneId());
         assertNotNull(groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId()));
         assertEquals("Delete Test Group", groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId()).getDisplayName());

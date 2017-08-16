@@ -116,12 +116,12 @@ public class ScimGroupEndpoints {
         this.membershipManager = membershipManager;
     }
 
-    private boolean isMember(ScimGroup group, String userId, ScimGroupMember.Role role) {
+    private boolean isMember(ScimGroup group, String userId) {
         if (null == userId) {
             return true;
         }
         for (ScimGroupMember member : group.getMembers()) {
-            if (member.getMemberId().equals(userId) && member.getRoles().contains(role)) {
+            if (member.getMemberId().equals(userId)) {
                 return true;
             }
         }
@@ -458,7 +458,7 @@ public class ScimGroupEndpoints {
             List<ScimGroupMember> newMembers = new LinkedList<>(existing.getMembers());
             //we have an existing group - add new memberships
             for (ScimGroupMember member : group.getMembers()) {
-                if (!isMember(existing, member.getMemberId(), ScimGroupMember.Role.MEMBER)) {
+                if (!isMember(existing, member.getMemberId())) {
                     newMembers.add(member);
                 }
             }
@@ -499,7 +499,7 @@ public class ScimGroupEndpoints {
         if (!hasText(userId) || !hasText(zoneId)) {
             throw new ScimException("User ID and Zone ID are required.", HttpStatus.BAD_REQUEST);
         }
-        if (!isMember(group, userId, ScimGroupMember.Role.MEMBER)) {
+        if (!isMember(group, userId)) {
             throw new ScimException("User is not a zone admin.", HttpStatus.NOT_FOUND);
         }
         List<ScimGroupMember> newZoneAdmins = new LinkedList<>();
@@ -518,20 +518,13 @@ public class ScimGroupEndpoints {
         return new ResponseEntity<>(membership, HttpStatus.OK);
     }
 
-    @RequestMapping("/Groups/{groupId}/members")
+    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.GET)
     public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId,
           @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
           @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
         dao.retrieve(groupId, IdentityZoneHolder.get().getId());
         List<ScimGroupMember> members = membershipManager.getMembers(groupId, returnEntities, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(members, HttpStatus.OK);
-    }
-
-    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.PUT)
-    @ResponseBody
-    @Deprecated
-    public ScimGroupMember editMemberInGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
-        return membershipManager.updateMember(groupId, member, IdentityZoneHolder.get().getId());
     }
 
     @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.POST)

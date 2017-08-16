@@ -12,13 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.Arrays;
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+
+import java.util.Arrays;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScimGroupMember<TEntity extends ScimCore> {
@@ -55,16 +54,15 @@ public class ScimGroupMember<TEntity extends ScimCore> {
 
     private TEntity entity;
 
-    @JsonIgnore
-    private List<Role> roles;
-
-    public List<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(List<Role> permissions) {
-        this.roles = permissions;
-    }
+//    @JsonIgnore
+//    private List<Role> roles;
+//
+//    public List<Role> getRoles() {
+//        return new LinkedList<>();
+//    }
+//
+//    public void setRoles(List<Role> permissions) {
+//    }
 
     public String getMemberId() {
         return memberId;
@@ -92,7 +90,7 @@ public class ScimGroupMember<TEntity extends ScimCore> {
 
     @Override
     public String toString() {
-        return String.format("(memberId: %s, type: %s, roles: %s, origin:%s)", getMemberId(), getType(), getRoles(), getOrigin());
+        return String.format("(memberId: %s, type: %s, origin:%s)", getMemberId(), getType(), getOrigin());
     }
 
     public String getOrigin() {
@@ -129,14 +127,13 @@ public class ScimGroupMember<TEntity extends ScimCore> {
     }
 
     public ScimGroupMember(String memberId) {
-        this(memberId, Type.USER, GROUP_MEMBER);
+        this(memberId, Type.USER);
     }
 
 
-    public ScimGroupMember(String memberId, Type type, List<Role> roles) {
+    public ScimGroupMember(String memberId, Type type) {
         this.memberId = memberId;
         this.type = type;
-        this.roles = roles;
     }
 
     public ScimGroupMember(TEntity entity) {
@@ -144,7 +141,7 @@ public class ScimGroupMember<TEntity extends ScimCore> {
     }
 
     public ScimGroupMember(TEntity entity, List<Role> roles) {
-        this(entity.getId(), getEntityType(entity), roles);
+        this(entity.getId(), getEntityType(entity));
         this.entity = entity;
     }
 

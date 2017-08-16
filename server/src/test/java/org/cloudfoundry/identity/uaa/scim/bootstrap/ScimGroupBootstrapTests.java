@@ -143,7 +143,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         assertEquals(2, bootstrap.getGroup("org1.qa").getMembers().size());
         assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
         assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());
-        assertEquals(2, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), ScimGroupMember.Role.WRITER, IdentityZoneHolder.get().getId()).size());
+        assertEquals(5, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), false, IdentityZoneHolder.get().getId()).size());
     }
 
     @Test

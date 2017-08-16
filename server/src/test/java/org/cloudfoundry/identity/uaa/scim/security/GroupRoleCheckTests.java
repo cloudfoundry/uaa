@@ -37,7 +37,7 @@ public class GroupRoleCheckTests {
         SecurityContextHolder.setContext(context);
 
         ScimGroupMembershipManager manager = mock(ScimGroupMembershipManager.class);
-        ScimGroupMember member = new ScimGroupMember("member-id", ScimGroupMember.Type.USER, Collections.singletonList(ScimGroupMember.Role.MEMBER));
+        ScimGroupMember member = new ScimGroupMember("member-id", ScimGroupMember.Type.USER);
         when(manager.getMembers("group-id", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId())).thenReturn(Arrays.asList(member));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -55,7 +55,7 @@ public class GroupRoleCheckTests {
         SecurityContextHolder.setContext(context);
 
         ScimGroupMembershipManager manager = mock(ScimGroupMembershipManager.class);
-        ScimGroupMember member = new ScimGroupMember("member-id", ScimGroupMember.Type.USER, Collections.singletonList(ScimGroupMember.Role.MEMBER));
+        ScimGroupMember member = new ScimGroupMember("member-id", ScimGroupMember.Type.USER);
         when(manager.getMembers("group-id", ScimGroupMember.Role.MEMBER, IdentityZoneHolder.get().getId())).thenReturn(Arrays.asList(member));
 
         MockHttpServletRequest request = new MockHttpServletRequest();

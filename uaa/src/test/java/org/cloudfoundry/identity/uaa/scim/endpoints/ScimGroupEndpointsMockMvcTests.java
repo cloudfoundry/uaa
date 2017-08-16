@@ -933,9 +933,9 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         Set<String> retrievedMembers = listMembers.stream().map(o -> JsonUtils.writeValueAsString(o)).collect(Collectors.toSet());
 
         Matcher<Iterable<? extends String>> containsExpectedMembers = containsInAnyOrder(
-            JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.MEMBER))),
-            JsonUtils.writeValueAsString(new ScimGroupMember(secondUser.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER))),
-            JsonUtils.writeValueAsString(new ScimGroupMember(scimUser.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER)))
+            JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup.getId(), ScimGroupMember.Type.GROUP)),
+            JsonUtils.writeValueAsString(new ScimGroupMember(secondUser.getId(), ScimGroupMember.Type.USER)),
+            JsonUtils.writeValueAsString(new ScimGroupMember(scimUser.getId(), ScimGroupMember.Type.USER))
         );
 
         Assert.assertThat(retrievedMembers, containsExpectedMembers);
@@ -988,7 +988,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     public void add_member_to_group() throws Exception {
         ScimUser user = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.EMPTY_SET);
         String groupId = getGroupId("scim.read");
-        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
         MockHttpServletRequestBuilder post = post("/Groups/" + groupId + "/members")
             .header("Authorization", "Bearer " + scimWriteToken)
             .header("Content-Type", APPLICATION_JSON_VALUE)
@@ -999,82 +999,42 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(JsonUtils.writeValueAsString(scimGroupMember), responseBody);
     }
 
+
+    @Test
+    public void add_member_to_group_with_useless_writer() throws Exception {
+        ScimUser user = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.EMPTY_SET);
+        String groupId = getGroupId("scim.read");
+        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
+        MockHttpServletRequestBuilder post = post("/Groups/" + groupId + "/members")
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .content(JsonUtils.writeValueAsString(scimGroupMember));
+        String responseBody = getMockMvc().perform(post)
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString();
+        assertEquals(JsonUtils.writeValueAsString(scimGroupMember), responseBody);
+    }
+
+    //manually update JSON body and try saving it
+    //read null value from DB and make sure it works (after removibng roles)
+    //read non null value and make sure it works (after removibng roles)
+
     @Test
     public void add_member_to_group_twice() throws Exception {
         ScimUser user = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.EMPTY_SET);
         String groupId = getGroupId("scim.read");
-        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
         getMockMvc().perform(post("/Groups/" + groupId + "/members")
             .header("Authorization", "Bearer " + scimWriteToken)
             .header("Content-Type", APPLICATION_JSON_VALUE)
             .content(JsonUtils.writeValueAsString(scimGroupMember)))
             .andExpect(status().isCreated());
 
-        scimGroupMember.setRoles(Arrays.asList(ScimGroupMember.Role.WRITER));
         getMockMvc().perform(post("/Groups/" + groupId + "/members")
             .header("Authorization", "Bearer " + scimWriteToken)
             .header("Content-Type", APPLICATION_JSON_VALUE)
             .content(JsonUtils.writeValueAsString(scimGroupMember)))
             .andExpect(status().isConflict());
-    }
-
-    @Test
-    public void update_member_in_group() throws Exception {
-        ScimUser user = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.read"));
-        String groupId = getGroupId("scim.read");
-        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
-
-        scimGroupMember.setRoles(Arrays.asList(ScimGroupMember.Role.WRITER));
-        String updatedMember = JsonUtils.writeValueAsString(scimGroupMember);
-        getMockMvc().perform(put("/Groups/" + groupId + "/members")
-            .header("Authorization", "Bearer " + scimWriteToken)
-            .header("Content-Type", APPLICATION_JSON_VALUE)
-            .content(updatedMember))
-            .andExpect(status().isOk());
-        assertNotNull(updatedMember);
-
-        MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/" + scimGroupMember.getMemberId())
-            .header("Authorization", "Bearer " + scimReadToken);
-        MvcResult mvcResult = getMockMvc().perform(get)
-            .andExpect(status().isOk())
-            .andReturn();
-        String getResponse = mvcResult.getResponse().getContentAsString();
-        assertEquals(updatedMember, getResponse);
-    }
-
-    @Test
-    public void update_member_in_nonexistent_group() throws Exception {
-        ScimGroupMember scimGroupMember = new ScimGroupMember(scimUser.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
-
-        getMockMvc().perform(put("/Groups/nonexistent-group-id/members")
-            .header("Authorization", "Bearer " + scimWriteToken)
-            .header("Content-Type", APPLICATION_JSON_VALUE)
-            .content(JsonUtils.writeValueAsString(scimGroupMember)))
-            .andExpect(status().isNotFound());
-    }
-
-    @Test
-    public void update_member_does_not_exist_in_group() throws Exception {
-        ScimGroupMember scimGroupMember = new ScimGroupMember(scimUser.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
-
-        String groupId = getGroupId("acme");
-        getMockMvc().perform(put("/Groups/" + groupId + "/members")
-            .header("Authorization", "Bearer " + scimWriteToken)
-            .header("Content-Type", APPLICATION_JSON_VALUE)
-            .content(JsonUtils.writeValueAsString(scimGroupMember)))
-            .andExpect(status().isNotFound());
-    }
-
-    @Test
-    public void update_nonexistent_user() throws Exception {
-        ScimGroupMember scimGroupMember = new ScimGroupMember("non-existent-user", ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
-
-        String groupId = getGroupId("scim.read");
-        getMockMvc().perform(put("/Groups/" + groupId + "/members")
-            .header("Authorization", "Bearer " + scimWriteToken)
-            .header("Content-Type", APPLICATION_JSON_VALUE)
-            .content(JsonUtils.writeValueAsString(scimGroupMember)))
-            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -1137,7 +1097,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         String groupId = getGroupId("scim.read");
         String anyOldToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"other.scope");
 
-        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
 
         MockHttpServletRequestBuilder post = post("/Groups/" + groupId + "/members")
             .header("Authorization", "Bearer " + anyOldToken)
@@ -1151,7 +1111,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void add_member_to_nonexistent_group() throws Exception {
         ScimUser user = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.EMPTY_SET);
-        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        ScimGroupMember scimGroupMember = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
         MockHttpServletRequestBuilder post = post("/Groups/nonexistent-group-id/members")
             .header("Authorization", "Bearer " + scimWriteToken)
             .header("Content-Type", APPLICATION_JSON_VALUE)
@@ -1163,7 +1123,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void add_nonexistent_user_to_group() throws Exception {
         String groupId = getGroupId("scim.read");
-        ScimGroupMember scimGroupMember = new ScimGroupMember("random-user-id", ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        ScimGroupMember scimGroupMember = new ScimGroupMember("random-user-id", ScimGroupMember.Type.USER);
         MockHttpServletRequestBuilder post = post("/Groups/" + groupId + "/members")
             .header("Authorization", "Bearer " + scimWriteToken)
             .header("Content-Type", APPLICATION_JSON_VALUE)
@@ -1394,7 +1354,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 }
                 scimUserGroups.add(scimUserGroup);
                 ScimGroupMembershipManager scimGroupMembershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
-                ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
+                ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (MemberAlreadyExistsException x) {}
@@ -1434,7 +1394,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 }
                 scimUserGroups.add(scimUserGroup);
                 ScimGroupMembershipManager scimGroupMembershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
-                ScimGroupMember member = new ScimGroupMember(newGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.READER));
+                ScimGroupMember member = new ScimGroupMember(newGroup.getId(), ScimGroupMember.Type.GROUP);
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (MemberAlreadyExistsException x) {}

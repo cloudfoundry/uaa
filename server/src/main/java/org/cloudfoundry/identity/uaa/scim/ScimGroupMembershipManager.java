@@ -83,19 +83,6 @@ public interface ScimGroupMembershipManager  {
     ScimGroupMember getMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException, MemberNotFoundException;
 
     /**
-     * Update a particular member's membership details
-     *
-     * @param groupId
-     * @param member
-     * @param zoneId
-     * @return
-     * @throws ScimResourceNotFoundException
-     * @throws MemberNotFoundException
-     */
-    ScimGroupMember updateMember(String groupId, ScimGroupMember member, final String zoneId) throws ScimResourceNotFoundException,
-        MemberNotFoundException;
-
-    /**
      * Replace the members of the given group with the supplied member-list
      *
      * @param groupId
