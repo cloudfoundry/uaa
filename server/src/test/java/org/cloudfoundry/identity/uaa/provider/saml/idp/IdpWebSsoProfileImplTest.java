@@ -173,7 +173,9 @@ public class IdpWebSsoProfileImplTest {
 
     @Test
     public void verifyAttributeMappings() throws Exception {
-        user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber("123")));
+        String phone = "123";
+        user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber(phone)));
+        when(scimUserProvisioning.extractPhoneNumber(any(ScimUser.class))).thenReturn(phone);
 
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "first_name");
