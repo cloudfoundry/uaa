@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -231,7 +232,16 @@ public class IntegrationTestUtils {
                                       String lastName,
                                       String email,
                                       boolean verified) {
-
+        return createUserWithPhone(client, url, username, firstName, lastName, email, verified, null);
+    }
+    public static ScimUser createUserWithPhone(RestTemplate client,
+                                               String url,
+                                               String username,
+                                               String firstName,
+                                               String lastName,
+                                               String email,
+                                               boolean verified,
+                                               String phoneNumber) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
@@ -239,6 +249,7 @@ public class IntegrationTestUtils {
         user.setVerified(verified);
         user.setActive(true);
         user.setPassword("secr3T");
+        user.setPhoneNumbers(Collections.singletonList(new PhoneNumber(phoneNumber)));
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
     }
 

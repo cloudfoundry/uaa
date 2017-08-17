@@ -60,6 +60,8 @@
         class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpWebSsoProfileImpl">
         <property name="metadata" ref="idpMetadataManager" />
         <property name="processor" ref="idpSamlProcessor" />
+        <property name="samlServiceProviderProvisioning" ref="serviceProviderProvisioning" />
+        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
     </bean>
 
     <!-- Class loading incoming SAML messages from httpRequest stream -->
