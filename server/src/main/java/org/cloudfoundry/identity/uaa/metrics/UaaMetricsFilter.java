@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -43,7 +42,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
 
 
     private TimeService timeService = new TimeServiceImpl();
-    private AtomicInteger inflight = new AtomicInteger(0);
+    private IdleTimer inflight = new IdleTimer();
     Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
 
     @Override
@@ -53,11 +52,11 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
             RequestMetric metric = RequestMetric.start(request.getRequestURI(), timeService.getCurrentTimeMillis());
             try {
                 MetricsAccessor.setCurrent(metric);
-                inflight.incrementAndGet();
+                inflight.startRequest();
                 filterChain.doFilter(request, response);
             } finally {
                 MetricsAccessor.clear();
-                inflight.decrementAndGet();
+                inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
                 MetricsQueue queue = getMetricsQueue(uriGroup);
                 queue.offer(metric);
@@ -120,8 +119,29 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
 
     @ManagedMetric(category = "performance", displayName = "Inflight Requests")
     public int getInflightRequests() {
-        return inflight.get();
+        return inflight.getInflightRequests();
     }
+
+    @ManagedMetric(category = "performance", displayName = "Idle time (ms)")
+    public long getIdleTime() {
+        return inflight.getIdleTime();
+    }
+
+    @ManagedMetric(category = "performance", displayName = "Processing request time (ms)")
+    public long getProcessingTime() {
+        return inflight.getRunTime() - inflight.getIdleTime();
+    }
+
+    @ManagedMetric(category = "performance", displayName = "Total server run time (ms)")
+    public long getRunTime() {
+        return inflight.getRunTime();
+    }
+
+    @ManagedMetric(category = "performance", displayName = "Number of completed requests")
+    public long getCompletedRequests() {
+        return inflight.getRequestCount();
+    }
+
 
     @ManagedMetric(category = "performance", displayName = "Server Request Summary")
     public Map<String, String> getSummary() {

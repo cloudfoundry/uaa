@@ -28,11 +28,17 @@ import org.springframework.util.MultiValueMap;
 import javax.servlet.FilterChain;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 
 public class UaaMetricsFilterTests {
 
@@ -78,6 +84,42 @@ public class UaaMetricsFilterTests {
             assertEquals(1, total.getCount());
         }
         assertNull(MetricsAccessor.getCurrent());
+    }
+
+    @Test
+    public void idle_counter() throws Exception {
+        final Lock lock = new ReentrantLock();
+        lock.lock();
+        request.setRequestURI("/oauth/token");
+        final FilterChain chain = Mockito.mock(FilterChain.class);
+        final UaaMetricsFilter filter = new UaaMetricsFilter();
+        doAnswer(invocation -> {
+            try {
+                lock.lock();
+            } finally {
+                lock.unlock();
+                return null;
+            }
+        }).when(chain).doFilter(any(), any());
+        Runnable invocation = () -> {
+            try {
+                filter.doFilterInternal(request, response, chain);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        };
+        Thread invoker = new Thread(invocation);
+        invoker.start();
+        Thread.sleep(10);
+        assertEquals(1, filter.getInflightRequests());
+        lock.unlock();
+        Thread.sleep(25);
+        assertEquals(0, filter.getInflightRequests());
+        long idleTime = filter.getIdleTime();
+        assertThat(idleTime, greaterThan(20l));
+        System.out.println("Total idle time was:"+idleTime);
+        Thread.sleep(10);
+        assertThat("Idle time should have changed.", filter.getIdleTime(), greaterThan(idleTime));
     }
 
     @Test
