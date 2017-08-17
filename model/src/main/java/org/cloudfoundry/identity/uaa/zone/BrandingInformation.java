@@ -11,6 +11,15 @@ public class BrandingInformation implements BrandingInformationSource {
     private String squareLogo;
     private String footerLegalText;
     private Map<String, String> footerLinks;
+    private Banner banner;
+
+    public Banner getBanner() {
+        return banner;
+    }
+
+    public void setBanner(Banner banner) {
+        this.banner = banner;
+    }
 
     @Override
     public String getCompanyName() {
@@ -55,5 +64,53 @@ public class BrandingInformation implements BrandingInformationSource {
 
     public void setFooterLinks(Map<String, String> footerLinks) {
         this.footerLinks = footerLinks;
+    }
+
+    public static class Banner {
+        String logo;
+        String text;
+        String textColor;
+        String backgroundColor;
+        String link;
+
+        public void setLogo(String logo) {
+            this.logo = logo;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+
+        public void setTextColor(String textColor) {
+            this.textColor = textColor;
+        }
+
+        public void setBackgroundColor(String backgroundColor) {
+            this.backgroundColor = backgroundColor;
+        }
+
+        public void setLink(String link) {
+            this.link = link;
+        }
+
+        public String getLogo() {
+            return logo;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public String getTextColor() {
+            return textColor;
+        }
+
+        public String getBackgroundColor() {
+            return backgroundColor;
+        }
+
+        public String getLink() {
+            return link;
+        }
     }
 }

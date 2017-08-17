@@ -108,6 +108,10 @@ public class IdentityZoneHolder {
     }
 
     private static class MergedZoneBrandingInformation implements BrandingInformationSource {
+        @Override
+        public BrandingInformation.Banner getBanner() {
+            return resolve(BrandingInformationSource::getBanner);
+        }
 
         @Override
         public String getCompanyName() {
