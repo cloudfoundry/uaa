@@ -4,6 +4,7 @@
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
                 branding=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).resolveBranding()},
+                banner=${branding.getBanner()},
                 companyName=${branding.getCompanyName() ?: 'Cloud Foundry'},
                 copyrightCompanyName=${branding.getCompanyName() ?: 'CloudFoundry.org Foundation, Inc. '},
                 copyrightFallback=${'Copyright &#169; ' + copyrightCompanyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.'},
@@ -25,14 +26,16 @@
 </head>
 
 <body class="bg-neutral-10 login">
-    <div class="login-header"
-            th:with="backgroundColor=${branding.getBannerBackgroundColor() != null ? 'background-color :'+branding.getBannerBackgroundColor()+';' : ''},
-                    textColor=${branding.getBannerTextColor() != null ? 'color :'+branding.getBannerTextColor()+';' : ''}"
+    <div th:if="${banner != null}" class="login-header"
+            th:with="backgroundColor=${banner.getBackgroundColor() != null ? 'background-color :'+banner.getBackgroundColor()+';' : ''},
+                    textColor=${banner.getTextColor() != null ? 'color :'+banner.getTextColor()+';' : ''}"
             th:style="${backgroundColor}+${textColor}">
-        <a th:href="${branding.getBannerLink() != null ? branding.getBannerLink() : '#'}" href="#"
-                th:style="${branding.getBannerTextColor() != null ? 'color: inherit' : ''}">
-            <img th:if="${branding.getBannerLogo() != null}" th:src="'data:image/png;base64,'+${branding.getBannerLogo()}" alt="bannerLogo" />
-            <span th:if="${branding.getBannerText() != null && branding.getBannerLogo() == null}" th:text="${branding.getBannerText()}"></span>
+        <a th:href="${banner.getLink() != null ? banner.getLink() : '#'}" href="#"
+                th:with="linkColor=${banner.getTextColor() != null ? 'color:inherit;' : ''},
+                linkCursor=${banner.getLink() == null ? 'cursor:default;' : ''}"
+                th:style="${linkColor+linkCursor}">
+            <img th:if="${banner.getLogo() != null}" th:src="'data:image/png;base64,'+${banner.getLogo()}" alt="bannerLogo" />
+            <span th:if="${banner.getText() != null && banner.getLogo() == null}" th:text="${banner.getText()}"></span>
         </a>
     </div>
     <div class="page">
