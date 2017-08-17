@@ -25,6 +25,16 @@
 </head>
 
 <body class="bg-neutral-10 login">
+    <div class="login-header"
+            th:with="backgroundColor=${branding.getBannerBackgroundColor() != null ? 'background-color :'+branding.getBannerBackgroundColor()+';' : ''},
+                    textColor=${branding.getBannerTextColor() != null ? 'color :'+branding.getBannerTextColor()+';' : ''}"
+            th:style="${backgroundColor}+${textColor}">
+        <a th:href="${branding.getBannerLink() != null ? branding.getBannerLink() : '#'}" href="#"
+                th:style="${branding.getBannerTextColor() != null ? 'color: inherit' : ''}">
+            <img th:if="${branding.getBannerLogo() != null}" th:src="'data:image/png;base64,'+${branding.getBannerLogo()}" alt="bannerLogo" />
+            <span th:if="${branding.getBannerText() != null && branding.getBannerLogo() == null}" th:text="${branding.getBannerText()}"></span>
+        </a>
+    </div>
     <div class="page">
      <div class="login-email panel panel-basic bg-neutral-11 mvxl paxl">
         <div class="panel-body">
