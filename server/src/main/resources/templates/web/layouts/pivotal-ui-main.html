@@ -31,7 +31,7 @@
                     textColor=${banner.getTextColor() != null ? 'color :'+banner.getTextColor()+';' : ''}"
             th:style="${backgroundColor}+${textColor}">
         <a th:href="${banner.getLink() != null ? banner.getLink() : '#'}" href="#"
-                th:with="linkColor=${banner.getTextColor() != null ? 'color:inherit;' : ''},
+                th:with="linkColor=${banner.getTextColor() != null || banner.getLink() == null ? 'color:inherit;' : ''},
                 linkCursor=${banner.getLink() == null ? 'cursor:default;' : ''}"
                 th:style="${linkColor+linkCursor}">
             <img th:if="${banner.getLogo() != null}" th:src="'data:image/png;base64,'+${banner.getLogo()}" alt="bannerLogo" />
