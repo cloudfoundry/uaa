@@ -297,7 +297,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                     .withAuthorities(authenticationData.getAuthorities())
                     .withCreated(new Date())
                     .withOrigin(getOrigin())
-                    .withExternalId(null)
+                    .withExternalId((String) authenticationData.getClaims().get(SUB))
                     .withVerified(true)
                     .withZoneId(IdentityZoneHolder.get().getId())
                     .withSalt(null)
