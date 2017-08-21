@@ -4,6 +4,7 @@
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
                 branding=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).resolveBranding()},
+                banner=${branding.getBanner()},
                 companyName=${branding.getCompanyName() ?: 'Cloud Foundry'},
                 copyrightCompanyName=${branding.getCompanyName() ?: 'CloudFoundry.org Foundation, Inc. '},
                 copyrightFallback=${'Copyright &#169; ' + copyrightCompanyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.'},
@@ -25,6 +26,18 @@
 </head>
 
 <body class="bg-neutral-10 login">
+    <div th:if="${banner != null}" class="login-header"
+            th:with="backgroundColor=${banner.getBackgroundColor() != null ? 'background-color :'+banner.getBackgroundColor()+';' : ''},
+                    textColor=${banner.getTextColor() != null ? 'color :'+banner.getTextColor()+';' : ''}"
+            th:style="${backgroundColor}+${textColor}">
+        <a th:href="${banner.getLink() != null ? banner.getLink() : '#'}" href="#"
+                th:with="linkColor=${banner.getTextColor() != null || banner.getLink() == null ? 'color:inherit;' : ''},
+                linkCursor=${banner.getLink() == null ? 'cursor:default;' : ''}"
+                th:style="${linkColor+linkCursor}">
+            <img th:if="${banner.getLogo() != null}" th:src="'data:image/png;base64,'+${banner.getLogo()}" alt="bannerLogo" />
+            <span th:if="${banner.getText() != null && banner.getLogo() == null}" th:text="${banner.getText()}"></span>
+        </a>
+    </div>
     <div class="page">
      <div class="login-email panel panel-basic bg-neutral-11 mvxl paxl">
         <div class="panel-body">
