@@ -164,6 +164,17 @@
 #    requireSpecialCharacter: 0
 #    expirePasswordInMonths: 0
 
+#client:
+#  secret:
+#    policy:
+#      minLength: 0
+#      maxLength: 128
+#      requireUpperCaseCharacter: 0
+#      requireLowercaseCharacter: 0
+#      requireDigit: 0
+#      requireSpecialCharacter: 0
+#      expireSecretInMonths: 0
+
 scim:
   groups:
     zones.read: Read identity zones
