@@ -43,13 +43,17 @@ import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -1010,6 +1014,96 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone createdZone = provisioning.retrieve(id);
         assertEquals(OPAQUE.getStringValue(), createdZone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         assertTrue(createdZone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+    }
+
+    @Test
+    public void testCreateZoneWithCustomBrandingBanner() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+        Banner banner = new Banner();
+        String backgroundColor = "F112233";
+        String link = "http://example.com";
+        String text = "My Banner";
+        banner.setBackgroundColor(backgroundColor);
+        banner.setLink(link);
+        banner.setText(text);
+        BrandingInformation branding = new BrandingInformation();
+        branding.setBanner(banner);
+        zone.getConfig().setBranding(branding);
+
+        String contentAsString = getMockMvc().perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andReturn().getResponse().getContentAsString();
+        IdentityZone createdZone = JsonUtils.readValue(contentAsString, IdentityZone.class);
+
+        Banner zoneBanner = createdZone.getConfig().getBranding().getBanner();
+        assertEquals(text, zoneBanner.getText());
+        assertEquals(link, zoneBanner.getLink());
+        assertEquals(backgroundColor, zoneBanner.getBackgroundColor());
+    }
+
+    @Test
+    public void testCreateZoneWithIncorrectBrandingBannerLink() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+        Banner banner = new Banner();
+        String backgroundColor = "F112233";
+        String invalidUrl = "this_is_an_invalid_url";
+        banner.setBackgroundColor(backgroundColor);
+        banner.setLink(invalidUrl);
+        BrandingInformation branding = new BrandingInformation();
+        branding.setBanner(banner);
+        zone.getConfig().setBranding(branding);
+
+        MockHttpServletResponse response = getMockMvc().perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn().getResponse();
+
+        assertThat(response.getContentAsString(), Matchers.containsString("Invalid banner link: " + invalidUrl + ". Must be a properly formatted URI beginning with http:// or https://"));
+    }
+
+    @Test
+    public void testUpdateZoneWithIncorrectBrandingBannerLink() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+        Banner banner = new Banner();
+        String backgroundColor = "F112233";
+        String validUrl = "http://example.com";
+        banner.setBackgroundColor(backgroundColor);
+        banner.setLink(validUrl);
+        BrandingInformation branding = new BrandingInformation();
+        branding.setBanner(banner);
+        zone.getConfig().setBranding(branding);
+
+        String response = getMockMvc().perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        IdentityZone createdZone = JsonUtils.readValue(response, IdentityZone.class);
+        String invalidUrl = "this_is_an_invalid_url";
+        createdZone.getConfig().getBranding().getBanner().setLink(invalidUrl);
+
+        MockHttpServletResponse mvcResult = getMockMvc().perform(
+                put("/identity-zones/" + createdZone.getId())
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(createdZone)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse();
+
+        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner link: " + invalidUrl + ". Must be a properly formatted URI beginning with http:// or https://"));
     }
 
     @Test
