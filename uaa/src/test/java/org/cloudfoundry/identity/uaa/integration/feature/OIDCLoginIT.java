@@ -138,6 +138,7 @@ public class OIDCLoginIT {
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
+        config.setClientAuthInBody(false);
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.addAttributeMapping("given_name", "user_name");
         config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
