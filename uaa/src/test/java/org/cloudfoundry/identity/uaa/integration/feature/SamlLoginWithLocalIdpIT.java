@@ -31,17 +31,16 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.openqa.selenium.By;
+import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.Cookie;
-import org.openqa.selenium.By;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,7 +64,6 @@ import org.springframework.web.client.RestTemplate;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,10 +74,11 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryT
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 
@@ -152,15 +151,18 @@ public class SamlLoginWithLocalIdpIT {
         } else {
             url = "http://localhost:8080/uaa/saml/idp/metadata";
         }
+        String idpMetaData = getIdpMetadata(url);
+        return SamlTestUtils.createLocalSamlIdpDefinition(alias, zoneId, idpMetaData);
+    }
+
+    public static String getIdpMetadata(String url) {
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", "application/samlmetadata+xml");
-        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
+        HttpEntity<String> getHeaders = new HttpEntity<>(headers);
         ResponseEntity<String> metadataResponse = client.exchange(url, HttpMethod.GET, getHeaders, String.class);
 
-        String idpMetaData = metadataResponse.getBody();
-        return SamlTestUtils.createLocalSamlIdpDefinition(alias, zoneId, idpMetaData);
+        return metadataResponse.getBody();
     }
 
     @Test
@@ -178,14 +180,7 @@ public class SamlLoginWithLocalIdpIT {
             url = "http://localhost:8080/uaa/saml/metadata/alias/" + alias;
         }
 
-        RestTemplate client = new RestTemplate();
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Accept", "application/samlmetadata+xml");
-        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
-        ResponseEntity<String> metadataResponse = client.exchange(url, HttpMethod.GET, getHeaders, String.class);
-
-        String spMetaData = metadataResponse.getBody();
+        String spMetaData = getIdpMetadata(url);
         SamlServiceProviderDefinition def = new SamlServiceProviderDefinition();
         def.setMetaDataLocation(spMetaData);
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
@@ -388,10 +383,86 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString(lookfor));
 
         provider.setActive(false);
         IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
+    }
+
+    @Test
+    public void idp_initiated_login_invalid_sp() throws Exception {
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(baseUrl + "/login");
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys("marissa");
+        webDriver.findElement(By.name("password")).sendKeys("koala");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        webDriver.get(baseUrl + "/saml/idp/initiate");
+        assertNotNull(webDriver.findElement(By.xpath("//h2[contains(text(), 'Missing sp request parameter')]")));
+        webDriver.get(baseUrl + "/saml/idp/initiate?sp=invalid_entity_id");
+        assertNotNull(webDriver.findElement(By.xpath("//h2[contains(text(), 'Invalid sp entity ID')]")));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void idp_initiated_login() throws Exception {
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+
+        //zone1 is IDP (create SP config and user here)
+        //zone2 is SP (create IDP config here)
+        //start at zone_1_url
+        //should land on zone_2_url
+
+        String zoneId1 = "testzone1";
+        String zoneId2 = "testzone2";
+
+        RestTemplate identityClient = getIdentityClient();
+        RestTemplate adminClient = getAdminClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1);
+        IdentityZone zone2 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2);
+
+        String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser idpUser = new ScimUser(null, email, "IDPFirst", "IDPLast");
+        idpUser.setPrimaryEmail(email);
+        idpUser.setPassword("secr3T");
+
+        ScimUser user = IntegrationTestUtils.createUser(adminToken, baseUrl, idpUser, zoneId1);
+
+        String testZone1Url = baseUrl.replace("localhost", zoneId1 + ".localhost");
+        String testZone2Url = baseUrl.replace("localhost", zoneId2 + ".localhost");
+
+        SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition("cloudfoundry-saml-login");
+        getSamlServiceProvider(zoneId1,
+                               adminToken,
+                               samlServiceProviderDefinition,
+                               "testzone2.cloudfoundry-saml-login",
+                               "SP for Zone 2",
+                               baseUrl
+        );
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition("cloudfoundry-saml-login");
+        getSamlIdentityProvider(zoneId2,
+                                adminToken,
+                                samlIdentityProviderDefinition);
+
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(testZone1Url + "/logout.do");
+        webDriver.get(testZone2Url + "/logout.do");
+        webDriver.get(testZone1Url + "/saml/idp/initiate?sp=testzone2.cloudfoundry-saml-login");
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome to The Twiglet Zone[" + zoneId1 + "]!')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(email);
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.getCurrentUrl(), containsString(testZone2Url));
+        for (String logout : Arrays.asList(baseUrl, testZone1Url, testZone2Url)) {
+            webDriver.get(logout + "/logout.do");
+        }
+
     }
 
     @SuppressWarnings("unchecked")
@@ -448,7 +519,7 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("username")).sendKeys(zoneUserEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(testZone1Url + "/logout.do");
@@ -845,7 +916,7 @@ public class SamlLoginWithLocalIdpIT {
             webDriver.findElement(By.name("username")).sendKeys(idpZoneUserEmail);
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-            assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+            assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
             Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
             assertNotNull(afterLogin);
             assertNotNull(afterLogin.getValue());

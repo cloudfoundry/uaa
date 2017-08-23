@@ -67,12 +67,11 @@ public class IdpWebSsoProfileImplTest {
     }
 
     @Test
-    public void testBuildResponseForSamlRequestWithPersistentNameID() throws MessageEncodingException, SAMLException,
-            MetadataProviderException, SecurityException, MarshallingException, SignatureException {
+    public void testBuildResponseForSamlRequestWithPersistentNameID() throws Exception {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
-        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
-                samlTestUtils.mockAuthnRequest(NameIDType.PERSISTENT));
+        SAMLMessageContext context =
+            samlTestUtils.mockSamlMessageContext(samlTestUtils.mockAuthnRequest(NameIDType.PERSISTENT));
 
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
         options.setAssertionsSigned(false);

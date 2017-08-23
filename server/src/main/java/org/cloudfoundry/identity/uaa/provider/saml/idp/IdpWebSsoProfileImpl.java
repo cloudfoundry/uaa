@@ -84,6 +84,30 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         sendMessage(context, false);
     }
 
+    public AuthnRequest buildIdpInitiatedAuthnRequest(String nameIDFormat,
+                                                      String spEntityID,
+                                                      String assertionUrl) {
+        @SuppressWarnings("unchecked")
+        SAMLObjectBuilder<AuthnRequest> builder = (SAMLObjectBuilder<AuthnRequest>) builderFactory
+            .getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
+        AuthnRequest request = builder.buildObject();
+        request.setVersion(SAMLVersion.VERSION_20);
+        request.setID(generateID());
+        request.setIssuer(getIssuer(spEntityID));
+        request.setVersion(SAMLVersion.VERSION_20);
+        request.setIssueInstant(new DateTime());
+        request.setID(null);
+        request.setAssertionConsumerServiceURL(assertionUrl);
+        if (null != nameIDFormat) {
+            NameID nameID = ((SAMLObjectBuilder<NameID>) builderFactory.getBuilder(NameID.DEFAULT_ELEMENT_NAME)).buildObject();
+            nameID.setFormat(nameIDFormat);
+            Subject subject = ((SAMLObjectBuilder<Subject>) builderFactory.getBuilder(Subject.DEFAULT_ELEMENT_NAME)).buildObject();
+            subject.setNameID(nameID);
+            request.setSubject(subject);
+        }
+        return request;
+    }
+
     @SuppressWarnings("unchecked")
     protected void buildResponse(Authentication authentication, SAMLMessageContext context,
             IdpWebSSOProfileOptions options)
@@ -174,7 +198,9 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         SAMLObjectBuilder<AuthnContextClassRef> authnContextClassRefBuilder = (SAMLObjectBuilder<AuthnContextClassRef>) builderFactory
                 .getBuilder(AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
         AuthnContextClassRef authnContextClassRef = authnContextClassRefBuilder.buildObject();
+        //TODO - BEGIN we don't know this, should read value from authentication object
         authnContextClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX);
+        //TODO - END
         authnContext.setAuthnContextClassRef(authnContextClassRef);
         authnStatement.setAuthnContext(authnContext);
         assertion.getAuthnStatements().add(authnStatement);
@@ -245,6 +271,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
                 .getBuilder(SubjectConfirmation.DEFAULT_ELEMENT_NAME);
         SubjectConfirmation subjectConfirmation = subjectConfirmationBuilder.buildObject();
         subjectConfirmation.setMethod(SubjectConfirmation.METHOD_BEARER);
+
 
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<SubjectConfirmationData> subjectConfirmationDataBuilder = (SAMLObjectBuilder<SubjectConfirmationData>) builderFactory
