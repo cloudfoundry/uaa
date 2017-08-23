@@ -525,7 +525,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             logger.debug("XOauthCodeToken contains signed_request, not exchanging code.");
             return codeToken.getSignedRequest();
         }
-        MultiValueMap<String, String> body = new LinkedMaskingMultiValueMap<>("code");
+        MultiValueMap<String, String> body = new LinkedMaskingMultiValueMap<>("code", "client_secret");
         body.add("grant_type", "authorization_code");
         body.add("response_type", getResponseType(config));
         body.add("code", codeToken.getCode());
@@ -533,12 +533,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         logger.debug("Adding new client_id and client_secret for token exchange");
         body.add("client_id", config.getRelyingPartyId());
-        body.add("client_secret", config.getRelyingPartySecret());
 
         HttpHeaders headers = new HttpHeaders();
 
         if(config.isClientAuthInBody()) {
-            body.add("client_id", config.getRelyingPartyId());
             body.add("client_secret", config.getRelyingPartySecret());
         } else {
             String clientAuthHeader = getClientAuthHeader(config);
