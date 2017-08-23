@@ -423,6 +423,16 @@ oauth:
   client:
     encoder_cache: false
     encoder_expiry: 600
+    secret:
+      policy:
+        minLength: 8
+        maxLength: 128
+        requireUpperCaseCharacter: 1
+        requireLowerCaseCharacter: 3
+        requireDigit: 2
+        requireSpecialCharacter: 0
+        expireSecretInMonths: 7
+
   clients:
     cc-service-dashboards:
       authorities: clients.read,clients.write,clients.admin
