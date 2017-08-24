@@ -15,9 +15,11 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -147,16 +149,9 @@ public class LoginIT {
 
     @Test
     public void skipDiscoveryWillCarryProvidedUsername() {
-        String zoneId = "testzone3";
-
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
-        );
-        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
-        config.setIdpDiscoveryEnabled(true);
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
-
-        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+        String zoneUrl = createDiscoveryZone();
+        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl);
         webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
 
@@ -190,7 +185,9 @@ public class LoginIT {
 
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
         webDriver.get(zoneUrl);
-        assertEquals("test banner", webDriver.findElement(By.cssSelector(".login-header span")).getText());
+        webDriver.manage().deleteAllCookies();
+        webDriver.navigate().refresh();
+            assertEquals("test banner", webDriver.findElement(By.cssSelector(".login-header span")).getText());
         assertEquals("rgba(68, 68, 68, 1)", webDriver.findElement(By.cssSelector(".login-header")).getCssValue("background-color"));
         assertEquals("rgba(17, 17, 17, 1)", webDriver.findElement(By.cssSelector(".login-header span")).getCssValue("color"));
 
@@ -359,6 +356,7 @@ public class LoginIT {
 
         String userEmail = createAnotherUser(zoneUrl);
         webDriver.get(zoneUrl + "/logout");
+        webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl);
 
         loginThroughDiscovery(userEmail);
@@ -387,7 +385,7 @@ public class LoginIT {
         assertEquals(userEmail, webDriver.findElement(By.className("email-address")).getText());
         webDriver.findElement(By.className("email-address")).click();
 
-        assertEquals(userEmail, webDriver.findElement(By.id("username")).getText());
+        assertEquals(userEmail, webDriver.findElement(By.id("username")).getAttribute("value"));
         webDriver.findElement(By.id("password")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
         assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
@@ -399,7 +397,29 @@ public class LoginIT {
 
         String userEmail = createAnotherUser(zoneUrl);
         webDriver.get(zoneUrl + "/logout");
+
+        loginThroughDiscovery(userEmail);
+        webDriver.get(zoneUrl + "/logout");
+
         webDriver.get(zoneUrl);
+        assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
+        webDriver.findElement(By.cssSelector("div.action a")).click();
+
+        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
+        attemptLogin(userEmail, USER_PASSWORD); // TODO change this to work for password page
+        assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
+    }
+
+    @Test
+    public void testAccountChooserPopulatesUsernameNotEmail() throws Exception {
+        String zoneUrl = createDiscoveryZone();
+
+        String username = "diffusername";
+        String userEmail  = "user" + new SecureRandom().nextInt() + "@example.com";
+
+//        ScimUser user = IntegrationTestUtils.createUser(, zoneUrl, username, "firstname", "lastname", userEmail, true);
+
+        webDriver.get(zoneUrl + "/logout");
 
         loginThroughDiscovery(userEmail);
         webDriver.get(zoneUrl + "/logout");
@@ -459,7 +479,17 @@ public class LoginIT {
         config.setIdpDiscoveryEnabled(true);
         config.setAccountChooserEnabled(true);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
-        return baseUrl.replace("localhost",zoneId+".localhost");
+        String res = baseUrl.replace("localhost",zoneId+".localhost");
+        webDriver.get(res + "/logout.do");
+        webDriver.manage().deleteAllCookies();
+        return res;
+    }
+
+    private void createZoneAdmin() {
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        //TODO add zone admin client here, return it
     }
 
     private void loginThroughDiscovery(String userEmail) {
