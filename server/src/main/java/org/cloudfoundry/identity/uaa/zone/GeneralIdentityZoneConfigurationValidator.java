@@ -14,8 +14,6 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
@@ -23,6 +21,7 @@ import java.util.Map;
 
 
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
+
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
         if (mode == IdentityZoneValidator.Mode.CREATE || mode == IdentityZoneValidator.Mode.MODIFY) {
@@ -69,18 +68,10 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         }
 
         if(config.getBranding() != null && config.getBranding().getBanner() != null) {
-            validateBrandingBanner(config.getBranding().getBanner());
+           BannerValidator.validate(config.getBranding().getBanner());
         }
 
         return config;
-    }
-
-    private void validateBrandingBanner(Banner banner) throws InvalidIdentityZoneConfigurationException {
-        if(banner != null && StringUtils.hasText(banner.getLink())) {
-            if(!UaaUrlUtils.isUrl(banner.getLink())) {
-                throw new InvalidIdentityZoneConfigurationException("Invalid banner link: " + banner.getLink() + ". Must be a properly formatted URI beginning with http:// or https://", null);
-            }
-        }
     }
 
     private void failIfPartialCertKeyInfo(String samlSpCert, String samlSpKey, String samlSpkeyPassphrase) throws InvalidIdentityZoneConfigurationException {
