@@ -95,7 +95,7 @@ public class IdpInitiatedLoginController {
         }
     }
 
-    public String getAssertionConsumerURL(@RequestParam(value = "sp", required = false) String sp) throws MetadataProviderException {
+    public String getAssertionConsumerURL(String sp) throws MetadataProviderException {
         EntityDescriptor entityDescriptor = metadataManager.getEntityDescriptor(sp);
         SPSSODescriptor spssoDescriptor = entityDescriptor.getSPSSODescriptor(SAMLConstants.SAML20P_NS);
         List<AssertionConsumerService> assertionConsumerServices = spssoDescriptor.getAssertionConsumerServices();
