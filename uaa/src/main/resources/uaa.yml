@@ -208,6 +208,16 @@ oauth:
       - roles
       - user_attributes
       - uaa.offline_token
+#  client:
+#    secret:
+#      policy:
+#        minLength: 0
+#        maxLength: 128
+#        requireUpperCaseCharacter: 0
+#        requireLowerCaseCharacter: 0
+#        requireDigit: 0
+#        requireSpecialCharacter: 0
+#        expireSecretInMonths: 0
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.

@@ -55,6 +55,7 @@ import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.HeaderFilter;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -594,6 +595,16 @@ public class BootstrapTests {
             ),
             zoneConfiguration.getPrompts()
         );
+        ClientSecretPolicy expectedSecretPolicy = new ClientSecretPolicy();
+        expectedSecretPolicy.setMinLength(8);
+        expectedSecretPolicy.setMaxLength(128);
+        expectedSecretPolicy.setRequireUpperCaseCharacter(1);
+        expectedSecretPolicy.setRequireLowerCaseCharacter(3);
+        expectedSecretPolicy.setRequireDigit(2);
+        expectedSecretPolicy.setRequireSpecialCharacter(0);
+        expectedSecretPolicy.setExpireSecretInMonths(7);
+
+        assertEquals(expectedSecretPolicy, zoneConfiguration.getClientSecretPolicy());
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
