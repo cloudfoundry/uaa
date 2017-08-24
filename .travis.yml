@@ -142,7 +142,6 @@ before_install:
   fi
 - if [ "$TESTENV" = "sqlserver,default" ]; then
     ./scripts/travis/sqlserver/install-mssqlserver-docker.sh;
-    sleep 5;
     ./gradlew -b mssql.gradle createSQLServerUAA;
   fi
 install:
