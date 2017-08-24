@@ -15,11 +15,9 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -42,6 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
@@ -61,7 +60,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -89,6 +87,7 @@ public class LoginIT {
 
     @Autowired
     SimpleSmtpServer simpleSmtpServer;
+    private String testzone3;
 
     @Before
     @After
@@ -359,14 +358,14 @@ public class LoginIT {
         webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl);
 
-        loginThroughDiscovery(userEmail);
+        loginThroughDiscovery(userEmail, USER_PASSWORD);
         webDriver.get(zoneUrl + "/logout");
 
         webDriver.get(zoneUrl);
         assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
         webDriver.findElement(By.cssSelector("div.action a")).click();
 
-        loginThroughDiscovery(userEmail);
+        loginThroughDiscovery(userEmail, USER_PASSWORD);
         assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
     }
 
@@ -378,7 +377,7 @@ public class LoginIT {
         webDriver.get(zoneUrl + "/logout");
         webDriver.get(zoneUrl);
 
-        loginThroughDiscovery(userEmail);
+        loginThroughDiscovery(userEmail, USER_PASSWORD);
         webDriver.get(zoneUrl + "/logout");
 
         webDriver.get(zoneUrl);
@@ -398,7 +397,7 @@ public class LoginIT {
         String userEmail = createAnotherUser(zoneUrl);
         webDriver.get(zoneUrl + "/logout");
 
-        loginThroughDiscovery(userEmail);
+        loginThroughDiscovery(userEmail, USER_PASSWORD);
         webDriver.get(zoneUrl + "/logout");
 
         webDriver.get(zoneUrl);
@@ -414,14 +413,19 @@ public class LoginIT {
     public void testAccountChooserPopulatesUsernameNotEmail() throws Exception {
         String zoneUrl = createDiscoveryZone();
 
-        String username = "diffusername";
+        String username = "user" + new SecureRandom().nextInt() + "@example.com";
         String userEmail  = "user" + new SecureRandom().nextInt() + "@example.com";
 
-//        ScimUser user = IntegrationTestUtils.createUser(, zoneUrl, username, "firstname", "lastname", userEmail, true);
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        BaseClientDetails zoneClient = new BaseClientDetails("zoneclient"+ new SecureRandom().nextInt(), null, null, "client_credentials", "scim.write");
+        zoneClient.setClientSecret("secret");
+        zoneClient = IntegrationTestUtils.createOrUpdateClient(clientCredentialsToken, baseUrl, testzone3, zoneClient);
+        RestTemplate zoneClientTemplate = IntegrationTestUtils.getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(zoneUrl, new String[]{"scim.write"}, zoneClient.getClientId(), "secret"));
+        IntegrationTestUtils.createUser(zoneClientTemplate, zoneUrl, username, "firstname", "lastname", userEmail, true);
 
         webDriver.get(zoneUrl + "/logout");
 
-        loginThroughDiscovery(userEmail);
+        loginThroughDiscovery(username, "secr3T");
         webDriver.get(zoneUrl + "/logout");
 
         webDriver.get(zoneUrl);
@@ -429,7 +433,7 @@ public class LoginIT {
         webDriver.findElement(By.cssSelector("div.action a")).click();
 
         webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
-        attemptLogin(userEmail, USER_PASSWORD); // TODO change this to work for password page
+        attemptLogin(username, "secr3T");
         assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
     }
 
@@ -470,7 +474,7 @@ public class LoginIT {
     }
 
     private String createDiscoveryZone() {
-        String zoneId = "testzone3"; // TODO generate this
+        testzone3 = "testzone3";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
@@ -478,8 +482,8 @@ public class LoginIT {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         config.setAccountChooserEnabled(true);
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
-        String res = baseUrl.replace("localhost",zoneId+".localhost");
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, testzone3, testzone3, config);
+        String res = baseUrl.replace("localhost", testzone3 +".localhost");
         webDriver.get(res + "/logout.do");
         webDriver.manage().deleteAllCookies();
         return res;
@@ -492,10 +496,10 @@ public class LoginIT {
         //TODO add zone admin client here, return it
     }
 
-    private void loginThroughDiscovery(String userEmail) {
+    private void loginThroughDiscovery(String userEmail, String password) {
         webDriver.findElement(By.id("email")).sendKeys(userEmail);
-        webDriver.findElement(By.xpath("//input[@value='Next']")).click();
-        webDriver.findElement(By.id("password")).sendKeys(USER_PASSWORD);
+        webDriver.findElement(By.cssSelector(".form-group input[value='Next']")).click();
+        webDriver.findElement(By.id("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
     }
 }
