@@ -128,7 +128,7 @@ public class FacebookLoginIT {
     }
 
     @Test
-    public void facebook_login() {
+    public void facebook_login() throws Exception {
         login(baseUrl, "bourne_nzftmdf_identity@tfbnw.net", "9zt7&1U#VEpk");
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
@@ -136,7 +136,7 @@ public class FacebookLoginIT {
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
     }
 
-    private void login(String url, String userName, String password) {
+    private void login(String url, String userName, String password) throws Exception {
         webDriver.get(url + "/logout.do");
         webDriver.get(url + "/");
         Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
@@ -144,12 +144,19 @@ public class FacebookLoginIT {
         assertNotNull(beforeLogin.getValue());
         webDriver.findElement(By.linkText(LINK_TEXT)).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("www.facebook.com"));
-
+        IntegrationTestUtils.takeScreenShot("test-screen-fb-login-page-", webDriver);
         webDriver.findElement(By.name("email")).sendKeys(userName);
         webDriver.findElement(By.name("pass")).sendKeys(password);
         webDriver.findElement(By.name("login")).click();
+        for (int i=0; i<5; i++) {
+            IntegrationTestUtils.takeScreenShot("test-screen-fb-after-login-", webDriver);
+            if (webDriver.getCurrentUrl().contains(url)) {
+                break;
+            } else {
+                Thread.sleep(5000);
+            }
+        }
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(url));
-        IntegrationTestUtils.takeScreenShot(webDriver);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
         assertNotNull(afterLogin);

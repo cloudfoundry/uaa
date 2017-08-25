@@ -68,6 +68,8 @@ import static org.junit.Assume.assumeTrue;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class LoginIT {
 
+    private final String USER_PASSWORD = "sec3Tas";
+
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -156,16 +158,15 @@ public class LoginIT {
 
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
         webDriver.get(zoneUrl);
-        assertEquals(webDriver.findElement(By.cssSelector("input[name=skipDiscovery]")).getAttribute("value"), "Skip Discovery");
+        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
 
-        webDriver.findElement(By.cssSelector("input[name=skipDiscovery]")).click();
         assertEquals(zoneUrl + "/login?discoveryPerformed=true", webDriver.getCurrentUrl());
         assertEquals("true", webDriver.findElement(By.cssSelector("input[name=username]")).getAttribute("autofocus"));
         webDriver.navigate().back();
 
-        webDriver.findElement(By.cssSelector("input#email")).sendKeys("someUser");
-        webDriver.findElement(By.cssSelector("input[name=skipDiscovery]")).click();
-        assertEquals(zoneUrl + "/login?discoveryPerformed=true&providedUsername=someUser", webDriver.getCurrentUrl());
+        webDriver.findElement(By.id("email")).sendKeys("someUser");
+        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
+        assertEquals(zoneUrl + "/login?discoveryPerformed=true&email=someUser", webDriver.getCurrentUrl());
         assertEquals("someUser", webDriver.findElement(By.cssSelector("input[name=username]")).getAttribute("value"));
         assertEquals("true", webDriver.findElement(By.cssSelector("input[name=password]")).getAttribute("autofocus"));
     }
@@ -209,10 +210,10 @@ public class LoginIT {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
-        attemptLogin(newUserEmail, "sec3Tas");
+        attemptLogin(newUserEmail, USER_PASSWORD);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         webDriver.get(baseUrl + "/logout.do");
-        attemptLogin(newUserEmail, "sec3Tas");
+        attemptLogin(newUserEmail, USER_PASSWORD);
 
         assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
 
@@ -334,7 +335,7 @@ public class LoginIT {
             attemptLogin(userEmail, "invalidpassword");
         }
 
-        attemptLogin(userEmail, "sec3Tas");
+        attemptLogin(userEmail, USER_PASSWORD);
         assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), Matchers.containsString("Your account has been locked because of too many failed attempts to login."));
     }
 
@@ -353,6 +354,66 @@ public class LoginIT {
     }
 
     @Test
+    public void testAccountChooserManualLogin() throws Exception {
+        String zoneUrl = createDiscoveryZone();
+
+        String userEmail = createAnotherUser(zoneUrl);
+        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl);
+
+        loginThroughDiscovery(userEmail);
+        webDriver.get(zoneUrl + "/logout");
+
+        webDriver.get(zoneUrl);
+        assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
+        webDriver.findElement(By.cssSelector("div.action a")).click();
+
+        loginThroughDiscovery(userEmail);
+        assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
+    }
+
+    @Test
+    public void testAccountChooserFlow() throws Exception {
+        String zoneUrl = createDiscoveryZone();
+
+        String userEmail = createAnotherUser(zoneUrl);
+        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl);
+
+        loginThroughDiscovery(userEmail);
+        webDriver.get(zoneUrl + "/logout");
+
+        webDriver.get(zoneUrl);
+        assertEquals(userEmail, webDriver.findElement(By.className("email-address")).getText());
+        webDriver.findElement(By.className("email-address")).click();
+
+        assertEquals(userEmail, webDriver.findElement(By.id("username")).getText());
+        webDriver.findElement(By.id("password")).sendKeys(USER_PASSWORD);
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
+    }
+
+    @Test
+    public void testAccountChooserSkipDiscovery() throws Exception {
+        String zoneUrl = createDiscoveryZone();
+
+        String userEmail = createAnotherUser(zoneUrl);
+        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl);
+
+        loginThroughDiscovery(userEmail);
+        webDriver.get(zoneUrl + "/logout");
+
+        webDriver.get(zoneUrl);
+        assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
+        webDriver.findElement(By.cssSelector("div.action a")).click();
+
+        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
+        attemptLogin(userEmail, USER_PASSWORD); // TODO change this to work for password page
+        assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
+    }
+
+    @Test
     public void testLoginReloadRetainsFormRedirect() {
 
         String redirectUri = "http://expected.com";
@@ -368,12 +429,16 @@ public class LoginIT {
 }
 
     private String createAnotherUser() {
+        return createAnotherUser(baseUrl);
+    }
+
+    private String createAnotherUser(String url) {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
 
-        webDriver.get(baseUrl + "/create_account");
+        webDriver.get(url + "/create_account");
         webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys("sec3Tas");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("sec3Tas");
+        webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
 
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
@@ -382,5 +447,25 @@ public class LoginIT {
         webDriver.get(testClient.extractLink(message.getBody()));
 
         return userEmail;
+    }
+
+    private String createDiscoveryZone() {
+        String zoneId = "testzone3"; // TODO generate this
+
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setAccountChooserEnabled(true);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+        return baseUrl.replace("localhost",zoneId+".localhost");
+    }
+
+    private void loginThroughDiscovery(String userEmail) {
+        webDriver.findElement(By.id("email")).sendKeys(userEmail);
+        webDriver.findElement(By.xpath("//input[@value='Next']")).click();
+        webDriver.findElement(By.id("password")).sendKeys(USER_PASSWORD);
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
     }
 }
