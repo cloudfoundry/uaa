@@ -11,7 +11,9 @@
   <div class="choose">
     <ul class="list-group">
       <li class="list-group-item" th:each="account, iter : ${savedAccounts}" th:inline="text">
-        <form th:id="${account.userId}" action="/login/idp_discovery" th:action="@{/login/idp_discovery}" method="post" role="form"><input type="hidden" class="form-control" name="email" th:value="${account.email}" /></form>
+        <form th:id="${account.userId}" action="/login/idp_discovery" th:action="@{/login/idp_discovery}" method="post" role="form">
+          <input type="hidden" class="form-control" name="email" th:value="${account.origin == 'uaa' || account.origin == 'ldap' ? account.username : account.email}" />
+        </form>
         <a href="#" th:onclick="'javascript:document.getElementById(\'' + ${account.userId} + '\').submit();'">
           <span class="account-avatar txt-c ptl txt-m" th:style="'background-color: rgb(' + ${account.red} + ',' + ${account.green} + ',' + ${account.blue} +')'">
             <div class="h2 abbr txt-c pan man em-high">[[${account.username[0]}]]</div>

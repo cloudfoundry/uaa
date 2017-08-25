@@ -40,7 +40,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
@@ -48,6 +47,8 @@ import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Iterator;
@@ -410,31 +411,35 @@ public class LoginIT {
     }
 
     @Test
-    public void testAccountChooserPopulatesUsernameNotEmail() throws Exception {
+    public void testAccountChooserPopulatesUsernameNotEmailWhenOriginIsUAAorLDAP() throws Exception {
+        String userUAA = "{\"userId\":\"1\",\"username\":\"userUAA\",\"origin\":\"uaa\",\"email\":\"user@uaa.org\"}";
+        String userLDAP = "{\"userId\":\"2\",\"username\":\"userLDAP\",\"origin\":\"ldap\",\"email\":\"user@ldap.org\"}";
+        String userExternal = "{\"userId\":\"3\",\"username\":\"userExternal\",\"origin\":\"external\",\"email\":\"user@external.org\"}";
+
         String zoneUrl = createDiscoveryZone();
-
-        String username = "user" + new SecureRandom().nextInt() + "@example.com";
-        String userEmail  = "user" + new SecureRandom().nextInt() + "@example.com";
-
-        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
-        BaseClientDetails zoneClient = new BaseClientDetails("zoneclient"+ new SecureRandom().nextInt(), null, null, "client_credentials", "scim.write");
-        zoneClient.setClientSecret("secret");
-        zoneClient = IntegrationTestUtils.createOrUpdateClient(clientCredentialsToken, baseUrl, testzone3, zoneClient);
-        RestTemplate zoneClientTemplate = IntegrationTestUtils.getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(zoneUrl, new String[]{"scim.write"}, zoneClient.getClientId(), "secret"));
-        IntegrationTestUtils.createUser(zoneClientTemplate, zoneUrl, username, "firstname", "lastname", userEmail, true);
-
-        webDriver.get(zoneUrl + "/logout");
-
-        loginThroughDiscovery(username, "secr3T");
-        webDriver.get(zoneUrl + "/logout");
-
         webDriver.get(zoneUrl);
-        assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
-        webDriver.findElement(By.cssSelector("div.action a")).click();
 
-        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
-        attemptLogin(username, "secr3T");
-        assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
+        webDriver.manage().deleteAllCookies();
+        JavascriptExecutor js = (JavascriptExecutor) webDriver;
+        js.executeScript("document.cookie = \"Saved-Account-1=" + URLEncoder.encode(userUAA, StandardCharsets.UTF_8.name()) + ";path=/;domain=testzone3.localhost\"");
+        js.executeScript("document.cookie = \"Saved-Account-2=" + URLEncoder.encode(userLDAP, StandardCharsets.UTF_8.name()) + ";path=/;domain=testzone3.localhost\"");
+        js.executeScript("document.cookie = \"Saved-Account-3=" + URLEncoder.encode(userExternal, StandardCharsets.UTF_8.name()) + ";path=/;domain=testzone3.localhost\"");
+
+        webDriver.navigate().refresh();
+        assertEquals(3, webDriver.findElements(By.cssSelector("span.email-address")).size());
+
+        webDriver.findElement(By.xpath("//span[contains(text(), 'userUAA')]")).click();
+        assertEquals("userUAA", webDriver.findElement(By.id("username")).getAttribute("value"));
+        webDriver.navigate().back();
+
+        webDriver.findElement(By.xpath("//span[contains(text(), 'userLDAP')]")).click();
+        assertEquals("userLDAP", webDriver.findElement(By.id("username")).getAttribute("value"));
+        webDriver.navigate().back();
+
+        webDriver.findElement(By.xpath("//span[contains(text(), 'userExternal')]")).click();
+        assertEquals("user@external.org", webDriver.findElement(By.id("username")).getAttribute("value"));
+
+        webDriver.manage().deleteAllCookies();
     }
 
     @Test
@@ -450,7 +455,7 @@ public class LoginIT {
         assertThat(webDriver.getCurrentUrl(), Matchers.containsString("/login"));
         assertThat(webDriver.findElement(By.name("form_redirect_uri")).getAttribute("value"), Matchers.containsString("redirect_uri="+redirectUri));
 
-}
+    }
 
     private String createAnotherUser() {
         return createAnotherUser(baseUrl);
