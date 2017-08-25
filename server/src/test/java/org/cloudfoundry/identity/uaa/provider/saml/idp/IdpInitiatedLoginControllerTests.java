@@ -25,6 +25,8 @@ import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.AuthnRequest;
+import org.opensaml.saml2.metadata.AssertionConsumerService;
+import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -51,6 +53,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
 
 public class IdpInitiatedLoginControllerTests {
 
@@ -183,9 +186,34 @@ public class IdpInitiatedLoginControllerTests {
 
     @Test
     public void handle_exception() throws Exception {
-        controller.handleException(new ProviderNotFoundException("message"), request, response);
+        String view = controller.handleException(new ProviderNotFoundException("message"), request, response);
         assertEquals(400, response.getStatus());
         assertEquals("message", request.getAttribute("saml_error"));
+        assertEquals("external_auth_error", view);
     }
+
+    @Test
+    public void get_assertion_consumer_service_url() throws Exception {
+        String entityID = "validEntityID";
+        EntityDescriptor entityDescriptor = mock(EntityDescriptor.class);
+        when(metadataManager.getEntityDescriptor(eq(entityID))).thenReturn(entityDescriptor);
+        SPSSODescriptor spssoDescriptor = mock(SPSSODescriptor.class);
+        when(entityDescriptor.getSPSSODescriptor(eq(SAML20P_NS))).thenReturn(spssoDescriptor);
+        AssertionConsumerService service = mock(AssertionConsumerService.class);
+        when(service.getLocation()).thenReturn("service-location");
+        when(service.isDefault()).thenReturn(false);
+        AssertionConsumerService defaultService = mock(AssertionConsumerService.class);
+        when(defaultService.getLocation()).thenReturn("default-location");
+        when(defaultService.isDefault()).thenReturn(true);
+
+        when(spssoDescriptor.getAssertionConsumerServices()).thenReturn(Arrays.asList(service, defaultService));
+        String url = controller.getAssertionConsumerURL(entityID);
+        assertEquals("default-location", url);
+        when(defaultService.isDefault()).thenReturn(false);
+        url = controller.getAssertionConsumerURL(entityID);
+        assertEquals("service-location", url);
+    }
+
+
 
 }

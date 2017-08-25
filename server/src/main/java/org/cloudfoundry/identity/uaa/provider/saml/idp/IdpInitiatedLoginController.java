@@ -99,7 +99,12 @@ public class IdpInitiatedLoginController {
         EntityDescriptor entityDescriptor = metadataManager.getEntityDescriptor(sp);
         SPSSODescriptor spssoDescriptor = entityDescriptor.getSPSSODescriptor(SAMLConstants.SAML20P_NS);
         List<AssertionConsumerService> assertionConsumerServices = spssoDescriptor.getAssertionConsumerServices();
-        return assertionConsumerServices.get(0).getLocation();
+        Optional<AssertionConsumerService> defaultService = assertionConsumerServices.stream().filter(acs -> acs.isDefault()).findFirst();
+        if (defaultService.isPresent()) {
+            return defaultService.get().getLocation();
+        } else {
+            return assertionConsumerServices.get(0).getLocation();
+        }
     }
 
     protected SAMLMessageContext getSamlContext(String spEntityId,
