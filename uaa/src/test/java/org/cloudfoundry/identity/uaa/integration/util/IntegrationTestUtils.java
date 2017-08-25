@@ -83,9 +83,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -1267,9 +1269,14 @@ public class IntegrationTestUtils {
     }
 
     public static void takeScreenShot(WebDriver webDriver) {
+        takeScreenShot("testscreenshot-", webDriver);
+    }
+    public static void takeScreenShot(String prefix, WebDriver webDriver) {
         File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
         try {
-            FileUtils.copyFile(scrFile, new File("testscreenshot-" + System.currentTimeMillis() + ".png"));
+            SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS");
+            String now = format.format(new Date(System.currentTimeMillis()));
+            FileUtils.copyFile(scrFile, new File(prefix + now + ".png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
