@@ -974,6 +974,25 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     @Test
+    public void testDefaultUsernameValueIsSubjectClaim() throws MalformedURLException {
+        String contextPathURL = "http://contextPath.url";
+        claims.put("iss", UAA_ISSUER_URL);
+        String username = "unique_value";
+        claims.put("sub", username);
+        CompositeAccessToken token = getCompositeAccessToken();
+        String idToken = token.getIdTokenValue();
+        xCodeToken.setIdToken(idToken);
+        xCodeToken.setOrigin(null);
+        xCodeToken.setRequestContextPath(contextPathURL);
+        LegacyTokenKey.setLegacySigningKey(PRIVATE_KEY);
+
+        XOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = xoAuthAuthenticationManager
+            .getExternalAuthenticationDetails(xCodeToken);
+
+        assertEquals(username, externalAuthenticationDetails.getUsername());
+    }
+
+    @Test
     public void test_custom_user_attributes_are_stored() throws Exception {
         addTheUserOnAuth();
 

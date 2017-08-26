@@ -59,9 +59,11 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -282,6 +284,56 @@ public class OIDCLoginIT {
     }
 
     @Test
+    public void testShadowUserNameDefaultsToOIDCSubjectClaim() throws Exception {
+        Map<String, Object> attributeMappings = new HashMap<>(identityProvider.getConfig().getAttributeMappings());
+        attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
+        identityProvider.getConfig().setAttributeMappings(attributeMappings);
+        updateProvider();
+
+        webDriver.get(zoneUrl);
+        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        webDriver.get(baseUrl);
+        Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+
+        ServerRunning serverRunning = ServerRunning.isRunning();
+        serverRunning.setHostName("localhost");
+
+        String clientId = "client" + new RandomValueStringGenerator(5).generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, null, "openid", "authorization_code", "openid", baseUrl);
+        client.setClientSecret("clientsecret");
+        client.setAutoApproveScopes(Collections.singletonList("true"));
+        IntegrationTestUtils.createClient(adminToken, baseUrl, client);
+
+        Map<String,String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
+            UaaTestAccounts.standard(serverRunning),
+            clientId,
+            "clientsecret",
+            null,
+            null,
+            "token id_token",
+            cookie.getValue(),
+            baseUrl,
+            false);
+
+        //validate that we have an ID token, and that it contains costCenter and manager values
+        String idToken = authCodeTokenResponse.get("id_token");
+        assertNotNull(idToken);
+
+        Jwt idTokenClaims = JwtHelper.decode(idToken);
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        String expectedUsername = (String) claims.get(SUB);
+
+        ScimUser shadowUser = IntegrationTestUtils.getUserByZone(IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret()), zoneUrl, subdomain, testAccounts.getUserName());
+        assertEquals(expectedUsername, shadowUser.getUserName());
+    }
+
+    @Test
     public void successfulLoginWithOIDC_and_SAML_Provider() throws Exception {
         SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA);
         saml.setLinkText("SAML Login");
@@ -311,11 +363,10 @@ public class OIDCLoginIT {
             webDriver.findElement(By.name("password")).sendKeys("saml6");
             webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-            Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
+            assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
             Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
-            System.out.println("cookie = " + String.format("%s=%s",cookie.getName(), cookie.getValue()));
 
             ServerRunning serverRunning = ServerRunning.isRunning();
             serverRunning.setHostName(zone.getSubdomain()+".localhost");

@@ -169,13 +169,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
             String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
             String username;
-            String preferredUsername = "preferred_username";
             if (StringUtils.hasText(userNameAttributePrefix)) {
                 username = (String) claims.get(userNameAttributePrefix);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", userNameAttributePrefix, username));
-            } else if (claims.get(preferredUsername)!=null) {
-                username = (String) claims.get(preferredUsername);
-                logger.debug(String.format("Extracted username for claim: %s and username is: %s", preferredUsername, username));
             } else {
                 username = (String) claims.get(SUB);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", SUB, username));
