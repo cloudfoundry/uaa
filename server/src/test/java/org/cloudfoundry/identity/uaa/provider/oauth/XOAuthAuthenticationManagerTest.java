@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthentic
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
@@ -92,6 +91,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
@@ -172,9 +172,16 @@ public class XOAuthAuthenticationManagerTest {
         "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
         "-----END RSA PRIVATE KEY-----";
 
-    @Before
+
     @After
     public void clearContext() {
+        SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
+    }
+
+
+    @Before
+    public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         header = map(
@@ -182,12 +189,8 @@ public class XOAuthAuthenticationManagerTest {
             entry("kid", "testKey"),
             entry("typ", "JWT")
         );
-    }
-
-
-    @Before
-    public void setUp() throws Exception {
         signer = new RsaSigner(PRIVATE_KEY);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(LEGACY_TOKEN_KEY_ID, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);
 
@@ -455,7 +458,7 @@ public class XOAuthAuthenticationManagerTest {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
         xCodeToken.setRequestContextPath(contextPathURL);
-        LegacyTokenKey.setLegacySigningKey(PRIVATE_KEY);
+
 
         xoAuthAuthenticationManager
             .getExternalAuthenticationDetails(xCodeToken);
@@ -1017,7 +1020,6 @@ public class XOAuthAuthenticationManagerTest {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
         xCodeToken.setRequestContextPath(contextPathURL);
-        LegacyTokenKey.setLegacySigningKey(PRIVATE_KEY);
 
         XOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = xoAuthAuthenticationManager
             .getExternalAuthenticationDetails(xCodeToken);
