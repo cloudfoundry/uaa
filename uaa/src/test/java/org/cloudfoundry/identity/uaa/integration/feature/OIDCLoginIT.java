@@ -331,7 +331,8 @@ public class OIDCLoginIT {
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
         String expectedUsername = (String) claims.get(SUB);
 
-        ScimUser shadowUser = IntegrationTestUtils.getUserByZone(IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret()), zoneUrl, subdomain, testAccounts.getUserName());
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret());
+        ScimUser shadowUser = IntegrationTestUtils.getUser(adminToken, zoneUrl, identityProvider.getOriginKey(), expectedUsername);
         assertEquals(expectedUsername, shadowUser.getUserName());
     }
 
