@@ -451,29 +451,32 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts);
 
         if (principal == null) {
-            boolean accountChooserNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
-                && IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()
-                && request != null && !(Boolean.parseBoolean(request.getParameter("otherAccountSignIn")) || getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty());
-
-            if(accountChooserNeeded) {
-                return "idp_discovery/account_chooser";
-            }
-
-            boolean discoveryNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
-                && (request == null || !Boolean.parseBoolean(request.getParameter("discoveryPerformed")));
-
-            if(discoveryNeeded) {
-                return "idp_discovery/email";
-            }
 
             String formRedirectUri = request.getParameter(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER);
-            if(hasText(formRedirectUri)) {
+            if (hasText(formRedirectUri)) {
                 model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
             }
 
-            String providedUsername = request.getParameter("providedUsername");
-            if (StringUtils.hasText(providedUsername)) {
-                model.addAttribute("providedUsername", providedUsername);
+            boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
+            boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
+            boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
+            boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
+            boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
+
+            if (discoveryEnabled) {
+                boolean accountChooserNeeded = accountChooserEnabled
+                    && !(otherAccountSignIn || savedAccountsEmpty)
+                    && !discoveryPerformed;
+
+                if (accountChooserNeeded) {
+                    return "idp_discovery/account_chooser";
+                }
+
+                if (!discoveryPerformed) {
+                    return "idp_discovery/email";
+                }
+
+                return goToPasswordPage(request.getParameter("email"), model);
             }
 
             return "login";
@@ -631,7 +634,7 @@ public class LoginInfoEndpoint {
         }
 
         if (StringUtils.hasText(email)) {
-            model.addAttribute("providedUsername", email);
+            model.addAttribute("email", email);
         }
         return "redirect:/login?discoveryPerformed=true";
     }

@@ -5,6 +5,7 @@
     Sign in to continue
 </h4>
 <form action="/login/idp_discovery" th:action="@{/login/idp_discovery}" method="post" role="form" _lpchecked="1">
+    <input class="" name="commit" type="submit" value="Next" hidden="true"/>
     <div th:if="${param.error}" class="alert alert-error mbxl">
         <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
     </div>

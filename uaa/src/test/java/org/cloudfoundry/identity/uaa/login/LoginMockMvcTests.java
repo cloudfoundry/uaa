@@ -2111,7 +2111,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .header("Accept", TEXT_HTML)
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
-            .andExpect(view().name("login"));
+            .andExpect(view().name("idp_discovery/password"));
     }
 
     @Test
@@ -2315,7 +2315,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@other.domain")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true&providedUsername=marissa%40other.domain"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40other.domain"));
     }
 
     @Test
@@ -2338,7 +2338,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@test.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true&providedUsername=marissa%40test.org"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40test.org"));
     }
 
     @Test
@@ -2379,7 +2379,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@testLdap.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true&providedUsername=marissa%40testLdap.org"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40testLdap.org"));
     }
 
     @Test
@@ -2390,7 +2390,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("idp_discovery/password"))
             .andExpect(xpath("//input[@name='password']").exists())
-            .andExpect(xpath("//h4[@id='email']").string("marissa@koala.com"))
+            .andExpect(xpath("//input[@name='username']/@value").string("marissa@koala.com"))
             .andExpect(xpath("//div[@class='action pull-right']//a").string("Reset password"))
             .andExpect(xpath("//input[@type='submit']/@value").string("Sign in"));
     }
