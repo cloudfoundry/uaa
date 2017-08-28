@@ -181,8 +181,8 @@ public class LoginIT {
         config.setIdpDiscoveryEnabled(true);
         Banner banner = new Banner();
         banner.setText("test banner");
-        banner.setBackgroundColor("rgba(68, 68, 68, 1)");
-        banner.setTextColor("rgba(17, 17, 17, 1)");
+        banner.setBackgroundColor("#444");
+        banner.setTextColor("#111");
         config.setBranding(new BrandingInformation());
         config.getBranding().setBanner(banner);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
