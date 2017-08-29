@@ -133,6 +133,16 @@ public class IntegrationTestUtils {
         return user;
     }
 
+    public static boolean isMember(String userId, ScimGroup group) {
+        for (ScimGroupMember member : group.getMembers()) {
+            if(userId.equals(member.getMemberId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     public static UserInfoResponse getUserInfo(String url, String token) throws URISyntaxException {
         RestTemplate rest = new RestTemplate(createRequestFactory(true));
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
