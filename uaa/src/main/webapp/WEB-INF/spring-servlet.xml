@@ -528,6 +528,7 @@
                   value="#{@config['login']==null ? null :
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
+        <property name="enableIdpInitiatedSso" value="${login.saml.enableIdpInitiatedSso:false}"/>
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
     </bean>
 

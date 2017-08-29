@@ -65,7 +65,7 @@ public class IdpInitiatedLoginController {
                          HttpServletRequest request,
                          HttpServletResponse response) {
 
-        if (!IdentityZoneHolder.get().getConfig().getSamlConfig().isEnableIdpInitiatedSSO()) {
+        if (!IdentityZoneHolder.get().getConfig().getSamlConfig().isEnableIdpInitiatedSso()) {
             throw new ProviderNotFoundException("IDP initiated login is disabled for this zone.");
         }
         if (!hasText(sp)) {

@@ -204,6 +204,7 @@ public class BootstrapTests {
         assertThat(defaultZoneGroups,containsInAnyOrder(expectedZoneGroups));
         IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
         assertNotNull(defaultZone);
+        assertFalse(defaultZone.getConfig().getSamlConfig().isEnableIdpInitiatedSso());
         assertThat(defaultZone.getConfig().getUserConfig().getDefaultGroups(),containsInAnyOrder(expectedZoneGroups));
 
         HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
@@ -487,6 +488,7 @@ public class BootstrapTests {
         IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
         assertNotNull(defaultZone);
         assertThat(defaultZone.getConfig().getUserConfig().getDefaultGroups(),containsInAnyOrder(expectedZoneGroups));
+        assertTrue(defaultZone.getConfig().getSamlConfig().isEnableIdpInitiatedSso());
         IdentityZoneHolder.set(defaultZone);
 
         HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);

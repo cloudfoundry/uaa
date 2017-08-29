@@ -89,7 +89,7 @@ public class IdpInitiatedLoginControllerTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSSO(true);
+        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSso(true);
     }
 
     @After
@@ -116,7 +116,7 @@ public class IdpInitiatedLoginControllerTests {
 
     @Test
     public void feature_disabled() throws Exception {
-        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSSO(false);
+        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSso(false);
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("IDP initiated login is disabled for this zone.");
         controller.initiate(null, request, response);

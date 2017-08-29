@@ -166,6 +166,23 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     }
 
     @Test
+    public void enable_idp_initiated_sso() throws Exception {
+        bootstrap.setEnableIdpInitiatedSso(true);
+        bootstrap.afterPropertiesSet();
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertTrue(zone.getConfig().getSamlConfig().isEnableIdpInitiatedSso());
+    }
+
+    @Test
+    public void disable_idp_initiated_sso() throws Exception {
+        bootstrap.setEnableIdpInitiatedSso(false);
+        bootstrap.afterPropertiesSet();
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertFalse(zone.getConfig().getSamlConfig().isEnableIdpInitiatedSso());
+    }
+
+
+    @Test
     public void signup_link_configured() throws Exception {
         links.put("signup", "/configured_signup");
         bootstrap.setSelfServiceLinks(links);
