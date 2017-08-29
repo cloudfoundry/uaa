@@ -717,7 +717,7 @@ public class IntegrationTestUtils {
                 throw new RuntimeException("Invalid update return code:"+clientUpdate.getStatusCode());
             }
         }
-        throw new RuntimeException("Invalid crete return code:"+clientCreate.getStatusCode());
+        throw new RuntimeException("Invalid create return code:"+clientCreate.getStatusCode());
     }
 
     public static BaseClientDetails updateClient(RestTemplate template,
