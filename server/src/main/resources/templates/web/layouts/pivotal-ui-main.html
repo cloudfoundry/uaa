@@ -26,7 +26,7 @@
 </head>
 
 <body class="bg-neutral-10 login">
-    <div th:if="${banner != null}" class="login-header"
+    <div th:if="${banner != null && (T(org.springframework.util.StringUtils).hasText(banner.getText()) || T(org.springframework.util.StringUtils).hasText(banner.getLogo()))}" class="login-header"
             th:with="backgroundColor=${banner.getBackgroundColor() != null ? 'background-color :'+banner.getBackgroundColor()+';' : ''},
                     textColor=${banner.getTextColor() != null ? 'color :'+banner.getTextColor()+';' : ''}"
             th:style="${backgroundColor}+${textColor}">
