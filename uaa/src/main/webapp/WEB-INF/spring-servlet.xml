@@ -322,7 +322,7 @@
         <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.global.requireLowerCaseCharacter:0}"/>
         <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.global.requireDigit:0}"/>
         <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.global.requireSpecialCharacter:0}"/>
-        <constructor-arg name="expireSecretInMonths" value="${oauth.client.secret.policy.global.expireSecretInMonths:0}"/>
+        <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
     <bean id="defaultUaaClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
@@ -332,7 +332,7 @@
         <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
         <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
         <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
-        <constructor-arg name="expireSecretInMonths" value="${oauth.client.secret.policy.expireSecretInMonths:#{globalClientSecretPolicy.getExpireSecretInMonths()}}"/>
+        <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
 

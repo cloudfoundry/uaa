@@ -620,7 +620,9 @@ public class IntegrationTestUtils {
             existing.setSubdomain(subdomain);
             existing.setConfig(config);
             client.put(url + "/identity-zones/{id}", existing, id);
-            return existing;
+            ResponseEntity<String> getUpdatedZone = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
+            IdentityZone updatedZone = JsonUtils.readValue(getUpdatedZone.getBody(), IdentityZone.class);
+            return updatedZone;
         }
         IdentityZone identityZone = fixtureIdentityZone(id, subdomain, config);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);

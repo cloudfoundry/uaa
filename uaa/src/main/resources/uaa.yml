@@ -217,7 +217,6 @@ oauth:
 #        requireLowerCaseCharacter: 0
 #        requireDigit: 0
 #        requireSpecialCharacter: 0
-#        expireSecretInMonths: 0
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.

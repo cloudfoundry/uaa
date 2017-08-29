@@ -226,6 +226,24 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
+    public void testClientSecretExpiryCannotBeSet() {
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String testZoneId = "testzone1";
+
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
+        RestTemplate identityClient = IntegrationTestUtils
+            .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        //min length 5, max length 12, requires 1 uppercase lowercase digit and specialChar, expries 6 months.
+        config.setClientSecretPolicy(new ClientSecretPolicy(5,12,1,1,1,1,6));
+        IdentityZone createdZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
+        assertEquals(-1, createdZone.getConfig().getClientSecretPolicy().getExpireSecretInMonths());
+    }
+
+    @Test
     public void nonImplicitGrantClientWithoutSecretIsRejectedTxFails() throws Exception {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
