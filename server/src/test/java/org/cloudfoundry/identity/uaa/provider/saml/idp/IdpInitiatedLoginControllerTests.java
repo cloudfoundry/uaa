@@ -89,6 +89,7 @@ public class IdpInitiatedLoginControllerTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
+        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSSO(true);
     }
 
     @After
@@ -114,14 +115,36 @@ public class IdpInitiatedLoginControllerTests {
     }
 
     @Test
+    public void feature_disabled() throws Exception {
+        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSSO(false);
+        exception.expect(ProviderNotFoundException.class);
+        exception.expectMessage("IDP initiated login is disabled for this zone.");
+        controller.initiate(null, request, response);
+    }
+
+    @Test
     public void metadata_error() throws Exception {
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("Unable to process SAML assertion.");
         when(metadataManager.getEntityDescriptor(anyString())).thenThrow(new MetadataProviderException("any message"));
         String entityID = "validEntityID";
         SamlServiceProvider provider = new SamlServiceProvider();
-        SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
+        provider.setActive(true);
         provider.setEntityId(entityID);
+        SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
+        when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
+        controller.initiate(entityID, request, response);
+    }
+
+    @Test
+    public void disabled_provider() throws Exception {
+        exception.expect(ProviderNotFoundException.class);
+        exception.expectMessage("Service provider is disabled.");
+        String entityID = "validEntityID";
+        SamlServiceProvider provider = new SamlServiceProvider();
+        provider.setEntityId(entityID);
+        provider.setActive(false);
+        SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
         when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
         controller.initiate(entityID, request, response);
     }
@@ -136,8 +159,9 @@ public class IdpInitiatedLoginControllerTests {
         AuthnRequest authnRequest = mock(AuthnRequest.class);
 
         SamlServiceProvider provider = new SamlServiceProvider();
-        SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
+        provider.setActive(true);
         provider.setEntityId(entityID);
+        SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
 
         doReturn(responseUrl).when(controller).getAssertionConsumerURL(anyString());
         when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
