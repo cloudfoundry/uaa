@@ -78,7 +78,7 @@ public class IdpInitiatedLoginController {
             throw new ProviderNotFoundException("Invalid sp entity ID. sp parameter must be a valid and configured entity ID");
         }
         if (!holder.get().getSamlServiceProvider().isActive()) {
-            log.debug(String.format("SP[%s] is disabled, aborting saml response", sp));
+            log.debug(String.format("SP[%s] is disabled, aborting saml resamlponse", sp));
             throw new ProviderNotFoundException("Service provider is disabled.");
         }
         //TODO get the first name ID format in metadata
