@@ -97,7 +97,7 @@ task(slate, type: Exec) {
 
   workingDir file('build/slate')
   executable 'bundle'
-  args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs'
+  args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs/version/' + version
 //  executable 'echo'
 //  args 'hello', 'world'
 }
