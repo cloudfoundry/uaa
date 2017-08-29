@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.common.SAMLException;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.AuthnRequest;
@@ -64,6 +65,9 @@ public class IdpInitiatedLoginController {
                          HttpServletRequest request,
                          HttpServletResponse response) {
 
+        if (!IdentityZoneHolder.get().getConfig().getSamlConfig().isEnableIdpInitiatedSso()) {
+            throw new ProviderNotFoundException("IDP initiated login is disabled for this zone.");
+        }
         if (!hasText(sp)) {
             throw new ProviderNotFoundException("Missing sp request parameter. sp parameter must be a valid and configured entity ID");
         }
@@ -72,6 +76,10 @@ public class IdpInitiatedLoginController {
         if (!holder.isPresent()) {
             log.debug(String.format("SP[%s] was not found, aborting saml response", sp));
             throw new ProviderNotFoundException("Invalid sp entity ID. sp parameter must be a valid and configured entity ID");
+        }
+        if (!holder.get().getSamlServiceProvider().isActive()) {
+            log.debug(String.format("SP[%s] is disabled, aborting saml resamlponse", sp));
+            throw new ProviderNotFoundException("Service provider is disabled.");
         }
         //TODO get the first name ID format in metadata
         String nameId = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";

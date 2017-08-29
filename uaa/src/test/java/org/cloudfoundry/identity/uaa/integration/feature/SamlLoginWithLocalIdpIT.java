@@ -391,16 +391,38 @@ public class SamlLoginWithLocalIdpIT {
 
     @Test
     public void idp_initiated_login_invalid_sp() throws Exception {
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(baseUrl + "/login");
+        //zone1 is IDP (create SP config and user here)
+        //zone2 is SP (create IDP config here)
+        //start at zone_1_url
+        //should land on zone_2_url
+
+        String zoneId1 = "testzone1";
+
+        RestTemplate identityClient = getIdentityClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
+        configuration.getSamlConfig().setEnableIdpInitiatedSso(true);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
+        String testZone1Url = baseUrl.replace("localhost", zoneId1 + ".localhost");
+
+        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@samltesting.org";
+        ScimUser idpUser = new ScimUser(null, email, "IDPFirst", "IDPLast");
+        idpUser.setPrimaryEmail(email);
+        idpUser.setPassword("secr3T");
+
+        IntegrationTestUtils.createUser(adminToken, baseUrl, idpUser, zoneId1);
+
+        webDriver.get(testZone1Url + "/logout.do");
+        webDriver.get(testZone1Url + "/login");
         webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys("marissa");
-        webDriver.findElement(By.name("password")).sendKeys("koala");
+        webDriver.findElement(By.name("username")).sendKeys(email);
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
-        webDriver.get(baseUrl + "/saml/idp/initiate");
+        webDriver.get(testZone1Url + "/saml/idp/initiate");
         assertNotNull(webDriver.findElement(By.xpath("//h2[contains(text(), 'Missing sp request parameter')]")));
-        webDriver.get(baseUrl + "/saml/idp/initiate?sp=invalid_entity_id");
+        webDriver.get(testZone1Url + "/saml/idp/initiate?sp=invalid_entity_id");
         assertNotNull(webDriver.findElement(By.xpath("//h2[contains(text(), 'Invalid sp entity ID')]")));
     }
 
@@ -421,7 +443,9 @@ public class SamlLoginWithLocalIdpIT {
         RestTemplate adminClient = getAdminClient();
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
-        IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1);
+        IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
+        configuration.getSamlConfig().setEnableIdpInitiatedSso(true);
+        IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
         IdentityZone zone2 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2);
 
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
