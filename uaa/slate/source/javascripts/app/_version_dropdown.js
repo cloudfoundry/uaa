@@ -80,15 +80,15 @@
     }
 
     function setupVersionsDropdown() {
-        // $.get(
-        //     "/versions.json",
-        //     function(data) {
-                // var versions = data.versions 
-                var versions =
-                  [
-                    "4.6.0-SNAPSHOT",
-                    "release-candidate"
-                  ];
+        $.get(
+            "/versions.json",
+            function(data) {
+                var versions = data.versions 
+                // var versions =
+                //   [
+                //     "4.6.0-SNAPSHOT",
+                //     "release-candidate"
+                //   ];
                 for(var i = 0; i < versions.length; i++) {
                     var version = versions[i];
                     if(version == "release-candidate") { continue; }
@@ -100,7 +100,7 @@
                 bindDropdownPointers();
                 populateFilter();
                 bindFilter();
-        //     }
-        // );
+            }
+        );
     }
 })();
