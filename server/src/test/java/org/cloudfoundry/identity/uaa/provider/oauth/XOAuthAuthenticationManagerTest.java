@@ -31,16 +31,10 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.user.UserInfo;
+import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.user.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -81,12 +75,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -96,40 +85,18 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.same;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 public class XOAuthAuthenticationManagerTest {
 
@@ -138,6 +105,7 @@ public class XOAuthAuthenticationManagerTest {
 
     private MockRestServiceServer mockUaaServer;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
+    private ScimGroupExternalMembershipManager externalMembershipManager;
     private IdentityProviderProvisioning provisioning;
     private InMemoryUaaUserDatabase userDatabase;
     private XOAuthCodeToken xCodeToken;
@@ -147,6 +115,8 @@ public class XOAuthAuthenticationManagerTest {
     private static final String ORIGIN = "the_origin";
     private static final String ISSUER = "cf-app.com";
     private static final String UAA_ISSUER_URL = "http://issuer.url";
+    public static final List<String> SCOPES_LIST = Arrays.asList("openid", "some.other.scope", "closedid");
+
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
@@ -193,6 +163,14 @@ public class XOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(LEGACY_TOKEN_KEY_ID, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);
+        externalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
+
+        for(String scope : SCOPES_LIST) {
+            ScimGroupExternalMember member = new ScimGroupExternalMember();
+            member.setDisplayName(scope);
+            when(externalMembershipManager.getExternalGroupMapsByExternalGroup(eq(scope), anyString(), anyString()))
+                    .thenReturn(Arrays.asList(member));
+        }
 
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
@@ -209,6 +187,7 @@ public class XOAuthAuthenticationManagerTest {
         );
         xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, restTemplateFactory));
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
+        xoAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
         xoAuthAuthenticationManager.setUaaTokenServices(uaaTokenServices);
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
@@ -710,7 +689,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void updateShadowUser_IfAlreadyExists() throws MalformedURLException {
-        claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
+        claims.put("scope", SCOPES_LIST);
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
         mockToken();
 
@@ -823,7 +802,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void authenticatedUser_hasAuthoritiesFromListOfIDTokenRoles() throws MalformedURLException {
-        claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
+        claims.put("scope", SCOPES_LIST);
         testTokenHasAuthoritiesFromIdTokenRoles();
     }
 
@@ -1039,7 +1018,7 @@ public class XOAuthAuthenticationManagerTest {
         attributeMappings.put("user.attribute.terribleBosses", "managers");
         config.setStoreCustomAttributes(true);
         config.setExternalGroupsWhitelist(Arrays.asList("*"));
-        List<String> scopes = Arrays.asList("openid", "some.other.scope", "closedid");
+        List<String> scopes = SCOPES_LIST;
         claims.put("scope", scopes);
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
         mockToken();
@@ -1108,7 +1087,9 @@ public class XOAuthAuthenticationManagerTest {
         UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
 
         List<String> authorities = uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
-        assertThat(authorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
+        for(String scope : SCOPES_LIST) {
+            assertThat(authorities, hasItem(scope));
+        }
     }
 
 }
