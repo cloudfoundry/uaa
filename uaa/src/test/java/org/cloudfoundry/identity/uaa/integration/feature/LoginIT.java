@@ -202,6 +202,30 @@ public class LoginIT {
     }
 
     @Test
+    public void testBannerBackgroundIsHiddenIfNoTextOrImage() {
+        String zoneId = "testzone3";
+
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        Banner banner = new Banner();
+        banner.setLink("http://example.com");
+        banner.setBackgroundColor("#444");
+        banner.setTextColor("#111");
+        config.setBranding(new BrandingInformation());
+        config.getBranding().setBanner(banner);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+
+        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+        webDriver.get(zoneUrl);
+        webDriver.manage().deleteAllCookies();
+        webDriver.navigate().refresh();
+        assertEquals(0, webDriver.findElements(By.cssSelector(".login-header")).size());
+    }
+
+    @Test
     public void testSuccessfulLoginNewUser() throws Exception {
         String newUserEmail = createAnotherUser();
         webDriver.get(baseUrl + "/logout.do");
