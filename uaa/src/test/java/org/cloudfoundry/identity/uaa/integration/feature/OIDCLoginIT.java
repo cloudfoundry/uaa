@@ -155,7 +155,7 @@ public class OIDCLoginIT {
 
         config.setStoreCustomAttributes(true);
 
-        config.addWhiteListedGroup("openid");
+        config.addWhiteListedGroup("*");
 
         config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
         config.setTokenUrl(new URL(urlBase + "/oauth/token"));
@@ -271,7 +271,7 @@ public class OIDCLoginIT {
 
         //TODO the tostring of user authorities when creating shadow user seems to be broken, check out ScimUserBootstrap.createNewUser()
         ScimGroup updatedCreatedGroup = IntegrationTestUtils.getGroup(adminToken, subdomain, baseUrl, createdGroup.getDisplayName());
-        assertTrue(isMember(user.getUserName(), updatedCreatedGroup));
+        assertTrue(isMember(user.getId(), updatedCreatedGroup));
     }
 
     @Test

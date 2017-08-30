@@ -303,8 +303,8 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         return false;
     }
 
-    protected Collection<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
-        Collection<GrantedAuthority> result = new LinkedList<>();
+    protected List<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
+        List<GrantedAuthority> result = new LinkedList<>();
         for (GrantedAuthority authority : authorities ) {
             String externalGroup = authority.getAuthority();
             for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
