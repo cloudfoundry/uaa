@@ -604,7 +604,7 @@ public class BootstrapTests {
         expectedSecretPolicy.setRequireLowerCaseCharacter(3);
         expectedSecretPolicy.setRequireDigit(2);
         expectedSecretPolicy.setRequireSpecialCharacter(0);
-        expectedSecretPolicy.setExpireSecretInMonths(7);
+        expectedSecretPolicy.setExpireSecretInMonths(-1);
 
         assertEquals(expectedSecretPolicy, zoneConfiguration.getClientSecretPolicy());
 
