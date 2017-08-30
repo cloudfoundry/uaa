@@ -758,7 +758,7 @@ public class SamlLoginIT {
     @Test
     public void testSamlLogin_Map_Groups_In_Zone1() throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4/testzonedoesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 

@@ -139,6 +139,9 @@ public class OIDCLoginIT {
         String zoneHost = zone.getSubdomain() + ".localhost";
         zoneUrl = "http://" + zoneHost + ":8080/uaa";
 
+        String createdGroupName = new RandomValueStringGenerator(10).generate() + ".created.scope";
+
+
         String urlBase = "http://localhost:8080/uaa";
         identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
@@ -175,7 +178,7 @@ public class OIDCLoginIT {
         clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         updateProvider();
 
-        createdGroup = IntegrationTestUtils.createOrUpdateGroup(adminToken, subdomain, baseUrl, new ScimGroup(new RandomValueStringGenerator(10).generate()+ ".created.scope"));
+        createdGroup = IntegrationTestUtils.createOrUpdateGroup(adminToken, subdomain, baseUrl, new ScimGroup(createdGroupName));
         ScimGroupExternalMember createdGroupExternalMapping = new ScimGroupExternalMember(createdGroup.getId(), "openid");
         createdGroupExternalMapping.setOrigin(identityProvider.getOriginKey());
         IntegrationTestUtils.mapExternalGroup(adminToken, subdomain, baseUrl, createdGroupExternalMapping);

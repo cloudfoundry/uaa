@@ -364,7 +364,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 userModified = true;
             }
         }
-        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
+
+        Collection<? extends GrantedAuthority> mappedAuthorities = mapAuthorities(userFromRequest.getOrigin(), userFromRequest.getAuthorities());
+        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, mappedAuthorities, true);
         publish(event);
         return getUserDatabase().retrieveUserById(userFromDb.getId());
     }
