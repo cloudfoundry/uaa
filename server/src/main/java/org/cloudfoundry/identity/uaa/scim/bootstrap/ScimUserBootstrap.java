@@ -352,7 +352,7 @@ public class ScimUserBootstrap implements
     private Collection<String> convertToGroups(List<? extends GrantedAuthority> authorities) {
         List<String> groups = new ArrayList<String>();
         for (GrantedAuthority authority : authorities) {
-            groups.add(authority.toString());
+            groups.add(authority.getAuthority());
         }
         return groups;
     }

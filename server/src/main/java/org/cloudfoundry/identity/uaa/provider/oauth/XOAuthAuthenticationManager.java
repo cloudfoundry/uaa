@@ -182,7 +182,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
             authenticationData.setUsername(username);
             Collection<String> groupWhiteList = config.getExternalGroupsWhitelist();
-            authenticationData.setAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims, groupWhiteList));
+
+            List<? extends GrantedAuthority> authorities = extractXOAuthUserAuthorities(attributeMappings, claims, groupWhiteList);
+            authorities = mapAuthorities(codeToken.getOrigin(), authorities);
+            authenticationData.setAuthorities(authorities);
             ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
         }
@@ -364,6 +367,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 userModified = true;
             }
         }
+
         ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
         publish(event);
         return getUserDatabase().retrieveUserById(userFromDb.getId());

@@ -383,6 +383,7 @@
         <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
         <property name="uaaTokenServices" ref="tokenServices"/>
         <property name="userDatabase" ref="userDatabase"/>
+        <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
     </bean>
 
     <bean id="xOauthCallbackAuthenticationFilter" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationFilter">
