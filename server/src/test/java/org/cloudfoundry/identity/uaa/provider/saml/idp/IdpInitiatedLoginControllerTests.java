@@ -89,7 +89,6 @@ public class IdpInitiatedLoginControllerTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSso(true);
     }
 
     @After
@@ -116,10 +115,11 @@ public class IdpInitiatedLoginControllerTests {
 
     @Test
     public void feature_disabled() throws Exception {
-        IdentityZoneHolder.get().getConfig().getSamlConfig().setEnableIdpInitiatedSso(false);
         exception.expect(ProviderNotFoundException.class);
-        exception.expectMessage("IDP initiated login is disabled for this zone.");
-        controller.initiate(null, request, response);
+        exception.expectMessage("IDP initiated login is disabled for this service provider.");
+        String entityID = "validEntityID";
+        setupForIdpInitiatedLogin(entityID, false);
+        controller.initiate(entityID, request, response);
     }
 
     @Test
@@ -129,6 +129,8 @@ public class IdpInitiatedLoginControllerTests {
         when(metadataManager.getEntityDescriptor(anyString())).thenThrow(new MetadataProviderException("any message"));
         String entityID = "validEntityID";
         SamlServiceProvider provider = new SamlServiceProvider();
+        provider.setConfig(new SamlServiceProviderDefinition());
+        provider.getConfig().setEnableIdpInitiatedSso(true);
         provider.setActive(true);
         provider.setEntityId(entityID);
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
@@ -154,6 +156,18 @@ public class IdpInitiatedLoginControllerTests {
     @Test
     public void happy_path() throws Exception {
         String entityID = "validEntityID";
+        SAMLMessageContext samlMessageContext = setupForIdpInitiatedLogin(entityID, true);
+
+        controller.initiate(entityID, request, response);
+
+        verify(webSsoProfile).sendResponse(
+            same(authentication),
+            same(samlMessageContext),
+            any()
+        );
+    }
+
+    public SAMLMessageContext setupForIdpInitiatedLogin(String entityID, boolean enableIdpInitiatedSso) throws MetadataProviderException {
         String responseUrl = "http://sso.response.com/url";
         String nameIdFormat = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";
         AuthnRequest authnRequest = mock(AuthnRequest.class);
@@ -161,6 +175,8 @@ public class IdpInitiatedLoginControllerTests {
         SamlServiceProvider provider = new SamlServiceProvider();
         provider.setActive(true);
         provider.setEntityId(entityID);
+        provider.setConfig(new SamlServiceProviderDefinition());
+        provider.getConfig().setEnableIdpInitiatedSso(enableIdpInitiatedSso);
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
 
         doReturn(responseUrl).when(controller).getAssertionConsumerURL(anyString());
@@ -182,14 +198,7 @@ public class IdpInitiatedLoginControllerTests {
                 same(request),
                 same(response)
             );
-
-        controller.initiate(entityID, request, response);
-
-        verify(webSsoProfile).sendResponse(
-            same(authentication),
-            same(samlMessageContext),
-            any()
-        );
+        return samlMessageContext;
     }
 
     @Test

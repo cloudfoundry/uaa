@@ -36,7 +36,6 @@ public class SamlConfig {
     private boolean wantAssertionSigned = true;
     private boolean wantAuthnRequestSigned = false;
     private int assertionTimeToLiveSeconds = 600;
-    private boolean enableIdpInitiatedSso = false;
     private String activeKeyId;
     private Map<String, SamlKey> keys = new HashMap<>();
     private String entityID;
@@ -191,13 +190,5 @@ public class SamlConfig {
     @JsonIgnore
     public SamlKey removeKey(String keyId) {
         return keys.remove(keyId);
-    }
-
-    public boolean isEnableIdpInitiatedSso() {
-        return enableIdpInitiatedSso;
-    }
-
-    public void setEnableIdpInitiatedSso(boolean enableIdpInitiatedSso) {
-        this.enableIdpInitiatedSso = enableIdpInitiatedSso;
     }
 }

@@ -52,7 +52,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpPrivateKey;
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
-    private boolean enableIdpInitiatedSso = false;
 
     private Map<String, Map<String, String>> samlKeys;
     private String activeKeyId;
@@ -86,7 +85,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
-        definition.getSamlConfig().setEnableIdpInitiatedSso(enableIdpInitiatedSso);
 
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
         for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
@@ -227,7 +225,4 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         this.defaultUserGroups = defaultUserGroups;
     }
 
-    public void setEnableIdpInitiatedSso(boolean enableIdpInitiatedSso) {
-        this.enableIdpInitiatedSso = enableIdpInitiatedSso;
-    }
 }
