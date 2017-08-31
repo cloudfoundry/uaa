@@ -18,7 +18,7 @@ public class InvalidClientSecretException extends InvalidClientDetailsException 
     }
 
     public InvalidClientSecretException(List<String> errorMessages) {
-        super(StringUtils.collectionToDelimitedString(errorMessages, ","));
+        super(concatenate(errorMessages));
         this.errorMessages = errorMessages;
     }
 
@@ -27,6 +27,10 @@ public class InvalidClientSecretException extends InvalidClientDetailsException 
     }
 
     public String getMessagesAsOneString() {
+        return concatenate(errorMessages);
+    }
+
+    private static String concatenate(List<String> errorMessages) {
         ArrayList<String> sortedMessages = new ArrayList<String>(errorMessages);
         Collections.sort(sortedMessages);
         return StringUtils.collectionToDelimitedString(sortedMessages, " ");
