@@ -31,7 +31,6 @@
 
     function bindFilter() {
         searchResults = $('#version-list');
-        $('#version-select').on('keyup', filterDropdown);
     }
 
     function findMatchingLinkFromOriginal(id) {
@@ -56,27 +55,6 @@
                 href: link.href
             });
         });
-    }
-
-    function filterDropdown(event) {
-        // ESC clears the field
-        if (event.keyCode === 27) this.value = '';
-
-        if (this.value) {
-            var results = index.search(this.value).filter(function(r) {
-                return r.score > 0.0001;
-            });
-            if (results.length) {
-                searchResults.empty();
-                displaySearchResults(results);
-            } else {
-                searchResults.html('<li>' + 'No Results Found for "' + this.value + '"' + '</li>');
-            }
-        } else {
-            searchResults.empty();
-            restoreOriginalContent();
-            populateFilter();
-        }
     }
 
     function setupVersionsDropdown() {

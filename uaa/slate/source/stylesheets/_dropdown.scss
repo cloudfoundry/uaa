@@ -20,7 +20,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: #fff;
+  background-color: #999;
   border: 1px solid #d4d9d9;
   border-radius: 4px;
   box-shadow: 0 2px 0 rgba(211, 217, 217, 0.5);
@@ -33,26 +33,6 @@
     padding: 0px 0 0px 25px;
     width: calc(100% - 25px);
     color: #2185c5;
-  }
-
-  &:before {
-    position: absolute;
-    top: 17px;
-    left: $nav-padding;
-    color: $nav-text;
-    @extend %icon-search;
-  }
-}
-
-.dropdown-filter .dropdown-search-bar {
-  padding:10px;
-
-  &:first-child {
-    border-bottom:1px solid #d4d9d9;
-  }
-
-  &:last-child {
-    border-top:1px solid #d4d9d9;
   }
 }
 
