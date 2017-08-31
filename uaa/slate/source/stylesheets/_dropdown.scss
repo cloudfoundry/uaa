@@ -1,3 +1,45 @@
+.caret {
+  position: absolute;
+  left: 89%;
+}
+
+.btn {
+  display: inline-block;
+
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle;
+
+  padding: 5px 15px;
+  margin-bottom: 0;
+
+  border: 1px solid transparent;
+  border-radius: 4px;
+  white-space: nowrap;
+
+  background-image: none;
+  cursor: pointer;
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.btn-default {
+  color: #1B78B3;
+  background-color: #fff;
+  border: 1px solid #d4d9d9;
+  outline: none;
+  -webkit-transition: all 300ms ease-out;
+  transition: all 300ms ease-out;
+  font-weight: 600;
+  padding: 5px 15px;
+}
+
 #version-dropdown {
   margin:10px;
   position:relative;
@@ -20,7 +62,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: #999;
+  background-color: #eee;
   border: 1px solid #d4d9d9;
   border-radius: 4px;
   box-shadow: 0 2px 0 rgba(211, 217, 217, 0.5);
