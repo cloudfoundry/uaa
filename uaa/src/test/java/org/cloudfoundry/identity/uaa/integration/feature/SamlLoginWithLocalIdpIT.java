@@ -186,6 +186,7 @@ public class SamlLoginWithLocalIdpIT {
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
         def.setSingleSignOnServiceIndex(0);
         def.setMetadataTrustCheck(false);
+        def.setEnableIdpInitiatedSso(true);
         return def;
     }
 
@@ -402,7 +403,6 @@ public class SamlLoginWithLocalIdpIT {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
-        configuration.getSamlConfig().setEnableIdpInitiatedSso(true);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
         String testZone1Url = baseUrl.replace("localhost", zoneId1 + ".localhost");
 
@@ -444,7 +444,6 @@ public class SamlLoginWithLocalIdpIT {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
-        configuration.getSamlConfig().setEnableIdpInitiatedSso(true);
         IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
         IdentityZone zone2 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2);
 

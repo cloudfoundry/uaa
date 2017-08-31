@@ -407,7 +407,6 @@ login:
     signatureAlgorithm: SHA256
     wantAssertionSigned: false
     signRequest: false
-    enableIdpInitiatedSso: true
   selfServiceLinksEnabled: false
   url: https://login.some.test.domain.com:555/uaa
 logout:
