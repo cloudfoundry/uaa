@@ -16,6 +16,16 @@ under the License.
 <% language_tabs = current_page.data.language_tabs || [] %>
 <% page_content = yield %>
 <%
+  def get_version
+    version = File.exists?('source/versionfile') ? File.read('source/versionfile') : 'local'
+    if version =~ /release-candidate/
+      "Release Candidate"
+    else
+      "Version #{version}"
+    end
+  end
+%>
+<%
   if current_page.data.includes
     current_page.data.includes.each do |include|
       page_content += partial("includes/#{include}")
@@ -63,6 +73,27 @@ under the License.
           <% end %>
         </div>
       <% end %>
+
+      <div id="version-dropdown">
+        <div class="dropdown">
+          <button type="button" id="version-dropdown-button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><%= get_version %><span class="caret">&#x25BE;</span></button>
+          <ul id="version-dropdown-menu" class="dropdown-menu" role="menu" aria-labelledby="version-dropdown-button">
+            <div class="dropdown-filter">
+              <div class="dropdown-content">
+                <ul class="dropdown-list" id="version-list">
+                </ul>
+              </div>
+              <div class="dropdown-footer dropdown-content">
+                <ul class="dropdown-list">
+                  <li><a id="release-candidate" href="/version/release-candidate">Release Candidate</a></li>
+                  <li><a id="latest-release" href="/">Latest</a></li>
+                </ul>
+              </div>
+            </div>
+          </ul>
+        </div>
+      </div>
+
       <% if current_page.data.search %>
         <div class="search">
           <input type="text" class="search" id="input-search" placeholder="Search">
