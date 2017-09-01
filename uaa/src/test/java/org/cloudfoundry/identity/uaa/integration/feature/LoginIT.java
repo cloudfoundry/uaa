@@ -16,6 +16,8 @@ import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -299,5 +301,36 @@ public class LoginIT {
         webDriver.get(testClient.extractLink(message.getBody()));
 
         return userEmail;
+    }
+
+    @Test
+    public void testSelfServiceLinksBehavior() {
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret"));
+        String zoneId = "testzone3";
+        String zoneUrl = baseUrl.replace("localhost", zoneId+".localhost");
+        IdentityZone testZone3 = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, zoneId, zoneId);
+
+        testZone3.getConfig().getLinks().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(true).setPasswd("").setSignup(""));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, zoneId, zoneId, testZone3.getConfig());
+        webDriver.get(zoneUrl);
+        assertEquals(0, webDriver.findElements(By.xpath("//*[text()='Create account']")).size());
+        assertEquals(0, webDriver.findElements(By.xpath("//*[text()='Reset password']")).size());
+
+        testZone3.getConfig().getLinks().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(true).setPasswd("/forgot_password").setSignup("http://example.com"));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, zoneId, zoneId, testZone3.getConfig());
+        webDriver.get(zoneUrl);
+        assertEquals(1, webDriver.findElements(By.xpath("//*[text()='Create account']")).size());
+        assertEquals(1, webDriver.findElements(By.xpath("//*[text()='Reset password']")).size());
+
+        testZone3.getConfig().getLinks().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(true).setPasswd(null).setSignup(null));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, zoneId, zoneId, testZone3.getConfig());
+        webDriver.get(zoneUrl);
+        assertEquals(0, webDriver.findElements(By.xpath("//*[text()='Create account']")).size());
+        assertEquals(1, webDriver.findElements(By.xpath("//*[text()='Reset password']")).size());
+
+        testZone3.getConfig().getLinks().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(true).setPasswd("/forgot_password").setSignup("/create_account"));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, zoneId, zoneId, testZone3.getConfig());
+
     }
 }

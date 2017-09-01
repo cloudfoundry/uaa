@@ -752,7 +752,7 @@ public class LoginInfoEndpoint {
 
         boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
 
-        final String defaultSignup = "/create_account";
+        final String defaultSignup = "";
         final String defaultPasswd = "/forgot_password";
         Links.SelfService service = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService() : null;
         String signup = UaaStringUtils.nonNull(
