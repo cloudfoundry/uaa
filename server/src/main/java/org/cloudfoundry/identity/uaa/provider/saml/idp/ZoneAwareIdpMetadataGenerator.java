@@ -21,6 +21,7 @@ import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.xml.security.credential.UsageType;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.util.SAMLUtil;
+import org.springframework.util.StringUtils;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -54,7 +55,9 @@ public class ZoneAwareIdpMetadataGenerator extends IdpMetadataGenerator {
     @Override
     public String getEntityId() {
         String entityId = super.getEntityId();
-        if (UaaUrlUtils.isUrl(entityId)) {
+        if(StringUtils.hasText(IdentityZoneHolder.get().getConfig().getSamlConfig().getEntityID())) {
+            return IdentityZoneHolder.get().getConfig().getSamlConfig().getEntityID();
+        } else if (UaaUrlUtils.isUrl(entityId)) {
             return UaaUrlUtils.addSubdomainToUrl(entityId);
         } else {
             return UaaUrlUtils.getSubdomain() + entityId;
