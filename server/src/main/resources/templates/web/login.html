@@ -38,10 +38,10 @@
                 </div>
             </div>
         </div>
-        <div class="island-footer">
+        <div class="island-footer" th:style="${#strings.isEmpty(links['createAccountLink'])?'display:inline-block':''}">
           <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">
-          <span class="left">
-              <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight">Create account</a>
+          <span th:unless="${#strings.isEmpty(links['createAccountLink'])}" class="left">
+              <a href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight">Create account</a>
           </span>
           <span class="right" th:unless="${#strings.isEmpty(links['forgotPasswordLink'])}">
               <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight">Reset password</a>

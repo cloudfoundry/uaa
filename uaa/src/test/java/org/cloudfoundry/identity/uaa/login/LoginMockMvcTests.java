@@ -237,8 +237,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
-            .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
-            .andExpect(content().string(containsString("/create_account")));
+            .andExpect(content().string(containsString("/forgot_password")))
+            .andExpect(content().string(not(containsString("/create_account"))));
 
         getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalLinks(
             new Links().setSelfService(
