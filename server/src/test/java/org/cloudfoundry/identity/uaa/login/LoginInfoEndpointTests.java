@@ -301,7 +301,7 @@ public class LoginInfoEndpointTests {
 
         //null config
         zone.setConfig(null);
-        validateSelfServiceLinks("/create_account", "/forgot_password", endpoint.getSelfServiceLinks());
+        validateSelfServiceLinks(null, "/forgot_password", endpoint.getSelfServiceLinks());
 
         //null config with globals
         endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup").setPasswd("/passwd")));
