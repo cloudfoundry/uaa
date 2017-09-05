@@ -1,3 +1,15 @@
+/*******************************************************************************
+ * Cloud Foundry
+ * Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ * <p/>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p/>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.statsd.integration;
 
 import org.junit.Before;
@@ -20,20 +32,6 @@ import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.UAA_BASE_URL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p/>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p/>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 
 public class UaaMetricsEmitterIT {
     private DatagramSocket serverSocket;
@@ -75,7 +73,7 @@ public class UaaMetricsEmitterIT {
                 new HttpEntity<>(body, headers),
                 String.class);
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
-        assertNotNull(getMessage("uaa.audit_service.user_authentication_count:1", 5000));
+        assertNotNull(getMessage("uaa.audit_service.user_authentication_count:", 5000));
     }
 
     protected String getMessage(String fragment, int timeout) throws IOException {

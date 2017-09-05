@@ -40,3 +40,15 @@ dependencies {
   testCompile "org.mockito:mockito-all:1.10.19"
   testCompile "org.springframework.boot:spring-boot-starter-test"
 }
+
+test {
+  exclude 'org/cloudfoundry/identity/statsd/integration/*.class'
+  exclude '**/*IT.class'
+}
+
+integrationTest {
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
+    includeTestsMatching "*IT"
+  }
+}

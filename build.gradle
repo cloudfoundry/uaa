@@ -253,6 +253,11 @@ cargo {
   port = 8080
 
   deployable {
+    file = file('statsd/build/libs/cloudfoundry-identity-statsd-' + version + '.war')
+    context = 'statsd'
+  }
+
+  deployable {
     file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
     context = 'api'
   }

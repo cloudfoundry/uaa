@@ -1,14 +1,22 @@
+/*******************************************************************************
+ * Cloud Foundry
+ * Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ * <p/>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p/>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.ConvenienceMethodProvidingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
-import org.cloudfoundry.identity.statsd.MBeanMap;
-import org.cloudfoundry.identity.statsd.MetricsUtils;
-import org.cloudfoundry.identity.statsd.UaaMetricsEmitter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.verification.VerificationMode;
 
 import javax.management.MBeanServerConnection;
 import java.util.Collection;
@@ -16,23 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 public class UaaMetricsEmitterTests {
 
     private MBeanServerConnection server;
