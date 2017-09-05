@@ -1,0 +1,54 @@
+
+buildscript {
+
+  repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+      url 'http://repo.spring.io/plugins-release'
+    }
+  }
+
+  dependencies {
+    classpath("org.springframework.boot:spring-boot-gradle-plugin:1.5.5.RELEASE")
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'spring-boot'
+
+war {
+  baseName = 'cloudfoundry-identity-statsd'
+}
+
+repositories {
+  mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+  compile("org.springframework.boot:spring-boot-starter")
+  compile("com.timgroup:java-statsd-client:3.0.1")
+  compile "log4j:log4j:1.2.14"
+  compile "org.apache.httpcomponents:httpclient:4.5.3"
+  compile "org.springframework:spring-web:4.3.9.RELEASE"
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+  providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+  testCompile "org.mockito:mockito-all:1.10.19"
+  testCompile "org.springframework.boot:spring-boot-starter-test"
+}
+
+test {
+  exclude 'org/cloudfoundry/identity/statsd/integration/*.class'
+  exclude '**/*IT.class'
+}
+
+integrationTest {
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
+    includeTestsMatching "*IT"
+  }
+}
