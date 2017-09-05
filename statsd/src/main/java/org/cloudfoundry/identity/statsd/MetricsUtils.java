@@ -1,15 +1,6 @@
-package org.cloudfoundry.identity.statsd;
-
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-
 /*******************************************************************************
  * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  * <p/>
  * This product is licensed to you under the Apache License, Version 2.0 (the "License").
  * You may not use this product except in compliance with the License.
@@ -19,6 +10,16 @@ import java.util.Set;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.statsd;
+
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+
+
 public class MetricsUtils {
 
     public Map<String, ?> pullUpMap(String domain, String pattern, MBeanServerConnection server) throws Exception {

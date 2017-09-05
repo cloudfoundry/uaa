@@ -308,6 +308,7 @@ apply plugin: 'com.github.kt3k.coveralls'
 
 Project identityModel = subprojects.find { it.name.equals('cloudfoundry-identity-model') }
 Project identityServer = subprojects.find { it.name.equals('cloudfoundry-identity-server') }
+Project identityStatsd = subprojects.find { it.name.equals('cloudfoundry-identity-statsd') }
 Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-uaa') }
 
 def publishedProjects = subprojects

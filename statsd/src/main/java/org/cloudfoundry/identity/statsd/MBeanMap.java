@@ -1,21 +1,20 @@
-/**
- * Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
- * 
- * This product is licensed to you under the Apache License, Version 2.0 (the "License"). You may not use this product
- * except in compliance with the License.
- * 
- * This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
- */
+/*******************************************************************************
+ * Cloud Foundry
+ * Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ * <p/>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p/>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.statsd;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import sun.management.LazyCompositeData;
 
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
@@ -24,11 +23,13 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.TabularDataSupport;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import sun.management.LazyCompositeData;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @SuppressWarnings("restriction")
 public class MBeanMap extends AbstractMap<String, Object>{
