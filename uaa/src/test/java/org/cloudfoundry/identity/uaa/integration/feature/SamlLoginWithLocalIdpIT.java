@@ -729,6 +729,58 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     @Test
+    public void testEntityIdFromZoneConfig() throws Exception{
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String idpZoneId = "testzone1";
+        String spZoneId = "testzone2";
+
+        RestTemplate adminClient = getAdminClient();
+
+        RestTemplate identityClient = getIdentityClient();
+
+        IdentityZone idpIdentityZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId);
+        String entityId = "testID1";
+        idpIdentityZone.getConfig().getSamlConfig().setEntityID(entityId);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, idpIdentityZone.getConfig());
+
+        String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
+        String idpZoneAdminToken = getZoneAdminToken(adminClient, identityClient, idpZoneId);
+
+        String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
+        createZoneUser(idpZoneId, idpZoneAdminToken, idpZoneUserEmail, idpZoneUrl);
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        IdentityZone spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config);
+
+        String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser spZoneAdminUser = getSpZoneAdminUser(adminClient, spZoneAdminEmail);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
+        String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
+        String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = getSamlIdentityProvider(spZoneId, spZoneAdminToken, samlIdentityProviderDefinition);
+        assertThat(idp.getConfig().getMetaDataLocation(), containsString("entityID=\""+entityId+"\""));
+
+        SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition(IDP_ENTITY_ID);
+        SamlServiceProvider sp = new SamlServiceProvider();
+        sp.setIdentityZoneId(idpZoneId);
+        sp.setActive(true);
+        sp.setConfig(samlServiceProviderDefinition);
+        sp.setEntityId("testzone2.cloudfoundry-saml-login");
+        sp.setName("Local SAML SP for testzone2");
+        createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
+
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(spZoneUrl + "/logout.do");
+    }
+
+    @Test
     public void testSamlServiceProviderAttributeMappings() throws Exception {
         assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String idpZoneId = "testzone1";
