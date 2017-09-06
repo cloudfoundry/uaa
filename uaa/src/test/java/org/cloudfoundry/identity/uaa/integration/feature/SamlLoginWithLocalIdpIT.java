@@ -77,6 +77,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryT
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -273,6 +274,34 @@ public class SamlLoginWithLocalIdpIT {
             });
         }
         return null;
+    }
+    private void deleteSamlServiceProviders(String zoneAdminToken, String url, String zoneId) {
+        RestTemplate client = new RestTemplate();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
+        ResponseEntity<String> providerGet = client.exchange(url + "/saml/service-providers", HttpMethod.GET, getHeaders,
+                String.class);
+        if (providerGet != null && providerGet.getStatusCode() == HttpStatus.OK) {
+            List<SamlServiceProvider> samlServiceProviders = JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<SamlServiceProvider>>() {
+            });
+            for(SamlServiceProvider sp : samlServiceProviders) {
+                deleteSamlServiceProvider(sp.getId(), zoneAdminToken, url, zoneId);
+            }
+        }
+    }
+
+    private void deleteSamlServiceProvider(String id, String zoneAdminToken, String url, String zoneId) {
+        RestTemplate client = new RestTemplate();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        HttpEntity<String> deleteHeaders = new HttpEntity<String>(headers);
+        client.exchange(url + "/saml/service-providers/" + id , HttpMethod.DELETE, deleteHeaders, String.class);
     }
 
     @Test
@@ -761,10 +790,14 @@ public class SamlLoginWithLocalIdpIT {
         String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
+        //Add IDP definition to the SP zone
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
         IdentityProvider<SamlIdentityProviderDefinition> idp = getSamlIdentityProvider(spZoneId, spZoneAdminToken, samlIdentityProviderDefinition);
+        //Assert that the metadata being sent to SP contains the entityID from zone config
         assertThat(idp.getConfig().getMetaDataLocation(), containsString("entityID=\""+entityId+"\""));
 
+        //Add SP definition to the IDP zone
+        deleteSamlServiceProviders(idpZoneAdminToken, baseUrl, idpZoneId);
         SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition(IDP_ENTITY_ID);
         SamlServiceProvider sp = new SamlServiceProvider();
         sp.setIdentityZoneId(idpZoneId);
@@ -778,6 +811,11 @@ public class SamlLoginWithLocalIdpIT {
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");
+
+        //Reset Zone Configuration
+        idpIdentityZone.getConfig().getSamlConfig().setEntityID(null);
+        IdentityZone updatedIdpZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, idpIdentityZone.getConfig());
+        assertNull(updatedIdpZone.getConfig().getSamlConfig().getEntityID());
     }
 
     @Test
