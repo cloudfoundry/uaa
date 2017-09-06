@@ -148,25 +148,6 @@ public class LoginIT {
     }
 
     @Test
-    public void skipDiscoveryWillCarryProvidedUsername() {
-        String zoneUrl = createDiscoveryZone();
-        webDriver.get(zoneUrl + "/logout.do");
-        webDriver.manage().deleteAllCookies();
-        webDriver.get(zoneUrl);
-        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
-
-        assertEquals(zoneUrl + "/login?discoveryPerformed=true", webDriver.getCurrentUrl());
-        assertEquals("true", webDriver.findElement(By.cssSelector("input[name=username]")).getAttribute("autofocus"));
-        webDriver.navigate().back();
-
-        webDriver.findElement(By.id("email")).sendKeys("someUser");
-        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
-        assertEquals(zoneUrl + "/login?discoveryPerformed=true&email=someUser", webDriver.getCurrentUrl());
-        assertEquals("someUser", webDriver.findElement(By.cssSelector("input[name=username]")).getAttribute("value"));
-        assertEquals("true", webDriver.findElement(By.cssSelector("input[name=password]")).getAttribute("autofocus"));
-    }
-
-    @Test
     public void testBannerFunctionalityInDiscoveryPage() {
         String zoneId = "testzone3";
 
@@ -412,25 +393,6 @@ public class LoginIT {
         assertEquals(userEmail, webDriver.findElement(By.id("username")).getAttribute("value"));
         webDriver.findElement(By.id("password")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
-    }
-
-    @Test
-    public void testAccountChooserSkipDiscovery() throws Exception {
-        String zoneUrl = createDiscoveryZone();
-
-        String userEmail = createAnotherUser(zoneUrl);
-        webDriver.get(zoneUrl + "/logout");
-
-        loginThroughDiscovery(userEmail, USER_PASSWORD);
-        webDriver.get(zoneUrl + "/logout");
-
-        webDriver.get(zoneUrl);
-        assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
-        webDriver.findElement(By.cssSelector("div.action a")).click();
-
-        webDriver.findElement(By.xpath("//input[@value='Skip Discovery']")).click();
-        attemptLogin(userEmail, USER_PASSWORD); // TODO change this to work for password page
         assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());
     }
 
