@@ -2097,7 +2097,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(containsString("Sign in")))
                 .andExpect(xpath("//input[@name='email']").exists())
                 .andExpect(xpath("//div[@class='action']//a").string("Create account"))
-                .andExpect(xpath("//input[@name='skipDiscovery']/@value").string("Skip Discovery"))
                 .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
     }
 
@@ -2141,7 +2140,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("Sign in to continue to "+clientName)))
             .andExpect(xpath("//input[@name='email']").exists())
             .andExpect(xpath("//div[@class='action']//a").string("Create account"))
-            .andExpect(xpath("//input[@name='skipDiscovery']/@value").string("Skip Discovery"))
             .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
     }
 
