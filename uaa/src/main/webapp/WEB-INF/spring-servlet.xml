@@ -211,6 +211,7 @@
             </set>
         </constructor-arg>
         <constructor-arg value="uaa" />
+        <property name="customAppName" value="${DEPLOYMENT_TYPE:local}-uaa" />
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
