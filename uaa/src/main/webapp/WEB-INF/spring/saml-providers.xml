@@ -154,6 +154,9 @@
         <bean id="basicContextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" primary="true">
             <property name="metadataResolver" ref="nonCachingSPMetadataCredentialsResolver"/>
             <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
+            <property name="storageFactory">
+                <bean class="org.cloudfoundry.identity.uaa.provider.saml.SamlSessionStorageFactory"/>
+            </property>
         </bean>
 
         <!-- Processing filter for WebSSO profile messages -->
