@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlEntryPoint;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlSessionStorageFactory;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -89,7 +90,9 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
+import org.springframework.security.saml.context.SAMLContextProvider;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
+import org.springframework.security.saml.storage.SAMLMessageStorageFactory;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.ReflectionUtils;
@@ -195,6 +198,11 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        SAMLContextProvider basicContextProvider = context.getBean("basicContextProvider",SAMLContextProvider.class);
+        SAMLMessageStorageFactory storageFactory = (SAMLMessageStorageFactory) ReflectionTestUtils.getField(basicContextProvider, "storageFactory");
+        assertNotNull(storageFactory);
+        assertEquals(SamlSessionStorageFactory.class, storageFactory.getClass());
 
         LoginSamlEntryPoint samlEntryPoint = context.getBean(LoginSamlEntryPoint.class);
         assertEquals("cloudfoundry-uaa-sp", samlEntryPoint.getDefaultProfileOptions().getRelayState());
