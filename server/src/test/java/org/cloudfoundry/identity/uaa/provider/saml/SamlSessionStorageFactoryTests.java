@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +40,7 @@ public class SamlSessionStorageFactoryTests {
 
     @After
     public void tearDown() throws Exception {
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -53,6 +55,12 @@ public class SamlSessionStorageFactoryTests {
         SAMLMessageStorage storage1 = factory.getMessageStorage(request);
         SAMLMessageStorage storage2 = factory.getMessageStorage(request);
         assertSame(storage1, storage2);
+    }
+
+    @Test
+    public void disable_message_storage() {
+        IdentityZoneHolder.get().getConfig().getSamlConfig().setDisableInResponseToCheck(true);
+        assertNull(factory.getMessageStorage(request));
     }
 
 }

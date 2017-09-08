@@ -406,6 +406,7 @@ login:
         skipSslValidation: true
     signatureAlgorithm: SHA256
     wantAssertionSigned: false
+    disableInResponseToCheck: true
     signRequest: false
   selfServiceLinksEnabled: false
   url: https://login.some.test.domain.com:555/uaa
