@@ -36,7 +36,15 @@ task createSQLServerUAA << {
   def props = [user: 'sa', password: 'changemeCHANGEME1234!'] as Properties
   def url = 'jdbc:sqlserver://localhost:1433;database=master;'
   def driver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
-  def sql = Sql.newInstance(url, props, driver)
+  def sql = null
+  for (int i=0; sql==null && i<5; i++) {
+    try {
+      sql = Sql.newInstance(url, props, driver)
+    } catch (Exception x) {
+      println "Failed to connect to SQL Server, trying again in 10 seconds."
+      sleep(10000)
+    }
+  }
 
   sql.call('sp_configure \'contained database authentication\', 1')
   sql.call('RECONFIGURE')

@@ -32,6 +32,7 @@ buildscript {
 }
 
 apply plugin: "com.dorongold.task-tree"
+apply from: file('docker.gradle')
 
 ext {
   databaseType = {

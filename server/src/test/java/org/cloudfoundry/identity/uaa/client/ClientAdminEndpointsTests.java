@@ -26,8 +26,13 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,6 +53,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,12 +66,15 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
@@ -105,6 +114,8 @@ public class ClientAdminEndpointsTests {
 
     private static final Set<String> SINGLE_REDIRECT_URL = Collections.singleton("http://redirect.url");
 
+    private IdentityZone testZone = new IdentityZone();
+
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
@@ -125,6 +136,7 @@ public class ClientAdminEndpointsTests {
 
     @Before
     public void setUp() throws Exception {
+        testZone.setId("testzone");
         endpoints = spy(new ClientAdminEndpoints());
 
         clientDetailsService = Mockito.mock(NoOpClientDetailsResourceManager.class);
@@ -138,6 +150,11 @@ public class ClientAdminEndpointsTests {
         clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         clientDetailsValidator.setClientDetailsService(clientDetailsService);
         clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
+        clientDetailsValidator.setClientSecretValidator(
+                new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6)));
+
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        IdentityZoneHolder.set(testZone);
 
         endpoints.setClientDetailsService(clientDetailsService);
         endpoints.setClientRegistrationService(clientRegistrationService);
@@ -206,6 +223,11 @@ public class ClientAdminEndpointsTests {
         endpoints.afterPropertiesSet();
     }
 
+    @After
+    public void tearDown() {
+        IdentityZoneHolder.clear();
+    }
+
     private void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         endpoints.setSecurityContextAccessor(securityContextAccessor);
         clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
@@ -234,8 +256,6 @@ public class ClientAdminEndpointsTests {
         endpoints.deleteApprovals("someclient");
     }
 
-
-
     @Test
     public void testStatistics() throws Exception {
         assertEquals(0, endpoints.getClientDeletes());
@@ -254,6 +274,68 @@ public class ClientAdminEndpointsTests {
         assertEquals(1463510591, result.getAdditionalInformation().get("lastModified"));
     }
 
+    @Test(expected = InvalidClientSecretException.class)
+    public void testCreateClientDetails_With_Secret_Length_Less_Than_MinLength() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(7,255,0,0,0,0,6));
+        IdentityZoneHolder.set(testZone);
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        ClientDetails result = endpoints.createClientDetails(input);
+    }
+
+    @Test(expected = InvalidClientSecretException.class)
+    public void testCreateClientDetails_With_Secret_Length_Greater_Than_MaxLength() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,5,0,0,0,0,6));
+        IdentityZoneHolder.set(testZone);
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        ClientDetails result = endpoints.createClientDetails(input);
+    }
+
+    @Test(expected = InvalidClientSecretException.class)
+    public void testCreateClientDetails_With_Secret_Require_Digit() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,5,0,0,1,0,6));
+        IdentityZoneHolder.set(testZone);
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        ClientDetails result = endpoints.createClientDetails(input);
+    }
+
+    @Test(expected = InvalidClientSecretException.class)
+    public void testCreateClientDetails_With_Secret_Require_Uppercase() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,5,1,0,0,0,6));
+        IdentityZoneHolder.set(testZone);
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        ClientDetails result = endpoints.createClientDetails(input);
+    }
+
+    @Test(expected = InvalidClientSecretException.class)
+    public void testCreateClientDetails_With_Secret_Require_Lowercase() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,5,0,1,0,0,6));
+        IdentityZoneHolder.set(testZone);
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        ClientDetails result = endpoints.createClientDetails(input);
+    }
+
+    @Test(expected = InvalidClientSecretException.class)
+    public void testCreateClientDetails_With_Secret_Require_Special_Character() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,5,0,0,0,1,6));
+        IdentityZoneHolder.set(testZone);
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        ClientDetails result = endpoints.createClientDetails(input);
+    }
+
+    @Test
+    public void testCreateClientDetails_With_Secret_Satisfying_Complex_Policy() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(6,255,1,1,1,1,6));
+        IdentityZoneHolder.set(testZone);
+        String complexPolicySatisfyingSecret = "Secret1@";
+        input.setClientSecret(complexPolicySatisfyingSecret);
+        detail.setClientSecret(complexPolicySatisfyingSecret);
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        ClientDetails result = endpoints.createClientDetails(input);
+        assertNull(result.getClientSecret());
+        verify(clientDetailsService).create(detail, testZone.getId());
+        assertEquals(1463510591, result.getAdditionalInformation().get("lastModified"));
+    }
+
     @Test
     public void test_Get_Restricted_Scopes_List() throws Exception {
         assertEquals(new UaaScopes().getUaaScopes(), endpoints.getRestrictedClientScopes());
@@ -261,8 +343,30 @@ public class ClientAdminEndpointsTests {
         assertNull(endpoints.getRestrictedClientScopes());
     }
 
+    @Test
+    public void testCannot_Create_Restricted_Client_Sp_Scopes() throws Exception {
+        List<String> badScopes = new ArrayList<>();
+        badScopes.add("sps.write");
+        badScopes.add("sps.read");
+        badScopes.add("zones.*.sps.read");
+        badScopes.add("zones.*.sps.write");
+        badScopes.add("zones.*.idps.write");
+        input.setScope(badScopes);
+        for (String scope :
+            badScopes) {
+            input.setScope(Collections.singletonList(scope));
+            try {
+                endpoints.createRestrictedClientDetails(input);
+                fail("no error thrown for restricted scope "+scope);
+            } catch (InvalidClientDetailsException e) {
+                assertThat(e.getMessage(), containsString("is a restricted scope."));
+            }
+        }
+    }
+
     @Test(expected = InvalidClientDetailsException.class)
     public void testCannot_Create_Restricted_Client_Invalid_Scopes() throws Exception {
+        input.setClientId("admin");
         input.setScope(new UaaScopes().getUaaScopes());
         endpoints.createRestrictedClientDetails(input);
     }
@@ -713,6 +817,26 @@ public class ClientAdminEndpointsTests {
         endpoints.changeSecret(detail.getClientId(), change);
         verify(clientRegistrationService).updateClientSecret(detail.getClientId(), "newpassword");
 
+    }
+
+
+    @Test(expected = InvalidClientSecretException.class)
+    public void testChangeSecretDeniedTooLong() throws Exception {
+        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,5,0,0,0,0,6));
+        String complexPolicySatisfyingSecret = "Secret1@";
+
+        when(clientDetailsService.retrieve(detail.getClientId(), testZone.getId())).thenReturn(detail);
+
+        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+        when(sca.getClientId()).thenReturn("admin");
+        when(sca.isClient()).thenReturn(true);
+        when(sca.isAdmin()).thenReturn(true);
+        setSecurityContextAccessor(sca);
+
+        SecretChangeRequest change = new SecretChangeRequest();
+        change.setOldSecret(detail.getClientSecret());
+        change.setSecret(complexPolicySatisfyingSecret);
+        endpoints.changeSecret(detail.getClientId(), change);
     }
 
     @Test

@@ -227,7 +227,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return create(user, zoneId);
     }
 
-    private String extractPhoneNumber(final ScimUser user) {
+    public String extractPhoneNumber(final ScimUser user) {
         String phoneNumber = null;
         if (user.getPhoneNumbers() != null && !user.getPhoneNumbers().isEmpty()) {
             phoneNumber = user.getPhoneNumbers().get(0).getValue();

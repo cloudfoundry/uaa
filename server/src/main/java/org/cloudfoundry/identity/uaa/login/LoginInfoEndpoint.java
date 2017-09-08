@@ -35,9 +35,11 @@ import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.ColorHash;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -45,6 +47,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -55,6 +59,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,6 +67,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -226,7 +232,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
     public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Arrays.asList(PASSCODE), false, request);
+        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -239,7 +245,15 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
-    public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
+    public String loginForHtml(
+        Model model, Principal principal, HttpServletRequest request,
+        @RequestHeader(value = "Accept", required = false) List<MediaType> headers)
+        throws HttpMediaTypeNotAcceptableException
+    {
+        boolean match = headers == null || headers.stream().anyMatch(mediaType -> mediaType.isCompatibleWith(MediaType.TEXT_HTML));
+        if (!match) {
+            throw new HttpMediaTypeNotAcceptableException(request.getHeader(HttpHeaders.ACCEPT));
+        }
 
         Cookie[] cookies = request.getCookies();
         List<SavedAccountOptionModel> savedAccounts = getSavedAccounts(cookies, SavedAccountOptionModel.class);
@@ -250,14 +264,18 @@ public class LoginInfoEndpoint {
 
         model.addAttribute("savedAccounts", savedAccounts);
 
-        return login(model, principal, Arrays.asList(PASSCODE), false, request);
+        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
         return Arrays.asList(ofNullable(cookies).orElse(new Cookie[]{}))
                 .stream()
                 .filter(c -> c.getName().startsWith("Saved-Account"))
-                .map(c -> JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz))
+                .map(c -> {
+                    try { return JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz); }
+                    catch (JsonUtilException e) { return null; }
+                })
+                .filter(c -> c != null)
                 .collect(Collectors.toList());
     }
 
@@ -383,7 +401,7 @@ public class LoginInfoEndpoint {
             model.addAttribute(IDP_DEFINITIONS, samlIdps.values());
             Map<String, String> oauthLinks = new HashMap<>();
             ofNullable(oauthIdentityProviderDefinitions).orElse(emptyMap()).entrySet().stream()
-                .filter(e -> e.getValue().isShowLinkText() == true)
+                .filter(e -> e.getValue().isShowLinkText())
                 .forEach(e ->
                     oauthLinks.put(
                         xoAuthProviderConfigurator.getCompleteAuthorizationURI(
@@ -430,22 +448,35 @@ public class LoginInfoEndpoint {
             excludedPrompts.add("password");
         }
 
-        populatePrompts(model, excludedPrompts, jsonResponse);
+        populatePrompts(model, excludedPrompts);
 
         if (principal == null) {
-            boolean accountChooserNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
-                && IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()
-                && request != null && !(Boolean.parseBoolean(request.getParameter("otherAccountSignIn")) || getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty());
 
-            if(accountChooserNeeded) {
-                return "idp_discovery/account_chooser";
+            String formRedirectUri = request.getParameter(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER);
+            if (hasText(formRedirectUri)) {
+                model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
             }
 
-            boolean discoveryNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
-                && (request == null || !Boolean.parseBoolean(request.getParameter("discoveryPerformed")));
+            boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
+            boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
+            boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
+            boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
+            boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
 
-            if(discoveryNeeded) {
-                return "idp_discovery/email";
+            if (discoveryEnabled) {
+                boolean accountChooserNeeded = accountChooserEnabled
+                    && !(otherAccountSignIn || savedAccountsEmpty)
+                    && !discoveryPerformed;
+
+                if (accountChooserNeeded) {
+                    return "idp_discovery/account_chooser";
+                }
+
+                if (!discoveryPerformed) {
+                    return "idp_discovery/email";
+                }
+
+                return goToPasswordPage(request.getParameter("email"), model);
             }
 
             return "login";
@@ -536,7 +567,7 @@ public class LoginInfoEndpoint {
     }
 
 
-    public void populatePrompts(Model model, List<String> exclude, boolean jsonResponse) {
+    public void populatePrompts(Model model, List<String> exclude) {
         IdentityZoneConfiguration zoneConfiguration = IdentityZoneHolder.get().getConfig();
         if (isNull(zoneConfiguration)) {
             zoneConfiguration = new IdentityZoneConfiguration();
@@ -578,7 +609,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/idp_discovery", method = RequestMethod.POST)
-    public String discoverIdentityProvider(@RequestParam String email, Model model, HttpSession session, HttpServletRequest request) {
+    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, Model model, HttpSession session, HttpServletRequest request) {
         ClientDetails clientDetails = null;
         if (hasSavedOauthAuthorizeRequest(session)) {
             SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
@@ -589,7 +620,8 @@ public class LoginInfoEndpoint {
             }
         }
         List<IdentityProvider> identityProviders = DomainFilter.filter(providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), clientDetails, email);
-        if (identityProviders.size() == 1) {
+
+        if (!StringUtils.hasText(skipDiscovery) && identityProviders.size() == 1) {
             IdentityProvider matchedIdp = identityProviders.get(0);
             if (matchedIdp.getType().equals(UAA)) {
                 return goToPasswordPage(email, model);
@@ -599,6 +631,10 @@ public class LoginInfoEndpoint {
                     return redirectUrl;
                 }
             }
+        }
+
+        if (StringUtils.hasText(email)) {
+            model.addAttribute("email", email);
         }
         return "redirect:/login?discoveryPerformed=true";
     }

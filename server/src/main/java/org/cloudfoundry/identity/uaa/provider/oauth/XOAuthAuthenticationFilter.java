@@ -68,7 +68,8 @@ public class XOAuthAuthenticationFilter implements Filter {
         String code = request.getParameter("code");
         String idToken = request.getParameter("id_token");
         String accessToken = request.getParameter("access_token");
-        return hasText(code) || hasText(idToken) || hasText(accessToken);
+        String signedRequest = request.getParameter("signed_request");
+        return hasText(code) || hasText(idToken) || hasText(accessToken) || hasText(signedRequest);
     }
 
     public boolean authenticationWasSuccessful(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -76,12 +77,15 @@ public class XOAuthAuthenticationFilter implements Filter {
         String code = request.getParameter("code");
         String idToken = request.getParameter("id_token");
         String accessToken = request.getParameter("access_token");
+        String signedRequest = request.getParameter("signed_request");
+
         String redirectUrl = request.getRequestURL().toString();
         XOAuthCodeToken codeToken = new XOAuthCodeToken(code,
                                                         origin,
                                                         redirectUrl,
                                                         idToken,
                                                         accessToken,
+                                                        signedRequest,
                                                         new UaaAuthenticationDetails(request));
         try {
             Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);

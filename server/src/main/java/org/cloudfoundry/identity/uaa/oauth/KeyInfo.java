@@ -58,6 +58,10 @@ public class KeyInfo {
     private String type = "MAC";
     private RSAPublicKey rsaPublicKey;
 
+    public static Long getLastModified() {
+        return IdentityZoneHolder.get().getLastModified().getTime();
+    }
+
     public static KeyInfo getKey(String keyId) {
         return getKeys().get(keyId);
     }

@@ -129,14 +129,14 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         groupIds = new ArrayList<String>();
         userIds = new ArrayList<String>();
         groupIds.add(addGroup("uaa.resource",
-                        Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN),
-                                        createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER),
-                                        createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)))
+                        Arrays.asList(createMember(ScimGroupMember.Type.USER),
+                                        createMember(ScimGroupMember.Type.GROUP),
+                                        createMember(ScimGroupMember.Type.USER)))
                         );
         groupIds.add(addGroup("uaa.admin", Collections.<ScimGroupMember> emptyList()));
         groupIds.add(addGroup("uaa.none",
-                        Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER),
-                                        createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN)))
+                        Arrays.asList(createMember(ScimGroupMember.Type.USER),
+                                        createMember(ScimGroupMember.Type.GROUP)))
                         );
 
         externalGroupBootstrap = new ScimExternalGroupBootstrap(dao, em);
@@ -163,7 +163,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         return g.getId();
     }
 
-    private ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroupMember.Role> a) {
+    private ScimGroupMember createMember(ScimGroupMember.Type t) {
         String id = UUID.randomUUID().toString();
         if (t == ScimGroupMember.Type.USER) {
             id = userEndpoints.createUser(TestUtils.scimUserInstance(id), new MockHttpServletRequest(), new MockHttpServletResponse()).getId();
@@ -172,7 +172,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
             id = dao.create(new ScimGroup(null, id, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId()).getId();
             groupIds.add(id);
         }
-        return new ScimGroupMember(id, t, a);
+        return new ScimGroupMember(id, t);
     }
 
     private void deleteGroup(String name) {
@@ -388,7 +388,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testCreateGroup() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = endpoints.createGroup(g, httpServletResponse);
         assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
@@ -402,7 +402,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testCreateExistingGroupFails() {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         endpoints.createGroup(g, new MockHttpServletResponse());
         try {
             endpoints.createGroup(g, new MockHttpServletResponse());
@@ -417,7 +417,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testCreateGroupWithInvalidMemberFails() {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER,ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER)));
 
         try {
             endpoints.createGroup(g, new MockHttpServletResponse());
@@ -431,43 +431,39 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateGroup() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
-        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "*", httpServletResponse);
         assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
 
         validateGroup(g1, "superadmin", 1);
-        assertEquals(ScimGroupMember.GROUP_MEMBER, g1.getMembers().get(0).getRoles());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
     }
 
     @Test
     public void testUpdateGroupQuotedEtag() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
-        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "\"*\"", httpServletResponse);
         assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
 
         validateGroup(g1, "superadmin", 1);
-        assertEquals(ScimGroupMember.GROUP_MEMBER, g1.getMembers().get(0).getRoles());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
     }
 
     @Test
     public void testUpdateGroupRemoveMembers() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
@@ -483,12 +479,11 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test(expected = ScimException.class)
     public void testUpdateGroupNullEtag() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
-        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.updateGroup(g, g.getId(), null, httpServletResponse);
     }
@@ -496,12 +491,11 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test(expected = ScimException.class)
     public void testUpdateGroupNoEtag() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
-        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.updateGroup(g, g.getId(), "", httpServletResponse);
     }
@@ -509,12 +503,11 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test(expected = ScimException.class)
     public void testUpdateGroupInvalidEtag() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
-        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.updateGroup(g, g.getId(), "abc", httpServletResponse);
     }
@@ -522,11 +515,11 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateNonUniqueDisplayNameFails() {
         ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g1 = endpoints.createGroup(g1, new MockHttpServletResponse());
 
         ScimGroup g2 = new ScimGroup(null, "clients.write", IdentityZoneHolder.get().getId());
-        g2.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g2.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g2 = endpoints.createGroup(g2, new MockHttpServletResponse());
 
         g1.setDisplayName("clients.write");
@@ -545,12 +538,12 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateWithInvalidMemberFails() {
         ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g1 = endpoints.createGroup(g1, new MockHttpServletResponse());
 
         g1.setMembers(
             Arrays.asList(
-                new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER,ScimGroupMember.GROUP_ADMIN)
+                new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER)
             )
         );
         g1.setDisplayName("clients.write");
@@ -571,7 +564,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateInvalidVersionFails() {
         ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g1 = endpoints.createGroup(g1, new MockHttpServletResponse());
 
         g1.setDisplayName("clients.write");
@@ -590,7 +583,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateGroupWithNullEtagFails() {
         ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g1 = endpoints.createGroup(g1, new MockHttpServletResponse());
 
         g1.setDisplayName("clients.write");
@@ -609,7 +602,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateWithQuotedVersionSucceeds() {
         ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g1 = endpoints.createGroup(g1, new MockHttpServletResponse());
 
         g1.setDisplayName("clients.write");
@@ -625,7 +618,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateWrongVersionFails() {
         ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g1 = endpoints.createGroup(g1, new MockHttpServletResponse());
 
         g1.setDisplayName("clients.write");
@@ -643,7 +636,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testUpdateGroupWithNoMembers() {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
@@ -658,7 +651,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testDeleteGroup() throws Exception {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
@@ -678,7 +671,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         IdentityZoneHolder.set(zone);
 
         ScimGroup group = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        ScimGroupMember member = createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember member = createMember(ScimGroupMember.Type.GROUP);
         group.setMembers(Arrays.asList(member));
 
         group = endpoints.createGroup(group, new MockHttpServletResponse());
@@ -692,7 +685,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testDeleteWrongVersionFails() {
         ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
-        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         g = endpoints.createGroup(g, new MockHttpServletResponse());
 
         try {
@@ -778,7 +771,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         ScimGroup patch = new ScimGroup();
         assertEquals(null, g1.getMembers());
         assertEquals(null, patch.getMembers());
-        patch.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        patch.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         assertEquals(1, patch.getMembers().size());
 
         patch = endpoints.patchGroup(patch, g1.getId(), "0", new MockHttpServletResponse());
@@ -786,7 +779,6 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         assertEquals(1, patch.getMembers().size());
         ScimGroupMember member = patch.getMembers().get(0);
         assertEquals(ScimGroupMember.Type.USER, member.getType());
-        assertEquals(ScimGroupMember.GROUP_ADMIN, member.getRoles());
     }
 
     @Test(expected = ScimException.class)

@@ -38,6 +38,7 @@ public class SamlConfig {
     private int assertionTimeToLiveSeconds = 600;
     private String activeKeyId;
     private Map<String, SamlKey> keys = new HashMap<>();
+    private String entityID;
 
     public boolean isAssertionSigned() {
         return assertionSigned;
@@ -45,6 +46,16 @@ public class SamlConfig {
 
     public void setAssertionSigned(boolean assertionSigned) {
         this.assertionSigned = assertionSigned;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getEntityID() {
+        return entityID;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public void setEntityID(String entityID) {
+        this.entityID = entityID;
     }
 
     public boolean isRequestSigned() {

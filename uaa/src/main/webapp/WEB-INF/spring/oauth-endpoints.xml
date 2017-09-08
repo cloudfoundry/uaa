@@ -240,6 +240,7 @@
         <constructor-arg ref="clientAuthenticationManager" />
         <constructor-arg ref="basicAuthenticationEntryPoint" />
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+        <property name="clientDetailsService" ref="jdbcClientDetailsService" />
     </bean>
 
     <bean id="clientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
@@ -382,6 +383,7 @@
         <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
         <property name="uaaTokenServices" ref="tokenServices"/>
         <property name="userDatabase" ref="userDatabase"/>
+        <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
     </bean>
 
     <bean id="xOauthCallbackAuthenticationFilter" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationFilter">

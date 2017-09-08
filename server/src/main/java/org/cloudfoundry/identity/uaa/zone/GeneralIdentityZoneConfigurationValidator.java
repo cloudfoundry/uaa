@@ -21,6 +21,7 @@ import java.util.Map;
 
 
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
+
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
         if (mode == IdentityZoneValidator.Mode.CREATE || mode == IdentityZoneValidator.Mode.MODIFY) {
@@ -64,6 +65,10 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     }
                 }
             }
+        }
+
+        if(config.getBranding() != null && config.getBranding().getBanner() != null) {
+           BannerValidator.validate(config.getBranding().getBanner());
         }
 
         return config;

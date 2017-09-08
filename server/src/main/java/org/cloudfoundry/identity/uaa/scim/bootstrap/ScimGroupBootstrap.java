@@ -187,7 +187,16 @@ public class ScimGroupBootstrap implements InitializingBean {
             String description = groups.get(g.getDisplayName());
             if (StringUtils.hasText(description)) {
                 g.setDescription(description);
-                groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g, IdentityZoneHolder.get().getId()));
+                try{
+                    groupInfos.set(i, scimGroupProvisioning.update(g.getId(), g, IdentityZoneHolder.get().getId()));
+                } catch(IncorrectResultSizeDataAccessException e) {
+                    ScimGroup updatedGroup = getGroup(g.getDisplayName());
+                    if(updatedGroup != null && updatedGroup.getVersion() > g.getVersion()) {
+                        logger.debug("Group has already been updated by another instance, ignore error.");
+                    } else {
+                        throw e;
+                    }
+                }
             }
         }
 
@@ -198,8 +207,8 @@ public class ScimGroupBootstrap implements InitializingBean {
 
     private void addMembers(ScimGroup group) {
         String name = group.getDisplayName();
-        List<ScimGroupMember> members = getMembers(groupMembers.get(name), ScimGroupMember.GROUP_MEMBER);
-        members.addAll(getMembers(groupAdmins.get(name), ScimGroupMember.GROUP_ADMIN));
+        List<ScimGroupMember> members = getMembers(groupMembers.get(name));
+        members.addAll(getMembers(groupAdmins.get(name)));
         logger.debug("adding members: " + members + " into group: " + name);
 
         for (ScimGroupMember member : members) {
@@ -211,7 +220,7 @@ public class ScimGroupBootstrap implements InitializingBean {
         }
     }
 
-    private List<ScimGroupMember> getMembers(Set<String> names, List<ScimGroupMember.Role> auth) {
+    private List<ScimGroupMember> getMembers(Set<String> names) {
         if (names == null || names.isEmpty()) {
             return Collections.<ScimGroupMember> emptyList();
         }
@@ -223,8 +232,7 @@ public class ScimGroupBootstrap implements InitializingBean {
                 members.add(
                     new ScimGroupMember(
                         member.getId(),
-                        (member instanceof ScimGroup) ? ScimGroupMember.Type.GROUP : ScimGroupMember.Type.USER,
-                        auth
+                        (member instanceof ScimGroup) ? ScimGroupMember.Type.GROUP : ScimGroupMember.Type.USER
                     )
                 );
             }

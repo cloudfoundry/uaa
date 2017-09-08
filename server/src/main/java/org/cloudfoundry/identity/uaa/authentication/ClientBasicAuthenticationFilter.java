@@ -12,9 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.sql.Timestamp;
+import java.util.Calendar;
+
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
@@ -31,6 +38,8 @@ import java.io.IOException;
  * to authenticate is locked out.
  */
 public class ClientBasicAuthenticationFilter extends BasicAuthenticationFilter {
+
+    protected ClientDetailsService clientDetailsService;
 
     public ClientBasicAuthenticationFilter(AuthenticationManager authenticationManager,
             AuthenticationEntryPoint authenticationEntryPoint) {
@@ -50,13 +59,27 @@ public class ClientBasicAuthenticationFilter extends BasicAuthenticationFilter {
             }
 
             String[] decodedHeader = extractAndDecodeHeader(header, request);
+            //Validate against client lockout policy
             String clientId = decodedHeader[0];
+
+            //Validate against client secret expiration in the zone configured client secret policy
+            Timestamp lastModified = (Timestamp) clientDetailsService.loadClientByClientId(clientId).getAdditionalInformation().get(ClientConstants.LAST_MODIFIED);
         } catch(BadCredentialsException e) {
             super.getAuthenticationEntryPoint().commence(request, response, e);
             return;
+        } catch(ClientRegistrationException e) {
+            logger.debug(e.getMessage());
         }
         //call parent class to authenticate
         super.doFilterInternal(request, response, chain);
+    }
+
+    public ClientDetailsService getClientDetailsService() {
+        return clientDetailsService;
+    }
+
+    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+        this.clientDetailsService = clientDetailsService;
     }
 
     private String[] extractAndDecodeHeader(String header, HttpServletRequest request)

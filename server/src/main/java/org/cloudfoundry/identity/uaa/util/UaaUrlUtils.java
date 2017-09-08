@@ -32,12 +32,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public abstract class UaaUrlUtils {
 
@@ -157,6 +157,9 @@ public abstract class UaaUrlUtils {
     }
 
     public static boolean isUrl(String url) {
+        if (isEmpty(url)) {
+            return false;
+        }
         try {
             new URL(url);
             return true;

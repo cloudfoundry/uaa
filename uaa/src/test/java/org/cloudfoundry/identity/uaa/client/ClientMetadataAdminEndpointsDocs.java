@@ -84,7 +84,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
     SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"uaa.admin\"", "displayName", "asc", 1, 1);
     String groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
     ScimGroup group = scimGroupEndpoints.getGroup(groupId, mockResponse);
-    ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
+    ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER);
     group.getMembers().add(gm);
     scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 

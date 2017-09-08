@@ -658,7 +658,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         OAuth2RefreshToken refreshToken = null;
 
         if(client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)){
-            refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, refreshTokenRevocable);
+            refreshToken = createRefreshToken(user, refreshTokenId, authentication, revocableHashSignature, refreshTokenRevocable);
         }
 
         String clientId = authentication.getOAuth2Request().getClientId();
@@ -852,7 +852,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return null;
     }
 
-    private ExpiringOAuth2RefreshToken createRefreshToken(String tokenId,
+    private ExpiringOAuth2RefreshToken createRefreshToken(UaaUser user, String tokenId,
                                                           OAuth2Authentication authentication,
                                                           String revocableHashSignature,
                                                           boolean revocable) {
@@ -869,10 +869,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         int validitySeconds = getRefreshTokenValiditySeconds(authentication.getOAuth2Request());
         ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(tokenId,
                                                                                  new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
-
-        String userId = getUserId(authentication);
-
-        UaaUser user = userDatabase.retrieveUserById(userId);
 
         Map<String,String> externalAttributes = null;
         if (uaaTokenEnhancer != null) {

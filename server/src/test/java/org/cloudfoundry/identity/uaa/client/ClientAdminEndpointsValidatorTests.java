@@ -18,6 +18,9 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,6 +51,8 @@ public class ClientAdminEndpointsValidatorTests {
     BaseClientDetails client;
     BaseClientDetails caller;
     ClientAdminEndpointsValidator validator;
+    ClientSecretValidator secretValidator;
+
     private List wildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
     private List httpWildCardUrls = Arrays.asList(
         "http://*",
@@ -70,6 +75,8 @@ public class ClientAdminEndpointsValidatorTests {
         client.setClientSecret("secret");
         caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
         validator = new ClientAdminEndpointsValidator();
+        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        validator.setClientSecretValidator(secretValidator);
 
         QueryableResourceManager<ClientDetails> clientDetailsService = mock(QueryableResourceManager.class);
         SecurityContextAccessor accessor = mock(SecurityContextAccessor.class);

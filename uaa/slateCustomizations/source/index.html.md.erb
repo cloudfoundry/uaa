@@ -495,6 +495,10 @@ _Request Headers_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/request-headers.md")).result(binding) %>
 
+_Response Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-headers.md")).result(binding) %>
+
 _Response Fields_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-fields.md")).result(binding) %>
@@ -537,6 +541,10 @@ An endpoint which returns the list of JWT keys. To support key rotation, this li
 _Request Headers_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/request-headers.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/response-headers.md")).result(binding) %>
 
 _Response Fields_
 
@@ -754,6 +762,10 @@ _Error Codes_
 <%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/http-response.md")).result(binding) %>
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProviderMetadataUrl/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProviderMetadataUrl/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProviderMetadataUrl/http-response.md")).result(binding) %>
 
 _Request Headers_
 
@@ -1114,6 +1126,26 @@ Obtaining the UAA SAML IdP metadata:
 In order to establish trust, a SAML IdP and SAML SP exchange SAML metadata which contains pulbic certificates as well as the endpoints used to communicate amongst each other. Your SAML SP will likely require the UAA SAML IdP metadata in order to make authentication requests to UAA. You can obtain this metadata by making a GET request to the /saml/idp/metadata endpoint.
 
 GET http://localhost:8080/uaa/saml/idp/metadata
+
+## Initiate IDP Login Flow
+
+When the UAA is an IdP, you can initiate the login flow to the Service Provider, SP, by using the `initiate` endpoint
+This is a browser flow.
+
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/response-body.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/request-parameters.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                             |
+|------------|-----------------------------------------------------------------------------------------|
+| 400        | If IDP initiated login is not enabled, the SP parameter is incorrect or SP is disabled. |
+
 
 ## List
 

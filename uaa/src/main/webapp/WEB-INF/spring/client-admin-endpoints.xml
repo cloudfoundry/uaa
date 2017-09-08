@@ -99,6 +99,7 @@
 
     <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
         <property name="clientDetailsService" ref="clientDetailsService" />
+        <property name="clientSecretValidator" ref="zoneAwareClientSecretPolicyValidator"/>
     </bean>
 
     <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher">

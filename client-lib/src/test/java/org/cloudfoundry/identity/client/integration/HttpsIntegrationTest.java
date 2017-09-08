@@ -36,7 +36,7 @@ import static org.junit.Assert.fail;
 
 public class HttpsIntegrationTest {
 
-    public static String uaaURI = "https://login.identity.cf-app.com";
+    public static String uaaURI = "https://login.uaa-acceptance.cf-app.com";
 
     private UaaContextFactory factory;
 
