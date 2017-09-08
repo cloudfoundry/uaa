@@ -294,6 +294,7 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertFalse(zoneConfiguration.getSamlConfig().isDisableInResponseToCheck());
 
         assertEquals(SamlConfig.LEGACY_KEY_ID, zoneConfiguration.getSamlConfig().getActiveKeyId());
         assertEquals(1, zoneConfiguration.getSamlConfig().getKeys().size());
@@ -570,6 +571,7 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertTrue(zoneConfiguration.getSamlConfig().isDisableInResponseToCheck());
 
         assertEquals("key1", zoneConfiguration.getSamlConfig().getActiveKeyId());
         assertEquals(2, zoneConfiguration.getSamlConfig().getKeys().size());
