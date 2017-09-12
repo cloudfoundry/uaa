@@ -552,6 +552,7 @@
 
     <beans profile="degraded">
         <util:set id="degradedModeEndpoints">
+            <value>/oauth/authorize</value>
             <value>/oauth/token</value>
             <value>/check_token</value>
             <value>/login.do</value>
