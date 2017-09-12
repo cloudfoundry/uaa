@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -41,9 +42,11 @@ import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @OAuth2ContextConfiguration(IdentityZoneEndpointsIntegrationTests.IdentityClient.class)
 public class IdentityZoneEndpointsIntegrationTests {
@@ -192,6 +195,34 @@ public class IdentityZoneEndpointsIntegrationTests {
                 id2);
         assertEquals(HttpStatus.CONFLICT, response2.getStatusCode());
         Assert.assertTrue(response2.getBody().get("error_description").toLowerCase().contains("subdomain"));
+    }
+    
+    @Test
+    public void testUpdateZoneWithDisableClientRedirectUri() throws Exception {
+        String zoneId = UUID.randomUUID().toString();
+        String requestBody = "{\"id\":\""+zoneId+"\", \"subdomain\":\""+zoneId+"\", \"name\":\"testCreateZone() "+zoneId+"\",\"enable_redirect_uri_check\":false}";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+
+        ResponseEntity<IdentityZone> response = client.exchange(
+                serverRunning.getUrl("/identity-zones"),
+                HttpMethod.POST,
+                new HttpEntity<>(requestBody, headers), IdentityZone.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertFalse(response.getBody().isEnableRedirectUriCheck());
+        
+        requestBody = "{\"id\":\""+zoneId+"\", \"subdomain\":\""+zoneId+"\", \"name\":\"testCreateZone() "+zoneId+"\" }";
+        ResponseEntity<IdentityZone> updateResponse = client.exchange(
+                serverRunning.getUrl("/identity-zones/" + zoneId),
+                HttpMethod.PUT,
+                new HttpEntity<>(requestBody, headers),
+                IdentityZone.class);
+        
+        assertEquals(HttpStatus.OK, updateResponse.getStatusCode());
+        assertTrue(updateResponse.getBody().isEnableRedirectUriCheck());
     }
 
     static class IdentityClient extends ClientCredentialsResourceDetails {

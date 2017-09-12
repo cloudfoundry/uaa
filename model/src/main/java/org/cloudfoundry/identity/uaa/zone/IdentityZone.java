@@ -36,6 +36,7 @@ public class IdentityZone {
         uaa.setName(OriginKeys.UAA);
         uaa.setDescription("The system zone for backwards compatibility");
         uaa.setSubdomain("");
+        uaa.setEnableRedirectUriCheck(true);
         return uaa;
     }
 
@@ -55,6 +56,9 @@ public class IdentityZone {
     private String description;
 
     private Date created = new Date();
+
+    @JsonProperty("enable_redirect_uri_check")
+    private boolean enableRedirectUriCheck = true;
 
     @JsonProperty("last_modified")
     private Date lastModified = new Date();
@@ -155,4 +159,13 @@ public class IdentityZone {
     public IdentityZoneConfiguration getConfig() {
         return config;
     }
+
+    public boolean isEnableRedirectUriCheck() {
+        return this.enableRedirectUriCheck;
+    }
+
+    public void setEnableRedirectUriCheck(boolean enableRedirectUriCheck) {
+        this.enableRedirectUriCheck = enableRedirectUriCheck;
+    }
+
 }
