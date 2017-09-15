@@ -565,6 +565,22 @@ smtp:
   starttls: true
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
+  degraded:
+    enabled: true
+    whitelist:
+      endpoints:
+        - /other-url/**
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token
+        - /login/**
+        - /logout/**
+        - /saml/**
+      methods:
+        - CONNECT
+        - GET
+        - HEAD
+        - OPTIONS
 zones:
   internal:
     hostnames:
