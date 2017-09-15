@@ -59,7 +59,7 @@
 
     function setupVersionsDropdown() {
         $.get(
-            "/versions.json",
+            "../../versions.json",
             function(data) {
                 var versions = data.versions 
                 // var versions =
