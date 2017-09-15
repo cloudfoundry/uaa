@@ -342,6 +342,20 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(id.toLowerCase(), zone.getSubdomain());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
         assertEquals(JWT.getStringValue(),zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
+        assertTrue(zone.isEnableRedirectUriCheck());
+        checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
+    }
+
+    @Test
+    public void testCreateZoneWithDisableRedirectUriCheck() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration(), false);
+        
+        assertEquals(id, zone.getId());
+        assertEquals(id.toLowerCase(), zone.getSubdomain());
+        assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+        assertEquals(JWT.getStringValue(),zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
+        assertFalse(zone.isEnableRedirectUriCheck());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
     }
 
@@ -1457,6 +1471,32 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         keys.put("kid", "key");
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
         identityZone.getConfig().getTokenPolicy().setActiveKeyId("kid");
+
+        MvcResult result = getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().is(expect.value()))
+            .andReturn();
+
+        if (expect.is2xxSuccessful()) {
+            return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
+        }
+        return null;
+    }
+    
+    private IdentityZone createZone(String id, HttpStatus expect, String token, IdentityZoneConfiguration zoneConfiguration, boolean enableRedirectUriCheck) throws Exception {
+        IdentityZone identityZone = getIdentityZone(id);
+        identityZone.setConfig(zoneConfiguration);
+        identityZone.getConfig().getSamlConfig().setPrivateKey(serviceProviderKey);
+        identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(serviceProviderKeyPassword);
+        identityZone.getConfig().getSamlConfig().setCertificate(serviceProviderCertificate);
+        Map<String, String> keys = new HashMap<>();
+        keys.put("kid", "key");
+        identityZone.getConfig().getTokenPolicy().setKeys(keys);
+        identityZone.getConfig().getTokenPolicy().setActiveKeyId("kid");
+        identityZone.setEnableRedirectUriCheck(enableRedirectUriCheck);
 
         MvcResult result = getMockMvc().perform(
             post("/identity-zones")

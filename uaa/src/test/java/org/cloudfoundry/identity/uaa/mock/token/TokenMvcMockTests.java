@@ -1907,6 +1907,132 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(authRequest).andExpect(resultMatcher);
     }
+    
+    @Test
+    public void test_disable_redirect_uri_check_zone() throws Exception {
+        IdentityZone baseZone = identityZoneProvisioning.retrieve("uaa");
+        baseZone.setEnableRedirectUriCheck(false);
+        identityZoneProvisioning.update(baseZone);
+        String redirectUri = "http*://**";
+        HashSet redirectUris = new HashSet(Arrays.asList(redirectUri));
+        String clientId = "authclient-"+ generator.generate();
+        String scopes = "openid";
+        BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        client.setRegisteredRedirectUri(redirectUris);
+        getWebApplicationContext().getBean(ClientServicesExtension.class).updateClientDetails(client);
+
+        String username = "authuser"+ generator.generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        MockHttpSession session = getAuthenticatedSession(developer);
+        String state = generator.generate();
+        String redirectUriQueryParam = "https://example.com/dashboard/?appGuid=app-guid&ace_config=test";
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+        location = location.substring(0,location.indexOf("&code="));
+        assertEquals(redirectUriQueryParam, location);
+        
+        //Clean up
+        baseZone.setEnableRedirectUriCheck(true);
+        identityZoneProvisioning.update(baseZone);
+    }
+    
+    @Test
+    public void test_enable_redirect_uri_check_zone() throws Exception {
+        IdentityZone baseZone = identityZoneProvisioning.retrieve("uaa");
+        baseZone.setEnableRedirectUriCheck(true);
+        identityZoneProvisioning.update(baseZone);
+        
+        String redirectUri = "http*://**";
+        HashSet redirectUris = new HashSet(Arrays.asList(redirectUri));
+        String clientId = "authclient-"+ generator.generate();
+        String scopes = "openid";
+        BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        client.setRegisteredRedirectUri(redirectUris);
+        getWebApplicationContext().getBean(ClientServicesExtension.class).updateClientDetails(client);
+
+        String username = "authuser"+ generator.generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        MockHttpSession session = getAuthenticatedSession(developer);
+        String state = generator.generate();
+        String redirectUriQueryParam = "https://example.com/dashboard/?appGuid=app-guid&ace_config=test";
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().isBadRequest()).andReturn();
+        assertEquals("/oauth/error", result.getResponse().getForwardedUrl());
+    }
+    
+    @Test
+    public void test_enable_redirect_uri_check_zone_conflict_with_base_zone() throws Exception {
+        IdentityZone baseZone = identityZoneProvisioning.retrieve("uaa");
+        baseZone.setEnableRedirectUriCheck(true);
+        identityZoneProvisioning.update(baseZone);
+        
+        IdentityZone identityZone = new IdentityZone();
+        String zoneId = generator.generate();
+        identityZone.setId(zoneId);
+        identityZone.setSubdomain(zoneId);
+        identityZone.setName(zoneId);
+        identityZone.setEnableRedirectUriCheck(false);
+        identityZoneProvisioning.create(identityZone);
+        
+        IdentityZoneHolder.set(identityZone);
+        
+        String redirectUri = "http*://**";
+        HashSet redirectUris = new HashSet(Arrays.asList(redirectUri));
+        String clientId = "authclient-"+ generator.generate();
+        String scopes = "openid";
+        List<String> allowedIdps = Arrays.asList(OriginKeys.UAA);
+        BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri, allowedIdps , -1, identityZone);
+        client.setRegisteredRedirectUri(redirectUris);
+        getWebApplicationContext().getBean(ClientServicesExtension.class).updateClientDetails(client);
+        
+        setupIdentityProvider(OriginKeys.UAA);
+
+        String username = "authuser"+ generator.generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        MockHttpSession session = getAuthenticatedSession(developer);
+        String state = generator.generate();
+        String redirectUriQueryParam = "https://example.com/dashboard/?appGuid=app-guid&ace_config=test";
+        
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .with(new SetServerNameRequestPostProcessor(zoneId + ".localhost"))
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
+        
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+        location = location.substring(0,location.indexOf("&code="));
+        assertEquals(redirectUriQueryParam, location);
+    }
 
     @Test
     public void testAuthorizationCodeGrantWithEncodedRedirectURL() throws Exception {

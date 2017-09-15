@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -46,13 +47,15 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
 
     @Override
     public String resolveRedirect(String requestedRedirect, ClientDetails client) throws OAuth2Exception {
-        Set<String> registeredRedirectUris = ofNullable(client.getRegisteredRedirectUri()).orElse(emptySet());
-        if (registeredRedirectUris.size()==0) {
-            throw new RedirectMismatchException("Client registration is missing redirect_uri");
-        }
-        List<String> invalidUrls = registeredRedirectUris.stream().filter(url -> !UaaUrlUtils.isValidRegisteredRedirectUrl(url)).collect(Collectors.toList());
-        if (invalidUrls.size()>0) {
+        if(IdentityZoneHolder.get().isEnableRedirectUriCheck()) {
+            Set<String> registeredRedirectUris = ofNullable(client.getRegisteredRedirectUri()).orElse(emptySet());
+            if (registeredRedirectUris.size() == 0) {
+                throw new RedirectMismatchException("Client registration is missing redirect_uri");
+            }
+            List<String> invalidUrls = registeredRedirectUris.stream().filter(url -> !UaaUrlUtils.isValidRegisteredRedirectUrl(url)).collect(Collectors.toList());
+            if (invalidUrls.size() > 0) {
                 throw new RedirectMismatchException("Client registration contains invalid redirect_uri: " + invalidUrls);
+            }
         }
         return super.resolveRedirect(requestedRedirect, client);
     }

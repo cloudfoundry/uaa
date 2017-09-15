@@ -1,0 +1,1 @@
+ALTER TABLE identity_zone ADD COLUMN enable_redirect_uri_check BOOLEAN DEFAULT TRUE NOT NULL;
