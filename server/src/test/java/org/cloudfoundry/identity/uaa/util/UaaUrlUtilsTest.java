@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -79,6 +80,22 @@ public class UaaUrlUtilsTest {
         "http://*.domain.com",
         "http://username:password@some.server.com",
         "http://username:password@some.server.com/path"
+    );
+
+    private List<String> validCustomUrls = Arrays.asList(
+            "ftp://ftp.is.co.za/rfc/rfc1808.txt",
+            "cool-app://example.com",
+            "org.cloudfoundry.identity://mobile-windows-app.com/view",
+            "org+cloudfoundry+identity://mobile-ios-app.com/view",
+            "org-cl0udfoundry-identity://mobile-android-app.com/view"
+    );
+
+    private List<String> invalidCustomUrls = Arrays.asList(
+            "ft_p://ftp.is.co.za/rfc/rfc1808.txt",
+            "2cool-app://example.com",
+            "org.cloudfoundry*identity://mobile-app.com/view",
+            "org+cloudfoundry+identity:/mobile-app.com/view",
+            "mailto:John.Doe@example.com"
     );
 
     @Before
@@ -351,6 +368,16 @@ public class UaaUrlUtilsTest {
     public void test_validate_valid_redirect_uri() {
         validateRedirectUri(validUrls, true);
         validateRedirectUri(convertToHttps(validUrls), true);
+    }
+
+    @Test
+    public void test_validate_valid_redirect_uri_with_custom_schemes() {
+        validateRedirectUri(validCustomUrls, true);
+    }
+
+    @Test
+    public void test_validate_invalid_redirect_uri_with_custom_schemes() {
+        validateRedirectUri(invalidCustomUrls, false);
     }
 
     @Test
