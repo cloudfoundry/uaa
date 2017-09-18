@@ -53,6 +53,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,14 +62,14 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
-import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
@@ -118,7 +119,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor ATTRIBUTE_MAPPING_FAMILY_NAME = fieldWithPath("config.attributeMappings.family_name").optional(null).type(STRING).description(FAMILY_NAME_DESC);
     private static final FieldDescriptor ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional(null).type(STRING).description(PHONE_NUMBER_DESC);
     private static final FieldDescriptor ATTRIBUTE_MAPPING_EXTERNAL_GROUP = fieldWithPath("config.attributeMappings.external_groups").optional(null).type(ARRAY).description("Map `external_groups` to the attribute for groups in the provider assertion.");
-    private static final FieldDescriptor ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT = fieldWithPath("config.attributeMappings['" + USER_ATTRIBUTE_PREFIX + "department']").optional(null).type(STRING).description("Map external attribute to UAA recognized mappings. Mapping should be of the format `user.attribute.<attribute_name>`");
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT = fieldWithPath("config.attributeMappings['user.attribute.department']").optional(null).type(STRING).description("Map external attribute to UAA recognized mappings. Mapping should be of the format `user.attribute.<attribute_name>`. `department` is used in the documentation as an example attribute.");
     private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).type(BOOLEAN).description("Whether users should be allowed to authenticate from LDAP without having a user pre-populated in the users database");
     private static final FieldDescriptor EXTERNAL_GROUPS_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("List of external groups that will be included in the ID Token if the `roles` scope is requested.");
     private static final FieldDescriptor PROVIDER_DESC = fieldWithPath("config.providerDescription").optional(null).type(STRING).description("Human readable name/description of this provider");
@@ -130,6 +131,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor ID = fieldWithPath("id").type(STRING).description(ID_DESC);
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
+    private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("will fill this out later");
     private static final FieldDescriptor IDENTITY_ZONE_ID = fieldWithPath("identityZoneId").type(STRING).description(IDENTITY_ZONE_ID_DESC);
     private static final FieldDescriptor ADDITIONAL_CONFIGURATION = fieldWithPath("config.additionalConfiguration").optional(null).type(OBJECT).description("(Unused.)");
     private static final SnippetUtils.ConstrainableField VERSION = (SnippetUtils.ConstrainableField) fieldWithPath("version").type(NUMBER).description(VERSION_DESC);
@@ -153,6 +155,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     };
 
     private FieldDescriptor[] attributeMappingFields = {
+            ATTRIBUTE_MAPPING,
             ATTRIBUTE_MAPPING_EMAIL,
             ATTRIBUTE_MAPPING_GIVEN_NAME,
             ATTRIBUTE_MAPPING_FAMILY_NAME,
@@ -536,6 +539,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
+        definition.setExternalGroupsWhitelist(Arrays.asList("uaa.user"));
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
@@ -559,6 +563,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
             ADD_SHADOW_USER_ON_LOGIN,
             fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+                GROUP_WHITELIST,
             fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion.")
         }, attributeMappingFields));
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relayingPartySecret));
@@ -570,14 +575,13 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             IDENTITY_ZONE_ID,
             CREATED,
             LAST_MODIFIED,
-            fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
         }));
 
         ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
                                                                .param("rawConfig", "true")
                                                                .header("Authorization", "Bearer " + adminToken)
                                                                .contentType(APPLICATION_JSON)
-                                                               .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.externalGroupsWhitelist", "config.checkTokenUrl", "config.additionalConfiguration")))
+                                                               .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.checkTokenUrl", "config.additionalConfiguration")))
             .andDo(print())
             .andExpect(status().isCreated());
 
