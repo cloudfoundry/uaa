@@ -69,6 +69,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String REDIRECT_PARAMETER_NAME_DESC = "Changes the name of the redirect parameter";
     private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Whether or not to allow the redirect parameter on logout";
     private static final String WHITELIST_DESC = "List of allowed whitelist redirects";
+    private static final String ENABLE_REDIRECT_URI_CHECK_DESC = "Zone-level flag that will enforce client redirect uri rules as deployed in 4.4.0. If `true`, check will perform at authorization. Defaults to `true`";
     private static final String SELF_SERVICE_LINKS_ENABLED_DESC = "Whether or not users are allowed to sign up or reset their passwords via the UI";
     private static final String SIGNUP_DESC = "Where users are directed upon clicking the account creation link";
     private static final String PASSWD_DESC = "Where users are directed upon clicking the password reset link";
@@ -182,8 +183,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.certificate`")),
             fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.passphrase`")),
 
-
-
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
@@ -200,7 +199,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
-
+            
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
@@ -227,7 +226,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
 
             fieldWithPath("created").ignored(),
-            fieldWithPath("last_modified").ignored()
+            fieldWithPath("last_modified").ignored(),
+            fieldWithPath("enable_redirect_uri_check").type(BOOLEAN).description(ENABLE_REDIRECT_URI_CHECK_DESC).attributes(key("constraints").value("Optional"))
         };
 
         getMockMvc().perform(
@@ -361,7 +361,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("[].created").ignored(),
-            fieldWithPath("[].last_modified").ignored()
+            fieldWithPath("[].last_modified").ignored(),
+            fieldWithPath("[].enable_redirect_uri_check").type(BOOLEAN).description(ENABLE_REDIRECT_URI_CHECK_DESC).attributes(key("constraints").value("Optional"))
         );
 
         getMockMvc().perform(
@@ -472,7 +473,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
-            fieldWithPath("last_modified").ignored()
+            fieldWithPath("last_modified").ignored(),
+            fieldWithPath("enable_redirect_uri_check").type(BOOLEAN).description(ENABLE_REDIRECT_URI_CHECK_DESC).attributes(key("constraints").value("Optional"))
         );
 
         getMockMvc().perform(
@@ -615,7 +617,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.xhrConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC),
 
             fieldWithPath("created").ignored(),
-            fieldWithPath("last_modified").ignored()
+            fieldWithPath("last_modified").ignored(),
+            fieldWithPath("enable_redirect_uri_check").type(BOOLEAN).description(ENABLE_REDIRECT_URI_CHECK_DESC).attributes(key("constraints").value("Optional"))
         );
     }
 
