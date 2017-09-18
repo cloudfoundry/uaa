@@ -1659,6 +1659,70 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void testValidCustomRedirectUriForAuthorizationGrant() throws Exception {
+        String redirectUri = "cool-app://example.com";
+        HashSet redirectUris = new HashSet(Arrays.asList(redirectUri));
+        String clientId = "authclient-"+ generator.generate();
+        String scopes = "openid";
+        BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        client.setRegisteredRedirectUri(redirectUris);
+        getWebApplicationContext().getBean(ClientServicesExtension.class).updateClientDetails(client);
+
+        String username = "authuser"+ generator.generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String basicDigestHeaderValue = "Basic "
+                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        MockHttpSession session = getAuthenticatedSession(developer);
+        String state = generator.generate();
+        String redirectUriQueryParam = "cool-app://example.com";
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(SCOPE, "openid")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+        location = location.substring(0,location.indexOf("?code="));
+        assertEquals(redirectUriQueryParam, location);
+    }
+
+    @Test
+    public void testInValidCustomRedirectUriForAuthorizationGrant() throws Exception {
+        String redirectUri = "not-cool-enough:/example.com";
+        HashSet redirectUris = new HashSet(Arrays.asList(redirectUri));
+        String clientId = "authclient-"+ generator.generate();
+        String scopes = "openid";
+        BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        client.setRegisteredRedirectUri(redirectUris);
+        getWebApplicationContext().getBean(ClientServicesExtension.class).updateClientDetails(client);
+
+        String username = "authuser"+ generator.generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String basicDigestHeaderValue = "Basic "
+                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        MockHttpSession session = getAuthenticatedSession(developer);
+        String state = generator.generate();
+        String redirectUriQueryParam = "cool-app://example.com";
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(SCOPE, "openid")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().isBadRequest()).andReturn();
+        assertEquals("/oauth/error", result.getResponse().getForwardedUrl());
+    }
+
+    @Test
     public void invalidScopeErrorMessageIsNotShowingAllClientScopes() throws Exception {
         String clientId = "testclient"+ generator.generate();
         String scopes = "openid";

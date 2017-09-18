@@ -75,7 +75,7 @@ public abstract class UaaUrlUtils {
     }
 
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
-        "^http(\\*|s)?://" +            //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
+        "^(([a-zA-Z][a-zA-Z0-9+-.]*)|(http(\\*|s)?))://" + //URL starts with 'www.' or 'http://' or 'https://' or 'http*:// or custom-scheme://
         "(.*:.*@)?" +                   //username/password in URL
         "(([a-zA-Z0-9\\-\\*]+\\.)*" +   //subdomains
         "[a-zA-Z0-9\\-]+\\.)?" +        //hostname
