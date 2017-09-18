@@ -52,6 +52,17 @@ public class UaaMetricsEmitter {
         }
     }
 
+    @Scheduled(fixedRate = 5000)
+    public void emitRequestCount() throws Exception {
+        Map<String, ?> spring = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
+        if (spring != null) {
+            MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(spring, "#this['ServerRequests']");
+            if (uaaMetricsMap != null){
+                statsDClient.gauge("requests.global.completed.count", (Long) uaaMetricsMap.get("completed_requests"));
+            }
+        }
+    }
+
     public void setMetricsUtils(MetricsUtils metricsUtils) {
         this.metricsUtils = metricsUtils;
     }

@@ -15,6 +15,9 @@ package org.cloudfoundry.identity.statsd.integration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -42,5 +45,14 @@ public class IntegrationTestUtils {
             return matcher.group(1);
         }
         return null;
+    }
+
+    public static long getGaugeValueFromMessage(String message) {
+        assertNotNull(message);
+
+        String[] parts = message.split("[:|]");
+        assertEquals(parts[2], "g");
+
+        return Long.valueOf(parts[1]);
     }
 }
