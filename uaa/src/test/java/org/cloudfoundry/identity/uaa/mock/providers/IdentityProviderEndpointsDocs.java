@@ -53,12 +53,20 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
@@ -105,12 +113,13 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_EMAIL = fieldWithPath("config.attributeMappings.email").optional(null).type(STRING).description("Map `email` to the attribute for email in the provider assertion.");
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_GIVEN_NAME = fieldWithPath("config.attributeMappings.given_name").optional(null).type(STRING).description(GIVEN_NAME_DESC);
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_FAMILY_NAME = fieldWithPath("config.attributeMappings.family_name").optional(null).type(STRING).description(FAMILY_NAME_DESC);
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional(null).type(STRING).description(PHONE_NUMBER_DESC);
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_EXTERNAL_GROUP = fieldWithPath("config.attributeMappings.external_groups").optional(null).type(ARRAY).description("Map `external_groups` to the attribute for groups in the provider assertion.");
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT = fieldWithPath("config.attributeMappings['" + USER_ATTRIBUTE_PREFIX + "department']").optional(null).type(STRING).description("Map external attribute to UAA recognized mappings. Mapping should be of the format `user.attribute.<attribute_name>`");
     private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).type(BOOLEAN).description("Whether users should be allowed to authenticate from LDAP without having a user pre-populated in the users database");
-    private static final FieldDescriptor GIVEN_NAME = fieldWithPath("config.attributeMappings.given_name").optional(null).type(STRING).description(GIVEN_NAME_DESC);
-    private static final FieldDescriptor FAMILY_NAME = fieldWithPath("config.attributeMappings.family_name").optional(null).type(STRING).description(FAMILY_NAME_DESC);
-    private static final FieldDescriptor EMAIL = fieldWithPath("config.attributeMappings.email").optional(null).type(STRING).description("Map `email` to the attribute for email in the provider assertion.");
-    private static final FieldDescriptor PHONE_NUMBER = fieldWithPath("config.attributeMappings.phone_number").optional(null).type(STRING).description(PHONE_NUMBER_DESC);
-    private static final FieldDescriptor EXTERNAL_GROUPS = fieldWithPath("config.attributeMappings.external_groups").optional(null).type(OBJECT).description("Map `external_groups` to the attribute for groups in the provider assertion.");
     private static final FieldDescriptor EXTERNAL_GROUPS_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("List of external groups that will be included in the ID Token if the `roles` scope is requested.");
     private static final FieldDescriptor PROVIDER_DESC = fieldWithPath("config.providerDescription").optional(null).type(STRING).description("Human readable name/description of this provider");
     private static final FieldDescriptor EMAIL_DOMAIN = fieldWithPath("config.emailDomain").optional(null).type(ARRAY).description("List of email domains associated with the provider for the purpose of associating users to the correct origin upon invitation. If empty list, no invitations are accepted. Wildcards supported.");
@@ -141,6 +150,15 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         ACTIVE,
         ADD_SHADOW_USER,
         STORE_CUSTOM_ATTRIBUTES
+    };
+
+    private FieldDescriptor[] attributeMappingFields = {
+            ATTRIBUTE_MAPPING_EMAIL,
+            ATTRIBUTE_MAPPING_GIVEN_NAME,
+            ATTRIBUTE_MAPPING_FAMILY_NAME,
+            ATTRIBUTE_MAPPING_PHONE,
+            ATTRIBUTE_MAPPING_EXTERNAL_GROUP,
+            ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
     FieldDescriptor relayingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
@@ -356,7 +374,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         IdentityProvider identityProvider = getSamlProvider("SAML");
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(ArrayUtils.addAll(commonProviderFields, attributeMappingFields), new FieldDescriptor[]{
             fieldWithPath("type").required().description("`saml`"),
             fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
             SKIP_SSL_VALIDATION,
@@ -373,12 +391,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 "`\"org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory\"` depending on if the `metaDataLocation` of type `URL` is HTTP or HTTPS, respectively"),
             fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
             ADD_SHADOW_USER_ON_LOGIN,
-            EXTERNAL_GROUPS_WHITELIST,
-            ATTRIBUTE_MAPPING,
-            GIVEN_NAME,
-            FAMILY_NAME,
-            EMAIL,
-            PHONE_NUMBER
+            EXTERNAL_GROUPS_WHITELIST
         });
 
         Snippet requestFields = requestFields(idempotentFields);
@@ -455,10 +468,11 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
+        definition.setAttributeMappings(getAttributeMappingMap());
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
             fieldWithPath("type").required().description("`\""+OAUTH20+"\"`"),
             fieldWithPath("originKey").required().description("A unique alias for a OAuth provider"),
             fieldWithPath("config.authUrl").required().type(STRING).description("The OAuth 2.0 authorization endpoint URL"),
@@ -473,13 +487,10 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
             fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
             fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
-
-                ADD_SHADOW_USER_ON_LOGIN,
-            EXTERNAL_GROUPS,
-            ATTRIBUTE_MAPPING,
+            ADD_SHADOW_USER_ON_LOGIN,
+            fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
             fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
-            fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token.")
-        });
+        }, attributeMappingFields));
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relayingPartySecret));
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
@@ -524,10 +535,11 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
+        definition.setAttributeMappings(getAttributeMappingMap());
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
             fieldWithPath("type").required().description("`\""+OIDC10+"\"`"),
             fieldWithPath("originKey").required().description("A unique alias for the OIDC 1.0 provider"),
             fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with /.well-known/openid-configurationmit "),
@@ -546,11 +558,9 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
             fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
             ADD_SHADOW_USER_ON_LOGIN,
-            EXTERNAL_GROUPS,
-            ATTRIBUTE_MAPPING,
-            fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
-            fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token.")
-        });
+            fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+            fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion.")
+        }, attributeMappingFields));
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relayingPartySecret));
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
@@ -947,7 +957,19 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
             .setZoneId(IdentityZone.getUaa().getId());
+        providerDefinition.setAttributeMappings(getAttributeMappingMap());
         identityProvider.setConfig(providerDefinition);
         return identityProvider;
+    }
+
+    private Map<String, Object> getAttributeMappingMap() {
+        Map<String, Object> attributeMappings = new HashMap();
+        attributeMappings.put(EMAIL_ATTRIBUTE_NAME, "emailAddress");
+        attributeMappings.put(GIVEN_NAME_ATTRIBUTE_NAME, "first_name");
+        attributeMappings.put(FAMILY_NAME_ATTRIBUTE_NAME, "last_name");
+        attributeMappings.put(PHONE_NUMBER_ATTRIBUTE_NAME, "telephone");
+        attributeMappings.put(GROUP_ATTRIBUTE_NAME, new String[] {"roles"});
+        attributeMappings.put(USER_ATTRIBUTE_PREFIX+"department", "department");
+        return attributeMappings;
     }
 }
