@@ -34,3 +34,4 @@ phantomjsdriver.log
 uaa/slate/package-lock.json
 uaa/slate/node_modules
 uaa/slate/node_modules/**/*
+uaa/slateCustomizations/source/versionfile

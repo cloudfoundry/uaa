@@ -73,7 +73,15 @@ test {
   exclude '**/*IT.class'
   systemProperty "mock.suite.test", "true"
 }
+
+task populateVersionfile {
+  def versionfile = new File("$projectDir/slateCustomizations/source/versionfile")
+  versionfile.createNewFile()
+  assert versionfile.exists()
+  versionfile.text = version
+}
 task customizeSlate(type: Copy) {
+  dependsOn populateVersionfile
   from 'slate'
   from 'slateCustomizations'
   into 'build/slate'
@@ -92,12 +100,12 @@ task(deleteDefaultContent, type: Delete) {
     delete 'build/slate/source/index.html.md'
 }
 
+
 task(slate, type: Exec) {
   dependsOn 'customizeSlate', 'deleteDefaultContent', 'bundleInstall', 'docsTestRestDocs'
-
-  workingDir file('build/slate')
-  executable 'bundle'
-  args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs/version/' + version
+      workingDir file('build/slate')
+      executable 'bundle'
+      args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs/version/' + version
 }
 generateDocs {
   dependsOn slate
