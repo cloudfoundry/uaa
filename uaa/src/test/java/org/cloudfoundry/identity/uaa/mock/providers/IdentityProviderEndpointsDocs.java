@@ -107,14 +107,14 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final String CREATED_DESC = "UAA sets the creation date";
     private static final String LAST_MODIFIED_DESC = "UAA sets the modification date";
     private static final String CONFIG_DESCRIPTION = "Json config for the Identity Provider";
-    private static final String FAMILY_NAME_DESC = "Map `family_name` to the attribute for family name in the provider assertion.";
-    private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion.";
-    private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion.";
+    private static final String FAMILY_NAME_DESC = "Map `family_name` to the attribute for family name in the provider assertion or token.";
+    private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion or token.";
+    private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion or token.";
 
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
-    private static final FieldDescriptor ATTRIBUTE_MAPPING_EMAIL = fieldWithPath("config.attributeMappings.email").optional(null).type(STRING).description("Map `email` to the attribute for email in the provider assertion.");
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_EMAIL = fieldWithPath("config.attributeMappings.email").optional(null).type(STRING).description("Map `email` to the attribute for email in the provider assertion or token.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING_GIVEN_NAME = fieldWithPath("config.attributeMappings.given_name").optional(null).type(STRING).description(GIVEN_NAME_DESC);
     private static final FieldDescriptor ATTRIBUTE_MAPPING_FAMILY_NAME = fieldWithPath("config.attributeMappings.family_name").optional(null).type(STRING).description(FAMILY_NAME_DESC);
     private static final FieldDescriptor ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional(null).type(STRING).description(PHONE_NUMBER_DESC);
@@ -131,7 +131,12 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor ID = fieldWithPath("id").type(STRING).description(ID_DESC);
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
-    private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("will fill this out later");
+    private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("JSON Array containing the groups names which need to be populated in the user's `id_token` or response from `/userinfo` endpoint. If you don't specify the whitelist no groups will be populated in the `id_token` or `/userinfo` response." +
+            "<br>Please note that regex is allowed. Acceptable patterns are" +
+            "<ul><li>    `*` translates to all groups </li>" +
+            "<li>         `*pattern*` Contains pattern </li>" +
+            "<li>         `pattern*` Starts with pattern </li>" +
+            "<li>         `*pattern` Ends with pattern </li></ul>");
     private static final FieldDescriptor IDENTITY_ZONE_ID = fieldWithPath("identityZoneId").type(STRING).description(IDENTITY_ZONE_ID_DESC);
     private static final FieldDescriptor ADDITIONAL_CONFIGURATION = fieldWithPath("config.additionalConfiguration").optional(null).type(OBJECT).description("(Unused.)");
     private static final SnippetUtils.ConstrainableField VERSION = (SnippetUtils.ConstrainableField) fieldWithPath("version").type(NUMBER).description(VERSION_DESC);
@@ -214,7 +219,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_FIRSTNAME = fieldWithPath("config.attributeMappings.first_name").optional("givenname").type(STRING).description(GIVEN_NAME_DESC);
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_LASTNAME = fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC);
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC);
-
+    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_USER_NAME = fieldWithPath("config.attributeMappings.user_name").optional("user_name").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for LDAP is the User Name filter");
     private FieldDescriptor[] ldapAllFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
         LDAP_TYPE,
         LDAP_ORIGIN_KEY,
@@ -244,6 +249,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_COMPARE_LOCAL,
         LDAP_GROUP_ROLE_ATTRIBUTE,
         ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_USER_NAME,
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
@@ -280,6 +286,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_COMPARE_LOCAL,
         LDAP_GROUP_ROLE_ATTRIBUTE,
         ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_USER_NAME,
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
@@ -301,10 +308,10 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_DN_PATTERN,
         LDAP_USER_DN_PATTERN_DELIM,
         ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_USER_NAME,
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
-
         LDAP_BIND_USER_DN.ignored(),
         LDAP_USER_SEARCH_BASE.ignored(),
         LDAP_USER_SEARCH_FILTER.ignored(),
@@ -351,6 +358,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_COMPARE_LOCAL.ignored(),
         LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
         ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_USER_NAME,
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
@@ -377,7 +385,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         IdentityProvider identityProvider = getSamlProvider("SAML");
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(ArrayUtils.addAll(commonProviderFields, attributeMappingFields), new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
             fieldWithPath("type").required().description("`saml`"),
             fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
             SKIP_SSL_VALIDATION,
@@ -394,8 +402,9 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 "`\"org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory\"` depending on if the `metaDataLocation` of type `URL` is HTTP or HTTPS, respectively"),
             fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
             ADD_SHADOW_USER_ON_LOGIN,
-            EXTERNAL_GROUPS_WHITELIST
-        });
+            EXTERNAL_GROUPS_WHITELIST,
+            fieldWithPath("config.attributeMappings.user_name").optional("NameID").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for SAML is `NameID`."),
+        }, attributeMappingFields));
 
         Snippet requestFields = requestFields(idempotentFields);
 
@@ -492,7 +501,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
             ADD_SHADOW_USER_ON_LOGIN,
             fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
-            fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
+            fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
         }, attributeMappingFields));
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relayingPartySecret));
 
@@ -564,7 +573,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             ADD_SHADOW_USER_ON_LOGIN,
             fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
                 GROUP_WHITELIST,
-            fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion.")
+            fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`.")
         }, attributeMappingFields));
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relayingPartySecret));
 
