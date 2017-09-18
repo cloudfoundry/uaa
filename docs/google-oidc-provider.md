@@ -25,8 +25,8 @@ Please refer to 'https://accounts.google.com/.well-known/openid-configuration' f
           linkText: Login with google
           showLinkText: true
           addShadowUserOnLogin: true
-          relyingPartyId: `Client ID`
-          relyingPartySecret: `Client secret`
+          relyingPartyId: REPLACE_WITH_CLIENT_ID
+          relyingPartySecret: REPLACE_WITH_CLIENT_SECRET
           skipSslValidation: false
           attributeMappings:
             user_name: email
