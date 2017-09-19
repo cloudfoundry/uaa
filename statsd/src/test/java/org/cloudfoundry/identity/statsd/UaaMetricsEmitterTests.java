@@ -56,7 +56,7 @@ public class UaaMetricsEmitterTests {
         mBeanMap2.put("loggingAuditService", mBeanMap1);
 
         serverRequestsBeanMap = new MBeanMap();
-        serverRequestsBeanMap.put("completed_requests", 53L);
+        serverRequestsBeanMap.put("completed.count", 53L);
 
         mBeanMap3 = new HashMap();
         mBeanMap3.put("LoggingAuditService", mBeanMap2);

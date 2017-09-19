@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd.integration;
 
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -35,12 +35,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class UaaMetricsEmitterIT {
-    private DatagramSocket serverSocket;
-    private byte[] receiveData;
-    private DatagramPacket receivePacket;
+    private static DatagramSocket serverSocket;
+    private static byte[] receiveData;
+    private static DatagramPacket receivePacket;
 
-    @Before
-    public void setUp() throws IOException {
+    @BeforeClass
+    public static void setUpOnce() throws IOException {
         serverSocket = new DatagramSocket(8125);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
@@ -73,7 +73,7 @@ public class UaaMetricsEmitterIT {
                 new HttpEntity<>(body, headers),
                 String.class);
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
-        assertNotNull(getMessage("uaa.audit_service.user_authentication_count:", 5000));
+        assertNotNull(getMessage("uaa.audit_service.user.authentication.count:", 5000));
     }
 
     @Test
