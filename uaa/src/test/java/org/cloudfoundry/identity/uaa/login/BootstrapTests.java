@@ -206,10 +206,14 @@ public class BootstrapTests {
                    containsInAnyOrder(
                         "/oauth/authorize/**",
                         "/oauth/token/**",
-                        "/check_token",
-                        "/saml/**",
+                        "/check_token/**",
                         "/login/**",
-                        "/logout/**"
+                        "/login.do",
+                        "/logout/**",
+                        "/logout.do",
+                        "/saml/**",
+                        "/autologin/**",
+                        "/authenticate/**"
                    )
         );
         assertThat(degradedModeUaaFilter.getPermittedMethods(),

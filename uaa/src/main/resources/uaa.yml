@@ -595,10 +595,14 @@ uaa:
       endpoints:
         - /oauth/authorize/**
         - /oauth/token/**
-        - /check_token
+        - /check_token/**
         - /login/**
+        - /login.do
         - /logout/**
+        - /logout.do
         - /saml/**
+        - /autologin/**
+        - /authenticate/**
       methods:
         - GET
         - HEAD

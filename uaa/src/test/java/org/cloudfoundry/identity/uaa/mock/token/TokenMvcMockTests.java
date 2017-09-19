@@ -119,8 +119,6 @@ import java.util.TreeSet;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
@@ -184,7 +182,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     private String BADSECRET = "badsecret";
     private TestClient testClient;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private MockEnvironment mockEnvironment;
     private static SamlTestUtils samlTestUtils = new SamlTestUtils();
     private boolean allowQueryString;
@@ -685,7 +683,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String fullPath = "/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login";
         String origin = subdomain + ".cloudfoundry-saml-login";
 
-        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
+                                                                                                           getMockMvc(),
+                                                                                                           getWebApplicationContext(),
+                                                                                                           null,
+                                                                                                           false);
 
         //create an actual IDP, so we can fetch metadata
         String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
@@ -756,7 +758,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String idpOrigin = subdomain + ".cloudfoundry-saml-login";
 
         //create an zone - that zone will be our IDP
-        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
+                                                                                                           getMockMvc(),
+                                                                                                           getWebApplicationContext(),
+                                                                                                           null,
+                                                                                                           false);
         //create an actual IDP, so we can fetch metadata
         String spMetadata = MockMvcUtils.getSPMetadata(getMockMvc(), null);
         String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
@@ -3373,22 +3379,21 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         identityZoneProvisioning.update(defaultZone);
 
         try {
-            BaseClientDetails client = new BaseClientDetails(
+            BaseClientDetails client = setUpClients(
                 generator.generate(),
-                "",
-                "openid",
-                "client_credentials,password",
                 "clients.write",
-                 "http://redirect.uri");
-            client.setClientSecret("secret");
-            createClient(getMockMvc(), adminToken, client);
+                "openid",
+                "client_credentials,password"
+                ,true
+            );
+
 
             //this is the token we will revoke
             String clientToken =
                     getClientCredentialsOAuthAccessToken(
                             getMockMvc(),
                             client.getClientId(),
-                            client.getClientSecret(),
+                            SECRET,
                             null,
                             null
                     );
@@ -3413,32 +3418,22 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     public void revokeOtherClientToken() throws Exception {
         String resourceClientId = generator.generate();
-        BaseClientDetails resourceClient = new BaseClientDetails(
-                resourceClientId,
-                "",
-                "uaa.resource",
-                "client_credentials,password",
-                "uaa.resource",
-                "http://redirect.uri");
-        resourceClient.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, resourceClient);
 
-        BaseClientDetails client = new BaseClientDetails(
-            generator.generate(),
-            "",
-            "openid",
-            "client_credentials,password",
-            "tokens.revoke",
-             "http://redirect.uri");
-        client.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, client);
+        BaseClientDetails client =
+            setUpClients(resourceClientId,
+                         "tokens.revoke",
+                         "openid",
+                         "client_credentials,password",
+                         true
+            );
+
 
         //this is the token we will revoke
         String revokeAccessToken =
                 getClientCredentialsOAuthAccessToken(
                         getMockMvc(),
                         client.getClientId(),
-                        client.getClientSecret(),
+                        SECRET,
                         "tokens.revoke",
                         null,
                         false
@@ -3448,7 +3443,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 getClientCredentialsOAuthAccessToken(
                         getMockMvc(),
                         resourceClientId,
-                        resourceClient.getClientSecret(),
+                        SECRET,
                         null,
                         null,
                         true
@@ -3470,32 +3465,29 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     public void revokeOtherClientTokenForbidden() throws Exception {
         String resourceClientId = generator.generate();
-        BaseClientDetails resourceClient = new BaseClientDetails(
-                resourceClientId,
-                "",
-                "uaa.resource",
-                "client_credentials,password",
-                "uaa.resource",
-                "http://redirect.uri");
-        resourceClient.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, resourceClient);
+        BaseClientDetails resourceClient = setUpClients(
+            resourceClientId,
+            "uaa.resource",
+            "uaa.resource",
+            "client_credentials,password",
+            true
+        ) ;
 
-        BaseClientDetails client = new BaseClientDetails(
+        BaseClientDetails client = setUpClients(
             generator.generate(),
-            "",
+            "clients.write",
             "openid",
             "client_credentials,password",
-            null,
-            "http://redirect.uri");
-        client.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, client);
+            true
+        );
+
 
         //this is the token we will revoke
         String revokeAccessToken =
                 getClientCredentialsOAuthAccessToken(
                         getMockMvc(),
                         client.getClientId(),
-                        client.getClientSecret(),
+                        SECRET,
                         null,
                         null,
                         false
@@ -3505,7 +3497,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 getClientCredentialsOAuthAccessToken(
                         getMockMvc(),
                         resourceClientId,
-                        resourceClient.getClientSecret(),
+                        SECRET,
                         null,
                         null,
                         true
@@ -3594,16 +3586,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andExpect(status().isUnauthorized())
             .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
 
-
-        ScimUser user = new ScimUser(null,
-                                     generator.generate(),
-                                     "Given Name",
-                                     "Family Name");
-        user.setPrimaryEmail(user.getUserName()+"@test.org");
-        user.setPassword("password");
-
-        user = createUser(getMockMvc(), adminToken, user);
-        user.setPassword("password");
+        ScimUser user = setUpUser(generator.generate().toLowerCase()+"@test.org");
+        user.setPassword("secret");
 
         String userInfoToken = getUserOAuthAccessToken(
             getMockMvc(),
@@ -3644,16 +3628,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     protected BaseClientDetails getAClientWithClientsRead() throws Exception {
-        BaseClientDetails client = new BaseClientDetails(
+        BaseClientDetails client = setUpClients(
             generator.generate(),
-            "",
+            "clients.read",
             "openid",
             "client_credentials,password",
-            "clients.read",
-            "http://redirect.uri");
+            true
+        );
         client.setClientSecret("secret");
-
-        createClient(getMockMvc(), adminToken, client);
         return client;
     }
 
