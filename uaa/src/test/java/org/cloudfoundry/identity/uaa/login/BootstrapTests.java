@@ -213,7 +213,8 @@ public class BootstrapTests {
                         "/logout.do",
                         "/saml/**",
                         "/autologin/**",
-                        "/authenticate/**"
+                        "/authenticate/**",
+                        "/idp_discovery/**"
                    )
         );
         assertThat(degradedModeUaaFilter.getPermittedMethods(),

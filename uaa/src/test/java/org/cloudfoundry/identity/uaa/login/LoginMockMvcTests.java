@@ -191,6 +191,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void resetGenerator() throws Exception {
         getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
         getWebApplicationContext().getBean(LoginInfoEndpoint.class).setGlobalLinks(globalLinks);
+        getWebApplicationContext().getBean(HomeController.class).setGlobalLinks(globalLinks);
     }
 
     @After
@@ -360,6 +361,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .perform(get("/login"))
                 .andReturn();
         assertThat("", mvcResult.getResponse().getContentAsString(), containsString("http-equiv=\"refresh\" content=\"3\""));
+        cookieBasedCsrfTokenRepository.setCookieMaxAge(CookieBasedCsrfTokenRepository.DEFAULT_COOKIE_MAX_AGE);
     }
 
     protected void setDisableInternalAuth(boolean disable) throws Exception {
@@ -2226,7 +2228,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryRedirectsToSamlExternalProvider_withClientContext() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("test-saml", "test-saml");
+        String subdomain = "test-zone-"+generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext(), false);
 
         String originKey = generator.generate();
@@ -2242,7 +2245,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryRedirectsToOIDCProvider() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("oidc-idp-discovery", "oidc-idp-discovery");
+        String subdomain = "oidc-discovery-"+generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext(), false);
 
         String originKey = createOIDCProvider(zone, "id_token code");
@@ -2256,7 +2260,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 header()
                     .string(
                         "Location",
-                        startsWith("http://myauthurl.com?client_id=id&response_type=id_token+code&redirect_uri=http%3A%2F%2Foidc-idp-discovery.localhost%2Flogin%2Fcallback%2F" +originKey+"&nonce=")
+                        startsWith("http://myauthurl.com?client_id=id&response_type=id_token+code&redirect_uri=http%3A%2F%2F"+subdomain+".localhost%2Flogin%2Fcallback%2F" +originKey+"&nonce=")
                     )
             );
     }
@@ -2306,7 +2310,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryWithNoEmailDomainMatch_withClientContext() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("jon", "jon");
+        String subdomain = "test-zone-"+generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext(), false);
 
         IdentityZoneHolder.set(zone);
@@ -2329,7 +2334,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryWithMultipleEmailDomainMatches_withClientContext() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("madhura", "madhura");
+        String subdomain = "test-zone-"+generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext(), false);
 
         IdentityZoneHolder.set(zone);
@@ -2352,7 +2358,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryWithUaaFallBack_withClientContext() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("uaa-fall-back", "uaa-fall-back");
+        String subdomain = "test-zone-"+generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext(), false);
 
         String originKey = generator.generate();
@@ -2370,7 +2377,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryWithLdap_withClientContext() throws Exception{
-        IdentityZone zone = MultitenancyFixture.identityZone("puppy-ldap", "puppy-ldap");
+        String subdomain = "test-zone-"+generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext(), false);
 
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(LDAP, zone.getId());
