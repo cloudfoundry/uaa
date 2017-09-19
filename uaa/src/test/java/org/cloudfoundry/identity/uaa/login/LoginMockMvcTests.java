@@ -1289,7 +1289,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         try {
             IdentityZoneHolder.set(identityZone);
             uaaProvider.setActive(false);
-            provisioning.update(uaaProvider);
+            provisioning.update(uaaProvider, uaaProvider.getIdentityZoneId());
             getMockMvc().perform(get("/login")
                 .accept(APPLICATION_JSON)
                 .session(session)
@@ -1298,7 +1298,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         }finally {
             IdentityZoneHolder.set(identityZone);
             uaaProvider.setActive(true);
-            provisioning.update(uaaProvider);
+            provisioning.update(uaaProvider, uaaProvider.getIdentityZoneId());
             IdentityZoneHolder.clear();
         }
 
@@ -1334,7 +1334,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
-        identityProviderProvisioning.update(uaaIdentityProvider);
+        identityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
@@ -1359,7 +1359,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
-        identityProviderProvisioning.update(uaaIdentityProvider);
+        identityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML)
                 .servletPath("/login")
@@ -1390,7 +1390,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
-        identityProviderProvisioning.update(uaaIdentityProvider);
+        identityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML)
             .servletPath("/login")
@@ -1532,7 +1532,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
-        identityProviderProvisioning.update(uaaIdentityProvider);
+        identityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
@@ -2302,7 +2302,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("uaa", zone.getId());
         identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("totally-different.org")));
-        identityProviderProvisioning.update(identityProvider);
+        identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
 
         String originKey = generator.generate();
 
@@ -2325,7 +2325,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("uaa", zone.getId());
         identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("test.org")));
-        identityProviderProvisioning.update(identityProvider);
+        identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
 
         String originKey = generator.generate();
 

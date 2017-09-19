@@ -700,7 +700,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         provider.setOriginKey(origin);
 
         IdentityZoneHolder.set(zone.getIdentityZone());
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider, provider.getIdentityZoneId());
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
@@ -771,7 +771,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         provider.setOriginKey(idpOrigin);
 
         IdentityZoneHolder.clear();
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider, provider.getIdentityZoneId());
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
@@ -3802,7 +3802,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         PasswordPolicy passwordPolicy = new PasswordPolicy(6,128,1,1,1,0,6);
         config.setPasswordPolicy(passwordPolicy);
         provider.setConfig(config);
-        identityProviderProvisioning.update(provider);
+        identityProviderProvisioning.update(provider, provider.getIdentityZoneId());
         String clientId = "testclient" + generator.generate();
         String scopes = "cloud_controller.read";
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));

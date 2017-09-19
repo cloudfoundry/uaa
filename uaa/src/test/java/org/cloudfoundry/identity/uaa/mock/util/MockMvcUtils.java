@@ -261,14 +261,14 @@ public final class MockMvcUtils {
         IdentityProviderProvisioning provisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
         uaaIdp.setActive(!disable);
-        provisioning.update(uaaIdp);
+        provisioning.update(uaaIdp, zoneId);
     }
 
     public static void setDisableInternalUserManagement(ApplicationContext context, String zoneId, boolean disabled) {
         IdentityProviderProvisioning provisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
         uaaIdp.getConfig().setDisableInternalUserManagement(disabled);
-        provisioning.update(uaaIdp);
+        provisioning.update(uaaIdp, zoneId);
     }
 
     public static void setSelfServiceLinksEnabled(ApplicationContext context, String zoneId,boolean enabled) {
@@ -409,14 +409,14 @@ public final class MockMvcUtils {
 
     public static void setDisableInternalUserManagement(boolean disableInternalUserManagement, ApplicationContext applicationContext) {
         IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(JdbcIdentityProviderProvisioning.class);
-        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa");
+        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition config = idp.getConfig();
         if (config == null) {
             config = new UaaIdentityProviderDefinition();
         }
         config.setDisableInternalUserManagement(disableInternalUserManagement);
         idp.setConfig(config);
-        identityProviderProvisioning.update(idp);
+        identityProviderProvisioning.update(idp, idp.getIdentityZoneId());
     }
 
     public static IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {

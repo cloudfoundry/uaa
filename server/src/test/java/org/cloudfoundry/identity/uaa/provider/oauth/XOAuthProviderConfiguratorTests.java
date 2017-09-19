@@ -262,14 +262,14 @@ public class XOAuthProviderConfiguratorTests {
 
     @Test
     public void retrieveById() {
-        when(provisioning.retrieve(eq(OIDC10))).thenReturn(oidcProvider);
-        when(provisioning.retrieve(eq(OAUTH20))).thenReturn(oauthProvider);
+        when(provisioning.retrieve(eq(OIDC10), anyString())).thenReturn(oidcProvider);
+        when(provisioning.retrieve(eq(OAUTH20), anyString())).thenReturn(oauthProvider);
 
-        assertNotNull(configurator.retrieve(OIDC10));
+        assertNotNull(configurator.retrieve(OIDC10, "id"));
         verify(configurator, times(1)).overlay(eq(config));
 
         reset(configurator);
-        assertNotNull(configurator.retrieve(OAUTH20));
+        assertNotNull(configurator.retrieve(OAUTH20, "id"));
         verify(configurator, never()).overlay(anyObject());
     }
 

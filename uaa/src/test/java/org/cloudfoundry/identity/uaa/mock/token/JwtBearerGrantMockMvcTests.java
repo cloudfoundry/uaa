@@ -328,7 +328,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
         JdbcIdentityProviderProvisioning provisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         provisioning.deleteByOrigin(originKey, zone.getId());
-        return provisioning.create(auth0Provider);
+        return provisioning.create(auth0Provider, auth0Provider.getIdentityZoneId());
     }
 
     public IdentityProvider<OIDCIdentityProviderDefinition> createOIDCProvider(IdentityZone zone, String tokenKey, String issuer, String relyingPartyId) throws Exception {
@@ -348,7 +348,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         identityProvider.setConfig(definition);
         IdentityZoneHolder.set(zone);
         try {
-            return getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(identityProvider);
+            return getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(identityProvider, zone.getId());
         } finally {
             IdentityZoneHolder.clear();
         }
