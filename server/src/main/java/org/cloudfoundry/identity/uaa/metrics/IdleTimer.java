@@ -21,14 +21,18 @@ package org.cloudfoundry.identity.uaa.metrics;
  */
 public class IdleTimer {
 
-    private int inflightRequests = 0;
+    private long inflightRequests = 0;
     private long idleTime = 0;
+
+    private double averageTime = 0;
     private long lastIdleStart = System.currentTimeMillis();
     private final long startTime = System.currentTimeMillis();
     private long requestCount = 0;
 
+    private int averageCount = 0;
+
     public synchronized void endRequest() {
-        switch (--inflightRequests) {
+        switch ((int) --inflightRequests) {
             case 0:
                 lastIdleStart = System.currentTimeMillis();
                 break;
@@ -41,7 +45,7 @@ public class IdleTimer {
     }
 
     public synchronized void startRequest() {
-        switch (++inflightRequests) {
+        switch ((int) ++inflightRequests) {
             case 1:
                 idleTime += (System.currentTimeMillis() - lastIdleStart);
                 break;
@@ -49,9 +53,29 @@ public class IdleTimer {
                 break;
         }
 
+
+
     }
 
-    public int getInflightRequests() {
+    public void updateAverageTime(long duration) {
+        if(duration < 0) {
+            throw new IllegalArgumentException("Duration cannot be negative.");
+        }
+        averageCount++;
+        double newAverage = averageTime + (1.0 / (averageCount) * (duration - averageTime)); //iterative mean
+        averageTime = (newAverage);
+    }
+
+    public long getAverageTime() {
+        return (long) averageTime;
+    }
+
+    public void setAverageTime(long averageTime) {
+        this.averageTime = averageTime;
+    }
+
+
+    public long getInflightRequests() {
         return inflightRequests;
     }
 

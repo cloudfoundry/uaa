@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,6 +71,21 @@ public class IdleTimerTests {
         assertEquals(0, timer.getInflightRequests());
         Thread.sleep(10);
         assertThat("Idle time should have changed.", timer.getIdleTime(), greaterThan(idleTime));
+    }
+
+    @Test
+    public void average_time_test() throws Exception {
+        for(int i = 1; i < 101; i++) {
+            timer.updateAverageTime(i);
+        }
+        assertEquals(50, timer.getAverageTime());
+
+        try{
+            timer.updateAverageTime(-5);
+            Assert.fail("updateAverageTime didn't throw an error for negative duration");
+        }catch (IllegalArgumentException e) {
+            assertEquals("Duration cannot be negative.", e.getMessage());
+        }
     }
 
     @Test

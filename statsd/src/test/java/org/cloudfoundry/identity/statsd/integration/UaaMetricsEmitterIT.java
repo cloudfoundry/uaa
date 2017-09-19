@@ -96,6 +96,26 @@ public class UaaMetricsEmitterIT {
         assertTrue("Expected " + nextValue + " to be greater than " + previousValue, nextValue > previousValue);
     }
 
+    @Test
+    public void testGlobalCompletedTimeMetrics() throws IOException {
+        String message = getMessage("uaa.requests.global.completed.time", 5000);
+
+        RestTemplate template = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(UAA_BASE_URL + "/login",
+                HttpMethod.GET,
+                new HttpEntity<>(null, headers),
+                String.class);
+
+        message = getMessage("uaa.requests.global.completed.time", 5000);
+        Long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+
+        assertTrue("Expected " + nextValue + " to be greater than0", nextValue > 0);
+    }
+
+
     protected String getMessage(String fragment, int timeout) throws IOException {
         long startTime = System.currentTimeMillis();
         String found = null;

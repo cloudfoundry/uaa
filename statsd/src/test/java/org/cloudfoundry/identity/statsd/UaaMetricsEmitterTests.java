@@ -84,7 +84,7 @@ public class UaaMetricsEmitterTests {
         uaaMetricsEmitter.setMetricsUtils(metricsUtils);
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap3);
 
-        uaaMetricsEmitter.emitRequestCount();
+        uaaMetricsEmitter.emitGlobalRequestMetrics();
         Mockito.verify(statsDClient).gauge("requests.global.completed.count", 53L);
     }
 

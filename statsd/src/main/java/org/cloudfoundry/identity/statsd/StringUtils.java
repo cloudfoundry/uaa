@@ -33,4 +33,12 @@ public class StringUtils {
 		result = result.toLowerCase();
 		return result;
 	}
+
+	public static String camelToPeriod(String key) {
+		String result = key.replace(" ", ".");
+		result = result.replaceAll("([a-z])([A-Z])", "$1.$2");
+		result = result.replace("_", ".");
+		result = result.toLowerCase();
+		return result;
+	}
 }
