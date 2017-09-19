@@ -41,6 +41,8 @@ import static javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 
 public class DegradedModeUaaFilter extends OncePerRequestFilter {
 
+    public static final String ERROR_CODE = "uaa_unavailable";
+    public static final String ERROR_MESSAGE = "UAA intentionally in degraded mode, operation not permitted. Please try later.";
     private static Log logger = LogFactory.getLog(DegradedModeUaaFilter.class);
 
     private Set<String> permittedEndpoints = emptySet();
@@ -77,8 +79,8 @@ public class DegradedModeUaaFilter extends OncePerRequestFilter {
     }
 
     protected Map<String, String> getErrorData() {
-        String error = "uaa_unavailable";
-        String description  = "UAA intentionally in degraded mode, operation not permitted. Please try later.";
+        String error = ERROR_CODE;
+        String description  = ERROR_MESSAGE;
         Map<String, String> json = new HashMap<>();
         json.put("error", error);
         json.put("error_description", description);
