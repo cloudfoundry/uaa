@@ -483,6 +483,15 @@ public final class MockMvcUtils {
                 .andExpect(status().isCreated());
         } else {
             webApplicationContext.getBean(IdentityZoneProvisioning.class).create(identityZone);
+            IdentityProvider defaultIdp = new IdentityProvider();
+            defaultIdp.setName(OriginKeys.UAA);
+            defaultIdp.setType(OriginKeys.UAA);
+            defaultIdp.setOriginKey(OriginKeys.UAA);
+            defaultIdp.setIdentityZoneId(identityZone.getId());
+            UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition();
+            idpDefinition.setPasswordPolicy(null);
+            defaultIdp.setConfig(idpDefinition);
+            webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).create(defaultIdp, identityZone.getId());
         }
 
         // use the identity client to grant the zones.<id>.admin scope to a user
@@ -543,19 +552,27 @@ public final class MockMvcUtils {
     }
 
     public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
-            ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
-        return createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, bootstrapClient).getIdentityZone();
+                                                       ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
+        return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, bootstrapClient, true);
+    }
+    public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+            ApplicationContext webApplicationContext, ClientDetails bootstrapClient, boolean useWebRequests) throws Exception {
+        return createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, bootstrapClient, useWebRequests).getIdentityZone();
 
     }
 
     public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
-            ApplicationContext webApplicationContext) throws Exception {
+                                                       ApplicationContext webApplicationContext) throws Exception {
+        return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, true);
+    }
+    public static IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+            ApplicationContext webApplicationContext, boolean useWebRequests) throws Exception {
 
         BaseClientDetails client = new BaseClientDetails("admin", null, null, "client_credentials",
                 "clients.admin,scim.read,scim.write,idps.write,uaa.admin", "http://redirect.url");
         client.setClientSecret("admin-secret");
 
-        return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client);
+        return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client, useWebRequests);
     }
 
     public static IdentityZone updateIdentityZone(IdentityZone zone, ApplicationContext context) {
@@ -768,6 +785,14 @@ public final class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
+    public static BaseClientDetails createClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone)
+        throws Exception {
+
+        MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
+        service.addClientDetails(clientDetails, zone.getId());
+        return (BaseClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
+    }
+
     public static ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, List<String> scopes, List<String> grantTypes, String authorities) throws Exception {
         return createClient(mockMvc, adminAccessToken,
                 id,
@@ -796,6 +821,13 @@ public final class MockMvcUtils {
         ClientDetailsModification client = detailsModification;
         client.setClientSecret(secret);
         return client;
+    }
+
+    public static BaseClientDetails updateClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone)
+        throws Exception {
+        MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
+        service.updateClientDetails(clientDetails, zone.getId());
+        return (BaseClientDetails)service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
     }
 
     public static BaseClientDetails updateClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)

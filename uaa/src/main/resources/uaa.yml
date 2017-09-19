@@ -603,6 +603,7 @@ uaa:
         - /saml/**
         - /autologin/**
         - /authenticate/**
+        - /idp_discovery/**
       methods:
         - GET
         - HEAD
