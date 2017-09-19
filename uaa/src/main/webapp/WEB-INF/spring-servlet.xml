@@ -230,11 +230,13 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}" />
                 <entry value-ref="corsFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}" />
+                <entry value-ref="degradedModeUaaFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}" />
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -548,5 +550,18 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
+    <bean id="degradedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter">
+        <property name="enabled" value="${uaa.degraded.enabled:false}"/>
+        <property name="permittedEndpoints"
+                  value="#{@config['uaa']==null ? null :
+                           @config['uaa']['degraded']==null ? null :
+                           @config['uaa']['degraded']['whitelist']==null ? null :
+                           @config['uaa']['degraded']['whitelist']['endpoints']}"/>
+        <property name="permittedMethods"
+                  value="#{@config['uaa']==null ? null :
+                           @config['uaa']['degraded']==null ? null :
+                           @config['uaa']['degraded']['whitelist']==null ? null :
+                           @config['uaa']['degraded']['whitelist']['methods']}"/>
+    </bean>
 
 </beans>

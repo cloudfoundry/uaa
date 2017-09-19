@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
+import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,15 +33,17 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
+import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.VARIES;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
@@ -149,6 +153,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
+        Map<String, SystemDeletable> deleteMe = getWebApplicationContext().getBeansOfType(SystemDeletable.class);
+        getWebApplicationContext().getBean(JdbcIdentityZoneProvisioning.class)
+            .retrieveAll()
+            .stream()
+            .filter(zone -> !IdentityZone.getUaa().getId().equals(zone.getId()))
+            .forEach(zone -> {
+                deleteMe.values().stream().forEach(deletable -> deletable.deleteByIdentityZone(zone.getId()));
+            });
     }
 
     @Test
@@ -331,7 +343,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].description").description(DESCRIPTION_DESC),
             fieldWithPath("[].version").description(VERSION_DESC),
 
-            fieldWithPath("[].config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC),
+            //TODO Spring RestDocs - throws error if we have null and strings as return and mark it STRING
+            //https://github.com/spring-projects/spring-restdocs/issues/398
+            fieldWithPath("[].config.tokenPolicy.activeKeyId").optional().type(VARIES).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC),
@@ -424,6 +438,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             get("/identity-zones")
                 .header("Authorization", "Bearer " + identityClientReadToken))
             .andExpect(status().is(HttpStatus.OK.value()))
+            .andDo(print())
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
                 requestHeaders(

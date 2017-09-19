@@ -72,7 +72,7 @@ public class TestUtils {
                 .setIdentityZoneId(IdentityZone.getUaa().getId())
                 .setName(origin)
                 .setType(origin);
-            idp.create(provider);
+            idp.create(provider, provider.getIdentityZoneId());
         }
     }
 

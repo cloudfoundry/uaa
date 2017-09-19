@@ -589,6 +589,25 @@ uaa:
     url: http://localhost:8080/uaa/approvals
   login:
     url: http://localhost:8080/uaa/authenticate
+  degraded:
+    enabled: false
+    whitelist:
+      endpoints:
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token/**
+        - /login/**
+        - /login.do
+        - /logout/**
+        - /logout.do
+        - /saml/**
+        - /autologin/**
+        - /authenticate/**
+        - /idp_discovery/**
+      methods:
+        - GET
+        - HEAD
+        - OPTIONS
 
 # Google Analytics
 #analytics:

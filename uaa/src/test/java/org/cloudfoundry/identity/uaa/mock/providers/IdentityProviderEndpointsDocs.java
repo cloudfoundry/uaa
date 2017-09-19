@@ -878,7 +878,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     public void patchIdentityProviderStatus() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
-        identityProviderProvisioning.update(identityProvider);
+        identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         identityProviderStatus.setRequirePasswordChange(true);
 

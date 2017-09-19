@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
+import org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
@@ -198,6 +199,31 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        DegradedModeUaaFilter degradedModeUaaFilter = context.getBean(DegradedModeUaaFilter.class);
+        assertFalse(degradedModeUaaFilter.isEnabled());
+        assertThat(degradedModeUaaFilter.getPermittedEndpoints(),
+                   containsInAnyOrder(
+                        "/oauth/authorize/**",
+                        "/oauth/token/**",
+                        "/check_token/**",
+                        "/login/**",
+                        "/login.do",
+                        "/logout/**",
+                        "/logout.do",
+                        "/saml/**",
+                        "/autologin/**",
+                        "/authenticate/**",
+                        "/idp_discovery/**"
+                   )
+        );
+        assertThat(degradedModeUaaFilter.getPermittedMethods(),
+                   containsInAnyOrder(
+                       "GET",
+                       "HEAD",
+                       "OPTIONS"
+                   )
+        );
 
         SAMLContextProvider basicContextProvider = context.getBean("basicContextProvider",SAMLContextProvider.class);
         SAMLMessageStorageFactory storageFactory = (SAMLMessageStorageFactory) ReflectionTestUtils.getField(basicContextProvider, "storageFactory");
@@ -420,6 +446,28 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        DegradedModeUaaFilter degradedModeUaaFilter = context.getBean(DegradedModeUaaFilter.class);
+        assertTrue(degradedModeUaaFilter.isEnabled());
+        assertThat(degradedModeUaaFilter.getPermittedEndpoints(),
+                   containsInAnyOrder(
+                       "/oauth/authorize/**",
+                       "/oauth/token/**",
+                       "/check_token",
+                       "/saml/**",
+                       "/login/**",
+                       "/logout/**",
+                       "/other-url/**"
+                   )
+        );
+        assertThat(degradedModeUaaFilter.getPermittedMethods(),
+                   containsInAnyOrder(
+                       "GET",
+                       "HEAD",
+                       "OPTIONS",
+                       "CONNECT"
+                   )
+        );
 
         ScimGroupExternalMembershipManager externalMembershipManager = context.getBean(ScimGroupExternalMembershipManager.class);
         List<ScimGroupExternalMember> externalGroupMappings = externalMembershipManager.getExternalGroupMappings(IdentityZone.getUaa().getId());
