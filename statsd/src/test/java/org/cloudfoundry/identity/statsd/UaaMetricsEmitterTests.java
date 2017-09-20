@@ -34,8 +34,8 @@ public class UaaMetricsEmitterTests {
     private UaaMetricsEmitter uaaMetricsEmitter;
     private MBeanMap mBeanMap1;
     private MBeanMap mBeanMap2;
-    private MBeanMap serverRequestsBeanMap;
     private Map<String, MBeanMap> mBeanMap3;
+    private MBeanMap serverRequestsBeanMap;
 
     @Before
     public void setUp() {
@@ -53,13 +53,13 @@ public class UaaMetricsEmitterTests {
         mBeanMap1.put("client_authentication_failure_count", 42);
 
         mBeanMap2 = new MBeanMap();
-        mBeanMap2.put("loggingAuditService", mBeanMap1);
+        mBeanMap2.put("UaaAudit", mBeanMap1);
 
         serverRequestsBeanMap = new MBeanMap();
         serverRequestsBeanMap.put("completed.count", 53L);
 
+
         mBeanMap3 = new HashMap();
-        mBeanMap3.put("LoggingAuditService", mBeanMap2);
         mBeanMap3.put("ServerRequests", serverRequestsBeanMap);
     }
 
@@ -67,7 +67,7 @@ public class UaaMetricsEmitterTests {
     public void auditService_metrics_emitted() throws Exception {
         MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
         uaaMetricsEmitter.setMetricsUtils(metricsUtils);
-        Mockito.when(metricsUtils.pullUpMap("spring.application", "*", server)).thenReturn((Map)mBeanMap3);
+        Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
         Mockito.verify(statsDClient).gauge("audit_service.user_authentication_count", 3);
         Mockito.verify(statsDClient).gauge("audit_service.user_not_found_count", 1);
@@ -94,7 +94,7 @@ public class UaaMetricsEmitterTests {
 
         MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
         uaaMetricsEmitter.setMetricsUtils(metricsUtils);
-        Mockito.when(metricsUtils.pullUpMap("spring.application", "*", server)).thenReturn((Map)mBeanMap3);
+        Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
         Mockito.verify(statsDClient).gauge("audit_service.user_not_found_count", 1);
         Mockito.verify(statsDClient, times(6)).gauge(anyString(), anyInt());
@@ -102,11 +102,11 @@ public class UaaMetricsEmitterTests {
 
     @Test
     public void auditService_Key_isNull () throws Exception {
-        mBeanMap3.put("LoggingAuditService", null);
+        mBeanMap2.put("UaaAudit", null);
 
         MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
         uaaMetricsEmitter.setMetricsUtils(metricsUtils);
-        Mockito.when(metricsUtils.pullUpMap("spring.application", "*", server)).thenReturn((Map)mBeanMap3);
+        Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
 
         Mockito.verify(statsDClient, times(0)).gauge(anyString(), anyInt());
