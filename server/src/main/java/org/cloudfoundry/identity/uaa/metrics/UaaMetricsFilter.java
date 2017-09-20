@@ -58,6 +58,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
+                inflight.updateAverageTime(metric.getRequestCompleteTime() - metric.getRequestStartTime());
                 MetricsQueue queue = getMetricsQueue(uriGroup);
                 queue.offer(metric);
             }
@@ -117,8 +118,9 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
     }
 
 
+
     @ManagedMetric(category = "performance", displayName = "Inflight Requests")
-    public int getInflightRequests() {
+    public long getOutstandingCount() {
         return inflight.getInflightRequests();
     }
 
@@ -128,17 +130,17 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
     }
 
     @ManagedMetric(category = "performance", displayName = "Processing request time (ms)")
-    public long getProcessingTime() {
-        return inflight.getRunTime() - inflight.getIdleTime();
+    public long getCompletedTime() {
+        return inflight.getAverageTime();
     }
 
     @ManagedMetric(category = "performance", displayName = "Total server run time (ms)")
-    public long getRunTime() {
+    public long getUpTime() {
         return inflight.getRunTime();
     }
 
-    @ManagedMetric(category = "performance", displayName = "Number of completed requests")
-    public long getCompletedRequests() {
+    @ManagedMetric(category = "performance", displayName="CompletedRequests", description = "Number of completed requests")
+    public long getCompletedCount() {
         return inflight.getRequestCount();
     }
 

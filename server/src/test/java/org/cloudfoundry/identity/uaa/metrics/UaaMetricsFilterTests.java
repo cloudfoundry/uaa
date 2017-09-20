@@ -111,10 +111,10 @@ public class UaaMetricsFilterTests {
         Thread invoker = new Thread(invocation);
         invoker.start();
         Thread.sleep(10);
-        assertEquals(1, filter.getInflightRequests());
+        assertEquals(1, filter.getOutstandingCount());
         lock.unlock();
         Thread.sleep(25);
-        assertEquals(0, filter.getInflightRequests());
+        assertEquals(0, filter.getOutstandingCount());
         long idleTime = filter.getIdleTime();
         assertThat(idleTime, greaterThan(20l));
         System.out.println("Total idle time was:"+idleTime);

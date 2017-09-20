@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd.integration;
 
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,15 +32,15 @@ import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.UAA_BASE_URL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class UaaMetricsEmitterIT {
-    private DatagramSocket serverSocket;
-    private byte[] receiveData;
-    private DatagramPacket receivePacket;
+    private static DatagramSocket serverSocket;
+    private static byte[] receiveData;
+    private static DatagramPacket receivePacket;
 
-
-    @Before
-    public void setUp() throws IOException {
+    @BeforeClass
+    public static void setUpOnce() throws IOException {
         serverSocket = new DatagramSocket(8125);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
@@ -73,16 +73,57 @@ public class UaaMetricsEmitterIT {
                 new HttpEntity<>(body, headers),
                 String.class);
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
-        assertNotNull(getMessage("uaa.audit_service.user_authentication_count:", 5000));
+        assertNotNull(getMessage("uaa.audit_service.user.authentication.count:", 5000));
     }
+
+    @Test
+    public void testGlobalCompletedCountMetrics() throws IOException {
+        String message = getMessage("uaa.requests.global.completed.count", 5000);
+        Long previousValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+
+        RestTemplate template = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(UAA_BASE_URL + "/login",
+                HttpMethod.GET,
+                new HttpEntity<>(null, headers),
+                String.class);
+
+        message = getMessage("uaa.requests.global.completed.count", 5000);
+        Long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+
+        assertTrue("Expected " + nextValue + " to be greater than " + previousValue, nextValue > previousValue);
+    }
+
+    @Test
+    public void testGlobalCompletedTimeMetrics() throws IOException {
+        String message = getMessage("uaa.requests.global.completed.time", 5000);
+
+        RestTemplate template = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(UAA_BASE_URL + "/login",
+                HttpMethod.GET,
+                new HttpEntity<>(null, headers),
+                String.class);
+
+        message = getMessage("uaa.requests.global.completed.time", 5000);
+        Long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+
+        assertTrue("Expected " + nextValue + " to be greater than0", nextValue > 0);
+    }
+
 
     protected String getMessage(String fragment, int timeout) throws IOException {
         long startTime = System.currentTimeMillis();
         String found = null;
         do {
+            receiveData = new byte[65535];
+            receivePacket.setData(receiveData);
             serverSocket.receive(receivePacket);
-            String message = new String(receivePacket.getData());
-            System.out.println(message);
+            String message = new String(receivePacket.getData()).trim();
             if (message.startsWith(fragment)) {
                 found = message;
             }

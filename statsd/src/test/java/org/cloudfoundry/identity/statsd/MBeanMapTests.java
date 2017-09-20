@@ -42,7 +42,7 @@ public class MBeanMapTests {
 		assertTrue(names.size() == 1);
 		MBeanMap result = new MBeanMap(server, names.iterator().next());
 		@SuppressWarnings("unchecked")
-		Map<String,String>  properties = (Map<String, String>) result.get("system_properties");
+		Map<String,String>  properties = (Map<String, String>) result.get("system.properties");
 		assertTrue(properties.containsKey("java.vm.version"));
 	}
 

@@ -52,6 +52,18 @@ public class UaaMetricsEmitter {
         }
     }
 
+    @Scheduled(fixedRate = 5000)
+    public void emitGlobalRequestMetrics() throws Exception {
+        Map<String, ?> spring = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
+        if (spring != null) {
+            MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(spring, "#this['ServerRequests']");
+            if (uaaMetricsMap != null){
+                String prefix = "requests.global.";
+                uaaMetricsMap.entrySet().stream().filter(e -> e.getValue() != null && e.getValue() instanceof Long).forEach(e -> statsDClient.gauge(prefix+e.getKey(), (long) e.getValue()));
+            }
+        }
+    }
+
     public void setMetricsUtils(MetricsUtils metricsUtils) {
         this.metricsUtils = metricsUtils;
     }

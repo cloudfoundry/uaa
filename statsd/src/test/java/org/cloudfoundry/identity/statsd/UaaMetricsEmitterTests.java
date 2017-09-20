@@ -34,6 +34,7 @@ public class UaaMetricsEmitterTests {
     private UaaMetricsEmitter uaaMetricsEmitter;
     private MBeanMap mBeanMap1;
     private MBeanMap mBeanMap2;
+    private MBeanMap serverRequestsBeanMap;
     private Map<String, MBeanMap> mBeanMap3;
 
     @Before
@@ -54,8 +55,12 @@ public class UaaMetricsEmitterTests {
         mBeanMap2 = new MBeanMap();
         mBeanMap2.put("loggingAuditService", mBeanMap1);
 
+        serverRequestsBeanMap = new MBeanMap();
+        serverRequestsBeanMap.put("completed.count", 53L);
+
         mBeanMap3 = new HashMap();
         mBeanMap3.put("LoggingAuditService", mBeanMap2);
+        mBeanMap3.put("ServerRequests", serverRequestsBeanMap);
     }
 
     @Test
@@ -71,6 +76,16 @@ public class UaaMetricsEmitterTests {
         Mockito.verify(statsDClient).gauge("audit_service.user_authentication_failure_count", 6);
         Mockito.verify(statsDClient).gauge("audit_service.client_authentication_count", 7);
         Mockito.verify(statsDClient).gauge("audit_service.client_authentication_failure_count", 42);
+    }
+
+    @Test
+    public void requestCount_metrics_emitted() throws Exception {
+        MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
+        uaaMetricsEmitter.setMetricsUtils(metricsUtils);
+        Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap3);
+
+        uaaMetricsEmitter.emitGlobalRequestMetrics();
+        Mockito.verify(statsDClient).gauge("requests.global.completed.count", 53L);
     }
 
     @Test
