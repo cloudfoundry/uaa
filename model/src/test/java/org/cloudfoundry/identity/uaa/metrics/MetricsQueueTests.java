@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,11 +42,6 @@ public class MetricsQueueTests {
         metric.addQuery(new QueryMetric("query1", 0, 2, false));
         metric.stop(500, 5);
         queue.offer(metric);
-    }
-
-    @After
-    public void teardown() throws Exception {
-        MetricsAccessor.clear();
     }
 
     @Test

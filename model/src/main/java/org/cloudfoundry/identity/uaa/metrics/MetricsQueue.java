@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MetricsQueue  {
 
-    public static final int MAX_ENTRIES = 1000;
+    public static final int MAX_ENTRIES = 5;
     public static final int MAX_TIME = 3000;
 
     ConcurrentLinkedDeque<RequestMetric> queue = new ConcurrentLinkedDeque<>();
