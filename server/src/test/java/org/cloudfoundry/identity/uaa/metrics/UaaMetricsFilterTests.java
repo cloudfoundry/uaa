@@ -75,12 +75,14 @@ public class UaaMetricsFilterTests {
         Map<String, String> summary = filter.getSummary();
         assertNotNull(summary);
         assertFalse(summary.isEmpty());
-        assertEquals(1, summary.size());
-        MetricsQueue totals = readValue(summary.get(path), MetricsQueue.class);
-        assertNotNull(totals);
-        for (int status : Arrays.asList(200,500)) {
-            RequestMetricSummary total = totals.getSummary().get(status);
-            assertEquals(1, total.getCount());
+        assertEquals(2, summary.size());
+        for (String uri : Arrays.asList(path, UaaMetricsFilter.GLOBAL_GROUP)) {
+            MetricsQueue totals = readValue(summary.get(uri), MetricsQueue.class);
+            assertNotNull("URI:"+uri, totals);
+            for (int status : Arrays.asList(200, 500)) {
+                RequestMetricSummary total = totals.getSummary().get(status);
+                assertEquals("URI:"+uri, 1, total.getCount());
+            }
         }
         assertNull(MetricsAccessor.getCurrent());
     }

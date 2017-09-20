@@ -40,6 +40,7 @@ import static org.springframework.util.StringUtils.hasText;
 )
 public class UaaMetricsFilter extends OncePerRequestFilter {
 
+    public static final String GLOBAL_GROUP = "uaa.global.metrics";
 
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();
@@ -59,8 +60,10 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
                 inflight.updateAverageTime(metric.getRequestCompleteTime() - metric.getRequestStartTime());
-                MetricsQueue queue = getMetricsQueue(uriGroup);
-                queue.offer(metric);
+                for (String group : Arrays.asList(uriGroup, GLOBAL_GROUP)) {
+                    MetricsQueue queue = getMetricsQueue(group);
+                    queue.offer(metric);
+                }
             }
         } else {
             filterChain.doFilter(request, response);
@@ -117,8 +120,6 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         }
     }
 
-
-
     @ManagedMetric(category = "performance", displayName = "Inflight Requests")
     public long getOutstandingCount() {
         return inflight.getInflightRequests();
@@ -139,7 +140,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         return inflight.getRunTime();
     }
 
-    @ManagedMetric(category = "performance", displayName="CompletedRequests", description = "Number of completed requests")
+    @ManagedMetric(category = "performance", displayName="Completed requests", description = "Number of completed web requests")
     public long getCompletedCount() {
         return inflight.getRequestCount();
     }
