@@ -38,10 +38,10 @@ public class UaaMetricsEmitter {
     @Scheduled(fixedRate = 5000)
     public void emitMetrics() throws Exception {
         Map<String, Object> result = new LinkedHashMap<>();
-        Map<String, ?> spring = metricsUtils.pullUpMap("spring.application", "*", server);
+        Map<String, ?> spring = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
 
         if (spring != null) {
-            result.put("audit_service", getValueFromMap(spring, "#this['LoggingAuditService']?.loggingAuditService"));
+            result.put("audit_service", getValueFromMap(spring, "#this['UaaAudit']"));
         }
         for (Map.Entry entry : result.entrySet()) {
             String prefix = entry.getKey() + ".";
