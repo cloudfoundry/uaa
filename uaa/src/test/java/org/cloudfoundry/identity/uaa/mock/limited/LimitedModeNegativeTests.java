@@ -13,12 +13,12 @@
  * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.mock.degraded;
+package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,15 +35,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class DegradedModeNegativeTests extends InjectedMockContextTest {
+public class LimitedModeNegativeTests extends InjectedMockContextTest {
 
-    private boolean degraded;
+    private boolean limitedMode;
     private String adminToken;
 
     @Before
-    public void degrade() throws Exception {
-        DegradedModeUaaFilter bean = getWebApplicationContext().getBean(DegradedModeUaaFilter.class);
-        degraded = bean.isEnabled();
+    public void setUp() throws Exception {
+        LimitedModeUaaFilter bean = getWebApplicationContext().getBean(LimitedModeUaaFilter.class);
+        limitedMode = bean.isEnabled();
         bean.setEnabled(true);
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(),
                                                                        "admin",
@@ -55,8 +55,8 @@ public class DegradedModeNegativeTests extends InjectedMockContextTest {
 
 
     @After
-    public void upgrade() throws Exception {
-        getWebApplicationContext().getBean(DegradedModeUaaFilter.class).setEnabled(degraded);
+    public void tearDown() throws Exception {
+        getWebApplicationContext().getBean(LimitedModeUaaFilter.class).setEnabled(limitedMode);
     }
 
 
@@ -237,8 +237,8 @@ public class DegradedModeNegativeTests extends InjectedMockContextTest {
         if (SERVICE_UNAVAILABLE.equals(expected)) {
             getMockMvc().perform(method)
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("error").value(DegradedModeUaaFilter.ERROR_CODE))
-                .andExpect(jsonPath("error_description").value(DegradedModeUaaFilter.ERROR_MESSAGE));
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
         } else {
             getMockMvc().perform(method)
                 .andExpect(status().is(expected.value()));

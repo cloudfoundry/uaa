@@ -37,12 +37,12 @@ import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
-public class DegradedModeUaaFilterTests {
+public class LimitedModeUaaFilterTests {
 
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
     private FilterChain chain;
-    private DegradedModeUaaFilter filter;
+    private LimitedModeUaaFilter filter;
 
     @Before
     public void setup() throws Exception {
@@ -50,7 +50,7 @@ public class DegradedModeUaaFilterTests {
         request.addHeader(ACCEPT, "*/*");
         response = new MockHttpServletResponse();
         chain = mock(FilterChain.class);
-        filter = new DegradedModeUaaFilter();
+        filter = new LimitedModeUaaFilter();
     }
 
     public void setPathInfo(String pathInfo) {

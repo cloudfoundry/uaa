@@ -589,7 +589,7 @@ uaa:
     url: http://localhost:8080/uaa/approvals
   login:
     url: http://localhost:8080/uaa/authenticate
-  degraded:
+  limited_functionality:
     enabled: false
     whitelist:
       endpoints:

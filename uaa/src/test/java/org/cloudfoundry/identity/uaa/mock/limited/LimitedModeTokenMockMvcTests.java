@@ -13,11 +13,11 @@
  * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.mock.degraded;
+package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class DegradedModeTokenMockMvcTests extends TokenMvcMockTests {
+public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
     private boolean original;
 
@@ -38,18 +38,18 @@ public class DegradedModeTokenMockMvcTests extends TokenMvcMockTests {
     @Override
     public void setup () throws Exception {
         super.setup();
-        DegradedModeUaaFilter bean = getWebApplicationContext().getBean(DegradedModeUaaFilter.class);
+        LimitedModeUaaFilter bean = getWebApplicationContext().getBean(LimitedModeUaaFilter.class);
         original = bean.isEnabled();
         bean.setEnabled(true);
     }
 
     @After
     public void teardown() throws Exception {
-        getWebApplicationContext().getBean(DegradedModeUaaFilter.class).setEnabled(original);
+        getWebApplicationContext().getBean(LimitedModeUaaFilter.class).setEnabled(original);
     }
 
     @Test
-    public void check_token_while_degraded() throws Exception {
+    public void check_token_while_limited() throws Exception {
         BaseClientDetails client = setUpClients(generator.generate().toLowerCase(),
                                                 "uaa.resource,clients.read",
                                                 "",

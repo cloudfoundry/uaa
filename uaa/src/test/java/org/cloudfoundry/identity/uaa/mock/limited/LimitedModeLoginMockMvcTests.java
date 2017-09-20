@@ -13,14 +13,14 @@
  * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.mock.degraded;
+package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.login.LoginMockMvcTests;
-import org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.After;
 import org.junit.Before;
 
-public class DegradedModeLoginMockMvcTests extends LoginMockMvcTests {
+public class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
 
     private boolean original;
 
@@ -28,7 +28,7 @@ public class DegradedModeLoginMockMvcTests extends LoginMockMvcTests {
     @Override
     public void setUpContext() throws Exception {
         super.setUpContext();
-        DegradedModeUaaFilter bean = getWebApplicationContext().getBean(DegradedModeUaaFilter.class);
+        LimitedModeUaaFilter bean = getWebApplicationContext().getBean(LimitedModeUaaFilter.class);
         original = bean.isEnabled();
         bean.setEnabled(true);
     }
@@ -38,7 +38,7 @@ public class DegradedModeLoginMockMvcTests extends LoginMockMvcTests {
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
-        getWebApplicationContext().getBean(DegradedModeUaaFilter.class).setEnabled(original);
+        getWebApplicationContext().getBean(LimitedModeUaaFilter.class).setEnabled(original);
     }
 
 }

@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock;
 
 import org.cloudfoundry.identity.uaa.login.LoginMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.degraded.DegradedModeLoginMockMvcTests;
+import org.cloudfoundry.identity.uaa.mock.limited.LimitedModeLoginMockMvcTests;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.flywaydb.core.Flyway;
 import org.junit.AfterClass;
@@ -32,7 +32,7 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
 
     public static Class<?>[] suiteClasses() {
         //Class<?>[] result = UaaJunitSuiteRunner.allSuiteClasses();
-        Class<?>[] result = new Class[] {DegradedModeLoginMockMvcTests.class, LoginMockMvcTests.class};
+        Class<?>[] result = new Class[] {LimitedModeLoginMockMvcTests.class, LoginMockMvcTests.class};
         //Class<?>[] result = new Class[] {IdentityProviderEndpointsMockMvcTests.class, SamlIDPRefreshMockMvcTests.class};
         //for now, sort the test classes until we have figured out all
         //test poisoning that is occurring

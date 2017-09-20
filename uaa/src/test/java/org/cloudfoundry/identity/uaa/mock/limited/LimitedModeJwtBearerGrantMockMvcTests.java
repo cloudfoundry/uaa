@@ -13,33 +13,25 @@
  * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.mock.degraded;
+package org.cloudfoundry.identity.uaa.mock.limited;
 
-import org.cloudfoundry.identity.uaa.mock.token.UserTokenMockMvcTests;
-import org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.mock.token.JwtBearerGrantMockMvcTests;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
-public class DegradedModeUserTokenMockMvcTests extends UserTokenMockMvcTests {
+public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
     private boolean original;
 
     @Before
     public void setup () throws Exception {
-        DegradedModeUaaFilter bean = getWebApplicationContext().getBean(DegradedModeUaaFilter.class);
+        LimitedModeUaaFilter bean = getWebApplicationContext().getBean(LimitedModeUaaFilter.class);
         original = bean.isEnabled();
         bean.setEnabled(true);
     }
 
     @After
     public void teardown() throws Exception {
-        getWebApplicationContext().getBean(DegradedModeUaaFilter.class).setEnabled(original);
-    }
-
-    @Test
-    @Ignore("super method uses disabled endpoints")
-    @Override
-    public void test_create_client_with_user_token_grant() throws Exception {
+        getWebApplicationContext().getBean(LimitedModeUaaFilter.class).setEnabled(original);
     }
 }

@@ -24,7 +24,7 @@ import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
-import org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
@@ -200,9 +200,9 @@ public class BootstrapTests {
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
-        DegradedModeUaaFilter degradedModeUaaFilter = context.getBean(DegradedModeUaaFilter.class);
-        assertFalse(degradedModeUaaFilter.isEnabled());
-        assertThat(degradedModeUaaFilter.getPermittedEndpoints(),
+        LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
+        assertFalse(limitedModeUaaFilter.isEnabled());
+        assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
                         "/oauth/authorize/**",
                         "/oauth/token/**",
@@ -217,7 +217,7 @@ public class BootstrapTests {
                         "/idp_discovery/**"
                    )
         );
-        assertThat(degradedModeUaaFilter.getPermittedMethods(),
+        assertThat(limitedModeUaaFilter.getPermittedMethods(),
                    containsInAnyOrder(
                        "GET",
                        "HEAD",
@@ -447,9 +447,9 @@ public class BootstrapTests {
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
-        DegradedModeUaaFilter degradedModeUaaFilter = context.getBean(DegradedModeUaaFilter.class);
-        assertTrue(degradedModeUaaFilter.isEnabled());
-        assertThat(degradedModeUaaFilter.getPermittedEndpoints(),
+        LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
+        assertTrue(limitedModeUaaFilter.isEnabled());
+        assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
                        "/oauth/authorize/**",
                        "/oauth/token/**",
@@ -460,7 +460,7 @@ public class BootstrapTests {
                        "/other-url/**"
                    )
         );
-        assertThat(degradedModeUaaFilter.getPermittedMethods(),
+        assertThat(limitedModeUaaFilter.getPermittedMethods(),
                    containsInAnyOrder(
                        "GET",
                        "HEAD",

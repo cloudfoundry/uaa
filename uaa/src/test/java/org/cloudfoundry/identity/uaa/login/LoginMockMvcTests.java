@@ -42,7 +42,7 @@ import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.web.DegradedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -662,7 +662,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testForgotPasswordSubmitDoesNotValidateCsrf() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         getMockMvc().perform(
             post("/forgot_password.do")
                 .param("username", "marissa")
@@ -685,7 +685,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangePasswordSubmitDoesValidateCsrf() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         ScimUser user = createUser(getUaa().getId());
         getMockMvc().perform(
             post("/change_password.do")
@@ -1622,7 +1622,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testDeactivatedProviderIsRemovedFromSamlLoginLinks() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         String alias = "login-saml-"+generator.generate();
         BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -1680,7 +1680,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithMissingCsrf() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1705,7 +1705,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithInvalidCsrf() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1731,7 +1731,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithSpringSecurityForcedCsrf() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
         //example shows to to test a request that is secured by csrf and you wish to bypass it
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1750,7 +1750,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailSubmitWithCorrectCsrf() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1780,7 +1780,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailDoNotLoggedIn() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1808,7 +1808,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangeEmailNoCsrfReturns403AndInvalidRequest() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1833,7 +1833,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCsrfForInvitationAcceptPost() throws Exception {
-        assumeFalse("Test only runs in non degraded mode.", isDegraded());
+        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
         SecurityContext marissaContext = getMarissaSecurityContext(getWebApplicationContext());
         AnonymousAuthenticationToken inviteToken = new AnonymousAuthenticationToken("invited-test", marissaContext.getAuthentication().getPrincipal(), asList(UaaAuthority.UAA_INVITED));
         MockHttpSession inviteSession = new MockHttpSession();
@@ -2588,7 +2588,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         };
     }
 
-    public boolean isDegraded() throws Exception {
-        return getWebApplicationContext().getBean(DegradedModeUaaFilter.class).isEnabled();
+    public boolean isLimitedMode() throws Exception {
+        return getWebApplicationContext().getBean(LimitedModeUaaFilter.class).isEnabled();
     }
 }
