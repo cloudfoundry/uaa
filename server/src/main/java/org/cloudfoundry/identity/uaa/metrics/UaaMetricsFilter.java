@@ -148,7 +148,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
     @ManagedMetric(category = "performance", displayName = "Server Request Summary")
     public Map<String, String> getSummary() {
         Map<String, String> data = new HashMap<>();
-        perUriMetrics.entrySet().stream().forEach(entry -> data.put(entry.getKey(), JsonUtils.writeValueAsString(entry.getValue().getSummary())));
+        perUriMetrics.entrySet().stream().forEach(entry -> data.put(entry.getKey(), JsonUtils.writeValueAsString(entry.getValue())));
         return data;
     }
 

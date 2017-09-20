@@ -15,7 +15,9 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -29,6 +31,28 @@ public class RequestMetricSummary {
     AtomicLong databaseQueryTime = new AtomicLong(0);
     AtomicLong databaseFailedQueryCount = new AtomicLong(0);
     AtomicLong databaseFailedQueryTime = new AtomicLong(0);
+
+    public RequestMetricSummary() {
+    }
+
+    @JsonCreator
+    public RequestMetricSummary(@JsonProperty("count") AtomicLong count,
+                                @JsonProperty("totalTime") AtomicLong totalTime,
+                                @JsonProperty("intolerableCount") AtomicLong intolerableCount,
+                                @JsonProperty("intolerableTime") AtomicLong intolerableTime,
+                                @JsonProperty("databaseQueryCount") AtomicLong databaseQueryCount,
+                                @JsonProperty("databaseQueryTime") AtomicLong databaseQueryTime,
+                                @JsonProperty("databaseFailedQueryCount") AtomicLong databaseFailedQueryCount,
+                                @JsonProperty("databaseFailedQueryTime") AtomicLong databaseFailedQueryTime) {
+        this.count = count;
+        this.totalTime = totalTime;
+        this.intolerableCount = intolerableCount;
+        this.intolerableTime = intolerableTime;
+        this.databaseQueryCount = databaseQueryCount;
+        this.databaseQueryTime = databaseQueryTime;
+        this.databaseFailedQueryCount = databaseFailedQueryCount;
+        this.databaseFailedQueryTime = databaseFailedQueryTime;
+    }
 
     public void add(long time, long dbQueries, long dbTime, long failedDbQueries, long failedDbQueryTime) {
         count.incrementAndGet();

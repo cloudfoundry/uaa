@@ -15,8 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -31,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -77,10 +76,10 @@ public class UaaMetricsFilterTests {
         assertNotNull(summary);
         assertFalse(summary.isEmpty());
         assertEquals(1, summary.size());
-        Map<Integer, RequestMetricSummary> totals = JsonUtils.readValue(summary.get(path), new TypeReference<Map<Integer, RequestMetricSummary>>() {});
+        MetricsQueue totals = readValue(summary.get(path), MetricsQueue.class);
         assertNotNull(totals);
         for (int status : Arrays.asList(200,500)) {
-            RequestMetricSummary total = totals.get(status);
+            RequestMetricSummary total = totals.getSummary().get(status);
             assertEquals(1, total.getCount());
         }
         assertNull(MetricsAccessor.getCurrent());
@@ -120,6 +119,20 @@ public class UaaMetricsFilterTests {
         System.out.println("Total idle time was:"+idleTime);
         Thread.sleep(10);
         assertThat("Idle time should have changed.", filter.getIdleTime(), greaterThan(idleTime));
+    }
+
+    @Test
+    public void deserialize_summary() throws Exception {
+        String path = "/some/path";
+        request.setRequestURI(path);
+        for (int status : Arrays.asList(200,500)) {
+            response.setStatus(status);
+            filter.doFilterInternal(request, response, chain);
+        }
+        Map<String, String> summary = filter.getSummary();
+        MetricsQueue metricSummary = readValue(summary.get(path), MetricsQueue.class);
+        System.out.println("metricSummary = " + metricSummary);
+        assertEquals(2, metricSummary.getTotals().getCount());
     }
 
     @Test
