@@ -30,6 +30,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
+  compile project(':cloudfoundry-identity-metrics-data')
   compile("org.springframework.boot:spring-boot-starter")
   compile("com.timgroup:java-statsd-client:3.0.1")
   compile "log4j:log4j:1.2.14"

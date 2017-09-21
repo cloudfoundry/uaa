@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.StatsDClient;
+import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -24,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class UaaMetricsEmitter {
-
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     @Autowired
@@ -54,13 +54,28 @@ public class UaaMetricsEmitter {
 
     @Scheduled(fixedRate = 5000)
     public void emitGlobalRequestMetrics() throws Exception {
-        Map<String, ?> spring = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
-        if (spring != null) {
-            MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(spring, "#this['ServerRequests']");
-            if (uaaMetricsMap != null){
-                String prefix = "requests.global.";
-                uaaMetricsMap.entrySet().stream().filter(e -> e.getValue() != null && e.getValue() instanceof Long).forEach(e -> statsDClient.gauge(prefix+e.getKey(), (long) e.getValue()));
+        Map<String, ?> mebeans = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
+        if (mebeans != null) {
+            MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(mebeans, "#this['ServerRequests']");
+            if (uaaMetricsMap == null) {
+                return;
             }
+            //global request statistics
+            if (uaaMetricsMap.get("globals") != null){
+                String json = (String) uaaMetricsMap.get("globals");
+                if (json != null) {
+                    MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
+                    String prefix = "requests.global.completed.";
+                    statsDClient.gauge(prefix + "time", (long) globals.getTotals().getAverageTime());
+                    statsDClient.gauge(prefix + "count", globals.getTotals().getCount());
+                }
+            }
+            //server statistics
+            if (uaaMetricsMap.get("inflight.count") != null){
+                long value = (long)uaaMetricsMap.get("inflight.count");
+                statsDClient.gauge("server.inflight.count", value);
+            }
+
         }
     }
 

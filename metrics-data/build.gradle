@@ -13,20 +13,18 @@
  * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.metrics;
+description = 'CloudFoundry Identity Metrics Data Jar'
 
-class MetricsAccessor  {
-    private static ThreadLocal<RequestMetric> current = ThreadLocal.withInitial(() -> null);
+dependencies {
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
+  testCompile group: 'junit', name: 'junit', version: parent.junitVersion
 
-    protected static RequestMetric getCurrent() {
-        return current.get();
-    }
-
-    protected static void setCurrent(RequestMetric metric) {
-        current.set(metric);
-    }
-
-    protected static void clear() {
-        current.remove();
-    }
 }
+
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-metrics-data') : line }
+}
+
+

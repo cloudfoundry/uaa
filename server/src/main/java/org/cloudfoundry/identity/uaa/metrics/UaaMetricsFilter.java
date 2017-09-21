@@ -40,10 +40,13 @@ import static org.springframework.util.StringUtils.hasText;
 )
 public class UaaMetricsFilter extends OncePerRequestFilter {
 
-
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();
     Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
+
+    public UaaMetricsFilter() {
+        perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -58,9 +61,10 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
-                inflight.updateAverageTime(metric.getRequestCompleteTime() - metric.getRequestStartTime());
-                MetricsQueue queue = getMetricsQueue(uriGroup);
-                queue.offer(metric);
+                for (String group : Arrays.asList(uriGroup, MetricsUtil.GLOBAL_GROUP)) {
+                    MetricsQueue queue = getMetricsQueue(group);
+                    queue.offer(metric);
+                }
             }
         } else {
             filterChain.doFilter(request, response);
@@ -117,10 +121,8 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         }
     }
 
-
-
     @ManagedMetric(category = "performance", displayName = "Inflight Requests")
-    public long getOutstandingCount() {
+    public long getInflightCount() {
         return inflight.getInflightRequests();
     }
 
@@ -129,27 +131,22 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         return inflight.getIdleTime();
     }
 
-    @ManagedMetric(category = "performance", displayName = "Processing request time (ms)")
-    public long getCompletedTime() {
-        return inflight.getAverageTime();
-    }
-
     @ManagedMetric(category = "performance", displayName = "Total server run time (ms)")
     public long getUpTime() {
         return inflight.getRunTime();
     }
 
-    @ManagedMetric(category = "performance", displayName="CompletedRequests", description = "Number of completed requests")
-    public long getCompletedCount() {
-        return inflight.getRequestCount();
-    }
 
-
-    @ManagedMetric(category = "performance", displayName = "Server Request Summary")
+    @ManagedMetric(category = "performance", displayName = "Server Requests for all URI Groups")
     public Map<String, String> getSummary() {
         Map<String, String> data = new HashMap<>();
-        perUriMetrics.entrySet().stream().forEach(entry -> data.put(entry.getKey(), JsonUtils.writeValueAsString(entry.getValue().getSummary())));
+        perUriMetrics.entrySet().stream().forEach(entry -> data.put(entry.getKey(), JsonUtils.writeValueAsString(entry.getValue())));
         return data;
+    }
+
+    @ManagedMetric(category = "performance", displayName = "Global Server Request Summary")
+    public String getGlobals() {
+        return JsonUtils.writeValueAsString(perUriMetrics.get(MetricsUtil.GLOBAL_GROUP));
     }
 
     public TimeService getTimeService() {

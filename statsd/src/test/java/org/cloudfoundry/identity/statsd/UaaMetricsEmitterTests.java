@@ -56,7 +56,7 @@ public class UaaMetricsEmitterTests {
         mBeanMap2.put("UaaAudit", mBeanMap1);
 
         serverRequestsBeanMap = new MBeanMap();
-        serverRequestsBeanMap.put("completed.count", 53L);
+        serverRequestsBeanMap.put("globals", globalsJson);
 
 
         mBeanMap3 = new HashMap();
@@ -85,7 +85,7 @@ public class UaaMetricsEmitterTests {
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap3);
 
         uaaMetricsEmitter.emitGlobalRequestMetrics();
-        Mockito.verify(statsDClient).gauge("requests.global.completed.count", 53L);
+        Mockito.verify(statsDClient).gauge("requests.global.completed.count", 18l);
     }
 
     @Test
@@ -116,4 +116,81 @@ public class UaaMetricsEmitterTests {
         Collection<String> cs = null;
         test(cs);
     }
+
+    String globalsJson = "{\n" +
+        "   \"lastRequests\":[\n" +
+        "      {\n" +
+        "         \"uri\":\"/uaa/\",\n" +
+        "         \"statusCode\":302,\n" +
+        "         \"requestStartTime\":1505967590958,\n" +
+        "         \"requestCompleteTime\":1505967590982,\n" +
+        "         \"nrOfDatabaseQueries\":1,\n" +
+        "         \"databaseQueryTime\":0\n" +
+        "      },\n" +
+        "      {\n" +
+        "         \"uri\":\"/uaa/login\",\n" +
+        "         \"statusCode\":200,\n" +
+        "         \"requestStartTime\":1505967590991,\n" +
+        "         \"requestCompleteTime\":1505967591648,\n" +
+        "         \"nrOfDatabaseQueries\":12,\n" +
+        "         \"databaseQueryTime\":1\n" +
+        "      },\n" +
+        "      {\n" +
+        "         \"uri\":\"/uaa/\",\n" +
+        "         \"statusCode\":302,\n" +
+        "         \"requestStartTime\":1505967591913,\n" +
+        "         \"requestCompleteTime\":1505967591918,\n" +
+        "         \"nrOfDatabaseQueries\":1,\n" +
+        "         \"databaseQueryTime\":0\n" +
+        "      },\n" +
+        "      {\n" +
+        "         \"uri\":\"/uaa/login\",\n" +
+        "         \"statusCode\":200,\n" +
+        "         \"requestStartTime\":1505967591921,\n" +
+        "         \"requestCompleteTime\":1505967591977,\n" +
+        "         \"nrOfDatabaseQueries\":12,\n" +
+        "         \"databaseQueryTime\":0\n" +
+        "      },\n" +
+        "      {\n" +
+        "         \"uri\":\"/uaa/vendor/font-awesome/css/font-awesome.min.css\",\n" +
+        "         \"statusCode\":200,\n" +
+        "         \"requestStartTime\":1505967591982,\n" +
+        "         \"requestCompleteTime\":1505967592031,\n" +
+        "         \"nrOfDatabaseQueries\":1,\n" +
+        "         \"databaseQueryTime\":0\n" +
+        "      }\n" +
+        "   ],\n" +
+        "   \"detailed\":{\n" +
+        "      \"200\":{\n" +
+        "         \"count\":14,\n" +
+        "         \"averageTime\":74.21428571428572,\n" +
+        "         \"intolerableCount\":0,\n" +
+        "         \"averageIntolerableTime\":0.0,\n" +
+        "         \"databaseQueryCount\":113,\n" +
+        "         \"averageDatabaseQueryTime\":0.03539823008849556,\n" +
+        "         \"databaseFailedQueryCount\":0,\n" +
+        "         \"averageDatabaseFailedQueryTime\":0.0\n" +
+        "      },\n" +
+        "      \"302\":{\n" +
+        "         \"count\":4,\n" +
+        "         \"averageTime\":46.0,\n" +
+        "         \"intolerableCount\":0,\n" +
+        "         \"averageIntolerableTime\":0.0,\n" +
+        "         \"databaseQueryCount\":30,\n" +
+        "         \"averageDatabaseQueryTime\":0.03333333333333333,\n" +
+        "         \"databaseFailedQueryCount\":0,\n" +
+        "         \"averageDatabaseFailedQueryTime\":0.0\n" +
+        "      }\n" +
+        "   },\n" +
+        "   \"summary\":{\n" +
+        "      \"count\":18,\n" +
+        "      \"averageTime\":67.94444444444446,\n" +
+        "      \"intolerableCount\":0,\n" +
+        "      \"averageIntolerableTime\":0.0,\n" +
+        "      \"databaseQueryCount\":143,\n" +
+        "      \"averageDatabaseQueryTime\":0.034965034965034954,\n" +
+        "      \"databaseFailedQueryCount\":0,\n" +
+        "      \"averageDatabaseFailedQueryTime\":0.0\n" +
+        "   }\n" +
+        "}";
 }

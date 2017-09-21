@@ -15,8 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -31,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -76,12 +75,14 @@ public class UaaMetricsFilterTests {
         Map<String, String> summary = filter.getSummary();
         assertNotNull(summary);
         assertFalse(summary.isEmpty());
-        assertEquals(1, summary.size());
-        Map<Integer, RequestMetricSummary> totals = JsonUtils.readValue(summary.get(path), new TypeReference<Map<Integer, RequestMetricSummary>>() {});
-        assertNotNull(totals);
-        for (int status : Arrays.asList(200,500)) {
-            RequestMetricSummary total = totals.get(status);
-            assertEquals(1, total.getCount());
+        assertEquals(2, summary.size());
+        for (String uri : Arrays.asList(path, MetricsUtil.GLOBAL_GROUP)) {
+            MetricsQueue totals = readValue(summary.get(uri), MetricsQueue.class);
+            assertNotNull("URI:"+uri, totals);
+            for (int status : Arrays.asList(200, 500)) {
+                RequestMetricSummary total = totals.getDetailed().get(status);
+                assertEquals("URI:"+uri, 1, total.getCount());
+            }
         }
         assertNull(MetricsAccessor.getCurrent());
     }
@@ -111,15 +112,29 @@ public class UaaMetricsFilterTests {
         Thread invoker = new Thread(invocation);
         invoker.start();
         Thread.sleep(10);
-        assertEquals(1, filter.getOutstandingCount());
+        assertEquals(1, filter.getInflightCount());
         lock.unlock();
         Thread.sleep(25);
-        assertEquals(0, filter.getOutstandingCount());
+        assertEquals(0, filter.getInflightCount());
         long idleTime = filter.getIdleTime();
         assertThat(idleTime, greaterThan(20l));
         System.out.println("Total idle time was:"+idleTime);
         Thread.sleep(10);
         assertThat("Idle time should have changed.", filter.getIdleTime(), greaterThan(idleTime));
+    }
+
+    @Test
+    public void deserialize_summary() throws Exception {
+        String path = "/some/path";
+        request.setRequestURI(path);
+        for (int status : Arrays.asList(200,500)) {
+            response.setStatus(status);
+            filter.doFilterInternal(request, response, chain);
+        }
+        Map<String, String> summary = filter.getSummary();
+        MetricsQueue metricSummary = readValue(summary.get(path), MetricsQueue.class);
+        System.out.println("metricSummary = " + metricSummary);
+        assertEquals(2, metricSummary.getTotals().getCount());
     }
 
     @Test
