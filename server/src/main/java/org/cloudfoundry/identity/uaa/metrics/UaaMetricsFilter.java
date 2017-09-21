@@ -46,6 +46,10 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
     private IdleTimer inflight = new IdleTimer();
     Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
 
+    public UaaMetricsFilter() {
+        perUriMetrics.put(GLOBAL_GROUP, new MetricsQueue());
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String uriGroup = getUriGroup(request);
@@ -59,7 +63,6 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
-                inflight.updateAverageTime(metric.getRequestCompleteTime() - metric.getRequestStartTime());
                 for (String group : Arrays.asList(uriGroup, GLOBAL_GROUP)) {
                     MetricsQueue queue = getMetricsQueue(group);
                     queue.offer(metric);
@@ -130,9 +133,9 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         return inflight.getIdleTime();
     }
 
-    @ManagedMetric(category = "performance", displayName = "Processing request time (ms)")
-    public long getCompletedTime() {
-        return inflight.getAverageTime();
+    @ManagedMetric(category = "performance", displayName = "Average time per processed request (ms)")
+    public double getAverageTimePerRequest() {
+        return perUriMetrics.get(GLOBAL_GROUP).getTotals().getAverageTime();
     }
 
     @ManagedMetric(category = "performance", displayName = "Total server run time (ms)")
@@ -142,7 +145,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
 
     @ManagedMetric(category = "performance", displayName="Completed requests", description = "Number of completed web requests")
     public long getCompletedCount() {
-        return inflight.getRequestCount();
+        return perUriMetrics.get(GLOBAL_GROUP).getTotals().getCount();
     }
 
 

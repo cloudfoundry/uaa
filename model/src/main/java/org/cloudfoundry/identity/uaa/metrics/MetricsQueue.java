@@ -20,14 +20,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.metrics.MetricsUtil.MutableDouble;
+import org.cloudfoundry.identity.uaa.metrics.MetricsUtil.MutableLong;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.metrics.MetricsUtil.addAverages;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -82,34 +84,55 @@ public class MetricsQueue  {
 
     @JsonIgnore
     public RequestMetricSummary getTotals() {
-        AtomicLong count = new AtomicLong(0);
-        AtomicLong totalTime = new AtomicLong(0);
-        AtomicLong intolerableCount = new AtomicLong(0);
-        AtomicLong intolerableTime = new AtomicLong(0);
-        AtomicLong databaseQueryCount = new AtomicLong(0);
-        AtomicLong databaseQueryTime = new AtomicLong(0);
-        AtomicLong databaseFailedQueryCount = new AtomicLong(0);
-        AtomicLong databaseFailedQueryTime = new AtomicLong(0);
+        MutableLong count = new MutableLong(0);
+        MutableDouble averageTime = new MutableDouble(0);
+        MutableLong intolerableCount = new MutableLong(0);
+        MutableDouble averageIntolerableTime = new MutableDouble(0);
+        MutableLong databaseQueryCount = new MutableLong(0);
+        MutableDouble averageDatabaseQueryTime = new MutableDouble(0);
+        MutableLong databaseFailedQueryCount = new MutableLong(0);
+        MutableDouble averageDatabaseFailedQueryTime = new MutableDouble(0);
         statistics.entrySet().stream().forEach( s -> {
             RequestMetricSummary summary = s.getValue();
-            count.addAndGet(summary.getCount());
-            totalTime.addAndGet(summary.getTotalTime());
-            intolerableCount.addAndGet(summary.getIntolerableCount());
-            intolerableTime.addAndGet(summary.getIntolerableTime());
-            databaseQueryCount.addAndGet(summary.getDatabaseQueryCount());
-            databaseQueryTime.addAndGet(summary.getDatabaseQueryTime());
-            databaseFailedQueryCount.addAndGet(summary.getDatabaseFailedQueryCount());
-            databaseFailedQueryTime.addAndGet(summary.getDatabaseFailedQueryTime());
+            averageTime.set(addAverages(count.get(),
+                                        averageTime.get(),
+                                        summary.getCount(),
+                                        summary.getAverageTime())
+            );
+            count.add(summary.getCount());
+
+            averageIntolerableTime.set(addAverages(intolerableCount.get(),
+                                                   averageIntolerableTime.get(),
+                                                   summary.getIntolerableCount(),
+                                                   summary.getAverageIntolerableTime())
+            );
+            intolerableCount.add(summary.getIntolerableCount());
+
+            averageDatabaseQueryTime.set(addAverages(databaseQueryCount.get(),
+                                                     averageDatabaseQueryTime.get(),
+                                                     summary.getDatabaseQueryCount(),
+                                                     summary.getAverageDatabaseQueryTime()
+                                                     )
+            );
+            databaseQueryCount.add(summary.getDatabaseQueryCount());
+
+            averageDatabaseFailedQueryTime.set(addAverages(databaseFailedQueryCount.get(),
+                                                           averageDatabaseFailedQueryTime.get(),
+                                                     summary.getDatabaseFailedQueryCount(),
+                                                     summary.getAverageDatabaseFailedQueryTime()
+                                         )
+            );
+            databaseFailedQueryCount.add(summary.getDatabaseFailedQueryCount());
 
         });
-        return new RequestMetricSummary(count,
-                                        totalTime,
-                                        intolerableCount,
-                                        intolerableTime,
-                                        databaseQueryCount,
-                                        databaseQueryTime,
-                                        databaseFailedQueryCount,
-                                        databaseFailedQueryTime);
+        return new RequestMetricSummary(count.get(),
+                                        averageTime.get(),
+                                        intolerableCount.get(),
+                                        averageIntolerableTime.get(),
+                                        databaseQueryCount.get(),
+                                        averageDatabaseQueryTime.get(),
+                                        databaseFailedQueryCount.get(),
+                                        averageDatabaseFailedQueryTime.get());
     }
 
 }

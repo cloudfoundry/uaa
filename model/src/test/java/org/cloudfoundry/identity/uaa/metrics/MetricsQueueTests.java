@@ -29,6 +29,8 @@ import static org.junit.Assert.assertThat;
 
 public class MetricsQueueTests {
 
+    private static final double DELTA = 1e-15;
+
     private MetricsQueue queue;
 
     @Before
@@ -59,12 +61,12 @@ public class MetricsQueueTests {
         assertNotNull(summary);
         assertEquals(3, summary.getCount());
         assertEquals(1, summary.getIntolerableCount());
-        assertEquals(MetricsQueue.MAX_TIME+3+5, summary.getTotalTime());
-        assertEquals(MetricsQueue.MAX_TIME+1, summary.getIntolerableTime());
+        assertEquals(((double)(MetricsQueue.MAX_TIME+3+5)) / 3.0, summary.getAverageTime(), DELTA);
+        assertEquals((double)MetricsQueue.MAX_TIME+1, summary.getAverageIntolerableTime(), DELTA);
         assertEquals(3, summary.getDatabaseQueryCount());
-        assertEquals(9, summary.getDatabaseQueryTime());
+        assertEquals(3, summary.getAverageDatabaseQueryTime(), DELTA);
         assertEquals(1, summary.getDatabaseFailedQueryCount());
-        assertEquals(2, summary.getDatabaseFailedQueryTime());
+        assertEquals(2, summary.getAverageDatabaseFailedQueryTime(), DELTA);
 
     }
 
@@ -76,21 +78,21 @@ public class MetricsQueueTests {
         assertNotNull(twoHundredResponses);
         assertEquals(2, twoHundredResponses.getCount());
         assertEquals(1, twoHundredResponses.getIntolerableCount());
-        assertEquals(MetricsQueue.MAX_TIME+3, twoHundredResponses.getTotalTime());
-        assertEquals(MetricsQueue.MAX_TIME+1, twoHundredResponses.getIntolerableTime());
+        assertEquals((double)(MetricsQueue.MAX_TIME+3) / 2.0, twoHundredResponses.getAverageTime(), DELTA);
+        assertEquals(MetricsQueue.MAX_TIME+1, twoHundredResponses.getAverageIntolerableTime(), DELTA);
         assertEquals(2, twoHundredResponses.getDatabaseQueryCount());
-        assertEquals(7, twoHundredResponses.getDatabaseQueryTime());
+        assertEquals(3.5, twoHundredResponses.getAverageDatabaseQueryTime(), DELTA);
 
         RequestMetricSummary fiveHundredResponses = summary.get(500);
         assertNotNull(fiveHundredResponses);
         assertEquals(1, fiveHundredResponses.getCount());
         assertEquals(0, fiveHundredResponses.getIntolerableCount());
-        assertEquals(5, fiveHundredResponses.getTotalTime());
-        assertEquals(0, fiveHundredResponses.getIntolerableTime());
+        assertEquals(5, fiveHundredResponses.getAverageTime(), DELTA);
+        assertEquals(0, fiveHundredResponses.getAverageIntolerableTime(), DELTA);
         assertEquals(1, fiveHundredResponses.getDatabaseQueryCount());
-        assertEquals(2, fiveHundredResponses.getDatabaseQueryTime());
+        assertEquals(2, fiveHundredResponses.getAverageDatabaseQueryTime(), DELTA);
         assertEquals(1, fiveHundredResponses.getDatabaseFailedQueryCount());
-        assertEquals(2, fiveHundredResponses.getDatabaseFailedQueryTime());
+        assertEquals(2, fiveHundredResponses.getAverageDatabaseFailedQueryTime(), DELTA);
 
         assertEquals(3, queue.getLastRequests().size());
     }

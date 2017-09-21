@@ -24,12 +24,9 @@ public class IdleTimer {
     private long inflightRequests = 0;
     private long idleTime = 0;
 
-    private double averageTime = 0;
     private long lastIdleStart = System.currentTimeMillis();
     private final long startTime = System.currentTimeMillis();
     private long requestCount = 0;
-
-    private int averageCount = 0;
 
     public synchronized void endRequest() {
         switch ((int) --inflightRequests) {
@@ -57,23 +54,6 @@ public class IdleTimer {
 
     }
 
-    public void updateAverageTime(long duration) {
-        if(duration < 0) {
-            throw new IllegalArgumentException("Duration cannot be negative.");
-        }
-        averageCount++;
-        double newAverage = averageTime + (1.0 / (averageCount) * (duration - averageTime)); //iterative mean
-        averageTime = (newAverage);
-    }
-
-    public long getAverageTime() {
-        return (long) averageTime;
-    }
-
-    public void setAverageTime(long averageTime) {
-        this.averageTime = averageTime;
-    }
-
 
     public long getInflightRequests() {
         return inflightRequests;
@@ -87,11 +67,11 @@ public class IdleTimer {
         }
     }
 
-    public long getRequestCount() {
-        return requestCount;
-    }
-
     public long getRunTime() {
         return System.currentTimeMillis() - startTime;
+    }
+
+    protected long getRequestCount() {
+        return requestCount;
     }
 }

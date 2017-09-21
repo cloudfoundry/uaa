@@ -74,21 +74,6 @@ public class IdleTimerTests {
     }
 
     @Test
-    public void average_time_test() throws Exception {
-        for(int i = 1; i < 101; i++) {
-            timer.updateAverageTime(i);
-        }
-        assertEquals(50, timer.getAverageTime());
-
-        try{
-            timer.updateAverageTime(-5);
-            Assert.fail("updateAverageTime didn't throw an error for negative duration");
-        }catch (IllegalArgumentException e) {
-            assertEquals("Duration cannot be negative.", e.getMessage());
-        }
-    }
-
-    @Test
     public void concurrency_test() throws Exception {
         final CountDownLatch latch = new CountDownLatch(THREAD_COUNT);
         Thread[] threads = new Thread[THREAD_COUNT];

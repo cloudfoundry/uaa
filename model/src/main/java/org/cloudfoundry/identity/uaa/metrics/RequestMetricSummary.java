@@ -12,90 +12,90 @@
  *     subcomponent's license, as noted in the LICENSE file.
  * ****************************************************************************
  */
-
 package org.cloudfoundry.identity.uaa.metrics;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.concurrent.atomic.AtomicLong;
+import static org.cloudfoundry.identity.uaa.metrics.MetricsUtil.addToAverage;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RequestMetricSummary {
-    AtomicLong count = new AtomicLong(0);
-    AtomicLong totalTime = new AtomicLong(0);
-    AtomicLong intolerableCount = new AtomicLong(0);
-    AtomicLong intolerableTime = new AtomicLong(0);
-    AtomicLong databaseQueryCount = new AtomicLong(0);
-    AtomicLong databaseQueryTime = new AtomicLong(0);
-    AtomicLong databaseFailedQueryCount = new AtomicLong(0);
-    AtomicLong databaseFailedQueryTime = new AtomicLong(0);
+    long count = 0;
+    double averageTime = 0;
+    long intolerableCount = 0;
+    double averageIntolerableTime = 0;
+    long databaseQueryCount = 0;
+    double averageDatabaseQueryTime = 0;
+    long databaseFailedQueryCount = 0;
+    double averageDatabaseFailedQueryTime = 0;
 
     public RequestMetricSummary() {
     }
 
     @JsonCreator
-    public RequestMetricSummary(@JsonProperty("count") AtomicLong count,
-                                @JsonProperty("totalTime") AtomicLong totalTime,
-                                @JsonProperty("intolerableCount") AtomicLong intolerableCount,
-                                @JsonProperty("intolerableTime") AtomicLong intolerableTime,
-                                @JsonProperty("databaseQueryCount") AtomicLong databaseQueryCount,
-                                @JsonProperty("databaseQueryTime") AtomicLong databaseQueryTime,
-                                @JsonProperty("databaseFailedQueryCount") AtomicLong databaseFailedQueryCount,
-                                @JsonProperty("databaseFailedQueryTime") AtomicLong databaseFailedQueryTime) {
+    public RequestMetricSummary(@JsonProperty("count") long count,
+                                @JsonProperty("averageTime") double averageTime,
+                                @JsonProperty("intolerableCount") long intolerableCount,
+                                @JsonProperty("averageIntolerableTime") double averageIntolerableTime,
+                                @JsonProperty("databaseQueryCount") long databaseQueryCount,
+                                @JsonProperty("averageDatabaseQueryTime") double averageDatabaseQueryTime,
+                                @JsonProperty("databaseFailedQueryCount") long databaseFailedQueryCount,
+                                @JsonProperty("averageDatabaseFailedQueryTime") double averageDatabaseFailedQueryTime) {
         this.count = count;
-        this.totalTime = totalTime;
+        this.averageTime = averageTime;
         this.intolerableCount = intolerableCount;
-        this.intolerableTime = intolerableTime;
+        this.averageIntolerableTime = averageIntolerableTime;
         this.databaseQueryCount = databaseQueryCount;
-        this.databaseQueryTime = databaseQueryTime;
+        this.averageDatabaseQueryTime = averageDatabaseQueryTime;
         this.databaseFailedQueryCount = databaseFailedQueryCount;
-        this.databaseFailedQueryTime = databaseFailedQueryTime;
+        this.averageDatabaseFailedQueryTime = averageDatabaseFailedQueryTime;
     }
 
-    public void add(long time, long dbQueries, long dbTime, long failedDbQueries, long failedDbQueryTime) {
-        count.incrementAndGet();
-        totalTime.addAndGet(time);
+    public synchronized void add(long time, long dbQueries, long dbTime, long failedDbQueries, long failedDbQueryTime) {
+        averageTime = addToAverage(count, averageTime, 1, time);
+        count++;
         if (time > MetricsQueue.MAX_TIME) {
-            intolerableCount.incrementAndGet();
-            intolerableTime.addAndGet(time);
+            averageIntolerableTime = addToAverage(intolerableCount, averageIntolerableTime, 1, time);
+            ++intolerableCount;
         }
-        databaseQueryCount.addAndGet(dbQueries);
-        databaseQueryTime.addAndGet(dbTime);
-        databaseFailedQueryCount.addAndGet(failedDbQueries);
-        databaseFailedQueryTime.addAndGet(failedDbQueryTime);
+        averageDatabaseQueryTime = addToAverage(databaseQueryCount, averageDatabaseQueryTime, dbQueries, dbTime);
+        databaseQueryCount += dbQueries;
+
+        averageDatabaseFailedQueryTime = addToAverage(databaseFailedQueryCount, averageDatabaseFailedQueryTime, failedDbQueries, failedDbQueryTime);
+        databaseFailedQueryCount += failedDbQueries;
     }
 
     public long getCount() {
-        return count.get();
+        return count;
     }
 
-    public long getTotalTime() {
-        return totalTime.get();
+    public double getAverageTime() {
+        return averageTime;
     }
 
     public long getIntolerableCount() {
-        return intolerableCount.get();
+        return intolerableCount;
     }
 
-    public long getIntolerableTime() {
-        return intolerableTime.get();
+    public double getAverageIntolerableTime() {
+        return averageIntolerableTime;
     }
 
     public long getDatabaseQueryCount() {
-        return databaseQueryCount.get();
+        return databaseQueryCount;
     }
 
-    public long getDatabaseQueryTime() {
-        return databaseQueryTime.get();
+    public double getAverageDatabaseQueryTime() {
+        return averageDatabaseQueryTime;
     }
 
     public long getDatabaseFailedQueryCount() {
-        return databaseFailedQueryCount.get();
+        return databaseFailedQueryCount;
     }
 
-    public long getDatabaseFailedQueryTime() {
-        return databaseFailedQueryTime.get();
+    public double getAverageDatabaseFailedQueryTime() {
+        return averageDatabaseFailedQueryTime;
     }
 }
