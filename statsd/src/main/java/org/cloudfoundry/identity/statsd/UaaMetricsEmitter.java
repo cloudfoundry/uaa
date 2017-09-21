@@ -65,9 +65,12 @@ public class UaaMetricsEmitter {
                 String json = (String) uaaMetricsMap.get("globals");
                 if (json != null) {
                     MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
-                    String prefix = "requests.global.completed.";
-                    statsDClient.gauge(prefix + "time", (long) globals.getTotals().getAverageTime());
-                    statsDClient.gauge(prefix + "count", globals.getTotals().getCount());
+                    String prefix = "requests.global.";
+                    statsDClient.gauge(prefix + "completed.time", (long) globals.getTotals().getAverageTime());
+                    statsDClient.gauge(prefix + "completed.count", globals.getTotals().getCount());
+                    //unhealthy
+                    statsDClient.gauge(prefix + "unhealthy.count", globals.getTotals().getIntolerableCount());
+                    statsDClient.gauge(prefix + "unhealthy.time", (long)globals.getTotals().getAverageIntolerableTime());
                 }
             }
             //server statistics

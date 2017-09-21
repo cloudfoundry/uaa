@@ -57,6 +57,7 @@ public class UaaMetricsEmitterTests {
 
         serverRequestsBeanMap = new MBeanMap();
         serverRequestsBeanMap.put("globals", globalsJson);
+        serverRequestsBeanMap.put("inflight.count", 3l);
 
 
         mBeanMap3 = new HashMap();
@@ -86,6 +87,10 @@ public class UaaMetricsEmitterTests {
 
         uaaMetricsEmitter.emitGlobalRequestMetrics();
         Mockito.verify(statsDClient).gauge("requests.global.completed.count", 18l);
+        Mockito.verify(statsDClient).gauge("requests.global.completed.time", 67l);
+        Mockito.verify(statsDClient).gauge("server.inflight.count", 3l);
+        Mockito.verify(statsDClient).gauge("requests.global.unhealthy.count", 1l);
+        Mockito.verify(statsDClient).gauge("requests.global.unhealthy.time", (long)3.25);
     }
 
     @Test
@@ -164,8 +169,8 @@ public class UaaMetricsEmitterTests {
         "      \"200\":{\n" +
         "         \"count\":14,\n" +
         "         \"averageTime\":74.21428571428572,\n" +
-        "         \"intolerableCount\":0,\n" +
-        "         \"averageIntolerableTime\":0.0,\n" +
+        "         \"intolerableCount\":1,\n" +
+        "         \"averageIntolerableTime\":3.25,\n" +
         "         \"databaseQueryCount\":113,\n" +
         "         \"averageDatabaseQueryTime\":0.03539823008849556,\n" +
         "         \"databaseFailedQueryCount\":0,\n" +
