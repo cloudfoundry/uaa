@@ -39,11 +39,11 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 
-public class DegradedModeUaaFilter extends OncePerRequestFilter {
+public class LimitedModeUaaFilter extends OncePerRequestFilter {
 
     public static final String ERROR_CODE = "uaa_unavailable";
-    public static final String ERROR_MESSAGE = "UAA intentionally in degraded mode, operation not permitted. Please try later.";
-    private static Log logger = LogFactory.getLog(DegradedModeUaaFilter.class);
+    public static final String ERROR_MESSAGE = "UAA intentionally in limited mode, operation not permitted. Please try later.";
+    private static Log logger = LogFactory.getLog(LimitedModeUaaFilter.class);
 
     private Set<String> permittedEndpoints = emptySet();
     private Set<String> permittedMethods = emptySet();
@@ -57,7 +57,7 @@ public class DegradedModeUaaFilter extends OncePerRequestFilter {
             if ( isMethodAllowed(request) || isEndpointAllowed(request)) {
                 filterChain.doFilter(request, response);
             } else {
-                logger.debug(format("Operation Not permitted in degraded mode for URL:%s and method:%s",
+                logger.debug(format("Operation Not permitted in limited mode for URL:%s and method:%s",
                                     request.getRequestURI(),
                                     request.getMethod()
                              )
