@@ -551,17 +551,17 @@
     </bean>
 
     <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
-        <property name="enabled" value="${uaa.limited_functionality.enabled:false}"/>
+        <property name="enabled" value="${uaa.limitedFunctionality.enabled:false}"/>
         <property name="permittedEndpoints"
                   value="#{@config['uaa']==null ? null :
-                           @config['uaa']['limited_functionality']==null ? null :
-                           @config['uaa']['limited_functionality']['whitelist']==null ? null :
-                           @config['uaa']['limited_functionality']['whitelist']['endpoints']}"/>
+                           @config['uaa']['limitedFunctionality']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']['endpoints']}"/>
         <property name="permittedMethods"
                   value="#{@config['uaa']==null ? null :
-                           @config['uaa']['limited_functionality']==null ? null :
-                           @config['uaa']['limited_functionality']['whitelist']==null ? null :
-                           @config['uaa']['limited_functionality']['whitelist']['methods']}"/>
+                           @config['uaa']['limitedFunctionality']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']['methods']}"/>
     </bean>
 
 </beans>
