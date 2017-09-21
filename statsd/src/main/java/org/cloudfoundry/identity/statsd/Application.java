@@ -38,8 +38,8 @@ public class Application extends SpringBootServletInitializer {
     }
 
     @Bean
-    public UaaMetricsEmitter statsDClientWrapper() {
-        return new UaaMetricsEmitter(statsDClient(), ManagementFactory.getPlatformMBeanServer());
+    public UaaMetricsEmitter statsDClientWrapper(MetricsUtils utils, StatsDClient client) {
+        return new UaaMetricsEmitter(utils, client, ManagementFactory.getPlatformMBeanServer());
     }
 
     @Bean
