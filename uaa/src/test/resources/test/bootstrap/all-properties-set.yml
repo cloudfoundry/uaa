@@ -565,7 +565,7 @@ smtp:
   starttls: true
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
-  limited_functionality:
+  limitedFunctionality:
     enabled: true
     whitelist:
       endpoints:
