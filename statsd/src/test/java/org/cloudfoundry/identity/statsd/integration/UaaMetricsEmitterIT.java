@@ -61,6 +61,10 @@ public class UaaMetricsEmitterIT {
         "uaa.requests.global.status_3xx.count",
         "uaa.requests.global.status_4xx.count",
         "uaa.requests.global.status_5xx.count",
+        "uaa.database.global.completed.count",
+        "uaa.database.global.completed.count",
+        "uaa.database.global.unhealthy.time",
+        "uaa.database.global.unhealthy.count",
         "uaa.server.up.time",
         "uaa.server.idle.time"
     );

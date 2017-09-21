@@ -100,7 +100,10 @@ public class UaaMetricsEmitterTests {
         Mockito.verify(statsDClient).gauge("server.inflight.count", 3l);
         Mockito.verify(statsDClient).gauge("server.up.time", 12349843l);
         Mockito.verify(statsDClient).gauge("server.idle.time", 12349l);
-
+        Mockito.verify(statsDClient).gauge("database.global.completed.count", 83797l);
+        Mockito.verify(statsDClient).gauge("database.global.completed.time", 0l);
+        Mockito.verify(statsDClient).gauge("database.global.unhealthy.count", 17549l);
+        Mockito.verify(statsDClient).gauge("database.global.unhealthy.time", 0l);
     }
 
     @Test
