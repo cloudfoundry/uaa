@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.StatsDClient;
 import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
+import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
+import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -21,14 +23,19 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.management.MBeanServerConnection;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+
+import static java.util.Optional.ofNullable;
 
 public class UaaMetricsEmitter {
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     @Autowired
     private MetricsUtils metricsUtils;
+    private RequestMetricSummary MISSING_METRICS = new RequestMetricSummary(0l, 0d, 0l, 0d, 0l, 0d, 0l, 0d);
 
     public UaaMetricsEmitter(StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
@@ -65,16 +72,37 @@ public class UaaMetricsEmitter {
                 String json = (String) uaaMetricsMap.get("globals");
                 if (json != null) {
                     MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
-                    String prefix = "requests.global.completed.";
-                    statsDClient.gauge(prefix + "time", (long) globals.getTotals().getAverageTime());
-                    statsDClient.gauge(prefix + "count", globals.getTotals().getCount());
+                    String prefix = "requests.global.";
+                    RequestMetricSummary totals = globals.getTotals();
+                    statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageTime());
+                    statsDClient.gauge(prefix + "completed.count", totals.getCount());
+                    //unhealthy
+                    statsDClient.gauge(prefix + "unhealthy.count", totals.getIntolerableCount());
+                    statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageIntolerableTime());
+                    //status codes
+                    for (StatusCodeGroup family : StatusCodeGroup.values()) {
+                        RequestMetricSummary summary =
+                            ofNullable(globals.getDetailed().get(family))
+                                .orElse(MISSING_METRICS);
+
+                        statsDClient.gauge(prefix + "status_"+family.getName()+".count", summary.getCount());
+                    }
+
                 }
             }
             //server statistics
-            if (uaaMetricsMap.get("inflight.count") != null){
-                long value = (long)uaaMetricsMap.get("inflight.count");
-                statsDClient.gauge("server.inflight.count", value);
-            }
+            List<String> serverStats = Arrays.asList(
+                "inflight.count",
+                "up.time",
+                "idle.time"
+            );
+            serverStats.stream().forEach( statKey -> {
+                if (uaaMetricsMap.get(statKey) != null){
+                    long value = (long)uaaMetricsMap.get(statKey);
+                    statsDClient.gauge("server."+statKey, value);
+                }
+            });
+
 
         }
     }

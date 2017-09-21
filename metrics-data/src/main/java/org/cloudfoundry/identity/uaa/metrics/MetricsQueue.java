@@ -38,7 +38,7 @@ public class MetricsQueue  {
     public static final int MAX_TIME = 3000;
 
     private ConcurrentLinkedDeque<RequestMetric> queue;
-    private Map<Integer, RequestMetricSummary> statistics;
+    private Map<StatusCodeGroup, RequestMetricSummary> statistics;
 
     public MetricsQueue() {
         this(null,null);
@@ -46,7 +46,7 @@ public class MetricsQueue  {
 
     @JsonCreator
     public MetricsQueue(@JsonProperty("lastRequests") ConcurrentLinkedDeque<RequestMetric> queue,
-                        @JsonProperty("detailed") Map<Integer, RequestMetricSummary> statistics) {
+                        @JsonProperty("detailed") Map<StatusCodeGroup, RequestMetricSummary> statistics) {
         this.queue = ofNullable(queue).orElse(new ConcurrentLinkedDeque<>());
         this.statistics = ofNullable(statistics).orElse(new ConcurrentHashMap<>());
     }
@@ -58,7 +58,7 @@ public class MetricsQueue  {
             queue.removeLast();
         }
 
-        Integer statusCode = metric.getStatusCode();
+        StatusCodeGroup statusCode = StatusCodeGroup.valueOf(metric.getStatusCode());
         if (!statistics.containsKey(statusCode)) {
             statistics.putIfAbsent(statusCode, new RequestMetricSummary());
         }
@@ -72,7 +72,7 @@ public class MetricsQueue  {
         return true;
     }
 
-    public Map<Integer, RequestMetricSummary> getDetailed() {
+    public Map<StatusCodeGroup, RequestMetricSummary> getDetailed() {
         return statistics;
     }
 

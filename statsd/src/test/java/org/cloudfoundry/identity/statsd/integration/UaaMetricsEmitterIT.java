@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.statsd.integration;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -27,20 +29,53 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_PASSWORD;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_USERNAME;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.UAA_BASE_URL;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
+@RunWith(Parameterized.class)
 public class UaaMetricsEmitterIT {
+    public static final int WAIT_FOR_MESSAGE = 5500;
     private static DatagramSocket serverSocket;
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
+    private static Map<String, String> firstBatch;
+    private static List<String> gaugeFragments = Arrays.asList(
+        "uaa.requests.global.completed.count",
+        "uaa.requests.global.completed.count",
+        "uaa.requests.global.unhealthy.time",
+        "uaa.requests.global.unhealthy.count",
+        "uaa.audit_service.user.authentication.count:",
+        "uaa.server.inflight.count",
+        "uaa.requests.global.status_1xx.count",
+        "uaa.requests.global.status_2xx.count",
+        "uaa.requests.global.status_3xx.count",
+        "uaa.requests.global.status_4xx.count",
+        "uaa.requests.global.status_5xx.count",
+        "uaa.server.up.time",
+        "uaa.server.idle.time"
+    );
+    private static Map<String, String> secondBatch;
+
+    @Parameterized.Parameters(name = "{index}: fragment[{0}]")
+    public static Object[] data() {
+        return gaugeFragments.toArray();
+    }
+
+    private String statsDKey;
+
+    public UaaMetricsEmitterIT(String statsDKey) {
+        this.statsDKey = statsDKey;
+    }
 
     @BeforeClass
     public static void setUpOnce() throws IOException {
@@ -48,18 +83,56 @@ public class UaaMetricsEmitterIT {
         serverSocket.setSoTimeout(1000);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        firstBatch = getMessages(gaugeFragments, WAIT_FOR_MESSAGE);
+        performSimpleGet();
+        performLogin();
+        secondBatch = getMessages(gaugeFragments, WAIT_FOR_MESSAGE);
     }
 
     @Test
-    public void testStatsDClientEmitsMetricsCollectedFromUAA() throws InterruptedException, IOException {
+    public void assert_gauge_metric() throws IOException {
+        String data1 = firstBatch.get(statsDKey);
+        assertNotNull("Expected to find message for:"+statsDKey+" in the first batch.", data1);
+        String data2 = secondBatch.get(statsDKey);
+        assertNotNull("Expected to find message for:"+statsDKey+" in the second batch.", data2);
+        long first = IntegrationTestUtils.getGaugeValueFromMessage(data1);
+        long second = IntegrationTestUtils.getGaugeValueFromMessage(data2);
+        assertThat(statsDKey+" has a positive value.", first, greaterThanOrEqualTo(0l));
+        assertThat(statsDKey+" has a positive value larger than or equal to the first.", second, greaterThanOrEqualTo(first));
+    }
+
+
+    protected static Map<String,String> getMessages(List<String> fragments, int timeout) throws IOException {
+        long startTime = System.currentTimeMillis();
+        Map<String,String> results = new HashMap<>();
+        do {
+            receiveData = new byte[65535];
+            receivePacket.setData(receiveData);
+            try {
+                serverSocket.receive(receivePacket);
+                String message = new String(receivePacket.getData()).trim();
+                System.out.println("message = " + message);
+                fragments.stream().forEach(fragment -> {
+                    if (message.startsWith(fragment)) {
+                        results.put(fragment, message);
+                    }
+                });
+            } catch (SocketTimeoutException e) {
+                //expected so that we keep looping
+            }
+        } while (results.size()<fragments.size() && (System.currentTimeMillis() < (startTime + timeout)));
+        return results;
+    }
+
+    public static void performLogin() {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(UAA_BASE_URL + "/login",
-                HttpMethod.GET,
-                new HttpEntity<>(null, headers),
-                String.class);
+                                                                 HttpMethod.GET,
+                                                                 new HttpEntity<>(null, headers),
+                                                                 String.class);
 
         if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
@@ -73,61 +146,13 @@ public class UaaMetricsEmitterIT {
         body.add("password", TEST_PASSWORD);
         body.add("X-Uaa-Csrf", csrf);
         loginResponse = template.exchange(UAA_BASE_URL + "/login.do",
-                HttpMethod.POST,
-                new HttpEntity<>(body, headers),
-                String.class);
+                                          HttpMethod.POST,
+                                          new HttpEntity<>(body, headers),
+                                          String.class);
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
-        assertNotNull(getMessage("uaa.audit_service.user.authentication.count:", 5000));
     }
 
-    @Test
-    public void global_completed_count() throws IOException {
-        String message = getMessage("uaa.requests.global.completed.count", 5000);
-        long previousValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        performSimpleGet();
-        message = getMessage("uaa.requests.global.completed.count", 5000);
-        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        assertThat(nextValue, greaterThan(previousValue));
-    }
-
-    @Test
-    public void global_completed_time() throws IOException {
-        performSimpleGet();
-        String message = getMessage("uaa.requests.global.completed.time", 5000);
-        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        assertThat(nextValue, greaterThan(0l));
-    }
-
-    @Test
-    public void server_inflight_count() throws IOException {
-        performSimpleGet();
-        String message = getMessage("uaa.server.inflight.count", 5000);
-        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        assertThat(nextValue, greaterThanOrEqualTo(0l));
-    }
-
-
-    protected String getMessage(String fragment, int timeout) throws IOException {
-        long startTime = System.currentTimeMillis();
-        String found = null;
-        do {
-            receiveData = new byte[65535];
-            receivePacket.setData(receiveData);
-            try {
-                serverSocket.receive(receivePacket);
-                String message = new String(receivePacket.getData()).trim();
-                System.out.println("message = " + message);
-                if (message.startsWith(fragment)) {
-                    found = message;
-                }
-            } catch (SocketTimeoutException e) {
-                //expected so that we keep looping
-            }
-        } while (found == null && (System.currentTimeMillis() < (startTime + timeout)));
-        return found;
-    }
-
-    public void performSimpleGet() {
+    public static void performSimpleGet() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);

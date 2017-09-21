@@ -79,7 +79,7 @@ public class UaaMetricsFilterTests {
         for (String uri : Arrays.asList(path, MetricsUtil.GLOBAL_GROUP)) {
             MetricsQueue totals = readValue(summary.get(uri), MetricsQueue.class);
             assertNotNull("URI:"+uri, totals);
-            for (int status : Arrays.asList(200, 500)) {
+            for (StatusCodeGroup status : Arrays.asList(StatusCodeGroup.SUCCESS, StatusCodeGroup.SERVER_ERROR)) {
                 RequestMetricSummary total = totals.getDetailed().get(status);
                 assertEquals("URI:"+uri, 1, total.getCount());
             }
