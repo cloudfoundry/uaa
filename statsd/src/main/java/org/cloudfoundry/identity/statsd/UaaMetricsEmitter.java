@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.StatsDClient;
 import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
+import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
+import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -24,11 +26,14 @@ import javax.management.MBeanServerConnection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static java.util.Optional.ofNullable;
+
 public class UaaMetricsEmitter {
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     @Autowired
     private MetricsUtils metricsUtils;
+    private RequestMetricSummary MISSING_METRICS = new RequestMetricSummary(0l, 0d, 0l, 0d, 0l, 0d, 0l, 0d);
 
     public UaaMetricsEmitter(StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
@@ -66,11 +71,21 @@ public class UaaMetricsEmitter {
                 if (json != null) {
                     MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
                     String prefix = "requests.global.";
-                    statsDClient.gauge(prefix + "completed.time", (long) globals.getTotals().getAverageTime());
-                    statsDClient.gauge(prefix + "completed.count", globals.getTotals().getCount());
+                    RequestMetricSummary totals = globals.getTotals();
+                    statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageTime());
+                    statsDClient.gauge(prefix + "completed.count", totals.getCount());
                     //unhealthy
-                    statsDClient.gauge(prefix + "unhealthy.count", globals.getTotals().getIntolerableCount());
-                    statsDClient.gauge(prefix + "unhealthy.time", (long)globals.getTotals().getAverageIntolerableTime());
+                    statsDClient.gauge(prefix + "unhealthy.count", totals.getIntolerableCount());
+                    statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageIntolerableTime());
+                    //status codes
+                    for (StatusCodeGroup family : StatusCodeGroup.values()) {
+                        RequestMetricSummary summary =
+                            ofNullable(globals.getDetailed().get(family))
+                                .orElse(MISSING_METRICS);
+
+                        statsDClient.gauge(prefix + "status_"+family.getName()+".count", summary.getCount());
+                    }
+
                 }
             }
             //server statistics

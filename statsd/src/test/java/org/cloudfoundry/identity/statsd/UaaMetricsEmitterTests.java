@@ -86,11 +86,16 @@ public class UaaMetricsEmitterTests {
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap3);
 
         uaaMetricsEmitter.emitGlobalRequestMetrics();
-        Mockito.verify(statsDClient).gauge("requests.global.completed.count", 18l);
-        Mockito.verify(statsDClient).gauge("requests.global.completed.time", 67l);
+        Mockito.verify(statsDClient).gauge("requests.global.completed.count", 3087l);
+        Mockito.verify(statsDClient).gauge("requests.global.completed.time", 29l);
         Mockito.verify(statsDClient).gauge("server.inflight.count", 3l);
         Mockito.verify(statsDClient).gauge("requests.global.unhealthy.count", 1l);
-        Mockito.verify(statsDClient).gauge("requests.global.unhealthy.time", (long)3.25);
+        Mockito.verify(statsDClient).gauge("requests.global.unhealthy.time", 4318l);
+        Mockito.verify(statsDClient).gauge("requests.global.status_1xx.count", 0l);
+        Mockito.verify(statsDClient).gauge("requests.global.status_2xx.count", 2148l);
+        Mockito.verify(statsDClient).gauge("requests.global.status_3xx.count", 763l);
+        Mockito.verify(statsDClient).gauge("requests.global.status_4xx.count", 175l);
+        Mockito.verify(statsDClient).gauge("requests.global.status_5xx.count", 1l);
     }
 
     @Test
@@ -127,75 +132,95 @@ public class UaaMetricsEmitterTests {
         "      {\n" +
         "         \"uri\":\"/uaa/\",\n" +
         "         \"statusCode\":302,\n" +
-        "         \"requestStartTime\":1505967590958,\n" +
-        "         \"requestCompleteTime\":1505967590982,\n" +
+        "         \"requestStartTime\":1506021406240,\n" +
+        "         \"requestCompleteTime\":1506021406260,\n" +
         "         \"nrOfDatabaseQueries\":1,\n" +
         "         \"databaseQueryTime\":0\n" +
         "      },\n" +
         "      {\n" +
         "         \"uri\":\"/uaa/login\",\n" +
         "         \"statusCode\":200,\n" +
-        "         \"requestStartTime\":1505967590991,\n" +
-        "         \"requestCompleteTime\":1505967591648,\n" +
+        "         \"requestStartTime\":1506021406265,\n" +
+        "         \"requestCompleteTime\":1506021406970,\n" +
         "         \"nrOfDatabaseQueries\":12,\n" +
-        "         \"databaseQueryTime\":1\n" +
+        "         \"databaseQueryTime\":0\n" +
         "      },\n" +
         "      {\n" +
         "         \"uri\":\"/uaa/\",\n" +
         "         \"statusCode\":302,\n" +
-        "         \"requestStartTime\":1505967591913,\n" +
-        "         \"requestCompleteTime\":1505967591918,\n" +
+        "         \"requestStartTime\":1506021407210,\n" +
+        "         \"requestCompleteTime\":1506021407216,\n" +
         "         \"nrOfDatabaseQueries\":1,\n" +
-        "         \"databaseQueryTime\":0\n" +
+        "         \"databaseQueryTime\":1\n" +
         "      },\n" +
         "      {\n" +
         "         \"uri\":\"/uaa/login\",\n" +
         "         \"statusCode\":200,\n" +
-        "         \"requestStartTime\":1505967591921,\n" +
-        "         \"requestCompleteTime\":1505967591977,\n" +
+        "         \"requestStartTime\":1506021407224,\n" +
+        "         \"requestCompleteTime\":1506021407284,\n" +
         "         \"nrOfDatabaseQueries\":12,\n" +
         "         \"databaseQueryTime\":0\n" +
         "      },\n" +
         "      {\n" +
-        "         \"uri\":\"/uaa/vendor/font-awesome/css/font-awesome.min.css\",\n" +
-        "         \"statusCode\":200,\n" +
-        "         \"requestStartTime\":1505967591982,\n" +
-        "         \"requestCompleteTime\":1505967592031,\n" +
+        "         \"uri\":\"/uaa/resources/oss/stylesheets/application.css\",\n" +
+        "         \"statusCode\":304,\n" +
+        "         \"requestStartTime\":1506021407293,\n" +
+        "         \"requestCompleteTime\":1506021407331,\n" +
         "         \"nrOfDatabaseQueries\":1,\n" +
         "         \"databaseQueryTime\":0\n" +
         "      }\n" +
         "   ],\n" +
         "   \"detailed\":{\n" +
-        "      \"200\":{\n" +
-        "         \"count\":14,\n" +
-        "         \"averageTime\":74.21428571428572,\n" +
-        "         \"intolerableCount\":1,\n" +
-        "         \"averageIntolerableTime\":3.25,\n" +
-        "         \"databaseQueryCount\":113,\n" +
-        "         \"averageDatabaseQueryTime\":0.03539823008849556,\n" +
+        "      \"SERVER_ERROR\":{\n" +
+        "         \"count\":1,\n" +
+        "         \"averageTime\":87.0,\n" +
+        "         \"intolerableCount\":0,\n" +
+        "         \"averageIntolerableTime\":0.0,\n" +
+        "         \"databaseQueryCount\":13,\n" +
+        "         \"averageDatabaseQueryTime\":0.0,\n" +
         "         \"databaseFailedQueryCount\":0,\n" +
         "         \"averageDatabaseFailedQueryTime\":0.0\n" +
         "      },\n" +
-        "      \"302\":{\n" +
-        "         \"count\":4,\n" +
-        "         \"averageTime\":46.0,\n" +
+        "      \"REDIRECT\":{\n" +
+        "         \"count\":763,\n" +
+        "         \"averageTime\":35.86107470511138,\n" +
+        "         \"intolerableCount\":1,\n" +
+        "         \"averageIntolerableTime\":4318.0,\n" +
+        "         \"databaseQueryCount\":5428,\n" +
+        "         \"averageDatabaseQueryTime\":0.028002947678703018,\n" +
+        "         \"databaseFailedQueryCount\":188,\n" +
+        "         \"averageDatabaseFailedQueryTime\":0.047872340425531915\n" +
+        "      },\n" +
+        "      \"SUCCESS\":{\n" +
+        "         \"count\":2148,\n" +
+        "         \"averageTime\":28.867318435754207,\n" +
         "         \"intolerableCount\":0,\n" +
         "         \"averageIntolerableTime\":0.0,\n" +
-        "         \"databaseQueryCount\":30,\n" +
-        "         \"averageDatabaseQueryTime\":0.03333333333333333,\n" +
-        "         \"databaseFailedQueryCount\":0,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.0\n" +
+        "         \"databaseQueryCount\":77513,\n" +
+        "         \"averageDatabaseQueryTime\":0.0341362094100345,\n" +
+        "         \"databaseFailedQueryCount\":17327,\n" +
+        "         \"averageDatabaseFailedQueryTime\":0.057136261326253886\n" +
+        "      },\n" +
+        "      \"CLIENT_ERROR\":{\n" +
+        "         \"count\":175,\n" +
+        "         \"averageTime\":15.097142857142877,\n" +
+        "         \"intolerableCount\":0,\n" +
+        "         \"averageIntolerableTime\":0.0,\n" +
+        "         \"databaseQueryCount\":843,\n" +
+        "         \"averageDatabaseQueryTime\":0.021352313167259794,\n" +
+        "         \"databaseFailedQueryCount\":34,\n" +
+        "         \"averageDatabaseFailedQueryTime\":0.058823529411764705\n" +
         "      }\n" +
         "   },\n" +
         "   \"summary\":{\n" +
-        "      \"count\":18,\n" +
-        "      \"averageTime\":67.94444444444446,\n" +
-        "      \"intolerableCount\":0,\n" +
-        "      \"averageIntolerableTime\":0.0,\n" +
-        "      \"databaseQueryCount\":143,\n" +
-        "      \"averageDatabaseQueryTime\":0.034965034965034954,\n" +
-        "      \"databaseFailedQueryCount\":0,\n" +
-        "      \"averageDatabaseFailedQueryTime\":0.0\n" +
+        "      \"count\":3087,\n" +
+        "      \"averageTime\":29.834143181081966,\n" +
+        "      \"intolerableCount\":1,\n" +
+        "      \"averageIntolerableTime\":4318.0,\n" +
+        "      \"databaseQueryCount\":83797,\n" +
+        "      \"averageDatabaseQueryTime\":0.033605021659486665,\n" +
+        "      \"databaseFailedQueryCount\":17549,\n" +
+        "      \"averageDatabaseFailedQueryTime\":0.05704028719585168\n" +
         "   }\n" +
         "}";
 }

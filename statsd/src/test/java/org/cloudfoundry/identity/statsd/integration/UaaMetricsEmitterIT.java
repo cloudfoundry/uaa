@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.statsd.integration;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -35,17 +37,40 @@ import java.util.Map;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_PASSWORD;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_USERNAME;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.UAA_BASE_URL;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
+@RunWith(Parameterized.class)
 public class UaaMetricsEmitterIT {
     public static final int WAIT_FOR_MESSAGE = 5500;
     private static DatagramSocket serverSocket;
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
+    private static Map<String, String> firstBatch;
+    private static List<String> fragments = Arrays.asList(
+        "uaa.requests.global.completed.count",
+        "uaa.requests.global.completed.count",
+        "uaa.requests.global.unhealthy.time",
+        "uaa.requests.global.unhealthy.count",
+        "uaa.audit_service.user.authentication.count:",
+        "uaa.server.inflight.count",
+        "uaa.requests.global.status_4xx.count",
+        "uaa.requests.global.status_5xx.count"
+    );
+    private static Map<String, String> secondBatch;
+
+    @Parameterized.Parameters(name = "{index}: fragment[{0}]")
+    public static Object[] data() {
+        return fragments.toArray();
+    }
+
+    private String statsDKey;
+
+    public UaaMetricsEmitterIT(String statsDKey) {
+        this.statsDKey = statsDKey;
+    }
 
     @BeforeClass
     public static void setUpOnce() throws IOException {
@@ -53,80 +78,26 @@ public class UaaMetricsEmitterIT {
         serverSocket.setSoTimeout(1000);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
-    }
-
-    @Test
-    public void testStatsDClientEmitsMetricsCollectedFromUAA() throws InterruptedException, IOException {
-        RestTemplate template = new RestTemplate();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
-        ResponseEntity<String> loginResponse = template.exchange(UAA_BASE_URL + "/login",
-                HttpMethod.GET,
-                new HttpEntity<>(null, headers),
-                String.class);
-
-        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
-            }
-        }
-        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
-
-        LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
-        body.add("username", TEST_USERNAME);
-        body.add("password", TEST_PASSWORD);
-        body.add("X-Uaa-Csrf", csrf);
-        loginResponse = template.exchange(UAA_BASE_URL + "/login.do",
-                HttpMethod.POST,
-                new HttpEntity<>(body, headers),
-                String.class);
-        assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
-        assertNotNull(getMessage("uaa.audit_service.user.authentication.count:", WAIT_FOR_MESSAGE));
-    }
-
-    @Test
-    public void global_counts() throws IOException {
-        List<String> fragments = Arrays.asList(
-            "uaa.requests.global.completed.count",
-            "uaa.requests.global.completed.count",
-            "uaa.requests.global.unhealthy.time",
-            "uaa.requests.global.unhealthy.count"
-        );
-        Map<String,String> firstBatch = getMessages(fragments, WAIT_FOR_MESSAGE);
+        firstBatch = getMessages(fragments, WAIT_FOR_MESSAGE);
         performSimpleGet();
-        Map<String,String> secondBatch = getMessages(fragments, WAIT_FOR_MESSAGE);
-
-        String message = firstBatch.get("uaa.requests.global.completed.count");
-        long previousValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-
-        message = secondBatch.get("uaa.requests.global.completed.count");
-        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        assertThat(nextValue, greaterThan(previousValue));
-
-        message = firstBatch.get("uaa.requests.global.unhealthy.time");
-        long value = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        assertThat(value, greaterThanOrEqualTo(0l));
-
-        message = firstBatch.get("uaa.requests.global.unhealthy.count");
-        value = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        assertThat(value, greaterThanOrEqualTo(0l));
+        performLogin();
+        secondBatch = getMessages(fragments, WAIT_FOR_MESSAGE);
     }
 
     @Test
-    public void server_inflight_count() throws IOException {
-        performSimpleGet();
-        String message = getMessage("uaa.server.inflight.count", WAIT_FOR_MESSAGE);
-        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-        assertThat(nextValue, greaterThanOrEqualTo(0l));
+    public void assert_metric() throws IOException {
+        String data1 = firstBatch.get(statsDKey);
+        assertNotNull("Expected to find message for:"+statsDKey+" in the first batch.", data1);
+        String data2 = secondBatch.get(statsDKey);
+        assertNotNull("Expected to find message for:"+statsDKey+" in the second batch.", data2);
+        long first = IntegrationTestUtils.getGaugeValueFromMessage(data1);
+        long second = IntegrationTestUtils.getGaugeValueFromMessage(data2);
+        assertThat(statsDKey+" has a positive value.", first, greaterThanOrEqualTo(0l));
+        assertThat(statsDKey+" has a positive value larger than or equal to the first.", second, greaterThanOrEqualTo(first));
     }
 
 
-    protected String getMessage(String fragment, int timeout) throws IOException {
-        return getMessages(Arrays.asList(fragment), timeout).get(fragment);
-    }
-
-    protected Map<String,String> getMessages(List<String> fragments, int timeout) throws IOException {
+    protected static Map<String,String> getMessages(List<String> fragments, int timeout) throws IOException {
         long startTime = System.currentTimeMillis();
         Map<String,String> results = new HashMap<>();
         do {
@@ -148,7 +119,35 @@ public class UaaMetricsEmitterIT {
         return results;
     }
 
-    public void performSimpleGet() {
+    public static void performLogin() {
+        RestTemplate template = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(UAA_BASE_URL + "/login",
+                                                                 HttpMethod.GET,
+                                                                 new HttpEntity<>(null, headers),
+                                                                 String.class);
+
+        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
+        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
+
+        LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
+        body.add("username", TEST_USERNAME);
+        body.add("password", TEST_PASSWORD);
+        body.add("X-Uaa-Csrf", csrf);
+        loginResponse = template.exchange(UAA_BASE_URL + "/login.do",
+                                          HttpMethod.POST,
+                                          new HttpEntity<>(body, headers),
+                                          String.class);
+        assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
+    }
+
+    public static void performSimpleGet() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
