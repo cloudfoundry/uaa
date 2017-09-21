@@ -58,6 +58,8 @@ public class UaaMetricsEmitterTests {
         serverRequestsBeanMap = new MBeanMap();
         serverRequestsBeanMap.put("globals", globalsJson);
         serverRequestsBeanMap.put("inflight.count", 3l);
+        serverRequestsBeanMap.put("up.time", 12349843l);
+        serverRequestsBeanMap.put("idle.time", 12349l);
 
 
         mBeanMap3 = new HashMap();
@@ -88,7 +90,6 @@ public class UaaMetricsEmitterTests {
         uaaMetricsEmitter.emitGlobalRequestMetrics();
         Mockito.verify(statsDClient).gauge("requests.global.completed.count", 3087l);
         Mockito.verify(statsDClient).gauge("requests.global.completed.time", 29l);
-        Mockito.verify(statsDClient).gauge("server.inflight.count", 3l);
         Mockito.verify(statsDClient).gauge("requests.global.unhealthy.count", 1l);
         Mockito.verify(statsDClient).gauge("requests.global.unhealthy.time", 4318l);
         Mockito.verify(statsDClient).gauge("requests.global.status_1xx.count", 0l);
@@ -96,6 +97,10 @@ public class UaaMetricsEmitterTests {
         Mockito.verify(statsDClient).gauge("requests.global.status_3xx.count", 763l);
         Mockito.verify(statsDClient).gauge("requests.global.status_4xx.count", 175l);
         Mockito.verify(statsDClient).gauge("requests.global.status_5xx.count", 1l);
+        Mockito.verify(statsDClient).gauge("server.inflight.count", 3l);
+        Mockito.verify(statsDClient).gauge("server.up.time", 12349843l);
+        Mockito.verify(statsDClient).gauge("server.idle.time", 12349l);
+
     }
 
     @Test

@@ -49,21 +49,26 @@ public class UaaMetricsEmitterIT {
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
     private static Map<String, String> firstBatch;
-    private static List<String> fragments = Arrays.asList(
+    private static List<String> gaugeFragments = Arrays.asList(
         "uaa.requests.global.completed.count",
         "uaa.requests.global.completed.count",
         "uaa.requests.global.unhealthy.time",
         "uaa.requests.global.unhealthy.count",
         "uaa.audit_service.user.authentication.count:",
         "uaa.server.inflight.count",
+        "uaa.requests.global.status_1xx.count",
+        "uaa.requests.global.status_2xx.count",
+        "uaa.requests.global.status_3xx.count",
         "uaa.requests.global.status_4xx.count",
-        "uaa.requests.global.status_5xx.count"
+        "uaa.requests.global.status_5xx.count",
+        "uaa.server.up.time",
+        "uaa.server.idle.time"
     );
     private static Map<String, String> secondBatch;
 
     @Parameterized.Parameters(name = "{index}: fragment[{0}]")
     public static Object[] data() {
-        return fragments.toArray();
+        return gaugeFragments.toArray();
     }
 
     private String statsDKey;
@@ -78,14 +83,14 @@ public class UaaMetricsEmitterIT {
         serverSocket.setSoTimeout(1000);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
-        firstBatch = getMessages(fragments, WAIT_FOR_MESSAGE);
+        firstBatch = getMessages(gaugeFragments, WAIT_FOR_MESSAGE);
         performSimpleGet();
         performLogin();
-        secondBatch = getMessages(fragments, WAIT_FOR_MESSAGE);
+        secondBatch = getMessages(gaugeFragments, WAIT_FOR_MESSAGE);
     }
 
     @Test
-    public void assert_metric() throws IOException {
+    public void assert_gauge_metric() throws IOException {
         String data1 = firstBatch.get(statsDKey);
         assertNotNull("Expected to find message for:"+statsDKey+" in the first batch.", data1);
         String data2 = secondBatch.get(statsDKey);
