@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.StatsDClient;
+import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -24,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class UaaMetricsEmitter {
-
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     @Autowired
@@ -57,9 +57,14 @@ public class UaaMetricsEmitter {
         Map<String, ?> spring = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
         if (spring != null) {
             MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(spring, "#this['ServerRequests']");
-            if (uaaMetricsMap != null){
-                String prefix = "requests.global.";
-                uaaMetricsMap.entrySet().stream().filter(e -> e.getValue() != null && e.getValue() instanceof Long).forEach(e -> statsDClient.gauge(prefix+e.getKey(), (long) e.getValue()));
+            if (uaaMetricsMap != null && uaaMetricsMap.get("globals") != null){
+                String json = (String) uaaMetricsMap.get("globals");
+                if (json != null) {
+                    MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
+                    String prefix = "requests.global.completed.";
+                    statsDClient.gauge(prefix + "average.time", (long) globals.getTotals().getAverageTime());
+                    statsDClient.gauge(prefix + "count", globals.getTotals().getCount());
+                }
             }
         }
     }

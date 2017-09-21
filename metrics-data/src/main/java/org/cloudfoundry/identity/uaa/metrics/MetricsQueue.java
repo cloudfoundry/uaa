@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.metrics;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -47,7 +46,7 @@ public class MetricsQueue  {
 
     @JsonCreator
     public MetricsQueue(@JsonProperty("lastRequests") ConcurrentLinkedDeque<RequestMetric> queue,
-                        @JsonProperty("summary") Map<Integer, RequestMetricSummary> statistics) {
+                        @JsonProperty("detailed") Map<Integer, RequestMetricSummary> statistics) {
         this.queue = ofNullable(queue).orElse(new ConcurrentLinkedDeque<>());
         this.statistics = ofNullable(statistics).orElse(new ConcurrentHashMap<>());
     }
@@ -73,7 +72,7 @@ public class MetricsQueue  {
         return true;
     }
 
-    public Map<Integer, RequestMetricSummary> getSummary() {
+    public Map<Integer, RequestMetricSummary> getDetailed() {
         return statistics;
     }
 
@@ -82,7 +81,7 @@ public class MetricsQueue  {
         return queue;
     }
 
-    @JsonIgnore
+    @JsonProperty("summary")
     public RequestMetricSummary getTotals() {
         MutableLong count = new MutableLong(0);
         MutableDouble averageTime = new MutableDouble(0);

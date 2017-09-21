@@ -71,7 +71,7 @@ public class MetricsQueueTests {
     }
 
     public void validateMetricsQueue(MetricsQueue queue) {
-        Map<Integer, RequestMetricSummary> summary = queue.getSummary();
+        Map<Integer, RequestMetricSummary> summary = queue.getDetailed();
         assertNotNull(summary);
         assertEquals(2, summary.size());
         RequestMetricSummary twoHundredResponses = summary.get(200);
@@ -101,7 +101,7 @@ public class MetricsQueueTests {
     public void json_serialize() throws Exception {
         String json = JsonUtils.writeValueAsString(queue);
         Map<String,Object> object = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {});
-        assertEquals(2, object.size());
+        assertEquals(3, object.size());
         MetricsQueue deserialized = JsonUtils.readValue(json, MetricsQueue.class);
         validateMetricsQueue(deserialized);
     }

@@ -16,6 +16,8 @@
 package org.cloudfoundry.identity.uaa.metrics;
 
 public class MetricsUtil {
+    public static final String GLOBAL_GROUP = "uaa.global.metrics";
+
     public static double addAverages(double oldCount,
                                      double oldAverage,
                                      double newCount,

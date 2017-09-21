@@ -1,4 +1,5 @@
 rootProject.name = 'cloudfoundry-identity-parent'
+include ':cloudfoundry-identity-metrics-data'
 include ':cloudfoundry-identity-model'
 include ':cloudfoundry-identity-client-lib'
 include ':cloudfoundry-identity-server'
@@ -8,6 +9,7 @@ include ':cloudfoundry-identity-samples:cloudfoundry-identity-api'
 include ':cloudfoundry-identity-samples:cloudfoundry-identity-app'
 include ':cloudfoundry-identity-samples'
 
+project(':cloudfoundry-identity-metrics-data').projectDir = "$rootDir/metrics-data" as File
 project(':cloudfoundry-identity-model').projectDir = "$rootDir/model" as File
 project(':cloudfoundry-identity-client-lib').projectDir = "$rootDir/client-lib" as File
 project(':cloudfoundry-identity-server').projectDir = "$rootDir/server" as File

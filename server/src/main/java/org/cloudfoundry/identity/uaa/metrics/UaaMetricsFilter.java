@@ -40,14 +40,12 @@ import static org.springframework.util.StringUtils.hasText;
 )
 public class UaaMetricsFilter extends OncePerRequestFilter {
 
-    public static final String GLOBAL_GROUP = "uaa.global.metrics";
-
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();
     Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
 
     public UaaMetricsFilter() {
-        perUriMetrics.put(GLOBAL_GROUP, new MetricsQueue());
+        perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
     }
 
     @Override
@@ -63,7 +61,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
-                for (String group : Arrays.asList(uriGroup, GLOBAL_GROUP)) {
+                for (String group : Arrays.asList(uriGroup, MetricsUtil.GLOBAL_GROUP)) {
                     MetricsQueue queue = getMetricsQueue(group);
                     queue.offer(metric);
                 }
@@ -133,27 +131,22 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         return inflight.getIdleTime();
     }
 
-    @ManagedMetric(category = "performance", displayName = "Average time per processed request (ms)")
-    public double getAverageTimePerRequest() {
-        return perUriMetrics.get(GLOBAL_GROUP).getTotals().getAverageTime();
-    }
-
     @ManagedMetric(category = "performance", displayName = "Total server run time (ms)")
     public long getUpTime() {
         return inflight.getRunTime();
     }
 
-    @ManagedMetric(category = "performance", displayName="Completed requests", description = "Number of completed web requests")
-    public long getCompletedCount() {
-        return perUriMetrics.get(GLOBAL_GROUP).getTotals().getCount();
-    }
 
-
-    @ManagedMetric(category = "performance", displayName = "Server Request Summary")
+    @ManagedMetric(category = "performance", displayName = "Server Requests for all URI Groups")
     public Map<String, String> getSummary() {
         Map<String, String> data = new HashMap<>();
         perUriMetrics.entrySet().stream().forEach(entry -> data.put(entry.getKey(), JsonUtils.writeValueAsString(entry.getValue())));
         return data;
+    }
+
+    @ManagedMetric(category = "performance", displayName = "Global Server Request Summary")
+    public String getGlobals() {
+        return JsonUtils.writeValueAsString(perUriMetrics.get(MetricsUtil.GLOBAL_GROUP));
     }
 
     public TimeService getTimeService() {

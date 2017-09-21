@@ -1,9 +1,10 @@
 description = 'CloudFoundry Identity Model JAR'
 
 dependencies {
-  compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
 
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
+  compile project(':cloudfoundry-identity-metrics-data')
+
+  compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
 
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
