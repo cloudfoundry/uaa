@@ -122,7 +122,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
     }
 
     @ManagedMetric(category = "performance", displayName = "Inflight Requests")
-    public long getOutstandingCount() {
+    public long getInflightCount() {
         return inflight.getInflightRequests();
     }
 

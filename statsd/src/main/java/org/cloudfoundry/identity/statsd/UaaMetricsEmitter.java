@@ -54,18 +54,28 @@ public class UaaMetricsEmitter {
 
     @Scheduled(fixedRate = 5000)
     public void emitGlobalRequestMetrics() throws Exception {
-        Map<String, ?> spring = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
-        if (spring != null) {
-            MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(spring, "#this['ServerRequests']");
-            if (uaaMetricsMap != null && uaaMetricsMap.get("globals") != null){
+        Map<String, ?> mebeans = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
+        if (mebeans != null) {
+            MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(mebeans, "#this['ServerRequests']");
+            if (uaaMetricsMap == null) {
+                return;
+            }
+            //global request statistics
+            if (uaaMetricsMap.get("globals") != null){
                 String json = (String) uaaMetricsMap.get("globals");
                 if (json != null) {
                     MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
                     String prefix = "requests.global.completed.";
-                    statsDClient.gauge(prefix + "average.time", (long) globals.getTotals().getAverageTime());
+                    statsDClient.gauge(prefix + "time", (long) globals.getTotals().getAverageTime());
                     statsDClient.gauge(prefix + "count", globals.getTotals().getCount());
                 }
             }
+            //server statistics
+            if (uaaMetricsMap.get("inflight.count") != null){
+                long value = (long)uaaMetricsMap.get("inflight.count");
+                statsDClient.gauge("server.inflight.count", value);
+            }
+
         }
     }
 

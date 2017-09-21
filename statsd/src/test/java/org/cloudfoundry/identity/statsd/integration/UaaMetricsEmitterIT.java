@@ -26,13 +26,16 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketTimeoutException;
 
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_PASSWORD;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_USERNAME;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.UAA_BASE_URL;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThat;
 
 public class UaaMetricsEmitterIT {
     private static DatagramSocket serverSocket;
@@ -42,6 +45,7 @@ public class UaaMetricsEmitterIT {
     @BeforeClass
     public static void setUpOnce() throws IOException {
         serverSocket = new DatagramSocket(8125);
+        serverSocket.setSoTimeout(1000);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
     }
@@ -77,41 +81,29 @@ public class UaaMetricsEmitterIT {
     }
 
     @Test
-    public void testGlobalCompletedCountMetrics() throws IOException {
+    public void global_completed_count() throws IOException {
         String message = getMessage("uaa.requests.global.completed.count", 5000);
-        Long previousValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-
-        RestTemplate template = new RestTemplate();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
-        ResponseEntity<String> loginResponse = template.exchange(UAA_BASE_URL + "/login",
-                HttpMethod.GET,
-                new HttpEntity<>(null, headers),
-                String.class);
-
+        long previousValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+        performSimpleGet();
         message = getMessage("uaa.requests.global.completed.count", 5000);
-        Long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-
-        assertTrue("Expected " + nextValue + " to be greater than " + previousValue, nextValue > previousValue);
+        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+        assertThat(nextValue, greaterThan(previousValue));
     }
 
     @Test
-    public void testGlobalCompletedTimeMetrics() throws IOException {
+    public void global_completed_time() throws IOException {
+        performSimpleGet();
+        String message = getMessage("uaa.requests.global.completed.time", 5000);
+        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+        assertThat(nextValue, greaterThan(0l));
+    }
 
-        RestTemplate template = new RestTemplate();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
-        template.exchange(UAA_BASE_URL + "/login",
-                HttpMethod.GET,
-                new HttpEntity<>(null, headers),
-                String.class);
-
-        String message = getMessage("uaa.requests.global.completed.average.time", 5000);
-        Long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
-
-        assertTrue("Expected " + nextValue + " to be greater than0", nextValue > 0);
+    @Test
+    public void server_inflight_count() throws IOException {
+        performSimpleGet();
+        String message = getMessage("uaa.server.inflight.count", 5000);
+        long nextValue = IntegrationTestUtils.getGaugeValueFromMessage(message);
+        assertThat(nextValue, greaterThanOrEqualTo(0l));
     }
 
 
@@ -121,13 +113,27 @@ public class UaaMetricsEmitterIT {
         do {
             receiveData = new byte[65535];
             receivePacket.setData(receiveData);
-            serverSocket.receive(receivePacket);
-            String message = new String(receivePacket.getData()).trim();
-            System.out.println("message = " + message);
-            if (message.startsWith(fragment)) {
-                found = message;
+            try {
+                serverSocket.receive(receivePacket);
+                String message = new String(receivePacket.getData()).trim();
+                System.out.println("message = " + message);
+                if (message.startsWith(fragment)) {
+                    found = message;
+                }
+            } catch (SocketTimeoutException e) {
+                //expected so that we keep looping
             }
-        } while (found == null && (System.currentTimeMillis() < startTime + timeout));
+        } while (found == null && (System.currentTimeMillis() < (startTime + timeout)));
         return found;
+    }
+
+    public void performSimpleGet() {
+        RestTemplate template = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        template.exchange(UAA_BASE_URL + "/login",
+                          HttpMethod.GET,
+                          new HttpEntity<>(null, headers),
+                          String.class);
     }
 }
