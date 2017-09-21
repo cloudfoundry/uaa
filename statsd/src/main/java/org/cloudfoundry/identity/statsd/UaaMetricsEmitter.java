@@ -16,6 +16,7 @@ import com.timgroup.statsd.StatsDClient;
 import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
 import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
 import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.spel.standard.SpelExpressionParser;

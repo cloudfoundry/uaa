@@ -13,18 +13,16 @@
  * ****************************************************************************
  */
 
-package org.cloudfoundry.identity.statsd;
+package org.cloudfoundry.identity.uaa.util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
-
 
 public class JsonUtils {
     private static ObjectMapper objectMapper = new ObjectMapper();
@@ -47,7 +45,7 @@ public class JsonUtils {
 
     public static <T> T readValue(String s, Class<T> clazz) throws JsonUtilException {
         try {
-            if (StringUtils.hasText(s)) {
+            if (hasText(s)) {
                 return objectMapper.readValue(s, clazz);
             } else {
                 return null;
@@ -71,7 +69,7 @@ public class JsonUtils {
 
     public static <T> T readValue(String s, TypeReference<T> typeReference) {
         try {
-            if (StringUtils.hasText(s)) {
+            if (hasText(s)) {
                 return objectMapper.readValue(s, typeReference);
             } else {
                 return null;
@@ -115,7 +113,7 @@ public class JsonUtils {
 
     public static JsonNode readTree(String s) {
         try {
-            if (StringUtils.hasText(s)) {
+            if (hasText(s)) {
                 return objectMapper.readTree(s);
             } else {
                 return null;
@@ -181,4 +179,21 @@ public class JsonUtils {
         return objectMapper.convertValue(node, Map.class);
     }
 
+    public static boolean hasLength(CharSequence str) {
+        return !(str == null || str.length()==0);
+    }
+
+    public static boolean hasText(CharSequence str) {
+        if (!hasLength(str)) {
+            return false;
+        }
+
+        int strLen = str.length();
+        for (int i = 0; i < strLen; i++) {
+            if (!Character.isWhitespace(str.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
