@@ -42,7 +42,7 @@ public class UaaMetricsEmitter {
         this.server = server;
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 5000, initialDelay = 0)
     public void emitMetrics() throws Exception {
         Map<String, Object> result = new LinkedHashMap<>();
         Map<String, ?> spring = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
@@ -59,7 +59,7 @@ public class UaaMetricsEmitter {
         }
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 5000, initialDelay = 2000)
     public void emitGlobalRequestMetrics() throws Exception {
         Map<String, ?> mebeans = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
         if (mebeans != null) {
@@ -67,43 +67,53 @@ public class UaaMetricsEmitter {
             if (uaaMetricsMap == null) {
                 return;
             }
-            //global request statistics
-            if (uaaMetricsMap.get("globals") != null){
-                String json = (String) uaaMetricsMap.get("globals");
-                if (json != null) {
-                    MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
-                    String prefix = "requests.global.";
-                    RequestMetricSummary totals = globals.getTotals();
-                    statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageTime());
-                    statsDClient.gauge(prefix + "completed.count", totals.getCount());
-                    //unhealthy
-                    statsDClient.gauge(prefix + "unhealthy.count", totals.getIntolerableCount());
-                    statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageIntolerableTime());
-                    //status codes
-                    for (StatusCodeGroup family : StatusCodeGroup.values()) {
-                        RequestMetricSummary summary =
-                            ofNullable(globals.getDetailed().get(family))
-                                .orElse(MISSING_METRICS);
+            emitGlobalRequestMetrics(uaaMetricsMap);
+            emitGlobalServerStats(uaaMetricsMap);
+        }
+    }
 
-                        statsDClient.gauge(prefix + "status_"+family.getName()+".count", summary.getCount());
-                    }
-
-                }
+    public void emitGlobalServerStats(MBeanMap uaaMetricsMap) {
+        //server statistics
+        List<String> serverStats = Arrays.asList(
+            "inflight.count",
+            "up.time",
+            "idle.time"
+        );
+        serverStats.stream().forEach( statKey -> {
+            if (uaaMetricsMap.get(statKey) != null){
+                long value = (long)uaaMetricsMap.get(statKey);
+                statsDClient.gauge("server."+statKey, value);
             }
-            //server statistics
-            List<String> serverStats = Arrays.asList(
-                "inflight.count",
-                "up.time",
-                "idle.time"
-            );
-            serverStats.stream().forEach( statKey -> {
-                if (uaaMetricsMap.get(statKey) != null){
-                    long value = (long)uaaMetricsMap.get(statKey);
-                    statsDClient.gauge("server."+statKey, value);
+        });
+    }
+
+    public void emitGlobalRequestMetrics(MBeanMap uaaMetricsMap) {
+        //global request statistics
+        if (uaaMetricsMap.get("globals") != null){
+            String json = (String) uaaMetricsMap.get("globals");
+            if (json != null) {
+                MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
+                String prefix = "requests.global.";
+                RequestMetricSummary totals = globals.getTotals();
+                statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageTime());
+                statsDClient.gauge(prefix + "completed.count", totals.getCount());
+                statsDClient.gauge(prefix + "unhealthy.count", totals.getIntolerableCount());
+                statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageIntolerableTime());
+                //status codes
+                for (StatusCodeGroup family : StatusCodeGroup.values()) {
+                    RequestMetricSummary summary =
+                        ofNullable(globals.getDetailed().get(family))
+                            .orElse(MISSING_METRICS);
+
+                    statsDClient.gauge(prefix + "status_"+family.getName()+".count", summary.getCount());
                 }
-            });
-
-
+                //database metrics
+                prefix = "database.global.";
+                statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageDatabaseQueryTime());
+                statsDClient.gauge(prefix + "completed.count", totals.getDatabaseQueryCount());
+                statsDClient.gauge(prefix + "unhealthy.count", totals.getDatabaseFailedQueryCount());
+                statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseFailedQueryTime());
+            }
         }
     }
 
