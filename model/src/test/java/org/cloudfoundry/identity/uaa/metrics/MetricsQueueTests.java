@@ -71,10 +71,10 @@ public class MetricsQueueTests {
     }
 
     public void validateMetricsQueue(MetricsQueue queue) {
-        Map<Integer, RequestMetricSummary> summary = queue.getDetailed();
+        Map<StatusCodeGroup, RequestMetricSummary> summary = queue.getDetailed();
         assertNotNull(summary);
         assertEquals(2, summary.size());
-        RequestMetricSummary twoHundredResponses = summary.get(200);
+        RequestMetricSummary twoHundredResponses = summary.get(StatusCodeGroup.SUCCESS);
         assertNotNull(twoHundredResponses);
         assertEquals(2, twoHundredResponses.getCount());
         assertEquals(1, twoHundredResponses.getIntolerableCount());
@@ -83,7 +83,7 @@ public class MetricsQueueTests {
         assertEquals(2, twoHundredResponses.getDatabaseQueryCount());
         assertEquals(3.5, twoHundredResponses.getAverageDatabaseQueryTime(), DELTA);
 
-        RequestMetricSummary fiveHundredResponses = summary.get(500);
+        RequestMetricSummary fiveHundredResponses = summary.get(StatusCodeGroup.SERVER_ERROR);
         assertNotNull(fiveHundredResponses);
         assertEquals(1, fiveHundredResponses.getCount());
         assertEquals(0, fiveHundredResponses.getIntolerableCount());
