@@ -39,32 +39,32 @@ import java.io.IOException;
  */
 public class Log4jContextInitializer implements ServletContextListener, Filter {
 
-	@Override
-	public void contextInitialized(ServletContextEvent sce) {
-		MDC.put("context", sce.getServletContext().getContextPath());
-	}
+    @Override
+    public void contextInitialized(ServletContextEvent sce) {
+        MDC.put("context", sce.getServletContext().getContextPath());
+    }
 
-	@Override
-	public void contextDestroyed(ServletContextEvent sce) {
-	}
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+    }
 
-	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-	}
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+    }
 
-	@Override
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-			ServletException {
-		MDC.put("context", ((HttpServletRequest)request).getContextPath());
-		try {
-			chain.doFilter(request, response);
-		} finally {
-			MDC.remove("context");
-		}
-	}
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
+            ServletException {
+        MDC.put("context", ((HttpServletRequest)request).getContextPath());
+        try {
+            chain.doFilter(request, response);
+        } finally {
+            MDC.remove("context");
+        }
+    }
 
-	@Override
-	public void destroy() {
-	}
+    @Override
+    public void destroy() {
+    }
 
 }
