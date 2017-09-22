@@ -80,8 +80,9 @@ public abstract class UaaUrlUtils {
         "(([a-zA-Z0-9\\-\\*]+\\.)*" +   //subdomains
         "[a-zA-Z0-9\\-]+\\.)?" +        //hostname
         "[a-zA-Z0-9\\-]+" +             //tld
-        "(:[0-9]+)?(/.*|$)"             //port and path
+        "(:([0-9]+|\\*))?(/.*|$)"       //port and path
     );
+    
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
             return allowedRedirectUriPattern.matcher(url).matches();
