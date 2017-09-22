@@ -10,7 +10,6 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.NonBlockingStatsDClient;
@@ -38,8 +37,8 @@ public class Application extends SpringBootServletInitializer {
     }
 
     @Bean
-    public UaaMetricsEmitter statsDClientWrapper() {
-        return new UaaMetricsEmitter(statsDClient(), ManagementFactory.getPlatformMBeanServer());
+    public UaaMetricsEmitter statsDClientWrapper(MetricsUtils utils, StatsDClient client) {
+        return new UaaMetricsEmitter(utils, client, ManagementFactory.getPlatformMBeanServer());
     }
 
     @Bean

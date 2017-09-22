@@ -38,7 +38,7 @@ import static org.springframework.util.StringUtils.hasText;
     objectName="cloudfoundry.identity:name=ServerRequests",
     description = "UAA Performance Metrics"
 )
-public class UaaMetricsFilter extends OncePerRequestFilter {
+public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics {
 
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();
@@ -121,22 +121,25 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         }
     }
 
+    @Override
     @ManagedMetric(category = "performance", displayName = "Inflight Requests")
     public long getInflightCount() {
         return inflight.getInflightRequests();
     }
 
+    @Override
     @ManagedMetric(category = "performance", displayName = "Idle time (ms)")
     public long getIdleTime() {
         return inflight.getIdleTime();
     }
 
+    @Override
     @ManagedMetric(category = "performance", displayName = "Total server run time (ms)")
     public long getUpTime() {
         return inflight.getRunTime();
     }
 
-
+    @Override
     @ManagedMetric(category = "performance", displayName = "Server Requests for all URI Groups")
     public Map<String, String> getSummary() {
         Map<String, String> data = new HashMap<>();
@@ -144,6 +147,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         return data;
     }
 
+    @Override
     @ManagedMetric(category = "performance", displayName = "Global Server Request Summary")
     public String getGlobals() {
         return JsonUtils.writeValueAsString(perUriMetrics.get(MetricsUtil.GLOBAL_GROUP));

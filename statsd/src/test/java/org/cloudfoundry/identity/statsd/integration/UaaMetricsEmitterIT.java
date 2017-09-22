@@ -50,11 +50,20 @@ public class UaaMetricsEmitterIT {
     private static DatagramPacket receivePacket;
     private static Map<String, String> firstBatch;
     private static List<String> gaugeFragments = Arrays.asList(
+        "uaa.audit_service.user_authentication_count",
+        "uaa.audit_service.principal_not_found_count",
+        "uaa.audit_service.client_authentication_failure_count",
+        "uaa.audit_service.user_authentication_count",
+        "uaa.audit_service.user_authentication_failure_count",
+        "uaa.audit_service.user_not_found_count",
+        "uaa.audit_service.principal_authentication_failure_count",
+        "uaa.audit_service.user_password_failures",
+        "uaa.audit_service.client_authentication_count",
+        "uaa.audit_service.user_password_changes",
         "uaa.requests.global.completed.count",
         "uaa.requests.global.completed.count",
         "uaa.requests.global.unhealthy.time",
         "uaa.requests.global.unhealthy.count",
-        "uaa.audit_service.user.authentication.count:",
         "uaa.server.inflight.count",
         "uaa.requests.global.status_1xx.count",
         "uaa.requests.global.status_2xx.count",
@@ -96,13 +105,13 @@ public class UaaMetricsEmitterIT {
     @Test
     public void assert_gauge_metric() throws IOException {
         String data1 = firstBatch.get(statsDKey);
-        assertNotNull("Expected to find message for:"+statsDKey+" in the first batch.", data1);
+        assertNotNull("Expected to find message for:'"+statsDKey+"' in the first batch.", data1);
         String data2 = secondBatch.get(statsDKey);
-        assertNotNull("Expected to find message for:"+statsDKey+" in the second batch.", data2);
+        assertNotNull("Expected to find message for:'"+statsDKey+"' in the second batch.", data2);
         long first = IntegrationTestUtils.getGaugeValueFromMessage(data1);
         long second = IntegrationTestUtils.getGaugeValueFromMessage(data2);
-        assertThat(statsDKey+" has a positive value.", first, greaterThanOrEqualTo(0l));
-        assertThat(statsDKey+" has a positive value larger than or equal to the first.", second, greaterThanOrEqualTo(first));
+        assertThat(statsDKey+" must have a positive value.", first, greaterThanOrEqualTo(0l));
+        assertThat(statsDKey+" must have a positive value larger than or equal to the first.", second, greaterThanOrEqualTo(first));
     }
 
 

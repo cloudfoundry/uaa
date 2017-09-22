@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.ConvenienceMethodProvidingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
+import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -23,9 +24,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 public class UaaMetricsEmitterTests {
 
@@ -36,12 +40,24 @@ public class UaaMetricsEmitterTests {
     private MBeanMap mBeanMap2;
     private Map<String, MBeanMap> mBeanMap3;
     private MBeanMap serverRequestsBeanMap;
+    private MetricsUtils metricsUtils;
+    private UaaMetrics uaaMetrics;
 
     @Before
     public void setUp() {
-        server = Mockito.mock(MBeanServerConnection.class);
-        statsDClient = Mockito.mock(ConvenienceMethodProvidingStatsDClient.class);
-        uaaMetricsEmitter = new UaaMetricsEmitter(statsDClient, server);
+        //mocked in each method
+        metricsUtils = mock(MetricsUtils.class);
+
+        uaaMetrics = mock(UaaMetrics.class);
+        when(uaaMetrics.getGlobals()).thenReturn(globalsJson);
+        when(uaaMetrics.getIdleTime()).thenReturn(12349l);
+        when(uaaMetrics.getUpTime()).thenReturn(12349843l);
+        when(uaaMetrics.getInflightCount()).thenReturn(3l);
+
+        server = mock(MBeanServerConnection.class);
+
+        statsDClient = mock(ConvenienceMethodProvidingStatsDClient.class);
+        uaaMetricsEmitter = new UaaMetricsEmitter(metricsUtils, statsDClient, server);
 
         mBeanMap1 = new MBeanMap();
         mBeanMap1.put("user_authentication_count", 3);
@@ -68,8 +84,6 @@ public class UaaMetricsEmitterTests {
 
     @Test
     public void auditService_metrics_emitted() throws Exception {
-        MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
-        uaaMetricsEmitter.setMetricsUtils(metricsUtils);
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
         Mockito.verify(statsDClient).gauge("audit_service.user_authentication_count", 3);
@@ -83,10 +97,7 @@ public class UaaMetricsEmitterTests {
 
     @Test
     public void requestCount_metrics_emitted() throws Exception {
-        MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
-        uaaMetricsEmitter.setMetricsUtils(metricsUtils);
-        Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap3);
-
+        Mockito.when(metricsUtils.getUaaMetrics(any())).thenReturn(uaaMetrics);
         uaaMetricsEmitter.emitGlobalRequestMetrics();
         Mockito.verify(statsDClient).gauge("requests.global.completed.count", 3087l);
         Mockito.verify(statsDClient).gauge("requests.global.completed.time", 29l);
@@ -109,9 +120,6 @@ public class UaaMetricsEmitterTests {
     @Test
     public void auditService_metricValues_areNull() throws Exception {
         mBeanMap1.put("user_authentication_count", null);
-
-        MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
-        uaaMetricsEmitter.setMetricsUtils(metricsUtils);
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
         Mockito.verify(statsDClient).gauge("audit_service.user_not_found_count", 1);
@@ -121,12 +129,8 @@ public class UaaMetricsEmitterTests {
     @Test
     public void auditService_Key_isNull () throws Exception {
         mBeanMap2.put("UaaAudit", null);
-
-        MetricsUtils metricsUtils = Mockito.mock(MetricsUtils.class);
-        uaaMetricsEmitter.setMetricsUtils(metricsUtils);
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
-
         Mockito.verify(statsDClient, times(0)).gauge(anyString(), anyInt());
     }
 

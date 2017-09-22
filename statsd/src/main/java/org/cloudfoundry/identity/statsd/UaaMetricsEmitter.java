@@ -13,33 +13,38 @@
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.StatsDClient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
 import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
 import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
-import java.util.Arrays;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import static java.util.Optional.ofNullable;
 
 public class UaaMetricsEmitter {
+    private static Log logger = LogFactory.getLog(UaaMetricsEmitter.class);
+
+    private static final RequestMetricSummary MISSING_METRICS = new RequestMetricSummary(0l, 0d, 0l, 0d, 0l, 0d, 0l, 0d);
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
-    @Autowired
-    private MetricsUtils metricsUtils;
-    private RequestMetricSummary MISSING_METRICS = new RequestMetricSummary(0l, 0d, 0l, 0d, 0l, 0d, 0l, 0d);
+    private final MetricsUtils metricsUtils;
 
-    public UaaMetricsEmitter(StatsDClient statsDClient, MBeanServerConnection server) {
+    public UaaMetricsEmitter(MetricsUtils metricsUtils, StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
         this.server = server;
+        this.metricsUtils = metricsUtils;
     }
 
     @Scheduled(fixedRate = 5000, initialDelay = 0)
@@ -61,64 +66,55 @@ public class UaaMetricsEmitter {
 
     @Scheduled(fixedRate = 5000, initialDelay = 2000)
     public void emitGlobalRequestMetrics() throws Exception {
-        Map<String, ?> mebeans = metricsUtils.pullUpMap("cloudfoundry.identity", "*", server);
-        if (mebeans != null) {
-            MBeanMap uaaMetricsMap = (MBeanMap) getValueFromMap(mebeans, "#this['ServerRequests']");
-            if (uaaMetricsMap == null) {
-                return;
-            }
-            emitGlobalRequestMetrics(uaaMetricsMap);
-            emitGlobalServerStats(uaaMetricsMap);
+        try {
+            UaaMetrics metrics = metricsUtils.getUaaMetrics(server);
+            emitGlobalRequestMetrics(metrics);
+            emitGlobalServerStats(metrics);
+        } catch (Exception x) {
+            throwIfInstanceNotFound(x);
         }
     }
 
-    public void emitGlobalServerStats(MBeanMap uaaMetricsMap) {
+    public void emitGlobalServerStats(UaaMetrics metrics) {
         //server statistics
-        List<String> serverStats = Arrays.asList(
-            "inflight.count",
-            "up.time",
-            "idle.time"
-        );
-        serverStats.stream().forEach( statKey -> {
-            if (uaaMetricsMap.get(statKey) != null){
-                long value = (long)uaaMetricsMap.get(statKey);
-                statsDClient.gauge("server."+statKey, value);
-            }
-        });
+        statsDClient.gauge("server.inflight.count", metrics.getInflightCount());
+        statsDClient.gauge("server.up.time", metrics.getUpTime());
+        statsDClient.gauge("server.idle.time", metrics.getIdleTime());
     }
 
-    public void emitGlobalRequestMetrics(MBeanMap uaaMetricsMap) {
+    public void emitGlobalRequestMetrics(UaaMetrics metrics) {
         //global request statistics
-        if (uaaMetricsMap.get("globals") != null){
-            String json = (String) uaaMetricsMap.get("globals");
-            if (json != null) {
-                MetricsQueue globals = JsonUtils.readValue(json, MetricsQueue.class);
-                String prefix = "requests.global.";
-                RequestMetricSummary totals = globals.getTotals();
-                statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageTime());
-                statsDClient.gauge(prefix + "completed.count", totals.getCount());
-                statsDClient.gauge(prefix + "unhealthy.count", totals.getIntolerableCount());
-                statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageIntolerableTime());
-                //status codes
-                for (StatusCodeGroup family : StatusCodeGroup.values()) {
-                    RequestMetricSummary summary =
-                        ofNullable(globals.getDetailed().get(family))
-                            .orElse(MISSING_METRICS);
+        MetricsQueue globals = JsonUtils.readValue(metrics.getGlobals(), MetricsQueue.class);
 
-                    statsDClient.gauge(prefix + "status_"+family.getName()+".count", summary.getCount());
-                }
-                //database metrics
-                prefix = "database.global.";
-                statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageDatabaseQueryTime());
-                statsDClient.gauge(prefix + "completed.count", totals.getDatabaseQueryCount());
-                statsDClient.gauge(prefix + "unhealthy.count", totals.getDatabaseFailedQueryCount());
-                statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseFailedQueryTime());
-            }
+        String prefix = "requests.global.";
+        RequestMetricSummary totals = globals.getTotals();
+        statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageTime());
+        statsDClient.gauge(prefix + "completed.count", totals.getCount());
+        statsDClient.gauge(prefix + "unhealthy.count", totals.getIntolerableCount());
+        statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageIntolerableTime());
+        //status codes
+        for (StatusCodeGroup family : StatusCodeGroup.values()) {
+            RequestMetricSummary summary = ofNullable(globals.getDetailed().get(family)).orElse(MISSING_METRICS);
+            statsDClient.gauge(prefix + "status_"+family.getName()+".count", summary.getCount());
         }
+        //database metrics
+        prefix = "database.global.";
+        statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageDatabaseQueryTime());
+        statsDClient.gauge(prefix + "completed.count", totals.getDatabaseQueryCount());
+        statsDClient.gauge(prefix + "unhealthy.count", totals.getDatabaseFailedQueryCount());
+        statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseFailedQueryTime());
     }
 
-    public void setMetricsUtils(MetricsUtils metricsUtils) {
-        this.metricsUtils = metricsUtils;
+    public void throwIfInstanceNotFound(Exception x) throws Exception {
+        //compiler will not let me catch InstanceNotFoundException
+        //because its hidden behind the proxy creator
+        if (x instanceof UndeclaredThrowableException && x.getCause() instanceof InstanceNotFoundException) {
+            //normal - the statsd server may have
+            //started before the UAA
+            logger.info("Could not find UaaMetrics object on MBean server. Please deploy UAA in the same JVM.");
+        } else {
+            throw x;
+        }
     }
 
     public Object getValueFromMap(Map<String, ?> map, String path) throws Exception {
