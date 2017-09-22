@@ -66,8 +66,8 @@ public class MetricsQueue  {
         totals.add(metric.getRequestCompleteTime()- metric.getRequestStartTime(),
                    metric.getNrOfDatabaseQueries(),
                    metric.getDatabaseQueryTime(),
-                   metric.getQueries().stream().filter(q -> !q.isSuccess()).count(),
-                   metric.getQueries().stream().filter(q -> !q.isSuccess()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
+                   metric.getQueries().stream().filter(q -> !q.isIntolerable()).count(),
+                   metric.getQueries().stream().filter(q -> !q.isIntolerable()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
         );
         return true;
     }

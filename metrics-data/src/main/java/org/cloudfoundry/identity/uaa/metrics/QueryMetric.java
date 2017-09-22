@@ -20,13 +20,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryMetric {
     private String query;
-    private boolean success;
+    private boolean intolerable;
     private long requestStartTime;
     private long requestCompleteTime;
 
-    public QueryMetric(String query, long start, long delta, boolean success) {
+    public QueryMetric(String query, long start, long delta, boolean intolerable) {
         this.query = query;
-        this.success = success;
+        this.intolerable = intolerable;
         this.requestStartTime = start;
         this.requestCompleteTime = start + delta;
     }
@@ -35,8 +35,8 @@ public class QueryMetric {
         return query;
     }
 
-    public boolean isSuccess() {
-        return success;
+    public boolean isIntolerable() {
+        return intolerable;
     }
 
     public long getRequestStartTime() {
