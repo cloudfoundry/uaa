@@ -29,14 +29,19 @@ import org.springframework.util.ReflectionUtils;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
-import static org.springframework.util.ReflectionUtils.*;
+import static org.springframework.util.ReflectionUtils.findMethod;
 
 public class UaaMetricsEmitter {
     private static Log logger = LogFactory.getLog(UaaMetricsEmitter.class);
@@ -69,7 +74,7 @@ public class UaaMetricsEmitter {
         }
     }
 
-    @Scheduled(fixedRate = 5000, initialDelay = 1500)
+    @Scheduled(fixedRate = 5000, initialDelay = 1000)
     public void emitGlobalRequestMetrics() throws Exception {
         try {
             UaaMetrics metrics = metricsUtils.getUaaMetrics(server);
@@ -110,13 +115,9 @@ public class UaaMetricsEmitter {
         statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseFailedQueryTime());
     }
 
-    @Scheduled(fixedRate = 5000, initialDelay = 3000)
-    public void emitVitals() throws Exception {
+    @Scheduled(fixedRate = 5000, initialDelay = 2000)
+    public void emitVmVitals() {
         OperatingSystemMXBean mbean = ManagementFactory.getOperatingSystemMXBean();
-        emitVmVitals(mbean);
-    }
-
-    public void emitVmVitals(OperatingSystemMXBean mbean) {
         String prefix = "vitals.vm.";
         statsDClient.gauge(prefix + "cpu.count", mbean.getAvailableProcessors());
         statsDClient.gauge(prefix + "cpu.load", (long)(mbean.getSystemLoadAverage()*100));
@@ -125,11 +126,34 @@ public class UaaMetricsEmitter {
         invokeIfPresent(prefix + "memory.free", mbean, "getFreePhysicalMemorySize");
     }
 
+    @Scheduled(fixedRate = 5000, initialDelay = 3000)
+    public void emitJvmVitals() {
+        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+        String prefix = "vitals.jvm.";
+        invokeIfPresent(prefix + "cpu.load", osBean, "getProcessCpuLoad", d -> (long)(d.doubleValue()*100));
+        statsDClient.gauge(prefix + "thread.count", threadBean.getThreadCount());
+        Map<String, MemoryUsage> memory = new HashMap<>();
+        memory.put("heap", memoryBean.getHeapMemoryUsage());
+        memory.put("non-heap", memoryBean.getHeapMemoryUsage());
+        memory.entrySet().stream().forEach(m -> {
+            statsDClient.gauge(prefix + m.getKey() + ".init", m.getValue().getInit());
+            statsDClient.gauge(prefix + m.getKey() + ".committed", m.getValue().getInit());
+            statsDClient.gauge(prefix + m.getKey() + ".used", m.getValue().getInit());
+            statsDClient.gauge(prefix + m.getKey() + ".max", m.getValue().getInit());
+        });
+
+    }
+
     public void invokeIfPresent(String metric, Object mbean, String getter) {
-        Object value = getValueFromBean(mbean, getter);
-        long v = (long)ofNullable(value).orElse(-1l);;
-        if (v >= 0) {
-            statsDClient.gauge(metric, v);
+        invokeIfPresent(metric, mbean, getter, v -> (Long)v);
+    }
+    public void invokeIfPresent(String metric, Object mbean, String getter, Function<Number, Long> valueModifier) {
+        Number value = getValueFromBean(mbean, getter);
+        if (value.doubleValue() >= 0) {
+
+            statsDClient.gauge(metric, valueModifier.apply(value));
         }
     }
 
@@ -145,13 +169,13 @@ public class UaaMetricsEmitter {
         }
     }
 
-    public Object getValueFromBean(Object mbean, String getter) {
+    public Number getValueFromBean(Object mbean, String getter) {
         Method method = findMethod(mbean.getClass(), getter);
         if (method != null) {
             boolean original = method.isAccessible();
             method.setAccessible(true);
             try {
-                return ReflectionUtils.invokeMethod(method, mbean);
+                return (Number)ReflectionUtils.invokeMethod(method, mbean);
             } catch (Exception e) {
                 logger.debug("Unable to invoke metric", e);
             } finally {

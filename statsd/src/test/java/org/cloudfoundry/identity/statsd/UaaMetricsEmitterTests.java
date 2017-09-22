@@ -24,8 +24,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.AdditionalMatchers.and;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.AdditionalMatchers.gt;
+import static org.mockito.AdditionalMatchers.leq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
@@ -121,13 +123,28 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
-    public void vitals() throws Exception {
-        uaaMetricsEmitter.emitVitals();
+    public void vm_vitals() throws Exception {
+        uaaMetricsEmitter.emitVmVitals();
         Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.count"), gt(0l));
         Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.load"), geq(0l));
         Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.total"), geq(134217728l));
         Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.committed"), geq(1l));
         Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.free"), geq(1l));
+    }
+
+    @Test
+    public void jvm_vitals() throws Exception {
+        uaaMetricsEmitter.emitJvmVitals();
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.cpu.load"), and(geq(0l), leq(100l)));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.thread.count"), and(gt(1l), leq(1000l)));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.init"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.committed"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.used"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.max"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.init"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.committed"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.used"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.max"), gt(0l));
     }
 
     @Test

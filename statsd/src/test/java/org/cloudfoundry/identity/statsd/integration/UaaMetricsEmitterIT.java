@@ -80,7 +80,17 @@ public class UaaMetricsEmitterIT {
         "uaa.vitals.vm.cpu.load",
         "uaa.vitals.vm.memory.total",
         "uaa.vitals.vm.memory.committed",
-        "uaa.vitals.vm.memory.free"
+        "uaa.vitals.vm.memory.free",
+        "uaa.vitals.jvm.cpu.load",
+        "uaa.vitals.jvm.thread.count",
+        "uaa.vitals.jvm.heap.init",
+        "uaa.vitals.jvm.heap.committed",
+        "uaa.vitals.jvm.heap.used",
+        "uaa.vitals.jvm.heap.max",
+        "uaa.vitals.jvm.non-heap.init",
+        "uaa.vitals.jvm.non-heap.committed",
+        "uaa.vitals.jvm.non-heap.used",
+        "uaa.vitals.jvm.non-heap.max"
     );
     private static Map<String, String> secondBatch;
 
