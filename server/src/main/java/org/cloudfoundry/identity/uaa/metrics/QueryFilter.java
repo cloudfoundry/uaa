@@ -18,6 +18,11 @@ package org.cloudfoundry.identity.uaa.metrics;
 import org.apache.tomcat.jdbc.pool.interceptor.AbstractQueryReport;
 
 public class QueryFilter extends AbstractQueryReport {
+
+    public QueryFilter() {
+        super.setThreshold(2000);
+    }
+
     protected void prepareCall(String arg0, long arg1) {
     }
     protected void prepareStatement(String arg0, long arg1) {
@@ -25,10 +30,10 @@ public class QueryFilter extends AbstractQueryReport {
     public void closeInvoked() {
     }
 
-    protected void report(String query, long start, long delta, boolean success) {
+    protected void report(String query, long start, long delta) {
         RequestMetric metric = MetricsAccessor.getCurrent();
         if (metric!=null) {
-            metric.addQuery(new QueryMetric(query, start, delta, success));
+            metric.addQuery(new QueryMetric(query, start, delta, delta>getThreshold()));
         }
     }
 
@@ -37,7 +42,8 @@ public class QueryFilter extends AbstractQueryReport {
     protected String reportFailedQuery(String query, Object[] args,
                                        String name, long start, Throwable t) {
         String sql = super.reportFailedQuery(query, args, name, start, t);
-        report(sql, start, System.currentTimeMillis()-start, false);
+        long delta = System.currentTimeMillis() - start;
+        report(sql, start, delta);
         return sql;
     }
 
@@ -45,7 +51,7 @@ public class QueryFilter extends AbstractQueryReport {
     protected String reportQuery(String query, Object[] args,
                                  String name, long start, long delta) {
         String sql = super.reportQuery(query, args, name, start, delta);
-        report(sql, start, delta, true);
+        report(sql, start, delta);
         return sql;
     }
 

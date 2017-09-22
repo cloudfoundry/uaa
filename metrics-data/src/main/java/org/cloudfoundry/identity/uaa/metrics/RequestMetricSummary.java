@@ -28,8 +28,8 @@ public class RequestMetricSummary {
     double averageIntolerableTime = 0;
     long databaseQueryCount = 0;
     double averageDatabaseQueryTime = 0;
-    long databaseFailedQueryCount = 0;
-    double averageDatabaseFailedQueryTime = 0;
+    long databaseIntolerableQueryCount = 0;
+    double averageDatabaseIntolerableQueryTime = 0;
 
     public RequestMetricSummary() {
     }
@@ -41,16 +41,16 @@ public class RequestMetricSummary {
                                 @JsonProperty("averageIntolerableTime") double averageIntolerableTime,
                                 @JsonProperty("databaseQueryCount") long databaseQueryCount,
                                 @JsonProperty("averageDatabaseQueryTime") double averageDatabaseQueryTime,
-                                @JsonProperty("databaseFailedQueryCount") long databaseFailedQueryCount,
-                                @JsonProperty("averageDatabaseFailedQueryTime") double averageDatabaseFailedQueryTime) {
+                                @JsonProperty("databaseIntolerableQueryCount") long databaseIntolerableQueryCount,
+                                @JsonProperty("averageDatabaseIntolerableQueryTime") double averageDatabaseIntolerableQueryTime) {
         this.count = count;
         this.averageTime = averageTime;
         this.intolerableCount = intolerableCount;
         this.averageIntolerableTime = averageIntolerableTime;
         this.databaseQueryCount = databaseQueryCount;
         this.averageDatabaseQueryTime = averageDatabaseQueryTime;
-        this.databaseFailedQueryCount = databaseFailedQueryCount;
-        this.averageDatabaseFailedQueryTime = averageDatabaseFailedQueryTime;
+        this.databaseIntolerableQueryCount = databaseIntolerableQueryCount;
+        this.averageDatabaseIntolerableQueryTime = averageDatabaseIntolerableQueryTime;
     }
 
     public synchronized void add(long time, long dbQueries, long dbTime, long failedDbQueries, long failedDbQueryTime) {
@@ -63,8 +63,8 @@ public class RequestMetricSummary {
         averageDatabaseQueryTime = addToAverage(databaseQueryCount, averageDatabaseQueryTime, dbQueries, dbTime);
         databaseQueryCount += dbQueries;
 
-        averageDatabaseFailedQueryTime = addToAverage(databaseFailedQueryCount, averageDatabaseFailedQueryTime, failedDbQueries, failedDbQueryTime);
-        databaseFailedQueryCount += failedDbQueries;
+        averageDatabaseIntolerableQueryTime = addToAverage(databaseIntolerableQueryCount, averageDatabaseIntolerableQueryTime, failedDbQueries, failedDbQueryTime);
+        databaseIntolerableQueryCount += failedDbQueries;
     }
 
     public long getCount() {
@@ -91,11 +91,11 @@ public class RequestMetricSummary {
         return averageDatabaseQueryTime;
     }
 
-    public long getDatabaseFailedQueryCount() {
-        return databaseFailedQueryCount;
+    public long getDatabaseIntolerableQueryCount() {
+        return databaseIntolerableQueryCount;
     }
 
-    public double getAverageDatabaseFailedQueryTime() {
-        return averageDatabaseFailedQueryTime;
+    public double getAverageDatabaseIntolerableQueryTime() {
+        return averageDatabaseIntolerableQueryTime;
     }
 }

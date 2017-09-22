@@ -36,7 +36,7 @@ public class QueryMetricTests {
 
     @Test
     public void isSuccess() throws Exception {
-        assertEquals(true, metric.isSuccess());
+        assertEquals(true, metric.isIntolerable());
     }
 
     @Test

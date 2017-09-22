@@ -75,7 +75,22 @@ public class UaaMetricsEmitterIT {
         "uaa.database.global.unhealthy.time",
         "uaa.database.global.unhealthy.count",
         "uaa.server.up.time",
-        "uaa.server.idle.time"
+        "uaa.server.idle.time",
+        "uaa.vitals.vm.cpu.count",
+        "uaa.vitals.vm.cpu.load",
+        "uaa.vitals.vm.memory.total",
+        "uaa.vitals.vm.memory.committed",
+        "uaa.vitals.vm.memory.free",
+        "uaa.vitals.jvm.cpu.load",
+        "uaa.vitals.jvm.thread.count",
+        "uaa.vitals.jvm.heap.init",
+        "uaa.vitals.jvm.heap.committed",
+        "uaa.vitals.jvm.heap.used",
+        "uaa.vitals.jvm.heap.max",
+        "uaa.vitals.jvm.non-heap.init",
+        "uaa.vitals.jvm.non-heap.committed",
+        "uaa.vitals.jvm.non-heap.used",
+        "uaa.vitals.jvm.non-heap.max"
     );
     private static Map<String, String> secondBatch;
 
@@ -98,7 +113,8 @@ public class UaaMetricsEmitterIT {
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
         firstBatch = getMessages(gaugeFragments, WAIT_FOR_MESSAGE);
         performSimpleGet();
-        performLogin();
+        performLogin(TEST_USERNAME);
+        performLogin("user-name-not-found");
         secondBatch = getMessages(gaugeFragments, WAIT_FOR_MESSAGE);
     }
 
@@ -110,8 +126,8 @@ public class UaaMetricsEmitterIT {
         assertNotNull("Expected to find message for:'"+statsDKey+"' in the second batch.", data2);
         long first = IntegrationTestUtils.getGaugeValueFromMessage(data1);
         long second = IntegrationTestUtils.getGaugeValueFromMessage(data2);
-        assertThat(statsDKey+" must have a positive value.", first, greaterThanOrEqualTo(0l));
-        assertThat(statsDKey+" must have a positive value larger than or equal to the first.", second, greaterThanOrEqualTo(first));
+        assertThat(statsDKey + " first value must have a positive value.", first, greaterThanOrEqualTo(0l));
+        assertThat(statsDKey + " second value must have a positive value.", second, greaterThanOrEqualTo(0l));
     }
 
 
@@ -137,7 +153,7 @@ public class UaaMetricsEmitterIT {
         return results;
     }
 
-    public static void performLogin() {
+    public static void performLogin(String username) {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -155,7 +171,7 @@ public class UaaMetricsEmitterIT {
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
 
         LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
-        body.add("username", TEST_USERNAME);
+        body.add("username", username);
         body.add("password", TEST_PASSWORD);
         body.add("X-Uaa-Csrf", csrf);
         loginResponse = template.exchange(UAA_BASE_URL + "/login.do",

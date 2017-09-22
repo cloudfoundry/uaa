@@ -66,8 +66,8 @@ public class MetricsQueue  {
         totals.add(metric.getRequestCompleteTime()- metric.getRequestStartTime(),
                    metric.getNrOfDatabaseQueries(),
                    metric.getDatabaseQueryTime(),
-                   metric.getQueries().stream().filter(q -> !q.isSuccess()).count(),
-                   metric.getQueries().stream().filter(q -> !q.isSuccess()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
+                   metric.getQueries().stream().filter(q -> !q.isIntolerable()).count(),
+                   metric.getQueries().stream().filter(q -> !q.isIntolerable()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
         );
         return true;
     }
@@ -89,8 +89,8 @@ public class MetricsQueue  {
         MutableDouble averageIntolerableTime = new MutableDouble(0);
         MutableLong databaseQueryCount = new MutableLong(0);
         MutableDouble averageDatabaseQueryTime = new MutableDouble(0);
-        MutableLong databaseFailedQueryCount = new MutableLong(0);
-        MutableDouble averageDatabaseFailedQueryTime = new MutableDouble(0);
+        MutableLong databaseIntolerableQueryCount = new MutableLong(0);
+        MutableDouble averageDatabaseIntolerableQueryTime = new MutableDouble(0);
         statistics.entrySet().stream().forEach( s -> {
             RequestMetricSummary summary = s.getValue();
             averageTime.set(addAverages(count.get(),
@@ -115,13 +115,13 @@ public class MetricsQueue  {
             );
             databaseQueryCount.add(summary.getDatabaseQueryCount());
 
-            averageDatabaseFailedQueryTime.set(addAverages(databaseFailedQueryCount.get(),
-                                                           averageDatabaseFailedQueryTime.get(),
-                                                     summary.getDatabaseFailedQueryCount(),
-                                                     summary.getAverageDatabaseFailedQueryTime()
+            averageDatabaseIntolerableQueryTime.set(addAverages(databaseIntolerableQueryCount.get(),
+                                                           averageDatabaseIntolerableQueryTime.get(),
+                                                     summary.getDatabaseIntolerableQueryCount(),
+                                                     summary.getAverageDatabaseIntolerableQueryTime()
                                          )
             );
-            databaseFailedQueryCount.add(summary.getDatabaseFailedQueryCount());
+            databaseIntolerableQueryCount.add(summary.getDatabaseIntolerableQueryCount());
 
         });
         return new RequestMetricSummary(count.get(),
@@ -130,8 +130,8 @@ public class MetricsQueue  {
                                         averageIntolerableTime.get(),
                                         databaseQueryCount.get(),
                                         averageDatabaseQueryTime.get(),
-                                        databaseFailedQueryCount.get(),
-                                        averageDatabaseFailedQueryTime.get());
+                                        databaseIntolerableQueryCount.get(),
+                                        averageDatabaseIntolerableQueryTime.get());
     }
 
 }

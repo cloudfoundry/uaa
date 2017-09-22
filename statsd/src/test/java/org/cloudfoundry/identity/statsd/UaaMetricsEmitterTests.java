@@ -24,9 +24,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.AdditionalMatchers.and;
+import static org.mockito.AdditionalMatchers.geq;
+import static org.mockito.AdditionalMatchers.gt;
+import static org.mockito.AdditionalMatchers.leq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -118,6 +123,31 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
+    public void vm_vitals() throws Exception {
+        uaaMetricsEmitter.emitVmVitals();
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.count"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.load"), geq(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.total"), geq(134217728l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.committed"), geq(1l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.free"), geq(1l));
+    }
+
+    @Test
+    public void jvm_vitals() throws Exception {
+        uaaMetricsEmitter.emitJvmVitals();
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.cpu.load"), and(geq(0l), leq(100l)));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.thread.count"), and(gt(1l), leq(1000l)));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.init"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.committed"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.used"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.heap.max"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.init"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.committed"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.used"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.jvm.non-heap.max"), gt(0l));
+    }
+
+    @Test
     public void auditService_metricValues_areNull() throws Exception {
         mBeanMap1.put("user_authentication_count", null);
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
@@ -190,8 +220,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":0.0,\n" +
         "         \"databaseQueryCount\":13,\n" +
         "         \"averageDatabaseQueryTime\":0.0,\n" +
-        "         \"databaseFailedQueryCount\":0,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.0\n" +
+        "         \"databaseIntolerableQueryCount\":0,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.0\n" +
         "      },\n" +
         "      \"REDIRECT\":{\n" +
         "         \"count\":763,\n" +
@@ -200,8 +230,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":4318.0,\n" +
         "         \"databaseQueryCount\":5428,\n" +
         "         \"averageDatabaseQueryTime\":0.028002947678703018,\n" +
-        "         \"databaseFailedQueryCount\":188,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.047872340425531915\n" +
+        "         \"databaseIntolerableQueryCount\":188,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.047872340425531915\n" +
         "      },\n" +
         "      \"SUCCESS\":{\n" +
         "         \"count\":2148,\n" +
@@ -210,8 +240,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":0.0,\n" +
         "         \"databaseQueryCount\":77513,\n" +
         "         \"averageDatabaseQueryTime\":0.0341362094100345,\n" +
-        "         \"databaseFailedQueryCount\":17327,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.057136261326253886\n" +
+        "         \"databaseIntolerableQueryCount\":17327,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.057136261326253886\n" +
         "      },\n" +
         "      \"CLIENT_ERROR\":{\n" +
         "         \"count\":175,\n" +
@@ -220,8 +250,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":0.0,\n" +
         "         \"databaseQueryCount\":843,\n" +
         "         \"averageDatabaseQueryTime\":0.021352313167259794,\n" +
-        "         \"databaseFailedQueryCount\":34,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.058823529411764705\n" +
+        "         \"databaseIntolerableQueryCount\":34,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.058823529411764705\n" +
         "      }\n" +
         "   },\n" +
         "   \"summary\":{\n" +
@@ -231,8 +261,8 @@ public class UaaMetricsEmitterTests {
         "      \"averageIntolerableTime\":4318.0,\n" +
         "      \"databaseQueryCount\":83797,\n" +
         "      \"averageDatabaseQueryTime\":0.033605021659486665,\n" +
-        "      \"databaseFailedQueryCount\":17549,\n" +
-        "      \"averageDatabaseFailedQueryTime\":0.05704028719585168\n" +
+        "      \"databaseIntolerableQueryCount\":17549,\n" +
+        "      \"averageDatabaseIntolerableQueryTime\":0.05704028719585168\n" +
         "   }\n" +
         "}";
 }

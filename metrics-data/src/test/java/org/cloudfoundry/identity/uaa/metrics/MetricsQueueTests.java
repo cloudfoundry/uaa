@@ -65,8 +65,8 @@ public class MetricsQueueTests {
         assertEquals((double)MetricsQueue.MAX_TIME+1, summary.getAverageIntolerableTime(), DELTA);
         assertEquals(3, summary.getDatabaseQueryCount());
         assertEquals(3, summary.getAverageDatabaseQueryTime(), DELTA);
-        assertEquals(1, summary.getDatabaseFailedQueryCount());
-        assertEquals(2, summary.getAverageDatabaseFailedQueryTime(), DELTA);
+        assertEquals(1, summary.getDatabaseIntolerableQueryCount());
+        assertEquals(2, summary.getAverageDatabaseIntolerableQueryTime(), DELTA);
 
     }
 
@@ -91,8 +91,8 @@ public class MetricsQueueTests {
         assertEquals(0, fiveHundredResponses.getAverageIntolerableTime(), DELTA);
         assertEquals(1, fiveHundredResponses.getDatabaseQueryCount());
         assertEquals(2, fiveHundredResponses.getAverageDatabaseQueryTime(), DELTA);
-        assertEquals(1, fiveHundredResponses.getDatabaseFailedQueryCount());
-        assertEquals(2, fiveHundredResponses.getAverageDatabaseFailedQueryTime(), DELTA);
+        assertEquals(1, fiveHundredResponses.getDatabaseIntolerableQueryCount());
+        assertEquals(2, fiveHundredResponses.getAverageDatabaseIntolerableQueryTime(), DELTA);
 
         assertEquals(3, queue.getLastRequests().size());
     }
