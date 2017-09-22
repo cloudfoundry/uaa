@@ -220,8 +220,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":0.0,\n" +
         "         \"databaseQueryCount\":13,\n" +
         "         \"averageDatabaseQueryTime\":0.0,\n" +
-        "         \"databaseFailedQueryCount\":0,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.0\n" +
+        "         \"databaseIntolerableQueryCount\":0,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.0\n" +
         "      },\n" +
         "      \"REDIRECT\":{\n" +
         "         \"count\":763,\n" +
@@ -230,8 +230,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":4318.0,\n" +
         "         \"databaseQueryCount\":5428,\n" +
         "         \"averageDatabaseQueryTime\":0.028002947678703018,\n" +
-        "         \"databaseFailedQueryCount\":188,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.047872340425531915\n" +
+        "         \"databaseIntolerableQueryCount\":188,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.047872340425531915\n" +
         "      },\n" +
         "      \"SUCCESS\":{\n" +
         "         \"count\":2148,\n" +
@@ -240,8 +240,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":0.0,\n" +
         "         \"databaseQueryCount\":77513,\n" +
         "         \"averageDatabaseQueryTime\":0.0341362094100345,\n" +
-        "         \"databaseFailedQueryCount\":17327,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.057136261326253886\n" +
+        "         \"databaseIntolerableQueryCount\":17327,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.057136261326253886\n" +
         "      },\n" +
         "      \"CLIENT_ERROR\":{\n" +
         "         \"count\":175,\n" +
@@ -250,8 +250,8 @@ public class UaaMetricsEmitterTests {
         "         \"averageIntolerableTime\":0.0,\n" +
         "         \"databaseQueryCount\":843,\n" +
         "         \"averageDatabaseQueryTime\":0.021352313167259794,\n" +
-        "         \"databaseFailedQueryCount\":34,\n" +
-        "         \"averageDatabaseFailedQueryTime\":0.058823529411764705\n" +
+        "         \"databaseIntolerableQueryCount\":34,\n" +
+        "         \"averageDatabaseIntolerableQueryTime\":0.058823529411764705\n" +
         "      }\n" +
         "   },\n" +
         "   \"summary\":{\n" +
@@ -261,8 +261,8 @@ public class UaaMetricsEmitterTests {
         "      \"averageIntolerableTime\":4318.0,\n" +
         "      \"databaseQueryCount\":83797,\n" +
         "      \"averageDatabaseQueryTime\":0.033605021659486665,\n" +
-        "      \"databaseFailedQueryCount\":17549,\n" +
-        "      \"averageDatabaseFailedQueryTime\":0.05704028719585168\n" +
+        "      \"databaseIntolerableQueryCount\":17549,\n" +
+        "      \"averageDatabaseIntolerableQueryTime\":0.05704028719585168\n" +
         "   }\n" +
         "}";
 }

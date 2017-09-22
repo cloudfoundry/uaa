@@ -111,8 +111,8 @@ public class UaaMetricsEmitter {
         prefix = "database.global.";
         statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageDatabaseQueryTime());
         statsDClient.gauge(prefix + "completed.count", totals.getDatabaseQueryCount());
-        statsDClient.gauge(prefix + "unhealthy.count", totals.getDatabaseFailedQueryCount());
-        statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseFailedQueryTime());
+        statsDClient.gauge(prefix + "unhealthy.count", totals.getDatabaseIntolerableQueryCount());
+        statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseIntolerableQueryTime());
     }
 
     @Scheduled(fixedRate = 5000, initialDelay = 2000)
