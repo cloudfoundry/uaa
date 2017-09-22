@@ -24,14 +24,19 @@ import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.util.ReflectionUtils;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static java.util.Optional.ofNullable;
+import static org.springframework.util.ReflectionUtils.*;
 
 public class UaaMetricsEmitter {
     private static Log logger = LogFactory.getLog(UaaMetricsEmitter.class);
@@ -64,14 +69,14 @@ public class UaaMetricsEmitter {
         }
     }
 
-    @Scheduled(fixedRate = 5000, initialDelay = 2000)
+    @Scheduled(fixedRate = 5000, initialDelay = 1500)
     public void emitGlobalRequestMetrics() throws Exception {
         try {
             UaaMetrics metrics = metricsUtils.getUaaMetrics(server);
             emitGlobalRequestMetrics(metrics);
             emitGlobalServerStats(metrics);
         } catch (Exception x) {
-            throwIfInstanceNotFound(x);
+            throwIfOtherThanNotFound(x);
         }
     }
 
@@ -105,7 +110,30 @@ public class UaaMetricsEmitter {
         statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseFailedQueryTime());
     }
 
-    public void throwIfInstanceNotFound(Exception x) throws Exception {
+    @Scheduled(fixedRate = 5000, initialDelay = 3000)
+    public void emitVitals() throws Exception {
+        OperatingSystemMXBean mbean = ManagementFactory.getOperatingSystemMXBean();
+        emitVmVitals(mbean);
+    }
+
+    public void emitVmVitals(OperatingSystemMXBean mbean) {
+        String prefix = "vitals.vm.";
+        statsDClient.gauge(prefix + "cpu.count", mbean.getAvailableProcessors());
+        statsDClient.gauge(prefix + "cpu.load", (long)(mbean.getSystemLoadAverage()*100));
+        invokeIfPresent(prefix + "memory.total", mbean, "getTotalPhysicalMemorySize");
+        invokeIfPresent(prefix + "memory.committed", mbean, "getCommittedVirtualMemorySize");
+        invokeIfPresent(prefix + "memory.free", mbean, "getFreePhysicalMemorySize");
+    }
+
+    public void invokeIfPresent(String metric, Object mbean, String getter) {
+        Object value = getValueFromBean(mbean, getter);
+        long v = (long)ofNullable(value).orElse(-1l);;
+        if (v >= 0) {
+            statsDClient.gauge(metric, v);
+        }
+    }
+
+    public void throwIfOtherThanNotFound(Exception x) throws Exception {
         //compiler will not let me catch InstanceNotFoundException
         //because its hidden behind the proxy creator
         if (x instanceof UndeclaredThrowableException && x.getCause() instanceof InstanceNotFoundException) {
@@ -115,6 +143,23 @@ public class UaaMetricsEmitter {
         } else {
             throw x;
         }
+    }
+
+    public Object getValueFromBean(Object mbean, String getter) {
+        Method method = findMethod(mbean.getClass(), getter);
+        if (method != null) {
+            boolean original = method.isAccessible();
+            method.setAccessible(true);
+            try {
+                return ReflectionUtils.invokeMethod(method, mbean);
+            } catch (Exception e) {
+                logger.debug("Unable to invoke metric", e);
+            } finally {
+                method.setAccessible(original);
+            }
+
+        }
+        return  null;
     }
 
     public Object getValueFromMap(Map<String, ?> map, String path) throws Exception {

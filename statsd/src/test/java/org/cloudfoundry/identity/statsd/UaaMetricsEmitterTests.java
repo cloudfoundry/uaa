@@ -24,9 +24,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.AdditionalMatchers.geq;
+import static org.mockito.AdditionalMatchers.gt;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -115,6 +118,16 @@ public class UaaMetricsEmitterTests {
         Mockito.verify(statsDClient).gauge("database.global.completed.time", 0l);
         Mockito.verify(statsDClient).gauge("database.global.unhealthy.count", 17549l);
         Mockito.verify(statsDClient).gauge("database.global.unhealthy.time", 0l);
+    }
+
+    @Test
+    public void vitals() throws Exception {
+        uaaMetricsEmitter.emitVitals();
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.count"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.load"), geq(0l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.total"), geq(134217728l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.committed"), geq(1l));
+        Mockito.verify(statsDClient).gauge(eq("vitals.vm.memory.free"), geq(1l));
     }
 
     @Test
