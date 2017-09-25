@@ -15,20 +15,16 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import org.apache.tomcat.jdbc.pool.interceptor.AbstractQueryReport;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
+import org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 
-public class QueryFilter extends AbstractQueryReport {
+import java.util.Map;
 
-    public QueryFilter() {
-        super.setThreshold(2000);
-    }
+public class QueryFilter extends SlowQueryReport {
 
-    protected void prepareCall(String arg0, long arg1) {
-    }
-    protected void prepareStatement(String arg0, long arg1) {
-    }
-    public void closeInvoked() {
-    }
+    private TimeService timeService = new TimeServiceImpl();
 
     protected void report(String query, long start, long delta) {
         RequestMetric metric = MetricsAccessor.getCurrent();
@@ -37,12 +33,18 @@ public class QueryFilter extends AbstractQueryReport {
         }
     }
 
+    @Override
+    public void setProperties(Map<String, PoolProperties.InterceptorProperty> properties) {
+        super.setProperties(properties);
+        this.setLogFailed(false);
+        this.setLogSlow(false);
+    }
 
     @Override
     protected String reportFailedQuery(String query, Object[] args,
                                        String name, long start, Throwable t) {
         String sql = super.reportFailedQuery(query, args, name, start, t);
-        long delta = System.currentTimeMillis() - start;
+        long delta = timeService.getCurrentTimeMillis() - start;
         report(sql, start, delta);
         return sql;
     }
@@ -61,4 +63,7 @@ public class QueryFilter extends AbstractQueryReport {
         return reportQuery(query, args, name, start, delta);
     }
 
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
+    }
 }

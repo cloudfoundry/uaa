@@ -35,7 +35,6 @@ import static org.cloudfoundry.identity.uaa.metrics.MetricsUtil.addAverages;
 public class MetricsQueue  {
 
     public static final int MAX_ENTRIES = 5;
-    public static final int MAX_TIME = 3000;
 
     private ConcurrentLinkedDeque<RequestMetric> queue;
     private Map<StatusCodeGroup, RequestMetricSummary> statistics;
@@ -53,9 +52,9 @@ public class MetricsQueue  {
 
     public boolean offer(RequestMetric metric) {
         queue.offer(metric);
-        //remove eariest entries
+        //remove earliest entries
         while (queue.size() > MAX_ENTRIES) {
-            queue.removeLast();
+            queue.removeFirst();
         }
 
         StatusCodeGroup statusCode = StatusCodeGroup.valueOf(metric.getStatusCode());
@@ -63,11 +62,13 @@ public class MetricsQueue  {
             statistics.putIfAbsent(statusCode, new RequestMetricSummary());
         }
         RequestMetricSummary totals = statistics.get(statusCode);
-        totals.add(metric.getRequestCompleteTime()- metric.getRequestStartTime(),
+        long time = metric.getRequestCompleteTime() - metric.getRequestStartTime();
+        totals.add(time,
+                   time < metric.getUriGroup().getLimit(),
                    metric.getNrOfDatabaseQueries(),
                    metric.getDatabaseQueryTime(),
-                   metric.getQueries().stream().filter(q -> !q.isIntolerable()).count(),
-                   metric.getQueries().stream().filter(q -> !q.isIntolerable()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
+                   metric.getQueries().stream().filter(q -> q.isIntolerable()).count(),
+                   metric.getQueries().stream().filter(q -> q.isIntolerable()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
         );
         return true;
     }
