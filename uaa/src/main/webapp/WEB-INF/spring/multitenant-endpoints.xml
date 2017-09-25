@@ -87,6 +87,18 @@
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderEndpoints">
     </bean>
 
+    <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/mfa-providers"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/**" access="denyAll"/>
+        <csrf disabled="true"/>
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
+    </http>
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
