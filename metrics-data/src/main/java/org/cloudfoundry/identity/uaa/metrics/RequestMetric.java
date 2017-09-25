@@ -24,15 +24,17 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RequestMetric {
     private String uri;
+    private UrlGroup uriGroup;
     private int statusCode;
     private long requestStartTime;
     private long requestCompleteTime;
     private List<QueryMetric> queries = new LinkedList<>();
 
-    public static RequestMetric start(String uri, long start) {
+    public static RequestMetric start(String uri, UrlGroup group, long start) {
         RequestMetric metric = new RequestMetric();
         metric.requestStartTime = start;
         metric.uri = uri;
+        metric.uriGroup = group;
         return metric;
     }
 
@@ -72,5 +74,9 @@ public class RequestMetric {
 
     public long getDatabaseQueryTime() {
         return queries.stream().mapToLong(q -> q.getRequestCompleteTime() - q.getRequestStartTime()).sum();
+    }
+
+    public UrlGroup getUriGroup() {
+        return uriGroup;
     }
 }

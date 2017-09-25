@@ -15,12 +15,17 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.yaml.snakeyaml.Yaml;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -29,30 +34,45 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.springframework.util.StringUtils.hasText;
+import java.util.stream.Collectors;
 
 @ManagedResource(
     objectName="cloudfoundry.identity:name=ServerRequests",
     description = "UAA Performance Metrics"
 )
 public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics {
+    public static final int MAX_TIME = 3000;
+    public static final UrlGroup FALLBACK = new UrlGroup()
+        .setCategory("Unknown")
+        .setGroup("/unknown")
+        .setLimit(MAX_TIME)
+        .setPattern("/**");
+
+    private static Log logger = LogFactory.getLog(UaaMetricsFilter.class);
 
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();
-    Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
+    private Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
+    private LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
 
-    public UaaMetricsFilter() {
+    public UaaMetricsFilter() throws IOException {
         perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
+        urlGroups = new LinkedHashMap<>();
+        List<UrlGroup> groups = getUrlGroups();
+        groups.stream().forEach(
+            group -> urlGroups.put(new AntPathRequestMatcher(group.getPattern()), group)
+        );
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String uriGroup = getUriGroup(request);
-        if (hasText(uriGroup)) {
-            RequestMetric metric = RequestMetric.start(request.getRequestURI(), timeService.getCurrentTimeMillis());
+        UrlGroup uriGroup = getUriGroup(request);
+        if (uriGroup != null) {
+            RequestMetric metric = RequestMetric.start(request.getRequestURI(), uriGroup, timeService.getCurrentTimeMillis());
             try {
                 MetricsAccessor.setCurrent(metric);
                 inflight.startRequest();
@@ -61,7 +81,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
-                for (String group : Arrays.asList(uriGroup, MetricsUtil.GLOBAL_GROUP)) {
+                for (String group : Arrays.asList(uriGroup.getGroup(), MetricsUtil.GLOBAL_GROUP)) {
                     MetricsQueue queue = getMetricsQueue(group);
                     queue.offer(metric);
                 }
@@ -83,41 +103,19 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
      * @param request
      * @return null if this request should not be measured.
      */
-    protected String getUriGroup(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        String contextPath = request.getContextPath();
-        if (hasText(contextPath) && uri != null && uri.startsWith(contextPath)) {
-            uri = uri.substring(contextPath.length());
-        }
-        for (String urlGroup :
-            Arrays.asList(
-                "/oauth/token/list",
-                "/oauth/token/revoke",
-                "/oauth/token",
-                "/oauth/authorize",
-                "/approvals",
-                "/Users",
-                "/oauth/clients/tx",
-                "/oauth/clients",
-                "/Codes",
-                "/login/callback",
-                "/identity-providers",
-                "/saml/service-providers",
-                "/Groups/external",
-                "/Groups/zones",
-                "/Groups",
-                "/identity-zones",
-                "/saml/login"
-            )) {
-
-            if (uri.startsWith(urlGroup)) {
-                return urlGroup;
+    protected UrlGroup getUriGroup(HttpServletRequest request) {
+        if (urlGroups!=null) {
+            String uri = request.getRequestURI();
+            for (Map.Entry<AntPathRequestMatcher, UrlGroup> entry : urlGroups.entrySet()) {
+                if (entry.getKey().matches(request)) {
+                    UrlGroup group = entry.getValue();
+                    logger.debug(String.format("Successfully matched URI: %s to a group: %s", uri, group.getGroup()));
+                    return group;
+                }
             }
-        }
-        if (uri != null && (uri.startsWith("/resources/") || uri.startsWith("/vendor/"))) {
-            return "/static-content";
+            return FALLBACK;
         } else {
-            return uri;
+            return FALLBACK;
         }
     }
 
@@ -159,5 +157,12 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
 
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
+    }
+
+    public List<UrlGroup> getUrlGroups() throws IOException {
+        ClassPathResource resource = new ClassPathResource("performance-url-groups.yml");
+        Yaml yaml = new Yaml();
+        List<Map<String,Object>> load = (List<Map<String, Object>>) yaml.load(resource.getInputStream());
+        return load.stream().map(map -> UrlGroup.from(map)).collect(Collectors.toList());
     }
 }

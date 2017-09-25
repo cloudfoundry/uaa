@@ -53,10 +53,10 @@ public class RequestMetricSummary {
         this.averageDatabaseIntolerableQueryTime = averageDatabaseIntolerableQueryTime;
     }
 
-    public synchronized void add(long time, long dbQueries, long dbTime, long failedDbQueries, long failedDbQueryTime) {
+    public synchronized void add(long time, boolean tolerable, long dbQueries, long dbTime, long failedDbQueries, long failedDbQueryTime) {
         averageTime = addToAverage(count, averageTime, 1, time);
         count++;
-        if (time > MetricsQueue.MAX_TIME) {
+        if (!tolerable) {
             averageIntolerableTime = addToAverage(intolerableCount, averageIntolerableTime, 1, time);
             ++intolerableCount;
         }
