@@ -88,9 +88,9 @@ public class UaaMetricsEmitterIT {
         "uaa.vitals.jvm.heap.used",
         "uaa.vitals.jvm.heap.max",
         "uaa.vitals.jvm.non-heap.init",
-        "uaa.vitals.jvm.non-heap.committed",
-        "uaa.vitals.jvm.non-heap.used",
-        "uaa.vitals.jvm.non-heap.max"
+        "uaa.vitals.jvm.non-heap.committed"
+//        ,"uaa.vitals.jvm.non-heap.used", //max return -1 and are not emitted
+//        "uaa.vitals.jvm.non-heap.max"    //max return -1 and are not emitted
     );
     private static Map<String, String> secondBatch;
 
