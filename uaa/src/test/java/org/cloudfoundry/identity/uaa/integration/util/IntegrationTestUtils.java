@@ -1288,7 +1288,7 @@ public class IntegrationTestUtils {
         try {
             SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS");
             String now = format.format(new Date(System.currentTimeMillis()));
-            FileUtils.copyFile(scrFile, new File(prefix + now + ".png"));
+            FileUtils.copyFile(scrFile, new File("build/reports/", prefix + now + ".png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
