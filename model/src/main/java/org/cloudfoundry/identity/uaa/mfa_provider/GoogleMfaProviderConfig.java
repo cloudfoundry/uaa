@@ -15,11 +15,7 @@ public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig<GoogleMfa
     private Algorithm algorithm = Algorithm.SHA256;
 
 
-    public void validate() {
-        if(!hasText(this.getIssuer())) {
-            throw new IllegalArgumentException("Mfa provider must have issuer.");
-        }
-    }
+    public void validate() {}
 
     public String getProviderDescription() {
         return providerDescription;

@@ -20,6 +20,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     protected static Log logger = LogFactory.getLog(MfaProviderEndpoints.class);
     private ApplicationEventPublisher publisher;
+    private MfaProviderProvisioning mfaProviderProvisioning;
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
@@ -28,19 +29,23 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
 
     @RequestMapping(method = POST)
     public ResponseEntity<MfaProvider> createMfaProvider(@RequestBody MfaProvider provider) {
-
-        if(provider.getConfig() == null) {
-            provider.setConfig(new GoogleMfaProviderConfig());
-        }
-        if(!StringUtils.hasText(provider.getConfig().getIssuer())){
-            provider.getConfig().setIssuer(IdentityZoneHolder.get().getName());
-        }
         try {
             provider.validate();
+            if(!StringUtils.hasText(provider.getConfig().getIssuer())){
+                provider.getConfig().setIssuer(IdentityZoneHolder.get().getName());
+            }
         } catch (IllegalArgumentException e) {
             logger.debug("MfaProvider [name"+provider.getName()+"] - Configuration validation error.", e);
             return new ResponseEntity<>(provider, UNPROCESSABLE_ENTITY);
         }
         return new ResponseEntity<>(provider, HttpStatus.CREATED);
+    }
+
+    public MfaProviderProvisioning getMfaProviderProvisioning() {
+        return mfaProviderProvisioning;
+    }
+
+    public void setMfaProviderProvisioning(MfaProviderProvisioning mfaProviderProvisioning) {
+        this.mfaProviderProvisioning = mfaProviderProvisioning;
     }
 }

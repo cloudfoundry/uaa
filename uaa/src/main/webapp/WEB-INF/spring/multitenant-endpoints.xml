@@ -84,7 +84,12 @@
         <constructor-arg ref="metaDataProviders"/>
     </bean>
 
+    <bean id="mfaProvideProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.JdbcMfaProviderProvisioning">
+        <constructor-arg type="org.springframework.jdbc.core.JdbcTemplate" ref="jdbcTemplate"/>
+    </bean>
+
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderEndpoints">
+        <property name="mfaProviderProvisioning" ref="mfaProvideProvisioning"/>
     </bean>
 
     <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"
