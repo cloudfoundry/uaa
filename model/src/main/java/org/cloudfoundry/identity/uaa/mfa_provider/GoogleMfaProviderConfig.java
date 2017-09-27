@@ -1,6 +1,10 @@
 package org.cloudfoundry.identity.uaa.mfa_provider;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig<GoogleMfaProviderConfig> {
 
     public enum Algorithm { SHA256, SHA512 }
