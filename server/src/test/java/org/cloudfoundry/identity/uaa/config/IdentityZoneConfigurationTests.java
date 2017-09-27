@@ -76,6 +76,13 @@ public class IdentityZoneConfigurationTests {
     }
 
     @Test
+    public void test_disable_redirect_flag_vestigial() {
+        definition.getLinks().getLogout().setDisableRedirectParameter(true);
+
+        assertFalse("setting disableRedirectParameter should not have worked.", definition.getLinks().getLogout().isDisableRedirectParameter());
+    }
+
+    @Test
     public void test_request_signed_setters() {
         assertTrue(definition.getSamlConfig().isWantAssertionSigned());
         definition = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), IdentityZoneConfiguration.class);
