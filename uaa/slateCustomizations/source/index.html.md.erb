@@ -1,4 +1,4 @@
----
+\---
 title: UAA API Reference
 
 search: true
@@ -1272,6 +1272,33 @@ _Error Codes_
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
+
+
+# MFA Providers
+
+The MFA provider
+
+## Create
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (uaa.admin or zones.<zoneid>.admin is required to create a MFA provider)|
 
 # Users
 
