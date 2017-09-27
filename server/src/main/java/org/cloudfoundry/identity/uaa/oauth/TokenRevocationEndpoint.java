@@ -73,6 +73,18 @@ public class TokenRevocationEndpoint {
         return new ResponseEntity<>(OK);
     }
 
+    @RequestMapping("/oauth/token/revoke/user/{userId}/client/{clientId}")
+    public ResponseEntity<Void> revokeTokensForUserAndClient(@PathVariable String userId, @PathVariable String clientId) {
+        String zoneId = IdentityZoneHolder.get().getId();
+        logger.debug("Revoking tokens for user " + userId + " and client " + clientId);
+        List<RevocableToken> tokens = tokenProvisioning.getUserTokens(userId, clientId, zoneId);
+        for (RevocableToken token: tokens) {
+            tokenProvisioning.delete(token.getTokenId(), -1, zoneId);
+        }
+        logger.debug("Tokens revoked for user " + userId + " and client " + clientId);
+        return new ResponseEntity<>(OK);
+    }
+
     @RequestMapping("/oauth/token/revoke/client/{clientId}")
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
