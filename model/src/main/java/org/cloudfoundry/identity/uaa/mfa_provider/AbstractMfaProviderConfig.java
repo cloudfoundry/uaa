@@ -26,4 +26,18 @@ public abstract class AbstractMfaProviderConfig<T extends AbstractMfaProviderCon
         return (T) this;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        AbstractMfaProviderConfig<?> that = (AbstractMfaProviderConfig<?>) o;
+
+        return issuer != null ? issuer.equals(that.issuer) : that.issuer == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return issuer != null ? issuer.hashCode() : 0;
+    }
 }

@@ -29,7 +29,9 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
 
     @RequestMapping(method = POST)
     public ResponseEntity<MfaProvider> createMfaProvider(@RequestBody MfaProvider provider) {
+        String zoneId = IdentityZoneHolder.get().getId();
         try {
+            provider.setIdentityZoneId(zoneId);
             provider.validate();
             if(!StringUtils.hasText(provider.getConfig().getIssuer())){
                 provider.getConfig().setIssuer(IdentityZoneHolder.get().getName());
@@ -38,7 +40,8 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
             logger.debug("MfaProvider [name"+provider.getName()+"] - Configuration validation error.", e);
             return new ResponseEntity<>(provider, UNPROCESSABLE_ENTITY);
         }
-        return new ResponseEntity<>(provider, HttpStatus.CREATED);
+        MfaProvider created = mfaProviderProvisioning.create(provider,zoneId);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     public MfaProviderProvisioning getMfaProviderProvisioning() {

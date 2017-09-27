@@ -38,6 +38,8 @@ public class MfaProviderEndpointsMockMVCTest extends InjectedMockContextTest {
         Assert.assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
         MfaProvider<GoogleMfaProviderConfig> mfaProviderCreated = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
         Assert.assertEquals(IdentityZoneHolder.get().getName(), mfaProviderCreated.getConfig().getIssuer());
+        Assert.assertEquals(IdentityZoneHolder.get().getId(), mfaProviderCreated.getIdentityZoneId());
+
     }
 
     @Test
