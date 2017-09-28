@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.doNothing;
