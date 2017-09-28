@@ -78,7 +78,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String REDIRECT_URL_DESC = "Logout redirect url";
     private static final String HOMEREDIRECT_URL_DESC = "Overrides the UAA home page and issues a redirect to this URL when the browser requests `/` and `/home`.";
     private static final String REDIRECT_PARAMETER_NAME_DESC = "Changes the name of the redirect parameter";
-    private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Whether or not to allow the redirect parameter on logout";
+    private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Deprecated, no longer affects zone behavior. Whether or not to allow the redirect parameter on logout";
     private static final String WHITELIST_DESC = "List of allowed whitelist redirects";
     private static final String SELF_SERVICE_LINKS_ENABLED_DESC = "Whether or not users are allowed to sign up or reset their passwords via the UI";
     private static final String SIGNUP_DESC = "Where users are directed upon clicking the account creation link";
