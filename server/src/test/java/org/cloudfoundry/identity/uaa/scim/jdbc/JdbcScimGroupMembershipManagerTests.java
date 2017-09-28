@@ -57,7 +57,13 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
@@ -173,6 +179,21 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     @After
     public void cleanupDataSource() throws Exception {
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void default_groups_are_cached() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+        List<String> defaultGroups = Arrays.asList("g1", "g2", "g3");
+        zone.getConfig().getUserConfig().setDefaultGroups(defaultGroups);
+        IdentityZoneHolder.set(zone);
+        JdbcScimGroupProvisioning spy = spy(gdao);
+        dao.setScimGroupProvisioning(spy);
+        defaultGroups.stream().forEach(g -> dao.createOrGetGroup(g, zone.getId()));
+        defaultGroups.stream().forEach(g -> verify(spy, times(1)).createAndIgnoreDuplicate(eq(g), eq(zone.getId())));
+        reset(spy);
+        defaultGroups.stream().forEach(g -> dao.createOrGetGroup(g, zone.getId()));
+        verifyZeroInteractions(spy);
     }
 
     @Test
