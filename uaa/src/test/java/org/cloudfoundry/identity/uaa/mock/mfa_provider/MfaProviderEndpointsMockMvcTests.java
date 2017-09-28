@@ -95,6 +95,43 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCreateMfaForOtherZone() throws Exception{
+        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
+
+        MfaProvider mfaProvider = constructGoogleProvider();
+        MvcResult mfaResponse = getMockMvc().perform(
+                post("/mfa-providers")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+        Assert.assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
+    }
+
+    @Test
+    public void testGetMfaInOtherZone() throws Exception{
+        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
+
+        MfaProvider mfaProvider = constructGoogleProvider();
+        MvcResult createResult = getMockMvc().perform(
+                post("/mfa-providers")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+        mfaProvider = JsonUtils.readValue(createResult.getResponse().getContentAsString(), MfaProvider.class);
+
+
+        MvcResult mfaListResult = getMockMvc().perform(
+                get("/mfa-providers")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())).andReturn();
+        List<Map> mfaProviders = JsonUtils.readValue(mfaListResult.getResponse().getContentAsString(), List.class);
+        List providerIds = mfaProviders.stream().map(provider -> provider.get("id")).collect(Collectors.toList());
+        assertTrue(providerIds.contains(mfaProvider.getId()));
+    }
+
+    @Test
     public void testRetrieveMfaProviderByIdInvalid() throws Exception {
         MvcResult authorization = getMockMvc().perform(
                 get("/mfa-providers/abcd")
