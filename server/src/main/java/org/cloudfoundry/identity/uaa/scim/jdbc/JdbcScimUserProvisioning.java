@@ -159,6 +159,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser create(final ScimUser user, String zoneId) {
+        return create(user, zoneId, false);
+    }
+
+    @Override
+    public ScimUser create(final ScimUser user, String zoneId, boolean isBatchCall) {
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
@@ -204,12 +209,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
             });
         } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"", zoneId).get(0);
-            Map<String,Object> userDetails = new HashMap<>();
-            userDetails.put("active", existingUser.isActive());
-            userDetails.put("verified", existingUser.isVerified());
-            userDetails.put("user_id", existingUser.getId());
-            throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+            if (!isBatchCall) {
+                ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"", zoneId).get(0);
+                Map<String,Object> userDetails = new HashMap<>();
+                userDetails.put("active", existingUser.isActive());
+                userDetails.put("verified", existingUser.isVerified());
+                userDetails.put("user_id", existingUser.getId());
+                throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+            }
+            throw new ScimResourceAlreadyExistsException("Username already in use: " + user.getUserName());
         }
         return retrieve(id, zoneId);
     }
@@ -225,6 +233,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     InvalidScimResourceException {
         user.setPassword(passwordEncoder.encode(password));
         return create(user, zoneId);
+    }
+    
+    @Override
+    public ScimUser createUser(ScimUser user, final String password, String zoneId, boolean isBatchCall) throws InvalidPasswordException,
+                    InvalidScimResourceException {
+        user.setPassword(passwordEncoder.encode(password));
+        return create(user, zoneId, isBatchCall);
     }
 
     public String extractPhoneNumber(final ScimUser user) {

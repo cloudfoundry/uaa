@@ -20,5 +20,7 @@ public interface ScimGroupProvisioning extends ResourceManager<ScimGroup>, Query
 
     ScimGroup createOrGet(ScimGroup group, String zoneId);
 
+    ScimGroup getOrCreate(ScimGroup group, String zoneId);
+
     ScimGroup getByName(String displayName, String zoneId);
 }

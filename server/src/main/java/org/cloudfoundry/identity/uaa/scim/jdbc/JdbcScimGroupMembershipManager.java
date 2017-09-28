@@ -109,7 +109,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         }
         return zoneDefaultGroups
             .stream()
-            .map(groupName -> groupProvisioning.createOrGet(new ScimGroup(null, groupName, zoneId), zoneId))
+            .map(groupName -> groupProvisioning.getOrCreate(new ScimGroup(null, groupName, zoneId), zoneId))
             .collect(toSet());
     }
 
