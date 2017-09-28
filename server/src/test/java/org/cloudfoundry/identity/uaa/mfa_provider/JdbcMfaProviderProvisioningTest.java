@@ -6,6 +6,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.doNothing;
@@ -36,6 +38,22 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         assertEquals(mfaProvider.getName(), retrieved.getName());
         assertEquals(mfaProvider.getConfig(), retrieved.getConfig());
     }
+
+    @Test
+    public void testRetrieveAll() {
+        String zoneId = IdentityZoneHolder.get().getId();
+        List<MfaProvider> providers = mfaProviderProvisioning.retrieveAll(zoneId);
+        doNothing().when(mfaProviderValidator);
+        int beforeCount = providers.size();
+
+        MfaProvider mfaProvider = constructGoogleProvider();
+        mfaProviderProvisioning.create(mfaProvider, zoneId);
+
+        providers = mfaProviderProvisioning.retrieveAll(zoneId);
+        int afterCount = providers.size();
+        assertEquals(1, afterCount-beforeCount);
+    }
+
 
     @Test
     public void testRetrieve() {

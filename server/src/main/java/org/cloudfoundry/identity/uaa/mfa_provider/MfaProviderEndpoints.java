@@ -8,12 +8,11 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import java.util.List;
+
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RequestMapping("/mfa-providers")
@@ -41,6 +40,25 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    @RequestMapping(method = GET)
+    public ResponseEntity<List<MfaProvider>> retrieveMfaProviders() {
+        String zoneId = IdentityZoneHolder.get().getId();
+        List<MfaProvider> providers = mfaProviderProvisioning.retrieveAll(zoneId);
+        return new ResponseEntity<>(providers, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "{id}", method = GET)
+    public ResponseEntity<MfaProvider> retrieveMfaProviderById(@PathVariable String id) {
+        String zoneId = IdentityZoneHolder.get().getId();
+        MfaProvider provider = mfaProviderProvisioning.retrieve(id, zoneId);
+        return new ResponseEntity<>(provider, HttpStatus.OK);
+    }
+
+    @ExceptionHandler(InvalidMfaProviderException.class)
+    public ResponseEntity<InvalidMfaProviderException> handleInvalidMfaProviderException(InvalidMfaProviderException e) {
+        return new ResponseEntity<>(e, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
     public MfaProviderProvisioning getMfaProviderProvisioning() {
         return mfaProviderProvisioning;
     }
@@ -51,10 +69,5 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
 
     public void setMfaProviderValidator(MfaProviderValidator mfaProviderValidator) {
         this.mfaProviderValidator = mfaProviderValidator;
-    }
-
-    @ExceptionHandler(InvalidMfaProviderException.class)
-    public ResponseEntity<InvalidMfaProviderException> handleInvalidMfaProviderException(InvalidMfaProviderException e) {
-        return new ResponseEntity<>(e, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 }
