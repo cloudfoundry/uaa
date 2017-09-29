@@ -476,7 +476,8 @@ Trusted Authentication from Login Server
 ----------------------------------------
 
 Note: This is not the standard way of creating a user in the UAA. Please refer to the SCIM API endpoint at ``/Users``.
-In addition to the normal authentication of the ``/authenticate`` and ``/oauth/authorize`` endpoints described above (cookie-based for browser app and special case for ``cf``) the UAA offers a special channel whereby a trusted client app can authenticate itself and then use the ``/oauth/authorize`` or ``/authenticate`` endpoint by providing minimal information about the user account (but not the password).  This channel is provided so that authentication can be abstracted into a separate "Login" server.  The default client id for the trusted app is ``login``, and this client is registered in the default profile (but not in any other)::
+
+In addition to the normal authentication of the ``/authenticate`` and ``/oauth/authorize`` endpoints described above (cookie-based for browser app and special case for ``cf``), the UAA offers a special channel whereby a trusted client app can authenticate itself and then use the ``/oauth/authorize`` or ``/authenticate`` endpoint by providing minimal information about the user account (but not the password).  This channel is provided so that authentication can be abstracted into a separate "Login" server.  The default client id for the trusted app is ``login`` and this client is registered in the default profile (but not in any other)::
 
     id: login,
     secret: loginsecret,
@@ -484,18 +485,16 @@ In addition to the normal authentication of the ``/authenticate`` and ``/oauth/a
     authorized_grant_types: client_credentials,
     authorities: oauth.login
 
-To authenticate the ``/oauth/authorize`` or ``/authenticate`` endpoint using this channel the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username`` and ``origin``, plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database, but this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
+To authenticate the ``/oauth/authorize`` or ``/authenticate`` endpoint using this channel, the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username`` and ``origin``, plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database. However, this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
 
-Using this trusted channel a Login Server can obtain create a user or perform an Oauth authorization (or tokens directly in the implicit grant) from the UAA, and also have complete control over authentication of the user, and the UI for logging in and approving token grants.
+Using this trusted channel, a Login Server can create a user or perform an Oauth authorization (or tokens directly in the implicit grant) from the UAA, and also have complete control over authentication of the user as well as the UI for logging in and approving token grants.
 
 An authorization code grant has two steps (as normal), but instead of a UI response the UAA sends JSON:
 
 Create a user using trusted authenticate channel: /authenticate Request
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This endpoint lets the login client to retrieve a user_id during an external authentication sequence.
-So that the Authentication object in memory can always have a user_id available in the principal.
-This endpoint is used when you authenticate a user with another provider not known to the UAA. This will create a shadow account in the UAA representing that user. The user can then be associated with groups so that token's can be generated on the user's behalf.
+This endpoint lets the login client retrieve a ``user_id`` during an external authentication sequence so that the Authentication object in memory can always have a ``user_id`` available in the principal object. This endpoint is used when you authenticate a user with another provider not known to the UAA. This will create a shadow account in the UAA representing that user, which can then be associated with groups so that tokens can be generated on the user's behalf.
 
 * Request: ``POST /authenticate``
 * Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
