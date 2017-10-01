@@ -28,8 +28,10 @@ import org.springframework.util.MultiValueMap;
 import javax.servlet.FilterChain;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
@@ -37,7 +39,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 
 public class UaaMetricsFilterTests {
@@ -50,6 +54,7 @@ public class UaaMetricsFilterTests {
     @Before
     public void setup() throws Exception {
         filter = new UaaMetricsFilter();
+        filter.setEnabled(true);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         chain = Mockito.mock(FilterChain.class);
@@ -64,6 +69,28 @@ public class UaaMetricsFilterTests {
             assertNull(MetricsAccessor.getCurrent());
         }
     }
+
+    @Test
+    public void disabled_by_default() throws Exception {
+        filter = new UaaMetricsFilter();
+        assertFalse(filter.isEnabled());
+    }
+
+
+    @Test
+    public void when_disabled() throws Exception {
+        filter.setEnabled(false);
+        String path = "/some/path";
+        request.setRequestURI(path);
+        for (int status : Arrays.asList(200,500)) {
+            response.setStatus(status);
+            filter.doFilterInternal(request, response, chain);
+        }
+        Map<String, String> summary = filter.getSummary();
+        assertNotNull(summary);
+        assertTrue(summary.isEmpty());
+    }
+
 
     @Test
     public void happy_path() throws Exception {
@@ -88,19 +115,25 @@ public class UaaMetricsFilterTests {
 
     @Test
     public void idle_counter() throws Exception {
-        final Lock lock = new ReentrantLock();
-        lock.lock();
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+        lock.writeLock().lock();
+        System.out.println("LOCK[MAIN] - Lock");
         request.setRequestURI("/oauth/token");
         final FilterChain chain = Mockito.mock(FilterChain.class);
         final UaaMetricsFilter filter = new UaaMetricsFilter();
+        filter.setEnabled(true);
         doAnswer(invocation -> {
             try {
-                lock.lock();
+                latch.countDown();
+                lock.writeLock().lock();
+                System.out.println("LOCK[THREAD] - Lock");
             } finally {
-                lock.unlock();
+                lock.writeLock().unlock();
+                System.out.println("LOCK[THREAD] - Unlock");
                 return null;
             }
-        }).when(chain).doFilter(any(), any());
+        }).when(chain).doFilter(same(request), same(response));
         Runnable invocation = () -> {
             try {
                 filter.doFilterInternal(request, response, chain);
@@ -110,9 +143,10 @@ public class UaaMetricsFilterTests {
         };
         Thread invoker = new Thread(invocation);
         invoker.start();
-        Thread.sleep(10);
+        latch.await();
         assertEquals(1, filter.getInflightRequests());
-        lock.unlock();
+        lock.writeLock().unlock();
+        System.out.println("LOCK[MAIN] - Unlock");
         Thread.sleep(25);
         assertEquals(0, filter.getInflightRequests());
         long idleTime = filter.getIdleTime();

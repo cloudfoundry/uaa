@@ -43,12 +43,13 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
 
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();
+    private boolean enabled = false;
     Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String uriGroup = getUriGroup(request);
-        if (hasText(uriGroup)) {
+        if (enabled && hasText(uriGroup)) {
             RequestMetric metric = RequestMetric.start(request.getRequestURI(), timeService.getCurrentTimeMillis());
             try {
                 MetricsAccessor.setCurrent(metric);
@@ -64,6 +65,14 @@ public class UaaMetricsFilter extends OncePerRequestFilter {
         } else {
             filterChain.doFilter(request, response);
         }
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     protected MetricsQueue getMetricsQueue(String uri) {
