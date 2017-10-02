@@ -15,6 +15,19 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -26,19 +39,6 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.yaml.snakeyaml.Yaml;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @ManagedResource(
     objectName="cloudfoundry.identity:name=ServerRequests",
@@ -58,6 +58,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private IdleTimer inflight = new IdleTimer();
     private Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
     private LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
+    private boolean enabled = true;
 
     public UaaMetricsFilter() throws IOException {
         perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());

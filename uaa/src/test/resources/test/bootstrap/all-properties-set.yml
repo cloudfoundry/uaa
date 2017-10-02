@@ -588,3 +588,5 @@ zones:
     - host2
     - test3.localhost
     - test4.localhost
+metrics:
+  enabled: false

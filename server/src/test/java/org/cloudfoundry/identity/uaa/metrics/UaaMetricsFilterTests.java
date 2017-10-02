@@ -15,6 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.servlet.FilterChain;
+
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.junit.Before;
@@ -27,12 +33,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import javax.servlet.FilterChain;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.hamcrest.Matchers.greaterThan;
@@ -42,7 +42,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 
@@ -70,6 +69,12 @@ public class UaaMetricsFilterTests {
             assertEquals("/static-content", filter.getUriGroup(request).getGroup());
             assertNull(MetricsAccessor.getCurrent());
         }
+    }
+
+    @Test
+    public void enabled_by_default() throws Exception {
+        filter = new UaaMetricsFilter();
+        assertTrue(filter.isEnabled());
     }
 
     @Test

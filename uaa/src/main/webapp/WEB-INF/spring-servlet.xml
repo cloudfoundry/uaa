@@ -261,7 +261,9 @@
         <constructor-arg value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
 
-    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter"/>
+    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
+        <property name="enabled" value="${metrics.enabled:true}"/>
+    </bean>
 
     <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
