@@ -43,6 +43,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 
 public class UaaMetricsFilterTests {
@@ -55,6 +56,7 @@ public class UaaMetricsFilterTests {
     @Before
     public void setup() throws Exception {
         filter = new UaaMetricsFilter();
+        filter.setEnabled(true);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         chain = Mockito.mock(FilterChain.class);
@@ -137,6 +139,7 @@ public class UaaMetricsFilterTests {
         setRequestData("/oauth/token");
         final FilterChain chain = Mockito.mock(FilterChain.class);
         final UaaMetricsFilter filter = new UaaMetricsFilter();
+        filter.setEnabled(true);
         doAnswer(invocation -> {
             try {
                 lock.writeLock().lock();
@@ -146,7 +149,7 @@ public class UaaMetricsFilterTests {
                 System.out.println("LOCK[THREAD] - Unlock");
                 return null;
             }
-        }).when(chain).doFilter(any(), any());
+        }).when(chain).doFilter(same(request), same(response));
         Runnable invocation = () -> {
             try {
                 filter.doFilterInternal(request, response, chain);

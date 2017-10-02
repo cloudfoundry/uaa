@@ -91,6 +91,14 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         }
     }
 
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     protected MetricsQueue getMetricsQueue(String uri) {
         if (!perUriMetrics.containsKey(uri)) {
             perUriMetrics.putIfAbsent(uri, new MetricsQueue());
