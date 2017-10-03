@@ -24,6 +24,7 @@ public class GeneralMfaProviderValidatorTest {
     @Before
     public void setup() {
         validator = new GeneralMfaProviderValidator();
+        validator.setConfigValidator(mock(MfaProviderConfigValidator.class));
     }
 
     @Test
