@@ -14,9 +14,11 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.Map;
 
 
@@ -65,6 +67,20 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                         if (!jwtKeys.containsKey(activeKeyId)) {
                             throw new InvalidIdentityZoneConfigurationException("The specified active key ID is not present in the configured keys: " + activeKeyId, null);
                         }
+                    }
+                }
+            }
+
+            Links links = config.getLinks();
+            if (links != null){
+                List<String> redirectURIProtocolSchemes = links.getRedirectURIProtocolWhiteList();
+                if (redirectURIProtocolSchemes == null || redirectURIProtocolSchemes.isEmpty()) {
+                    throw new InvalidIdentityZoneConfigurationException("Invalid Redirect Uri Protocol Whitelist. Must provide at least one protocol scheme.");
+                } else {
+                    boolean inValidScheme =  redirectURIProtocolSchemes.stream().anyMatch(scheme -> (!UaaUrlUtils.allowedRedirectUriProtocolPattern.matcher(scheme).matches()) );
+                    if (inValidScheme) {
+                        throw new InvalidIdentityZoneConfigurationException(
+                                String.format("Invalid Redirect Uri Protocol Whitelist Element(s) found. Must Match the pattern %s", UaaUrlUtils.allowedRedirectUriProtocolPattern));
                     }
                 }
             }

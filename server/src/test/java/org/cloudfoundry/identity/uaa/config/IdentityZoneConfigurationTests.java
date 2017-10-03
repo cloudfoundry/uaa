@@ -156,4 +156,10 @@ public class IdentityZoneConfigurationTests {
         assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns());
         assertEquals(1728000, definition.getCorsPolicy().getDefaultConfiguration().getMaxAge());
     }
+
+    @Test
+    public void testDefaultRedirectUriProtocolWhiteList() {
+        assertEquals(Arrays.asList(new String[] {"http","https"}), definition.getLinks().getRedirectURIProtocolWhiteList());
+    }
+
 }

@@ -72,8 +72,6 @@ public class UaaUrlUtilsTest {
         "https://subsub.sub.valid.com/**",
         "https://valid.com/path/*/path",
         "http://sub.valid.com/*/with/path**",
-        "http*://sub.valid.com/*/with/path**",
-        "http*://*.valid.com/*/with/path**",
         "http://*.valid.com/*/with/path**",
         "https://*.valid.com/*/with/path**",
         "https://*.*.valid.com/*/with/path**",
@@ -85,22 +83,6 @@ public class UaaUrlUtilsTest {
         "http://username:password@example.com:8080/path",
         "http://localhost:*/**",
         "http://localhost:*/*"
-    );
-
-    private List<String> validCustomUrls = Arrays.asList(
-            "ftp://ftp.is.co.za/rfc/rfc1808.txt",
-            "cool-app://example.com",
-            "org.cloudfoundry.identity://mobile-windows-app.com/view",
-            "org+cloudfoundry+identity://mobile-ios-app.com/view",
-            "org-cl0udfoundry-identity://mobile-android-app.com/view"
-    );
-
-    private List<String> invalidCustomUrls = Arrays.asList(
-            "ft_p://ftp.is.co.za/rfc/rfc1808.txt",
-            "2cool-app://example.com",
-            "org.cloudfoundry*identity://mobile-app.com/view",
-            "org+cloudfoundry+identity:/mobile-app.com/view",
-            "mailto:John.Doe@example.com"
     );
 
     @Before
@@ -373,16 +355,6 @@ public class UaaUrlUtilsTest {
     public void test_validate_valid_redirect_uri() {
         validateRedirectUri(validUrls, true);
         validateRedirectUri(convertToHttps(validUrls), true);
-    }
-
-    @Test
-    public void test_validate_valid_redirect_uri_with_custom_schemes() {
-        validateRedirectUri(validCustomUrls, true);
-    }
-
-    @Test
-    public void test_validate_invalid_redirect_uri_with_custom_schemes() {
-        validateRedirectUri(invalidCustomUrls, false);
     }
 
     @Test

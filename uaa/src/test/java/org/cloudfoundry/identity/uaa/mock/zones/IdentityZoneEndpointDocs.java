@@ -77,6 +77,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String PRIVATE_KEY_PASSWORD_DESC = "Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use.";
     private static final String REDIRECT_URL_DESC = "Logout redirect url";
     private static final String HOMEREDIRECT_URL_DESC = "Overrides the UAA home page and issues a redirect to this URL when the browser requests `/` and `/home`.";
+    private static final String REDIRECT_URI_PROTOCOL_WHITE_LIST = "Whitelist of allowed protocol schemes used in redirect URI for this zone.";
     private static final String REDIRECT_PARAMETER_NAME_DESC = "Changes the name of the redirect parameter";
     private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Deprecated, no longer affects zone behavior. Whether or not to allow the redirect parameter on logout";
     private static final String WHITELIST_DESC = "List of allowed whitelist redirects";
@@ -230,6 +231,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.redirectURIProtocolWhiteList").description(REDIRECT_URI_PROTOCOL_WHITE_LIST).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
@@ -379,6 +381,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("[].config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
             fieldWithPath("[].config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC),
+            fieldWithPath("[].config.links.redirectURIProtocolWhiteList").description(REDIRECT_URI_PROTOCOL_WHITE_LIST),
             fieldWithPath("[].config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
             fieldWithPath("[].config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
             fieldWithPath("[].config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC),
@@ -520,6 +523,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.redirectURIProtocolWhiteList").description(REDIRECT_URI_PROTOCOL_WHITE_LIST).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
@@ -686,6 +690,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC),
+            fieldWithPath("config.links.redirectURIProtocolWhiteList").description(REDIRECT_URI_PROTOCOL_WHITE_LIST),
             fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
             fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
             fieldWithPath("config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC),
