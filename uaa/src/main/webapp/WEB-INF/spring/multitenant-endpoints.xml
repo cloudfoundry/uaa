@@ -86,10 +86,18 @@
 
     <bean id="mfaProvideProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.JdbcMfaProviderProvisioning">
         <constructor-arg type="org.springframework.jdbc.core.JdbcTemplate" ref="jdbcTemplate"/>
+        <constructor-arg type="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderValidator" ref="mfaProviderValidator"/>
+    </bean>
+
+    <bean id="googleMfaProviderConfigValidator" class="org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfigValidator"/>
+
+    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa_provider.GeneralMfaProviderValidator">
+        <property name="configValidator" ref="googleMfaProviderConfigValidator"/>
     </bean>
 
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderEndpoints">
         <property name="mfaProviderProvisioning" ref="mfaProvideProvisioning"/>
+        <property name="mfaProviderValidator" ref="mfaProviderValidator"/>
     </bean>
 
     <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"

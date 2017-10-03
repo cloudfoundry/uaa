@@ -21,7 +21,7 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
 
     @Before
     public void setup() {
-        mfaProviderProvisioning = new JdbcMfaProviderProvisioning(jdbcTemplate);
+        mfaProviderProvisioning = new JdbcMfaProviderProvisioning(jdbcTemplate, new GeneralMfaProviderValidator());
     }
 
     @Test

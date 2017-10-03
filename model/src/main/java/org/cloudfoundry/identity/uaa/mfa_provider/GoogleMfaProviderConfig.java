@@ -1,13 +1,37 @@
 package org.cloudfoundry.identity.uaa.mfa_provider;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig<GoogleMfaProviderConfig> {
 
-    public enum Algorithm { SHA256, SHA512 }
+    public enum Algorithm {
+        SHA256,
+        SHA512;
+
+        private static Map<String, GoogleMfaProviderConfig.Algorithm> namesMap = new HashMap();
+        static {
+            namesMap.put("SHA256", SHA256);
+            namesMap.put("SHA512", SHA512);
+        }
+
+        @JsonCreator
+        public static GoogleMfaProviderConfig.Algorithm forValue(String value) {
+            return namesMap.get(value);
+        }
+
+        public static Set<String> getStringaValues() {
+            return namesMap.keySet();
+        }
+
+    }
 
     private String providerDescription;
     private int digits = 6;

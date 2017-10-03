@@ -14,16 +14,18 @@ import static org.mockito.Mockito.mock;
 
 
 public class MfaProviderEndpointsTest {
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     MfaProviderEndpoints endpoint = new MfaProviderEndpoints();
     MfaProviderProvisioning provisioning;
+    MfaProviderValidator validator;
 
     @Before
     public void setup() {
+
         provisioning = mock(JdbcMfaProviderProvisioning.class);
+        validator = mock(GeneralMfaProviderValidator.class);
         endpoint.setMfaProviderProvisioning(provisioning);
+        endpoint.setMfaProviderValidator(validator);
     }
 
     @Test

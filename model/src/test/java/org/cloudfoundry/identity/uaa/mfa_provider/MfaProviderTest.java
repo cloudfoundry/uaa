@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mfa_provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -66,69 +67,6 @@ public class MfaProviderTest {
     }
 
     @Test
-    public void validateProviderNullConfig() throws ValidationException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Provider config must be set");
-        MfaProvider<GoogleMfaProviderConfig> provider = createValidGoogleMfaProvider()
-                .setConfig(null);
-        provider.validate();
-    }
-
-    @Test
-    public void validateProviderEmptyName() throws ValidationException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Provider name must be set");
-        MfaProvider provider = createValidGoogleMfaProvider()
-                .setName("");
-        provider.validate();
-    }
-
-    @Test
-    public void validateProviderInvalidNameTooLong() throws ValidationException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Provider name invalid");
-        MfaProvider provider = createValidGoogleMfaProvider()
-                .setName(new RandomValueStringGenerator(256).generate());
-        provider.validate();
-    }
-    @Test
-    public void validateProviderInvalidNameWhitespace() throws ValidationException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Provider name invalid");
-        MfaProvider provider = createValidGoogleMfaProvider()
-                .setName(" ");
-        provider.validate();
-    }
-
-    @Test
-    public void validateProviderInvalidNameSpecialChars() throws ValidationException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Provider name invalid");
-        MfaProvider provider = createValidGoogleMfaProvider()
-                .setName("invalidName$");
-        provider.validate();
-    }
-
-
-    @Test
-    public void validateProviderNullType() throws ValidationException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Provider type must be set");
-        MfaProvider provider = createValidGoogleMfaProvider()
-                .setType(null);
-        provider.validate();
-    }
-
-    @Test
-    public void validateProviderEmptyZone() throws ValidationException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Provider must belong to a zone");
-        MfaProvider provider = createValidGoogleMfaProvider()
-                .setIdentityZoneId("");
-        provider.validate();
-    }
-
-    @Test
     public void validateProviderActiveSetDefaultToTrue() {
         MfaProvider provider = createValidGoogleMfaProvider();
         assertTrue(provider.isActive());
@@ -138,6 +76,7 @@ public class MfaProviderTest {
         MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
         res.setName(new RandomValueStringGenerator(5).generate())
                 .setConfig(createValidGoogleMfaConfig())
+                .setIdentityZoneId(IdentityZone.getUaa().getId())
                 .setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         return res;
     }

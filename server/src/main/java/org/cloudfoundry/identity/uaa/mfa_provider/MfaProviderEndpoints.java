@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +22,7 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     protected static Log logger = LogFactory.getLog(MfaProviderEndpoints.class);
     private ApplicationEventPublisher publisher;
     private MfaProviderProvisioning mfaProviderProvisioning;
+    private MfaProviderValidator mfaProviderValidator;
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
@@ -30,15 +32,10 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     @RequestMapping(method = POST)
     public ResponseEntity<MfaProvider> createMfaProvider(@RequestBody MfaProvider provider) {
         String zoneId = IdentityZoneHolder.get().getId();
-        try {
-            provider.setIdentityZoneId(zoneId);
-            provider.validate();
-            if(!StringUtils.hasText(provider.getConfig().getIssuer())){
-                provider.getConfig().setIssuer(IdentityZoneHolder.get().getName());
-            }
-        } catch (IllegalArgumentException e) {
-            logger.debug("MfaProvider [name"+provider.getName()+"] - Configuration validation error.", e);
-            return new ResponseEntity<>(provider, UNPROCESSABLE_ENTITY);
+        provider.setIdentityZoneId(zoneId);
+        mfaProviderValidator.validate(provider);
+        if(!StringUtils.hasText(provider.getConfig().getIssuer())){
+            provider.getConfig().setIssuer(IdentityZoneHolder.get().getName());
         }
         MfaProvider created = mfaProviderProvisioning.create(provider,zoneId);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
@@ -50,5 +47,14 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
 
     public void setMfaProviderProvisioning(MfaProviderProvisioning mfaProviderProvisioning) {
         this.mfaProviderProvisioning = mfaProviderProvisioning;
+    }
+
+    public void setMfaProviderValidator(MfaProviderValidator mfaProviderValidator) {
+        this.mfaProviderValidator = mfaProviderValidator;
+    }
+
+    @ExceptionHandler(InvalidMfaProviderException.class)
+    public ResponseEntity<InvalidMfaProviderException> handleInvalidMfaProviderException(InvalidMfaProviderException e) {
+        return new ResponseEntity<>(e, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 }
