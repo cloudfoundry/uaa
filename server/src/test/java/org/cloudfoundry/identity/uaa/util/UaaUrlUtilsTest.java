@@ -70,6 +70,7 @@ public class UaaUrlUtilsTest {
         "https://subsub.sub.valid.com/**",
         "https://valid.com/path/*/path",
         "http://sub.valid.com/*/with/path**",
+        "http://sub_with_underscore.valid.com/*/with/path**",
         "http*://sub.valid.com/*/with/path**",
         "http*://*.valid.com/*/with/path**",
         "http://*.valid.com/*/with/path**",
