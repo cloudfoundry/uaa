@@ -1,5 +1,5 @@
 ext {
-  apacheLdapApiVersion = '1.0.0-M22'
+  apacheLdapApiVersion = '1.0.0'
   aspectJVersion = '1.6.9'
   bcpkixVersion  = '1.57'
   bcprovVersion  = '1.57'
