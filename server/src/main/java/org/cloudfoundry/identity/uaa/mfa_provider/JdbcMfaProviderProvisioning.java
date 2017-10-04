@@ -24,15 +24,17 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
     public static final String CREATE_PROVIDER_SQL = "insert into mfa_providers(" + MFA_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?)";
     public static final String MFA_PROVIDER_BY_ID_QUERY = "select " + MFA_PROVIDER_FIELDS + " from mfa_providers " + "where id=? and identity_zone_id=?";
     protected final JdbcTemplate jdbcTemplate;
+    private MfaProviderValidator mfaProviderValidator;
     private MfaProviderMapper mapper = new MfaProviderMapper();
 
-    public JdbcMfaProviderProvisioning(JdbcTemplate jdbcTemplate) {
+    public JdbcMfaProviderProvisioning(JdbcTemplate jdbcTemplate, MfaProviderValidator mfaProviderValidator) {
         this.jdbcTemplate = jdbcTemplate;
+        this.mfaProviderValidator = mfaProviderValidator;
     }
 
     @Override
     public MfaProvider create(MfaProvider provider, String zoneId) {
-        provider.validate();
+        mfaProviderValidator.validate(provider);
         final String id = UUID.randomUUID().toString();
         try {
             jdbcTemplate.update(CREATE_PROVIDER_SQL, new PreparedStatementSetter() {
