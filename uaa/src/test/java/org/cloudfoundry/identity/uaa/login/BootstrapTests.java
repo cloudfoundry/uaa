@@ -12,22 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.servlet.RequestDispatcher;
-
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
@@ -117,6 +101,22 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
+
+import javax.servlet.RequestDispatcher;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -643,6 +643,7 @@ public class BootstrapTests {
         assertSame(context.getBean("globalLinks", Links.class), context.getBean(HomeController.class).getGlobalLinks());
 
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
+        assertEquals(false, zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
         assertFalse(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
