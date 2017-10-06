@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * Service interface which handles the different types of audit event raised by
  * the system.
- * 
+ *
  * @author Luke Talyor
  * @author Dave Syer
  */
@@ -26,18 +26,20 @@ public interface UaaAuditService {
     /**
      * Find audit events relating to the specified principal since the time
      * provided.
-     * 
+     *
      * @param principal the principal name to search for
      * @param after epoch in milliseconds
+     * @param zoneId
      * @return audit events relating to the principal
      */
-    List<AuditEvent> find(String principal, long after);
+    List<AuditEvent> find(String principal, long after, String zoneId);
 
     /**
      * Log an event.
-     * 
+     *
      * @param auditEvent the audit event to log
+     * @param zoneId
      */
-    void log(AuditEvent auditEvent);
+    void log(AuditEvent auditEvent, String zoneId);
 
 }

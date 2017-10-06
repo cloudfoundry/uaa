@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
-import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -19,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -31,7 +31,7 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
-@RunWith(LoginServerClassRunner.class)
+@RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class LdapLoginIT {
 
@@ -54,7 +54,7 @@ public class LdapLoginIT {
     @Autowired
     TestClient testClient;
 
-    ServerRunning serverRunning = ServerRunning.isRunning();
+    private ServerRunning serverRunning = ServerRunning.isRunning();
     private String zoneAdminToken;
 
     @Before
@@ -82,14 +82,10 @@ public class LdapLoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 
-    private void performLdapLogin(String subdomain, String ldapUrl) throws Exception {
-        performLdapLogin(subdomain, ldapUrl, false, false, "marissa4", "ldap4");
-    }
     private void performLdapLogin(String subdomain, String ldapUrl, boolean startTls, boolean skipSSLVerification, String username, String password) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone2.localhost
         assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         //ensure that certs have been added to truststore via gradle
-        String zoneId = subdomain;
         String zoneUrl = baseUrl.replace("localhost", subdomain + ".localhost");
 
         //identity client token
@@ -101,12 +97,12 @@ public class LdapLoginIT {
           IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, subdomain, subdomain);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@ldaptesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), subdomain);
 
         //get the zone admin token
         zoneAdminToken =
@@ -136,7 +132,7 @@ public class LdapLoginIT {
         ldapIdentityProviderDefinition.setSkipSSLVerification(skipSSLVerification);
 
         IdentityProvider provider = new IdentityProvider();
-        provider.setIdentityZoneId(zoneId);
+        provider.setIdentityZoneId(subdomain);
         provider.setType(LDAP);
         provider.setActive(true);
         provider.setConfig(ldapIdentityProviderDefinition);

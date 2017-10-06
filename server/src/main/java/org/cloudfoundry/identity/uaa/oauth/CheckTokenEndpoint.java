@@ -14,11 +14,14 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.error.ParameterParsingException;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.jwt.Jwt;
@@ -56,6 +59,9 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @Controller
 public class CheckTokenEndpoint implements InitializingBean {
 
+    //Copy of the value from org.apache.Globals.PARAMETER_PARSE_FAILED_ATTR
+    private static final String PARAMETER_PARSE_FAILED_ATTR = "org.apache.catalina.parameter_parse_failed";
+
     private ResourceServerTokenServices resourceServerTokenServices;
     protected final Log logger = LogFactory.getLog(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
@@ -83,6 +89,10 @@ public class CheckTokenEndpoint implements InitializingBean {
     public Claims checkToken(@RequestParam("token") String value,
                              @RequestParam(name = "scopes", required = false, defaultValue = "") List<String> scopes,
                              HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
+
+        if (!hadParsedAllArgs(request)) {
+            throw new ParameterParsingException();
+        }
 
         if (hasText(request.getQueryString()) && !isAllowQueryString()) {
             logger.debug("Call to /oauth/token contains a query string. Aborting.");
@@ -120,6 +130,10 @@ public class CheckTokenEndpoint implements InitializingBean {
         }
 
         return response;
+    }
+
+    private boolean hadParsedAllArgs(HttpServletRequest request) {
+        return request.getAttribute(PARAMETER_PARSE_FAILED_ATTR) == null;
     }
 
     @RequestMapping(value = "/check_token")
@@ -199,4 +213,10 @@ public class CheckTokenEndpoint implements InitializingBean {
         return exceptionTranslator.translate(e);
     }
 
+
+    @ExceptionHandler(UaaException.class)
+    public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) throws Exception {
+        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
+    }
 }

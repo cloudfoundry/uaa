@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.*;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.*;
 
 public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
@@ -59,6 +61,20 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     public void configureProvisioning() {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
+    }
+
+    @Test
+    public void testClientSecretPolicy() throws Exception {
+        bootstrap.setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 1, 1, 1, 6));
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertEquals(0, uaa.getConfig().getClientSecretPolicy().getMinLength());
+        assertEquals(255, uaa.getConfig().getClientSecretPolicy().getMaxLength());
+        assertEquals(0, uaa.getConfig().getClientSecretPolicy().getRequireUpperCaseCharacter());
+        assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireLowerCaseCharacter());
+        assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireDigit());
+        assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireSpecialCharacter());
+        assertEquals(-1, uaa.getConfig().getClientSecretPolicy().getExpireSecretInMonths());
     }
 
     @Test
@@ -99,6 +115,15 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, uaa.getConfig().getSamlConfig().getPrivateKey());
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, uaa.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, uaa.getConfig().getSamlConfig().getCertificate());
+    }
+
+    @Test
+    public void testDefaultGroups() throws Exception {
+        String[] groups = {"group1", "group2", "group3"};
+        bootstrap.setDefaultUserGroups(Arrays.asList(groups));
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertThat(uaa.getConfig().getUserConfig().getDefaultGroups(), containsInAnyOrder(groups));
     }
 
     @Test

@@ -32,7 +32,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     private TimeService timeService = new TimeServiceImpl();
 
     @Override
-    public ExpiringCode generateCode(String data, Timestamp expiresAt, String intent) {
+    public ExpiringCode generateCode(String data, Timestamp expiresAt, String intent, String zoneId) {
         if (data == null || expiresAt == null) {
             throw new NullPointerException();
         }
@@ -55,7 +55,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public ExpiringCode retrieveCode(String code) {
+    public ExpiringCode retrieveCode(String code, String zoneId) {
         if (code == null) {
             throw new NullPointerException();
         }
@@ -79,7 +79,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public void expireByIntent(String intent) {
+    public void expireByIntent(String intent, String zoneId) {
         Assert.hasText(intent);
 
         store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + IdentityZoneHolder.get().getId()));

@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
+<head>
+    <meta http-equiv="refresh" th:content="${@loginCookieCsrfRepository.getCookieMaxAge()}" />
+</head>
 <div class="island" layout:fragment="page-content">
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
     <div class="island-content">
@@ -13,7 +16,6 @@
                    th:type="${prompt.value[0]}"
                    th:placeholder="${prompt.value[1]}"
                    th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
-                   th:autofocus="${iter.index} == 0"
                    class="form-control"/>
             <input type="submit" value="Sign in" class="island-button"/>
             <input th:if="${session.SPRING_SECURITY_SAVED_REQUEST}"

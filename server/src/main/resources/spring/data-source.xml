@@ -33,6 +33,7 @@
         <property name="logAbandoned" value="${database.logabandoned:true}"/>
         <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
         <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
+        <property name="jdbcInterceptors" value="org.cloudfoundry.identity.uaa.metrics.QueryFilter"/>
     </bean>
 
     <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">

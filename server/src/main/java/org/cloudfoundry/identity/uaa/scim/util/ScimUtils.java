@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
@@ -73,7 +74,7 @@ public final class ScimUtils {
         String codeDataString = JsonUtils.writeValueAsString(codeData);
 
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
-        return codeStore.generateCode(codeDataString, expiresAt, intent.name());
+        return codeStore.generateCode(codeDataString, expiresAt, intent.name(), IdentityZoneHolder.get().getId());
     }
 
     /**

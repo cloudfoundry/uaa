@@ -196,7 +196,7 @@ public class ZonesWriteScopeMockMvcTest  extends InjectedMockContextTest {
 
         ScimGroup group = new ScimGroup(null, "zones.write", subdomain);
         group.setZoneId(zone.getId());
-        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER))));
+        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER)));
         MockMvcUtils.createGroup(getMockMvc(), zoneAdminToken, subdomain, group);
     }
 }

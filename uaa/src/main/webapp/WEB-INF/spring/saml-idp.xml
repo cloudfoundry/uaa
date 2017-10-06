@@ -56,10 +56,21 @@
 
     </bean>
 
+    <bean id="idpInitiatedLogin"
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpInitiatedLoginController">
+        <property name="idpWebSsoProfile" ref="idpWebSsoProfileImpl"/>
+        <property name="metadataManager" ref="idpMetadataManager"/>
+        <property name="configurator" ref="spMetaDataProviders"/>
+        <property name="contextProvider" ref="idpContextProvider"/>
+        <property name="idpSamlAuthenticationSuccessHandler" ref="samlIdpSuccessHandler"/>
+    </bean>
+
     <bean id="idpWebSsoProfileImpl"
         class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpWebSsoProfileImpl">
         <property name="metadata" ref="idpMetadataManager" />
         <property name="processor" ref="idpSamlProcessor" />
+        <property name="samlServiceProviderProvisioning" ref="serviceProviderProvisioning" />
+        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
     </bean>
 
     <!-- Class loading incoming SAML messages from httpRequest stream -->
@@ -95,7 +106,7 @@
     </bean>
 
     <bean id="idpMetadataDisplayFilter"
-        class="org.springframework.security.saml.metadata.MetadataDisplayFilter">
+        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpMetadataDisplayFilter">
         <property name="contextProvider" ref="idpContextProvider" />
         <property name="manager" ref="idpMetadataManager" />
         <property name="filterProcessesUrl" value="/saml/idp/metadata" />

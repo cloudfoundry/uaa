@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.springframework.util.MultiValueMap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,8 +41,8 @@ public class LinkedMaskingMultiValueMapTests {
 
     @Before
     public void setUp() {
-        map = new LinkedMaskingMultiValueMap<String, String>("password");
-        objectMap = new LinkedMaskingMultiValueMap<Object, Object>("password");
+        map = new LinkedMaskingMultiValueMap<>("password");
+        objectMap = new LinkedMaskingMultiValueMap<>("password");
     }
 
     @Test
@@ -108,6 +109,23 @@ public class LinkedMaskingMultiValueMapTests {
         assertTrue(s.indexOf("password") >= 0);
         assertFalse(s.indexOf("password-value") >= 0);
         assertTrue(s.indexOf("PROTECTED") >= 0);
+    }
+
+    @Test
+    public void doNotPrintPasswordWhenArrayConstructorIsUsed() {
+        for (LinkedMaskingMultiValueMap<String,Object> map :
+            Arrays.asList(
+                new LinkedMaskingMultiValueMap<>("password", "code"),
+                new LinkedMaskingMultiValueMap<>(new String[] {"password", "code"}))) {
+            map.add("password", "password-value");
+            map.add("code", "code-value");
+            String s = map.toString();
+            assertTrue(s.indexOf("password") >= 0);
+            assertFalse(s.indexOf("password-value") >= 0);
+            assertTrue(s.indexOf("code") >= 0);
+            assertFalse(s.indexOf("code-value") >= 0);
+            assertTrue(s.indexOf("PROTECTED") >= 0);
+        }
     }
 
     @Test

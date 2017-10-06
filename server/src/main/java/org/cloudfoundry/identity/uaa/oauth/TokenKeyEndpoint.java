@@ -16,11 +16,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -28,6 +32,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.security.Principal;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +49,36 @@ public class TokenKeyEndpoint {
 
     protected final Log logger = LogFactory.getLog(getClass());
 
+    @RequestMapping(value = "/token_key", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<VerificationKeyResponse> getKey(Principal principal,
+            @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
+
+        String lastModified = KeyInfo.getLastModified().toString();
+        if (unmodifiedResource(eTag, lastModified)) {
+            return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+        }
+
+        HttpHeaders header = new HttpHeaders();
+        header.put("ETag", Collections.singletonList(lastModified));
+        return new ResponseEntity<>(getKey(principal), header, HttpStatus.OK);
+    }
+
+
+    @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<VerificationKeysListResponse> getKeys(Principal principal,
+            @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
+        String lastModified = KeyInfo.getLastModified().toString();
+        if (unmodifiedResource(eTag, lastModified)) {
+            return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+        }
+
+        HttpHeaders header = new HttpHeaders();
+        header.put("ETag", Collections.singletonList(lastModified));
+        return new ResponseEntity<>(getKeys(principal), header, HttpStatus.OK);
+    }
+
     /**
      * Get the verification key for the token signatures. The principal has to
      * be provided only if the key is secret
@@ -52,8 +87,6 @@ public class TokenKeyEndpoint {
      * @param principal the currently authenticated user if there is one
      * @return the key used to verify tokens
      */
-    @RequestMapping(value = "/token_key", method = RequestMethod.GET)
-    @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
         KeyInfo key = KeyInfo.getActiveKey();
         if (!includeSymmetricalKeys(principal) && !key.isAssymetricKey()) {
@@ -63,6 +96,10 @@ public class TokenKeyEndpoint {
     }
 
     public static VerificationKeyResponse getVerificationKeyResponse(KeyInfo key) {
+        return new VerificationKeyResponse(getResultMap(key));
+    }
+
+    public static Map<String, Object> getResultMap(KeyInfo key) {
         Map<String, Object> result = new HashMap<>();
         result.put("alg", key.getSigner().algorithm());
         result.put("value", key.getVerifierKey());
@@ -82,7 +119,12 @@ public class TokenKeyEndpoint {
                 result.put("e", e);
             }
         }
-        return new VerificationKeyResponse(result);
+
+        return result;
+    }
+
+    private boolean unmodifiedResource(String eTag, String lastModified) {
+        return !eTag.equals("NaN") && lastModified.equals(eTag);
     }
 
     /**
@@ -94,8 +136,6 @@ public class TokenKeyEndpoint {
      * @param principal the currently authenticated user if there is one
      * @return the key used to verify tokens, wrapped in keys array
      */
-    @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
-    @ResponseBody
     public VerificationKeysListResponse getKeys(Principal principal) {
         boolean includeSymmetric = includeSymmetricalKeys(principal);
         Map<String, KeyInfo> keys = KeyInfo.getKeys();

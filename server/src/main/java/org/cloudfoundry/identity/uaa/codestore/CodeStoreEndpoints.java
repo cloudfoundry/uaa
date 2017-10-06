@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,7 +53,7 @@ public class CodeStoreEndpoints {
     @ResponseBody
     public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {
         try {
-            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), null);
+            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), null, IdentityZoneHolder.get().getId());
         } catch (NullPointerException e) {
             throw new CodeStoreException("data and expiresAt are required.", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException e) {
@@ -67,7 +68,7 @@ public class CodeStoreEndpoints {
     public ExpiringCode retrieveCode(@PathVariable String code) {
         ExpiringCode result = null;
         try {
-            result = expiringCodeStore.retrieveCode(code);
+            result = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         } catch (NullPointerException e) {
             throw new CodeStoreException("code is required.", HttpStatus.BAD_REQUEST);
         }

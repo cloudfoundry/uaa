@@ -68,8 +68,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
 
-    private Set<String> defaultAuthorities = new HashSet<String>();
-
     private boolean caseInsensitive = false;
 
     public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
@@ -86,10 +84,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     public RowMapper<UaaUser> getMapper() {
         return mapper;
-    }
-
-    public void setDefaultAuthorities(Set<String> defaultAuthorities) {
-        this.defaultAuthorities = defaultAuthorities;
     }
 
     public JdbcUaaUserDatabase(JdbcTemplate jdbcTemplate, TimeService timeService) {
@@ -216,18 +210,10 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return new UaaUser(prototype.withAuthorities(authorities));
         }
 
-        private List<GrantedAuthority> getDefaultAuthorities(String defaultAuth) {
-            List<String> authorities = new ArrayList<String>();
-            authorities.addAll(StringUtils.commaDelimitedListToSet(defaultAuth));
-            authorities.addAll(defaultAuthorities);
-            String authsString = StringUtils.collectionToCommaDelimitedString(new HashSet<String>(authorities));
-            return AuthorityUtils.commaSeparatedStringToAuthorityList(authsString);
-        }
-
         private String getAuthorities(final String userId) {
             Set<String> authorities = new HashSet<>();
             getAuthorities(authorities, Arrays.asList(userId));
-            authorities.addAll(defaultAuthorities);
+            authorities.addAll(IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups());
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 

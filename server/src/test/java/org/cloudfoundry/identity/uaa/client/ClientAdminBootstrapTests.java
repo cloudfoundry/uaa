@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -54,6 +55,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -82,7 +84,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         bootstrap = new ClientAdminBootstrap(encoder);
         clientRegistrationService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate));
-        clientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientRegistrationService,clientRegistrationService,jdbcTemplate);
+        clientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientRegistrationService, jdbcTemplate);
         bootstrap.setClientRegistrationService(clientRegistrationService);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
         clientRegistrationService.setPasswordEncoder(encoder);
@@ -125,9 +127,9 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.setAutoApproveClients(singletonList(autoApproveId));
         bootstrap.setClientsToDelete(Arrays.asList(clientId, autoApproveId));
         bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService, never()).addClientDetails(any());
-        verify(clientRegistrationService, never()).updateClientDetails(any());
-        verify(clientRegistrationService, never()).updateClientSecret(any(), any());
+        verify(clientRegistrationService, never()).addClientDetails(any(), anyString());
+        verify(clientRegistrationService, never()).updateClientDetails(any(), anyString());
+        verify(clientRegistrationService, never()).updateClientSecret(any(), any(), anyString());
     }
 
     @Test
@@ -194,7 +196,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("secret", "bar");
         map.put("scope", "openid");
         map.put("authorities", "uaa.none");
-        for (String grantType : Arrays.asList("password", "client_credentials", GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN)) {
+        for (String grantType : Arrays.asList("password", "client_credentials", GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_JWT_BEARER, GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN)) {
             map.put("authorized-grant-types", grantType);
             doSimpleTest(map);
         }
@@ -227,7 +229,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
         bootstrap.afterPropertiesSet();
 
-        ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve("foo");
+        ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve("foo", IdentityZoneHolder.get().getId());
         assertTrue(clientMetadata.isShowOnHomePage());
         assertEquals("http://takemetothispage.com", clientMetadata.getAppLaunchUrl().toString());
         assertEquals("bAsE64encODEd/iMAgE=", clientMetadata.getAppIcon());
@@ -274,14 +276,14 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         output.setClientSecret("bar");
         bootstrap.setAutoApproveClients(Arrays.asList("foo", "non-existent-client"));
 
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
-        doReturn(output).when(clientRegistrationService).loadClientByClientId(eq("foo"));
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
+        doReturn(output).when(clientRegistrationService).loadClientByClientId(eq("foo"), anyString());
         bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
 
         BaseClientDetails expectedAdd = new BaseClientDetails(output);
 
         bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService).addClientDetails(expectedAdd);
+        verify(clientRegistrationService).addClientDetails(expectedAdd, IdentityZoneHolder.get().getId());
         BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
         expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
         verify(clientRegistrationService).updateClientDetails(expectedUpdate);
@@ -301,15 +303,43 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("override", true);
         map.put("authorized-grant-types", "client_credentials");
         bootstrap.setClients(Collections.singletonMap("foo", map));
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
 
         doThrow(new ClientAlreadyExistsException("Planned"))
-            .when(clientRegistrationService).addClientDetails(any(ClientDetails.class));
+            .when(clientRegistrationService).addClientDetails(any(ClientDetails.class), anyString());
         bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
+        verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
         ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
-        verify(clientRegistrationService, times(1)).updateClientDetails(captor.capture());
-        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
+        verify(clientRegistrationService, times(1)).updateClientDetails(captor.capture(), anyString());
+        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar", IdentityZoneHolder.get().getId());
+        assertEquals(new HashSet(Arrays.asList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
+    }
+
+    @Test
+    public void testOverrideClientWithEmptySecret() throws Exception {
+        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
+        bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+
+        BaseClientDetails foo = new BaseClientDetails("foo", "", "openid", "client_credentials,password", "uaa.none");
+        foo.setClientSecret("secret");
+        clientRegistrationService.addClientDetails(foo);
+
+        reset(clientRegistrationService);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("secret", null);
+        map.put("override", true);
+        map.put("authorized-grant-types", "client_credentials");
+        bootstrap.setClients(Collections.singletonMap("foo", map));
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
+
+        doThrow(new ClientAlreadyExistsException("Planned"))
+            .when(clientRegistrationService).addClientDetails(any(ClientDetails.class), anyString());
+        bootstrap.afterPropertiesSet();
+        verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+        ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
+        verify(clientRegistrationService, times(1)).updateClientDetails(captor.capture(), anyString());
+        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "", IdentityZoneHolder.get().getId());
         assertEquals(new HashSet(Arrays.asList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
     }
 
@@ -327,13 +357,16 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("redirect-uri", "http://localhost/callback");
         map.put("authorized-grant-types","client_credentials");
         bootstrap.setClients(Collections.singletonMap("foo", map));
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
-        doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
-                        any(ClientDetails.class));
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
+        doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService)
+            .addClientDetails(
+                any(ClientDetails.class),
+                anyString()
+            );
         bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
-        verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
-        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
+        verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+        verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class), anyString());
+        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar", IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -367,14 +400,14 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.setClients(clients);
 
         reset(clientRegistrationService);
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
-                        any(ClientDetails.class));
+                        any(ClientDetails.class), anyString());
         bootstrap.afterPropertiesSet();
-        verify(clientRegistrationService, times(2)).addClientDetails(any(ClientDetails.class));
-        verify(clientRegistrationService, times(2)).updateClientDetails(any(ClientDetails.class));
-        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
-        verify(clientRegistrationService, times(1)).updateClientSecret("bar", "bar");
+        verify(clientRegistrationService, times(2)).addClientDetails(any(ClientDetails.class), anyString());
+        verify(clientRegistrationService, times(2)).updateClientDetails(any(ClientDetails.class), anyString());
+        verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar", IdentityZoneHolder.get().getId());
+        verify(clientRegistrationService, times(1)).updateClientSecret("bar", "bar", IdentityZoneHolder.get().getId());
     }
 
     @Test

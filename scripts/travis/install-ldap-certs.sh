@@ -26,10 +26,9 @@ function generate_keystore {
 }
 
 function setup_ldap_certs_for_tests {
-    generate_keystore valid-self-signed-ldap-cert 3650 $DIR/valid-self-signed-ldap-cert.jks
-    generate_keystore expired-self-signed-ldap-cert 1 $DIR/expired-self-signed-ldap-cert.jks
+    generate_keystore valid-self-signed-ldap-cert 3650 $TMPDIR/valid-self-signed-ldap-cert.jks
+    generate_keystore expired-self-signed-ldap-cert 1 $TMPDIR/expired-self-signed-ldap-cert.jks
 }
-
 
 function install_cert {
     #define the certificate to import
@@ -73,8 +72,7 @@ function install_cert {
     ## END CERTIFICATE INSTALLATION
 }
 
-#DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DIR=/tmp
+TMPDIR=${TMPDIR:-/tmp}
 setup_ldap_certs_for_tests
-install_cert $DIR/expired-self-signed-ldap-cert.jks.crt expired-self-signed-ldap-cert
-install_cert $DIR/valid-self-signed-ldap-cert.jks.crt valid-self-signed-ldap-cert
+install_cert $TMPDIR/expired-self-signed-ldap-cert.jks.crt expired-self-signed-ldap-cert
+install_cert $TMPDIR/valid-self-signed-ldap-cert.jks.crt valid-self-signed-ldap-cert

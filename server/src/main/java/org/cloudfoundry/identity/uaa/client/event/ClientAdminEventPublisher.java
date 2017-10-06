@@ -16,13 +16,14 @@ package org.cloudfoundry.identity.uaa.client.event;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 
 /**
  * Event publisher for client registration changes with the resulting event type
@@ -35,14 +36,14 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
  */
 public class ClientAdminEventPublisher implements ApplicationEventPublisherAware {
 
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
 
     private ApplicationEventPublisher publisher;
 
     /**
      * @param clientDetailsService the clientDetailsService to set
      */
-    public ClientAdminEventPublisher(ClientDetailsService clientDetailsService) {
+    public ClientAdminEventPublisher(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -129,7 +130,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
 
     private ClientDetails getClient(String clientId) {
         try {
-            return clientDetailsService.loadClientByClientId(clientId);
+            return clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         } catch (InvalidClientException e) {
             return null;
         }

@@ -24,20 +24,22 @@ public interface ExpiringCodeStore {
      *
      * @param data JSON object to be associated with the code
      * @param intent An optional key (not necessarily unique) for looking up codes
+     * @param zoneId
      * @return code the generated one-time code
      * @throws java.lang.NullPointerException if data or expiresAt is null
      * @throws java.lang.IllegalArgumentException if expiresAt is in the past
      */
-    ExpiringCode generateCode(String data, Timestamp expiresAt, String intent);
+    ExpiringCode generateCode(String data, Timestamp expiresAt, String intent, String zoneId);
 
     /**
      * Retrieve a code and delete it if it exists.
      *
      * @param code the one-time code to look for
+     * @param zoneId
      * @return code or null if the code is not found
      * @throws java.lang.NullPointerException if the code is null
      */
-    ExpiringCode retrieveCode(String code);
+    ExpiringCode retrieveCode(String code, String zoneId);
 
     /**
      * Set the code generator for this store.
@@ -50,8 +52,9 @@ public interface ExpiringCodeStore {
      * Remove all codes matching a given intent.
      *
      * @param intent Intent of codes to remove
+     * @param zoneId
      */
-    void expireByIntent(String intent);
+    void expireByIntent(String intent, String zoneId);
 
     default String zonifyCode(String code) {
         return code + "[zone[" + IdentityZoneHolder.get().getId()+"]]";

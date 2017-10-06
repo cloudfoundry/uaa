@@ -234,6 +234,14 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
     }
 
+    @SuppressWarnings("rawtypes")
+    public ResponseEntity<Map> postForMap(String path, String requestBody, HttpHeaders headers) {
+        if (headers.getContentType() == null) {
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        }
+        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<>(requestBody, headers), Map.class);
+    }
+
     public ResponseEntity<String> getForString(String path) {
         return getForString(path, new HttpHeaders());
     }

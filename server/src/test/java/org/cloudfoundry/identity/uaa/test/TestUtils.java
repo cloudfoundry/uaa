@@ -12,6 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,15 +25,18 @@ import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 /**
  * Common methods for DB manipulation and so on.
  *
- * @author Luke Taylor
- * @author Dave Syer
  *
  */
 public class TestUtils {
@@ -38,6 +44,38 @@ public class TestUtils {
     private static Environment environment = TestProfileEnvironment.getEnvironment();
 
     private static String platform = environment.acceptsProfiles("postgresql") ? "postgresql" : "hsqldb";
+
+    public static void cleanTestDatabaseData(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("DELETE FROM authz_approvals");
+        jdbcTemplate.update("DELETE FROM expiring_code_store");
+        jdbcTemplate.update("DELETE FROM external_group_mapping");
+        jdbcTemplate.update("DELETE FROM group_membership");
+        jdbcTemplate.update("DELETE FROM groups");
+        jdbcTemplate.update("DELETE FROM identity_provider");
+        jdbcTemplate.update("DELETE FROM identity_zone");
+        jdbcTemplate.update("DELETE FROM oauth_client_details");
+        jdbcTemplate.update("DELETE FROM oauth_code");
+        jdbcTemplate.update("DELETE FROM revocable_tokens");
+        jdbcTemplate.update("DELETE FROM sec_audit");
+        jdbcTemplate.update("DELETE FROM service_provider");
+        jdbcTemplate.update("DELETE FROM user_info");
+        jdbcTemplate.update("DELETE FROM users");
+
+        //this is data that the migration scripts insert
+        jdbcTemplate.update("INSERT INTO identity_zone (id,version,subdomain,name,description,config) VALUES ('uaa',0,'','uaa','The system zone for backwards compatibility',null)");
+
+        JdbcIdentityProviderProvisioning idp = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        for (String origin : Arrays.asList(UAA, LDAP, LOGIN_SERVER, KEYSTONE)) {
+            IdentityProvider provider = new IdentityProvider()
+                .setOriginKey(origin)
+                .setActive(true)
+                .setIdentityZoneId(IdentityZone.getUaa().getId())
+                .setName(origin)
+                .setType(origin);
+            idp.create(provider);
+        }
+    }
+
 
     public static void runScript(DataSource dataSource, String stem) throws Exception {
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();

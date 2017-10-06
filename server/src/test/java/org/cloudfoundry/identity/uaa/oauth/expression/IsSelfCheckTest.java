@@ -168,7 +168,7 @@ public class IsSelfCheckTest {
             .setUserId(id)
             .setClientId(clientId);
         request.setPathInfo("/oauth/token/revoke/"+revocableUserToken.getTokenId());
-        when(tokenProvisioning.retrieve(eq(revocableUserToken.getTokenId()))).thenReturn(revocableUserToken);
+        when(tokenProvisioning.retrieve(eq(revocableUserToken.getTokenId()), eq(IdentityZoneHolder.get().getId()))).thenReturn(revocableUserToken);
 
         //test with user authentication
         SecurityContextHolder.getContext().setAuthentication(oAuth2AuthenticationWithUser);

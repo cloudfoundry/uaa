@@ -17,6 +17,8 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -47,7 +49,7 @@ import java.util.Set;
 public class LocalUaaRestTemplate extends OAuth2RestTemplate implements InitializingBean {
     protected AuthorizationServerTokenServices tokenServices;
     protected String clientId;
-    protected ClientDetailsService clientDetailsService;
+    protected ClientServicesExtension clientDetailsService;
     protected boolean verifySsl = true;
 
     public LocalUaaRestTemplate(OAuth2ProtectedResourceDetails resource) {
@@ -60,7 +62,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
 
     @Override
     public OAuth2AccessToken acquireAccessToken(OAuth2ClientContext oauth2Context) throws UserRedirectRequiredException {
-        ClientDetails client = clientDetailsService.loadClientByClientId(getClientId());
+        ClientDetails client = clientDetailsService.loadClientByClientId(getClientId(), IdentityZoneHolder.get().getId());
         Set<String> scopes = new HashSet<>();
         for (GrantedAuthority authority : client.getAuthorities()) {
             scopes.add(authority.getAuthority());
@@ -108,7 +110,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         return clientDetailsService;
     }
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

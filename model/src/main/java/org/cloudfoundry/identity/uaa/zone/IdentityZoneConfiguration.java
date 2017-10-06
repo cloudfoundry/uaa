@@ -24,6 +24,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IdentityZoneConfiguration {
 
+    private ClientSecretPolicy clientSecretPolicy = new ClientSecretPolicy();
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
     private CorsPolicy corsPolicy = new CorsPolicy();
@@ -36,11 +37,20 @@ public class IdentityZoneConfiguration {
     private boolean idpDiscoveryEnabled = false;
     private BrandingInformation branding;
     private boolean accountChooserEnabled;
+    private UserConfig userConfig = new UserConfig();
 
     public IdentityZoneConfiguration() {}
 
     public IdentityZoneConfiguration(TokenPolicy tokenPolicy) {
         this.tokenPolicy = tokenPolicy;
+    }
+
+    public ClientSecretPolicy getClientSecretPolicy() {
+        return clientSecretPolicy;
+    }
+
+    public void setClientSecretPolicy(ClientSecretPolicy clientSecretPolicy) {
+        this.clientSecretPolicy = clientSecretPolicy;
     }
 
     public TokenPolicy getTokenPolicy() {
@@ -107,5 +117,13 @@ public class IdentityZoneConfiguration {
     }
     public boolean isAccountChooserEnabled() {
         return accountChooserEnabled;
+    }
+
+    public UserConfig getUserConfig() {
+        return userConfig;
+    }
+
+    public void setUserConfig(UserConfig userConfig) {
+        this.userConfig = userConfig;
     }
 }

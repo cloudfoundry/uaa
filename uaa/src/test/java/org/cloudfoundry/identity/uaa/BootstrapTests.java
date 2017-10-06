@@ -12,14 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import java.io.IOException;
-import javax.servlet.RequestDispatcher;
-import javax.sql.DataSource;
-
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -37,6 +36,10 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
+
+import javax.servlet.RequestDispatcher;
+import javax.sql.DataSource;
+import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -103,12 +106,30 @@ public class BootstrapTests {
                             ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
                                             .toString());
             ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
-            assertNotNull(users.query("username eq \"paul\"").get(0));
-            assertNotNull(users.query("username eq \"stefan\"").get(0));
+            assertNotNull(users.query("username eq \"paul\"", IdentityZoneHolder.get().getId()).get(0));
+            assertNotNull(users.query("username eq \"stefan\"", IdentityZoneHolder.get().getId()).get(0));
         } finally {
             System.clearProperty(configVariable);
         }
     }
+
+    @Test
+    public void testBrandingProperties() {
+        System.setProperty("UAA_CONFIG_FILE", "./src/test/resources/test/config/uaa.yml");
+        System.setProperty("environmentYamlKey", "environmentYamlKey");
+        try {
+            context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+            Banner banner = IdentityZoneHolder.resolveBranding().getBanner();
+            assertEquals("cool beagle", banner.getText());
+            assertEquals("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAATBJREFUeNqk008og3Ecx/HNnrJSu63kIC5qKRe7KeUiOSulTHJUTrsr0y5ycFaEgyQXElvt5KDYwU0uO2hSUy4KoR7v7/qsfmjPHvzq1e/XU8/39/3zPFHf9yP/WV7jED24nGRbxDFWUAsToM05zyKFLG60d/wmQBxWzwyOlMU1phELEyCmtPeRQRoVbKOM0VYB6q0QW+3IYQpJFFDEYFCAiMqwNY857Ko3SxjGBTbRXb+xMUamcMbWh148YwJvOHSCdyqTAdxZo72ADGwKT98C9CChcxUPQSVYLz50toae4Fy9WcAISl7AiN/RhS1N5RV5rOLxx5eom90pvGAI/VjHMm6bfspK18a1gXvsqM41XDVL052C1Tim56cYd/rR+mdSrXGluxfm5S8Z/HV9CjAAvQZLXoa5mpgAAAAASUVORK5CYII=", banner.getLogo());
+            assertEquals("#F23456", banner.getTextColor());
+            assertEquals("#F99999", banner.getBackgroundColor());
+            assertEquals("http://example.com", banner.getLink());
+        } finally {
+            System.clearProperty("UAA_CONFIG_FILE");
+        }
+    }
+
     private ConfigurableApplicationContext getServletContext(String... resources) {
         String environmentConfigLocations = "required_configuration.yml,${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml";
         String profiles = null;

@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,12 +53,14 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -80,16 +84,22 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
+    private final ScimGroupProvisioning groupProvisioning;
 
-    @Autowired
     private IdentityZoneValidator validator;
 
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
-                                 IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
+                                 IdentityZoneEndpointClientRegistrationService clientRegistrationService,
+                                 ScimGroupProvisioning groupProvisioning) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
         this.clientRegistrationService = clientRegistrationService;
+        this.groupProvisioning = groupProvisioning;
+    }
+
+    public void setValidator(IdentityZoneValidator validator) {
+        this.validator = validator;
     }
 
     @Override
@@ -188,7 +198,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.CREATE);
         } catch (InvalidIdentityZoneDetailsException ex) {
-            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
+            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         }
 
         if (!StringUtils.hasText(body.getId())) {
@@ -198,6 +209,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             logger.debug("Zone - creating id[" + body.getId() + "] subdomain[" + body.getSubdomain() + "]");
             IdentityZone created = zoneDao.create(body);
+            logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
             defaultIdp.setName(OriginKeys.UAA);
@@ -208,10 +220,30 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             idpDefinition.setPasswordPolicy(null);
             defaultIdp.setConfig(idpDefinition);
             idpDao.create(defaultIdp);
-            logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
+            logger.debug("Created default IDP in zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
+            createUserGroups(created);
             return new ResponseEntity<>(removeKeys(created), CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
+        }
+    }
+
+    public void createUserGroups(IdentityZone zone) {
+        UserConfig userConfig = zone.getConfig().getUserConfig();
+        if (userConfig != null) {
+            List<String> defaultGroups = ofNullable(userConfig.getDefaultGroups()).orElse(Collections.emptyList());
+            logger.debug(String.format("About to create default groups count: %s for subdomain: %s", defaultGroups.size(), zone.getSubdomain()));
+            for (String group : defaultGroups) {
+                logger.debug(String.format("Creating zone default group: %s for subdomain: %s", group, zone.getSubdomain()));
+                groupProvisioning.createOrGet(
+                    new ScimGroup(
+                        null,
+                        group,
+                        zone.getId()
+                    ),
+                    zone.getId()
+                );
+            }
         }
     }
 
@@ -240,7 +272,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
         } catch (InvalidIdentityZoneDetailsException ex) {
-            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
+            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         }
 
         IdentityZone previous = IdentityZoneHolder.get();
@@ -251,6 +284,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated); //what???
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
+            createUserGroups(updated);
             return new ResponseEntity<>(removeKeys(updated), OK);
         } finally {
             IdentityZoneHolder.set(previous);

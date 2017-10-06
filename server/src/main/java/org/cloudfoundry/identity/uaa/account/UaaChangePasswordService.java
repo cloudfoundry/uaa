@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -48,17 +49,17 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
             throw new BadCredentialsException(username);
         }
         passwordValidator.validate(newPassword);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + username + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + username + "\"", IdentityZoneHolder.get().getId());
         if (results.isEmpty()) {
             throw new ScimResourceNotFoundException("User not found");
         }
         ScimUser user = results.get(0);
         UaaUser uaaUser = getUaaUser(user);
         try {
-            if (scimUserProvisioning.checkPasswordMatches(user.getId(), newPassword)) {
+            if (scimUserProvisioning.checkPasswordMatches(user.getId(), newPassword, IdentityZoneHolder.get().getId())) {
                 throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
-            scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword);
+            scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword, IdentityZoneHolder.get().getId());
             publish(new PasswordChangeEvent("Password changed", uaaUser, SecurityContextHolder.getContext().getAuthentication()));
         } catch (Exception e) {
             publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, SecurityContextHolder.getContext().getAuthentication()));

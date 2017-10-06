@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 
+import org.springframework.util.StringUtils;
+
 public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
     private final IdentityZoneConfigurationValidator configValidator;
 
@@ -29,7 +31,8 @@ public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
         try {
             identityZone.setConfig(configValidator.validate(identityZone.getConfig(), mode));
         } catch (InvalidIdentityZoneConfigurationException ex) {
-            throw new InvalidIdentityZoneDetailsException("The zone configuration is invalid.", ex);
+            String configErrorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            throw new InvalidIdentityZoneDetailsException("The zone configuration is invalid. " + configErrorMessage, ex);
         }
         return identityZone;
     }

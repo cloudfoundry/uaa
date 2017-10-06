@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,30 +25,53 @@ import org.opensaml.xml.signature.SignatureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml.context.SAMLMessageContext;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class IdpWebSsoProfileImplTest {
 
     private final SamlTestUtils samlTestUtils = new SamlTestUtils();
+    private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning = mock(JdbcSamlServiceProviderProvisioning.class);
+    private JdbcScimUserProvisioning scimUserProvisioning = mock(JdbcScimUserProvisioning.class);
+    private IdpWebSsoProfileImpl profile;
+    private ScimUser user;
+    private SamlServiceProvider samlServiceProvider;
 
     @Before
     public void setup() throws ConfigurationException {
         samlTestUtils.initialize();
+
+        profile = new IdpWebSsoProfileImpl();
+        user = new ScimUser(null, "johndoe", "John", "Doe");
+
+        samlServiceProvider = new SamlServiceProvider();
+        SamlServiceProviderDefinition config = new SamlServiceProviderDefinition();
+        config.setAttributeMappings(new HashMap<>());
+        samlServiceProvider.setConfig(config);
+
+        when(scimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
+        when(samlServiceProviderProvisioning.retrieveByEntityId(any(), any())).thenReturn(samlServiceProvider);
+        profile.setScimUserProvisioning(scimUserProvisioning);
+        profile.setSamlServiceProviderProvisioning(samlServiceProviderProvisioning);
     }
 
     @Test
-    public void testBuildResponseForSamlRequestWithPersistentNameID() throws MessageEncodingException, SAMLException,
-            MetadataProviderException, SecurityException, MarshallingException, SignatureException {
-        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
-
+    public void testBuildResponseForSamlRequestWithPersistentNameID() throws Exception {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
-        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
-                samlTestUtils.mockAuthnRequest(NameIDType.PERSISTENT));
+        SAMLMessageContext context =
+            samlTestUtils.mockSamlMessageContext(samlTestUtils.mockAuthnRequest(NameIDType.PERSISTENT));
 
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
         options.setAssertionsSigned(false);
@@ -69,8 +94,6 @@ public class IdpWebSsoProfileImplTest {
     @Test
     public void testBuildResponseForSamlRequestWithUnspecifiedNameID() throws MessageEncodingException, SAMLException,
             MetadataProviderException, SecurityException, MarshallingException, SignatureException {
-        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
-
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
@@ -97,8 +120,6 @@ public class IdpWebSsoProfileImplTest {
     @Test
     public void testBuildResponseForSamlRequestWithEmailAddressNameID() throws MessageEncodingException, SAMLException,
             MetadataProviderException, SecurityException, MarshallingException, SignatureException {
-        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
-
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
@@ -125,8 +146,6 @@ public class IdpWebSsoProfileImplTest {
     @Test
     public void testBuildResponse() throws MessageEncodingException, SAMLException, MetadataProviderException,
             SecurityException, MarshallingException, SignatureException {
-        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
-
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
@@ -151,6 +170,64 @@ public class IdpWebSsoProfileImplTest {
         verifyAssertionAttributes(authenticationId, assertion);
     }
 
+    @Test
+    public void verifyAttributeMappings() throws Exception {
+        String phone = "123";
+        user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber(phone)));
+        when(scimUserProvisioning.extractPhoneNumber(any(ScimUser.class))).thenReturn(phone);
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        attributeMappings.put("family_name", "last_name");
+        attributeMappings.put("phone_number", "cell_phone");
+        samlServiceProvider.getConfig().setAttributeMappings(attributeMappings);
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+            samlTestUtils.mockAuthnRequest(NameIDType.UNSPECIFIED));
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+
+        profile.buildAttributeStatement(assertion, authentication, samlServiceProvider.getEntityId());
+
+        List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
+
+        assertAttributeValue(attributes, "first_name", user.getGivenName());
+        assertAttributeValue(attributes, "last_name", user.getFamilyName());
+        assertAttributeValue(attributes, "cell_phone", user.getPhoneNumbers().get(0).getValue());
+    }
+
+    @Test
+    public void verifyAttributeMappingsIgnoredForNullValues() throws Exception {
+        user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber(null)));
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        attributeMappings.put("phone_number", "cell_phone");
+
+        samlServiceProvider.getConfig().setAttributeMappings(attributeMappings);
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+            samlTestUtils.mockAuthnRequest(NameIDType.UNSPECIFIED));
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+
+        profile.buildAttributeStatement(assertion, authentication, samlServiceProvider.getEntityId());
+
+        List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
+
+        assertAttributeValue(attributes, "first_name", user.getGivenName());
+        assertAttributeDoesNotExist(attributes, "last_name");
+        assertAttributeDoesNotExist(attributes, "cell_phone");
+    }
+
     private void verifyAssertionAttributes(String authenticationId, Assertion assertion) {
         List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
         assertAttributeValue(attributes, "email", "marissa@testing.org");
@@ -160,8 +237,15 @@ public class IdpWebSsoProfileImplTest {
         assertAttributeValue(attributes, "zoneId", "uaa");
     }
 
-    private void assertAttributeValue(List<Attribute> attributeList, String name, String expectedValue) {
+    private void assertAttributeDoesNotExist(List<Attribute> attributeList, String name) {
+        List<String> matchedAttributes = attributeList.stream()
+            .map(Attribute::getName)
+            .filter(name::equals)
+            .collect(Collectors.toList());
+        assertEquals(0, matchedAttributes.size());
+    }
 
+    private void assertAttributeValue(List<Attribute> attributeList, String name, String expectedValue) {
         for (Attribute attribute : attributeList) {
             if (attribute.getName().equals(name)) {
                 if (1 != attribute.getAttributeValues().size()) {
@@ -180,8 +264,6 @@ public class IdpWebSsoProfileImplTest {
     @Test
     public void testBuildResponseWithSignedAssertion() throws MessageEncodingException, SAMLException,
             MetadataProviderException, SecurityException, MarshallingException, SignatureException {
-        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
-
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();

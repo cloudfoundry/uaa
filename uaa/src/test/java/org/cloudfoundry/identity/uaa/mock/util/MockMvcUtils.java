@@ -39,9 +39,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
@@ -56,7 +53,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -108,12 +104,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
-import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -381,7 +377,8 @@ public final class MockMvcUtils {
         IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
         BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite", redirectUri);
         appClient.setClientSecret("secret");
-        appClient = utils().createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone());
+        appClient = utils().createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone(),
+                                                                            status().isCreated());
         appClient.setClientSecret("secret");
         String adminToken = utils().getClientCredentialsOAuthAccessToken(
             mockMvc,
@@ -400,7 +397,7 @@ public final class MockMvcUtils {
         user.setPassword("password");
 
         ScimGroup group = new ScimGroup("scim.invite");
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER, Arrays.asList(MEMBER))));
+        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER)));
 
         return new ZoneScimInviteData(
                 adminToken,
@@ -524,6 +521,17 @@ public final class MockMvcUtils {
 
     public static IdentityZone updateIdentityZone(IdentityZone zone, ApplicationContext context) {
         return context.getBean(IdentityZoneProvisioning.class).update(zone);
+    }
+
+    public static void deleteIdentityZone(String zoneId, MockMvc mockMvc) throws Exception {
+        String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
+            "zones.write,scim.zones", null);
+
+        mockMvc.perform(delete("/identity-zones/" + zoneId)
+            .header("Authorization", "Bearer " + identityToken)
+            .contentType(APPLICATION_JSON)
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk());
     }
 
     public static IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token,
@@ -666,43 +674,6 @@ public final class MockMvcUtils {
             ScimGroup.class);
     }
 
-    public static void createClient(ApplicationContext context, BaseClientDetails client, String zoneId) throws Exception {
-        IdentityZone original = IdentityZoneHolder.get();
-        try {
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone(zoneId,zoneId));
-            context.getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(client);
-        } finally {
-            IdentityZoneHolder.set(original);
-        }
-
-    }
-
-    public static void mapExternalGroup(ApplicationContext context, String groupId, String externalGroup, String origin, String zoneId) throws Exception {
-        JdbcScimGroupExternalMembershipManager gm = context.getBean(JdbcScimGroupExternalMembershipManager.class);
-        IdentityZone original = IdentityZoneHolder.get();
-        try {
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone(zoneId,zoneId));
-            gm.mapExternalGroup(groupId, externalGroup, origin);
-        } finally {
-            IdentityZoneHolder.set(original);
-        }
-    }
-
-    public static ScimGroup createGroup(ApplicationContext context, ScimGroup group, String zoneId) throws Exception {
-        JdbcScimGroupProvisioning gp = context.getBean(JdbcScimGroupProvisioning.class);
-        try {
-            return gp.create(group, zoneId);
-        } catch (ScimResourceAlreadyExistsException e) {
-            String filter = "displayName eq \""+group.getDisplayName()+"\"";
-            IdentityZone original = IdentityZoneHolder.get();
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone(zoneId, zoneId));
-            try {
-                return gp.query(filter).get(0);
-            } finally {
-                IdentityZoneHolder.set(original);
-            }
-        }
-    }
 
     public static ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group, String zoneId) throws Exception {
         MockHttpServletRequestBuilder post = post("/Groups")
@@ -738,10 +709,11 @@ public final class MockMvcUtils {
     }
 
     public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
-        return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa());
+        return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa(), status().isCreated());
     }
 
-    public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
+    public static BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails,
+                                                 IdentityZone zone, ResultMatcher status)
             throws Exception {
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + accessToken)
@@ -753,7 +725,7 @@ public final class MockMvcUtils {
         }
         return JsonUtils.readValue(
             mockMvc.perform(createClientPost)
-                .andExpect(status().isCreated())
+                .andExpect(status)
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
@@ -771,7 +743,7 @@ public final class MockMvcUtils {
 
     public static ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris, IdentityZone zone) throws Exception {
         ClientDetailsModification client = getClientDetailsModification(id, secret, resourceIds, scopes, grantTypes, authorities, redirectUris);
-        return createClient(mockMvc,adminAccessToken, client, zone);
+        return createClient(mockMvc,adminAccessToken, client, zone, status().isCreated());
     }
 
     public static ClientDetailsModification getClientDetailsModification(String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris) {
@@ -979,7 +951,7 @@ public final class MockMvcUtils {
         user = (zone == null) ? createUser(mockMvc, adminToken, user) : createUserInZone(mockMvc,adminToken,user,zone.getSubdomain(), null);
 
         String scope = "scim.invite";
-        ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
+        ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
         ScimGroup inviteGroup = new ScimGroup(scope);
 
         if (zone!=null) {
@@ -1054,7 +1026,7 @@ public final class MockMvcUtils {
             try {
                 IdentityZoneHolder.set(zone);
                 ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
-                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
+                ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
                 UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
                 SecurityContext securityContext = new SecurityContextImpl();

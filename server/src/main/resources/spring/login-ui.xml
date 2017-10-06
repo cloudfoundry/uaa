@@ -439,18 +439,8 @@
     <!--apply the oauth client context -->
     <oauth:client id="oauth2ClientFilter"/>
 
-    <oauth:rest-template id="restTemplate" resource="userApprovals"/>
-
-    <!--define an oauth 2 resource for api access -->
-    <oauth:resource id="userApprovals" type="authorization_code" client-id="login"
-                    client-secret="${LOGIN_SECRET:loginsecret}"
-                    access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
-                    user-authorization-uri="${login.authorize.url:http://localhost:8080/uaa/oauth/authorize}"/>
-
-    <bean id="approvalsService" class="org.cloudfoundry.identity.uaa.approval.LoginUaaApprovalsService"/>
-
     <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.account.ProfileController">
-        <constructor-arg index="0" ref="approvalsService"/>
+        <constructor-arg index="0" ref="approvalStore"/>
         <constructor-arg index="1" ref="jdbcClientDetailsService"/>
     </bean>
 
@@ -644,7 +634,6 @@
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="userDatabase"/>
-        <constructor-arg ref="accountSavingAuthenticationSuccessHandler"/>
     </bean>
 
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.account.ChangeEmailController">

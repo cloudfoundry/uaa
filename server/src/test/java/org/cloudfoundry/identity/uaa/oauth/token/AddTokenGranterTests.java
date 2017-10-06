@@ -14,10 +14,10 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.CompositeTokenGranter;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenGranter;
@@ -41,7 +41,7 @@ public class AddTokenGranterTests {
         compositeTokenGranter = new CompositeTokenGranter(emptyList());
         userTokenGranter = new UserTokenGranter(
             mock(AuthorizationServerTokenServices.class),
-            mock(ClientDetailsService.class),
+            mock(ClientServicesExtension.class),
             mock(OAuth2RequestFactory.class),
             mock(RevocableTokenProvisioning.class)
         );

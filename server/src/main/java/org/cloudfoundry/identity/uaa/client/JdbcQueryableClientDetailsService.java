@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -64,42 +63,31 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     }
 
     @Override
-    public List<ClientDetails> query(String filter, String sortBy, boolean ascending) {
-        //validate syntax
-        getQueryConverter().convert(filter, sortBy, ascending);
-        if (StringUtils.hasText(filter)) {
-            filter = "(" + filter + ") and ";
-        }
-        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
-        return super.query(filter, sortBy, ascending);
+    public List<ClientDetails> retrieveAll(String zoneId) {
+        return delegate.listClientDetails(zoneId);
     }
 
     @Override
-    public List<ClientDetails> retrieveAll() {
-        return delegate.listClientDetails();
+    public ClientDetails retrieve(String id, String zoneId) {
+        return delegate.loadClientByClientId(id, zoneId);
     }
 
     @Override
-    public ClientDetails retrieve(String id) {
-        return delegate.loadClientByClientId(id);
+    public ClientDetails create(ClientDetails resource, String zoneId) {
+        delegate.addClientDetails(resource, zoneId);
+        return delegate.loadClientByClientId(resource.getClientId(), zoneId);
     }
 
     @Override
-    public ClientDetails create(ClientDetails resource) {
-        delegate.addClientDetails(resource);
-        return delegate.loadClientByClientId(resource.getClientId());
+    public ClientDetails update(String id, ClientDetails resource, String zoneId) {
+        delegate.updateClientDetails(resource, zoneId);
+        return delegate.loadClientByClientId(id, zoneId);
     }
 
     @Override
-    public ClientDetails update(String id, ClientDetails resource) {
-        delegate.updateClientDetails(resource);
-        return delegate.loadClientByClientId(id);
-    }
-
-    @Override
-    public ClientDetails delete(String id, int version) {
-        ClientDetails client = delegate.loadClientByClientId(id);
-        delegate.onApplicationEvent(new EntityDeletedEvent<ClientDetails>(client, SecurityContextHolder.getContext().getAuthentication()));
+    public ClientDetails delete(String id, int version, String zoneId) {
+        ClientDetails client = delegate.loadClientByClientId(id, zoneId);
+        delegate.onApplicationEvent(new EntityDeletedEvent<>(client, SecurityContextHolder.getContext().getAuthentication()));
         return client;
     }
 

@@ -47,6 +47,7 @@
         <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
         <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.read','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
+        <intercept-url pattern="/**" access="denyAll"/>
         <custom-filter ref="oauthWithoutResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <expression-handler ref="oauthWebExpressionHandler" />
@@ -98,6 +99,7 @@
 
     <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
         <property name="clientDetailsService" ref="clientDetailsService" />
+        <property name="clientSecretValidator" ref="zoneAwareClientSecretPolicyValidator"/>
     </bean>
 
     <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher">

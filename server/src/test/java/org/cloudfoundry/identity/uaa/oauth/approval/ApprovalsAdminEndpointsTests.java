@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -38,14 +39,12 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
 import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -97,12 +96,11 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         endpoints = new ApprovalsAdminEndpoints();
         endpoints.setApprovalStore(dao);
         endpoints.setUaaUserDatabase(userDao);
-        InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+        MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
                         "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Arrays.asList("true"));
-        clientDetailsService.setClientDetailsStore(Collections
-                        .singletonMap("c1", details));
+        clientDetailsService.addClientDetails(details);
         endpoints.setClientDetailsService(clientDetailsService);
 
         endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getUsername(), marissa.getId()));
@@ -116,7 +114,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
             .setClientId(clientId)
             .setScope(scope)
             .setExpiresAt(Approval.timeFromNow(expiresIn))
-            .setStatus(status));
+            .setStatus(status), IdentityZoneHolder.get().getId());
     }
 
     private SecurityContextAccessor mockSecurityContextAccessor(String userName, String id) {
@@ -380,27 +378,27 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     }
 
     public void revokeApprovalsCountForUser(String userId) {
-        assertTrue(dao.revokeApprovalsForClient(userId));
+        assertTrue(dao.revokeApprovalsForClient(userId, IdentityZoneHolder.get().getId()));
     }
 
     public void revokeApprovalsCountForClient(String clientId) {
-        assertTrue(dao.revokeApprovalsForClient(clientId));
+        assertTrue(dao.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId()));
     }
 
     public void revokeApprovalsCountForClientAndUser(String clientId, String userId) {
-        assertTrue(dao.revokeApprovalsForClientAndUser(clientId, userId));
+        assertTrue(dao.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId()));
     }
 
     public int getApprovalsCountForUser(String userId) {
-        return dao.getApprovalsForUser(userId).size();
+        return dao.getApprovalsForUser(userId, IdentityZoneHolder.get().getId()).size();
     }
 
     public int getApprovalsCountForClient(String clientId) {
-        return dao.getApprovalsForClient(clientId).size();
+        return dao.getApprovalsForClient(clientId, IdentityZoneHolder.get().getId()).size();
     }
 
     public int getApprovalsCount(String clientId, String userId) {
-        return dao.getApprovals(userId, clientId).size();
+        return dao.getApprovals(userId, clientId, IdentityZoneHolder.get().getId()).size();
     }
 
     public void rebuildIndices() {

@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,7 +68,8 @@ public class CommonLoginPolicyTest {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 1, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null);
         List<AuditEvent> list = Arrays.asList(auditEvent);
-        when(auditService.find(eq("principal"), anyLong())).thenReturn(list);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(auditService.find(eq("principal"), anyLong(), eq(zoneId))).thenReturn(list);
 
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
 
@@ -80,7 +82,8 @@ public class CommonLoginPolicyTest {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 2, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null);
         List<AuditEvent> list = Arrays.asList(auditEvent);
-        when(auditService.find(eq("principal"), anyLong())).thenReturn(list);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(auditService.find(eq("principal"), anyLong(), eq(zoneId))).thenReturn(list);
 
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
 

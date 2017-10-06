@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.io.UnsupportedEncodingException;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -89,7 +91,12 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
 
     public String getCompleteAuthorizationURI(String alias, String baseURL, AbstractXOAuthIdentityProviderDefinition definition) {
         try {
-            String authUrlBase = definition.getAuthUrl().toString();
+            String authUrlBase;
+            if(definition instanceof OIDCIdentityProviderDefinition) {
+                authUrlBase = overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
+            } else {
+                authUrlBase = definition.getAuthUrl().toString();
+            }
             String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
             List<String> query = new ArrayList<>();
             query.add("client_id=" + definition.getRelyingPartyId());
@@ -131,6 +138,20 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     @Override
     public List<IdentityProvider> retrieveActive(String zoneId) {
         return retrieveAll(true, zoneId);
+    }
+
+    public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
+        List<IdentityProvider> providers = retrieveAll(true, zoneId)
+            .stream()
+            .filter(p -> OIDC10.equals(p.getType()) &&
+                    issuer.equals(((OIDCIdentityProviderDefinition)p.getConfig()).getIssuer()))
+            .collect(Collectors.toList());
+        if (providers.isEmpty()) {
+            throw new IncorrectResultSizeDataAccessException(String.format("Active provider with issuer[%s] not found", issuer), 1);
+        } else if (providers.size() > 1) {
+            throw new IncorrectResultSizeDataAccessException(String.format("Duplicate providers with issuer[%s] not found", issuer), 1);
+        }
+        return providers.get(0);
     }
 
     @Override
