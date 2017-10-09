@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -70,8 +69,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     @Override
-    public IdentityProvider retrieve(String id) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ID_QUERY, mapper, id, IdentityZoneHolder.get().getId());
+    public IdentityProvider retrieve(String id, String zoneId) {
+        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
         return identityProvider;
     }
 
@@ -96,7 +95,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     @Override
-    public IdentityProvider create(final IdentityProvider identityProvider) {
+    public IdentityProvider create(final IdentityProvider identityProvider, String zoneId) {
         validate(identityProvider);
         final String id = UUID.randomUUID().toString();
         try {
@@ -112,20 +111,19 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 ps.setString(pos++, identityProvider.getOriginKey());
                 ps.setString(pos++, identityProvider.getType());
                 ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
-                ps.setString(pos++, identityProvider.getIdentityZoneId());
+                ps.setString(pos++, zoneId);
                 ps.setBoolean(pos++, identityProvider.isActive());
                 }
             });
         } catch (DuplicateKeyException e) {
             throw new IdpAlreadyExistsException(e.getMostSpecificCause().getMessage());
         }
-        return retrieve(id);
+        return retrieve(id, zoneId);
     }
 
     @Override
-    public IdentityProvider update(final IdentityProvider identityProvider) {
+    public IdentityProvider update(final IdentityProvider identityProvider, String zoneId) {
         validate(identityProvider);
-        final String zoneId = IdentityZoneHolder.get().getId();
         jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
@@ -140,7 +138,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             ps.setString(pos++, zoneId);
             }
         });
-        return retrieve(identityProvider.getId());
+        return retrieve(identityProvider.getId(), zoneId);
     }
 
     protected void validate(IdentityProvider provider) {

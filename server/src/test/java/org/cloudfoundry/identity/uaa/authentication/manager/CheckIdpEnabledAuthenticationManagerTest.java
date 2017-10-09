@@ -65,7 +65,7 @@ public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
     public void testAuthenticateIdpDisabled() throws Exception {
         IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         provider.setActive(false);
-        identityProviderProvisioning.update(provider);
+        identityProviderProvisioning.update(provider, IdentityZoneHolder.get().getId());
         manager.authenticate(token);
     }
 

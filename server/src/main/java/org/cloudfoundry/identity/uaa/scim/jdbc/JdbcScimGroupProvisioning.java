@@ -22,12 +22,10 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.springframework.dao.DuplicateKeyException;
@@ -39,7 +37,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
@@ -82,6 +79,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     public static final String GET_GROUP_SQL = String.format(
         "select %s from %s where id=? and identity_zone_id=?",
+        GROUP_FIELDS,
+        GROUP_TABLE
+    );
+
+    public static final String GET_GROUP_BY_NAME_SQL = String.format(
+        "select %s from %s where displayName=? and identity_zone_id=?",
         GROUP_FIELDS,
         GROUP_TABLE
     );
@@ -155,7 +158,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         setQueryConverter(new SimpleSearchQueryConverter());
     }
 
-    private void createAndIgnoreDuplicate(final String name, final String zoneId) {
+    public void createAndIgnoreDuplicate(final String name, final String zoneId) {
         try {
             create(new ScimGroup(null, name, zoneId), zoneId);
         }catch (ScimResourceAlreadyExistsException ignore){
@@ -164,8 +167,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public ScimGroup createOrGet(ScimGroup group, String zoneId) {
-        createAndIgnoreDuplicate(group.getDisplayName(), zoneId);
-        return getByName(group.getDisplayName(), zoneId);
+        try {
+            return getByName(group.getDisplayName(), zoneId);
+        } catch (IncorrectResultSizeDataAccessException e) {
+            createAndIgnoreDuplicate(group.getDisplayName(), zoneId);
+            return getByName(group.getDisplayName(), zoneId);
+        }
     }
 
     @Override
@@ -173,9 +180,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         if (!hasText(displayName)) {
             throw new IncorrectResultSizeDataAccessException("group name must contain text", 1, 0);
         }
-        String jsonName = UaaStringUtils.toJsonString(displayName);
-        String filter = String.format(GROUP_BY_NAME_FILTER, jsonName);
-        List<ScimGroup> groups = query(filter, zoneId);
+        List<ScimGroup> groups = jdbcTemplate.query(GET_GROUP_BY_NAME_SQL, rowMapper, displayName, zoneId);
         if (groups.size()==1) {
             return groups.get(0);
         } else {

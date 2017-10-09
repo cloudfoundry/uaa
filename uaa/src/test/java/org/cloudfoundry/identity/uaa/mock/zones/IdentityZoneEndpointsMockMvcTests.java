@@ -1430,7 +1430,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .setName("Delete Test")
             .setType(LOGIN_SERVER);
         IdentityZoneHolder.set(zone);
-        provider = idpp.create(provider);
+        provider = idpp.create(provider, provider.getIdentityZoneId());
         assertNotNull(idpp.retrieveByOrigin(LOGIN_SERVER, zone.getId()));
         assertEquals(provider.getId(), idpp.retrieveByOrigin(LOGIN_SERVER, zone.getId()).getId());
 

@@ -137,7 +137,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         defaultIdp.setType(origin);
         defaultIdp.setOriginKey(origin);
         defaultIdp.setIdentityZoneId(IdentityZoneHolder.get().getId());
-        return identityProviderProvisioning.create(defaultIdp);
+        return identityProviderProvisioning.create(defaultIdp, defaultIdp.getIdentityZoneId());
     }
 
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {

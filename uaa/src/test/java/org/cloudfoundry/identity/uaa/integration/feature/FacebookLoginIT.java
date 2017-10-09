@@ -94,9 +94,9 @@ public class FacebookLoginIT {
         config.setShowLinkText(true);
         config.setLinkText(LINK_TEXT);
         config.setSkipSslValidation(true);
-        config.setRelyingPartyId("335602546886240");
-        config.setRelyingPartySecret("2a5114552531768058add1f8f5a6b632");
-        config.setTokenKey("2a5114552531768058add1f8f5a6b632");
+        config.setRelyingPartyId("1557898307566012");
+        config.setRelyingPartySecret("db4fcbbb22fbb11644e507630ab498b9");
+        config.setTokenKey("808c2ea930c55658aaaab0df8d6ba34c");
         config.setResponseType("signed_request");
         config.addAttributeMapping("user_name", "user_id");
 
@@ -131,7 +131,7 @@ public class FacebookLoginIT {
 
     @Test
     public void facebook_login() throws Exception {
-        login(baseUrl, "bourne_nzftmdf_identity@tfbnw.net", "9zt7&1U#VEpk");
+        login(baseUrl, "cpchehishi_1505340052@tfbnw.net", "9zt7&1U#VEpk");
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
@@ -145,6 +145,7 @@ public class FacebookLoginIT {
         assertNotNull(beforeLogin);
         assertNotNull(beforeLogin.getValue());
         webDriver.findElement(By.linkText(LINK_TEXT)).click();
+        IntegrationTestUtils.takeScreenShot("test-screen-fb-before-login-", webDriver);
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("www.facebook.com"));
         IntegrationTestUtils.takeScreenShot("test-screen-fb-login-page-", webDriver);
         webDriver.findElement(By.name("email")).sendKeys(userName);

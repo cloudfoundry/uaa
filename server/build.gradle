@@ -1,10 +1,8 @@
 description = 'CloudFoundry Identity Server JAR'
 
-Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
-
 dependencies {
 
-  compile(identityModel)
+  compile project(':cloudfoundry-identity-model')
 
   compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion

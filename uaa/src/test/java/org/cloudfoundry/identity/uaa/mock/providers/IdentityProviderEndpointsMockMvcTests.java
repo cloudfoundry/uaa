@@ -265,7 +265,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(AuditEventType.IdentityProviderCreatedEvent, event.getAuditEvent().getType());
 
         // check db
-        IdentityProvider persisted = identityProviderProvisioning.retrieve(createdIDP.getId());
+        IdentityProvider persisted = identityProviderProvisioning.retrieve(createdIDP.getId(), createdIDP.getIdentityZoneId());
         assertNotNull(persisted.getId());
         assertEquals(identityProvider.getName(), persisted.getName());
         assertEquals(identityProvider.getOriginKey(), persisted.getOriginKey());
@@ -276,7 +276,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         updateIdentityProvider(null, createdIDP, accessToken, status().isOk());
 
         // check db
-        persisted = identityProviderProvisioning.retrieve(createdIDP.getId());
+        persisted = identityProviderProvisioning.retrieve(createdIDP.getId(), createdIDP.getIdentityZoneId());
         assertEquals(createdIDP.getId(), persisted.getId());
         assertEquals(createdIDP.getName(), persisted.getName());
         assertEquals(createdIDP.getOriginKey(), persisted.getOriginKey());
@@ -611,7 +611,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertTrue(identityProvider.getConfig().isClientAuthInBody());
 
         assertTrue(
-            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
+            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId(), identityProvider.getIdentityZoneId()).getConfig())
                 .isClientAuthInBody()
         );
 
@@ -627,7 +627,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {});
         assertFalse(identityProvider.getConfig().isClientAuthInBody());
         assertFalse(
-            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId()).getConfig())
+            ((AbstractXOAuthIdentityProviderDefinition)getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId(), identityProvider.getIdentityZoneId()).getConfig())
                 .isClientAuthInBody()
         );
 
@@ -645,7 +645,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     public void testUpdatePasswordPolicyWithPasswordNewerThan() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
-        identityProviderProvisioning.update(identityProvider);
+        identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         identityProviderStatus.setRequirePasswordChange(true);
         String accessToken = setUpAccessToken();

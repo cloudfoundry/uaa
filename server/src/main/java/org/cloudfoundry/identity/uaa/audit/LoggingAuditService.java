@@ -32,10 +32,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Dave Syer
  */
 @ManagedResource
-//(
-//    objectName="cloudfoundry.identity:name=UaaAudit",
-//    description = "UAA Audit Metrics"
-//)
+(
+    objectName="cloudfoundry.identity:name=UaaAudit",
+    description = "UAA Audit Metrics"
+)
 public class LoggingAuditService implements UaaAuditService {
 
     private Log logger = LogFactory.getLog("UAA.Audit");

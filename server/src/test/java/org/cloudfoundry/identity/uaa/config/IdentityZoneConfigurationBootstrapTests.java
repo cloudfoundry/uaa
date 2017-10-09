@@ -118,6 +118,22 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     }
 
     @Test
+    public void enable_in_response_to() throws Exception {
+        bootstrap.setDisableSamlInResponseToCheck(false);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertFalse(uaa.getConfig().getSamlConfig().isDisableInResponseToCheck());
+    }
+
+    @Test
+    public void saml_disable_in_response_to() throws Exception {
+        bootstrap.setDisableSamlInResponseToCheck(true);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertTrue(uaa.getConfig().getSamlConfig().isDisableInResponseToCheck());
+    }
+
+    @Test
     public void testDefaultGroups() throws Exception {
         String[] groups = {"group1", "group2", "group3"};
         bootstrap.setDefaultUserGroups(Arrays.asList(groups));

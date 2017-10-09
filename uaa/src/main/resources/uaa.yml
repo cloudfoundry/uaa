@@ -374,7 +374,6 @@ oauth:
 #  redirect:
 #    url: /login
 #    parameter:
-#      disable: false
 #      whitelist:
 #        - https://url1.domain1.com/logout-success
 #        - https://url2.domain2.com/logout-success
@@ -589,6 +588,25 @@ uaa:
     url: http://localhost:8080/uaa/approvals
   login:
     url: http://localhost:8080/uaa/authenticate
+  limitedFunctionality:
+    enabled: false
+    whitelist:
+      endpoints:
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token/**
+        - /login/**
+        - /login.do
+        - /logout/**
+        - /logout.do
+        - /saml/**
+        - /autologin/**
+        - /authenticate/**
+        - /idp_discovery/**
+      methods:
+        - GET
+        - HEAD
+        - OPTIONS
 
 # Google Analytics
 #analytics:

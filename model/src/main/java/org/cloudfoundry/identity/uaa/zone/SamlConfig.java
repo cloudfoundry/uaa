@@ -39,6 +39,7 @@ public class SamlConfig {
     private String activeKeyId;
     private Map<String, SamlKey> keys = new HashMap<>();
     private String entityID;
+    private boolean disableInResponseToCheck = false;
 
     public boolean isAssertionSigned() {
         return assertionSigned;
@@ -190,5 +191,13 @@ public class SamlConfig {
     @JsonIgnore
     public SamlKey removeKey(String keyId) {
         return keys.remove(keyId);
+    }
+
+    public boolean isDisableInResponseToCheck() {
+        return disableInResponseToCheck;
+    }
+
+    public void setDisableInResponseToCheck(boolean disableInResponseToCheck) {
+        this.disableInResponseToCheck = disableInResponseToCheck;
     }
 }

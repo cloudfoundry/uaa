@@ -219,7 +219,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition();
             idpDefinition.setPasswordPolicy(null);
             defaultIdp.setConfig(idpDefinition);
-            idpDao.create(defaultIdp);
+            idpDao.create(defaultIdp, created.getId());
             logger.debug("Created default IDP in zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             createUserGroups(created);
             return new ResponseEntity<>(removeKeys(created), CREATED);

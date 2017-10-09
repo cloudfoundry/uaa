@@ -117,18 +117,18 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     }
 
     @Override
-    public IdentityProvider create(IdentityProvider identityProvider) {
-        return providerProvisioning.create(identityProvider);
+    public IdentityProvider create(IdentityProvider identityProvider, String zoneId) {
+        return providerProvisioning.create(identityProvider, zoneId);
     }
 
     @Override
-    public IdentityProvider update(IdentityProvider identityProvider) {
-        return providerProvisioning.update(identityProvider);
+    public IdentityProvider update(IdentityProvider identityProvider, String zoneId) {
+        return providerProvisioning.update(identityProvider, zoneId);
     }
 
     @Override
-    public IdentityProvider retrieve(String id) {
-        IdentityProvider p = providerProvisioning.retrieve(id);
+    public IdentityProvider retrieve(String id, String zoneId) {
+        IdentityProvider p = providerProvisioning.retrieve(id, zoneId);
         if (p!=null && p.getType().equals(OIDC10)) {
             p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
         }
