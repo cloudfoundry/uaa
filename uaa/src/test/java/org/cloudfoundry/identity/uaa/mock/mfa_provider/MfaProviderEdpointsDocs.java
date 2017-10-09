@@ -99,7 +99,7 @@ public class MfaProviderEdpointsDocs extends InjectedMockContextTest {
                         preprocessResponse(prettyPrint()),
                         requestHeaders(
                                 headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin`(only in the same zone that you are a user of)"),
-                                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
                         ),
                         requestFields,
                         responseFields)
