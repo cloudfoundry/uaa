@@ -59,51 +59,50 @@ import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 /**
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
  */
-public class MultitenantJdbcClientDetailsService implements ClientServicesExtension,
-    ResourceMonitor<ClientDetails>, SystemDeletable {
+public class MultitenantJdbcClientDetailsService extends ClientServicesExtension implements
+    ResourceMonitor<ClientDetails>,
+    SystemDeletable {
 
     protected static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
 
-    protected static final String GET_CREATED_BY_SQL = "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
-    protected static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
-            + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
-            + "refresh_token_validity, additional_information, autoapprove, lastmodified, required_user_groups";
+    private static final String GET_CREATED_BY_SQL =
+        "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
 
-    protected static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
+    private static final String CLIENT_FIELDS_FOR_UPDATE =
+        "resource_ids, scope, " +
+        "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, " +
+        "refresh_token_validity, additional_information, autoapprove, lastmodified, required_user_groups";
 
-    protected static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
-            + " from oauth_client_details";
+    private static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
 
-    protected static final String DEFAULT_FIND_STATEMENT = BASE_FIND_STATEMENT + " where identity_zone_id = :identityZoneId order by client_id";
+    private static final String BASE_FIND_STATEMENT =
+        "select client_id, " + CLIENT_FIELDS + " from oauth_client_details";
 
-    protected static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
+    private static final String DEFAULT_FIND_STATEMENT =
+        BASE_FIND_STATEMENT + " where identity_zone_id = :identityZoneId order by client_id";
 
-    protected static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
+    private static final String DEFAULT_SELECT_STATEMENT =
+        BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
+
+    private static final String DEFAULT_INSERT_STATEMENT =
+        "insert into oauth_client_details (" + CLIENT_FIELDS
             + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    protected static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
+    private static final String DEFAULT_UPDATE_STATEMENT =
+        "update oauth_client_details " + "set "
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
 
-    protected static final String DEFAULT_UPDATE_SECRET_STATEMENT = "update oauth_client_details "
+    private static final String DEFAULT_UPDATE_SECRET_STATEMENT =
+        "update oauth_client_details "
             + "set client_secret = ? where client_id = ? and identity_zone_id = ?";
 
-    protected static final String DEFAULT_DELETE_STATEMENT = "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
+    static final String DEFAULT_DELETE_STATEMENT =
+        "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
 
-    protected static final String DELETE_CLIENTS_BY_ZONE = "delete from oauth_client_details where identity_zone_id = ?";
-
-
+    private static final String DELETE_CLIENTS_BY_ZONE =
+        "delete from oauth_client_details where identity_zone_id = ?";
 
     private RowMapper<ClientDetails> rowMapper = new ClientDetailsRowMapper();
-
-    private String deleteClientDetailsSql = DEFAULT_DELETE_STATEMENT;
-
-    private String findClientDetailsSql = DEFAULT_FIND_STATEMENT;
-
-    private String updateClientDetailsSql = DEFAULT_UPDATE_STATEMENT;
-
-    private String updateClientSecretSql = DEFAULT_UPDATE_SECRET_STATEMENT;
-
-    private String insertClientDetailsSql = DEFAULT_INSERT_STATEMENT;
 
     private String selectClientDetailsSql = DEFAULT_SELECT_STATEMENT;
 
@@ -127,11 +126,11 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         this.passwordEncoder = passwordEncoder;
     }
 
-    public ClientDetails loadClientByClientId(String clientId) throws InvalidClientException {
+    @Override
+    public ClientDetails loadClientByClientId(String clientId, String zoneId) throws InvalidClientException {
         ClientDetails details;
         try {
-
-            details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, IdentityZoneHolder.get().getId());
+            details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, zoneId);
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
         }
@@ -139,38 +138,42 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         return details;
     }
 
-    public void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException {
+    @Override
+    public void addClientDetails(ClientDetails clientDetails, String zoneId) throws ClientAlreadyExistsException {
         try {
-            jdbcTemplate.update(insertClientDetailsSql, getInsertClientDetailsFields(clientDetails));
+            jdbcTemplate.update(DEFAULT_INSERT_STATEMENT, getInsertClientDetailsFields(clientDetails, zoneId));
         } catch (DuplicateKeyException e) {
             throw new ClientAlreadyExistsException("Client already exists: " + clientDetails.getClientId(), e);
         }
     }
 
-    public void updateClientDetails(ClientDetails clientDetails) throws NoSuchClientException {
-        int count = jdbcTemplate.update(updateClientDetailsSql, getFieldsForUpdate(clientDetails));
+    @Override
+    public void updateClientDetails(ClientDetails clientDetails, String zoneId) throws NoSuchClientException {
+        int count = jdbcTemplate.update(DEFAULT_UPDATE_STATEMENT, getFieldsForUpdate(clientDetails, zoneId));
         if (count != 1) {
             throw new NoSuchClientException("No client found with id = " + clientDetails.getClientId() + " in identity zone "+IdentityZoneHolder.get().getName());
         }
     }
 
-    public void updateClientSecret(String clientId, String secret) throws NoSuchClientException {
-        int count = jdbcTemplate.update(updateClientSecretSql, passwordEncoder.encode(secret), clientId, IdentityZoneHolder.get().getId());
+    @Override
+    public void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException {
+        int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, passwordEncoder.encode(secret), clientId, zoneId);
         if (count != 1) {
             throw new NoSuchClientException("No client found with id = " + clientId);
         }
     }
 
-    public void removeClientDetails(String clientId) throws NoSuchClientException {
-        deleteByClient(clientId, IdentityZoneHolder.get().getId());
+    @Override
+    public void removeClientDetails(String clientId, String zoneId) throws NoSuchClientException {
+        deleteByClient(clientId, zoneId);
     }
 
-    public List<ClientDetails> listClientDetails() {
-        return listFactory.getList(findClientDetailsSql, Collections.singletonMap("identityZoneId",IdentityZoneHolder.get().getId()), rowMapper);
+    public List<ClientDetails> listClientDetails(String zoneId) {
+        return listFactory.getList(DEFAULT_FIND_STATEMENT, Collections.singletonMap("identityZoneId",zoneId), rowMapper);
     }
 
-    private Object[] getInsertClientDetailsFields(ClientDetails clientDetails) {
-        Object[] fieldsForUpdate = getFieldsForUpdate(clientDetails);
+    private Object[] getInsertClientDetailsFields(ClientDetails clientDetails, String zoneId) {
+        Object[] fieldsForUpdate = getFieldsForUpdate(clientDetails, zoneId);
         Object[] clientDetailFieldsForUpdate = new Object[fieldsForUpdate.length + 2];
         System.arraycopy(fieldsForUpdate, 0, clientDetailFieldsForUpdate, 1, fieldsForUpdate.length);
         clientDetailFieldsForUpdate[0] =
@@ -181,7 +184,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
         return clientDetailFieldsForUpdate;
     }
 
-    private Object[] getFieldsForUpdate(ClientDetails clientDetails) {
+    private Object[] getFieldsForUpdate(ClientDetails clientDetails, String zoneId) {
 
         Map<String, Object> additionalInformation = new HashMap(clientDetails.getAdditionalInformation());
         Collection<String> requiredGroups = (Collection<String>) additionalInformation.remove(REQUIRED_USER_GROUPS);
@@ -208,7 +211,7 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
             new Timestamp(System.currentTimeMillis()),
             collectionToString(requiredGroups),
             clientDetails.getClientId(),
-            IdentityZoneHolder.get().getId()
+            zoneId
         };
     }
 
@@ -231,46 +234,6 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
             }
         }
         return collectionToCommaDelimitedString(scopes);
-    }
-
-    public void setSelectClientDetailsSql(String selectClientDetailsSql) {
-        this.selectClientDetailsSql = selectClientDetailsSql;
-    }
-
-    public void setDeleteClientDetailsSql(String deleteClientDetailsSql) {
-        this.deleteClientDetailsSql = deleteClientDetailsSql;
-    }
-
-    public void setUpdateClientDetailsSql(String updateClientDetailsSql) {
-        this.updateClientDetailsSql = updateClientDetailsSql;
-    }
-
-    public void setUpdateClientSecretSql(String updateClientSecretSql) {
-        this.updateClientSecretSql = updateClientSecretSql;
-    }
-
-    public void setInsertClientDetailsSql(String insertClientDetailsSql) {
-        this.insertClientDetailsSql = insertClientDetailsSql;
-    }
-
-    public void setFindClientDetailsSql(String findClientDetailsSql) {
-        this.findClientDetailsSql = findClientDetailsSql;
-    }
-
-    /**
-     * @param listFactory
-     *            the list factory to set
-     */
-    public void setListFactory(JdbcListFactory listFactory) {
-        this.listFactory = listFactory;
-    }
-
-    /**
-     * @param rowMapper
-     *            the rowMapper to set
-     */
-    public void setRowMapper(RowMapper<ClientDetails> rowMapper) {
-        this.rowMapper = rowMapper;
     }
 
     @Override
@@ -305,21 +268,23 @@ public class MultitenantJdbcClientDetailsService implements ClientServicesExtens
     }
 
     @Override
-    public void addClientSecret(String clientId, String newSecret) throws NoSuchClientException {
-        ClientDetails clientDetails = loadClientByClientId(clientId);
+    public void addClientSecret(String clientId, String newSecret, String zoneId) throws NoSuchClientException {
+        ClientDetails clientDetails = loadClientByClientId(clientId, zoneId);
         String encodedNewSecret = passwordEncoder.encode(newSecret);
-        StringBuilder newSecretBuilder = new StringBuilder().append(clientDetails.getClientSecret()==null?"":clientDetails.getClientSecret()+" ").append(encodedNewSecret);
-        int count = jdbcTemplate.update(updateClientSecretSql, newSecretBuilder.toString(), clientId, IdentityZoneHolder.get().getId());
+        StringBuilder newSecretBuilder = new StringBuilder()
+            .append(clientDetails.getClientSecret()==null ? "" : clientDetails.getClientSecret() +" ")
+            .append(encodedNewSecret);
+        int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, newSecretBuilder.toString(), clientId, zoneId);
         if (count != 1) {
             throw new NoSuchClientException("No client found with id = " + clientId);
         }
     }
 
     @Override
-    public void deleteClientSecret(String clientId) throws NoSuchClientException {
-        ClientDetails clientDetails = loadClientByClientId(clientId);
+    public void deleteClientSecret(String clientId, String zoneId) throws NoSuchClientException {
+        ClientDetails clientDetails = loadClientByClientId(clientId, zoneId);
         String clientSecret = clientDetails.getClientSecret().split(" ")[1];
-        int count = jdbcTemplate.update(updateClientSecretSql, clientSecret, clientId, IdentityZoneHolder.get().getId());
+        int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, clientSecret, clientId, zoneId);
         if (count != 1) {
             throw new NoSuchClientException("Unable to update client with " + clientId);
         }

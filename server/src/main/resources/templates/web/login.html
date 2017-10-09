@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
+<head>
+    <meta http-equiv="refresh" th:content="${@loginCookieCsrfRepository.getCookieMaxAge()}" />
+</head>
 <div class="login island" layout:fragment="page-content">
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
     <div class="island-content predix-uaa__login">

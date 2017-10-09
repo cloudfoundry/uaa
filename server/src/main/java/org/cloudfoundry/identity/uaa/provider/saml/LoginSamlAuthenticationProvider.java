@@ -33,6 +33,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
@@ -130,6 +132,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
+        String relayState = context.getRelayState();
         boolean addNew;
         IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;
@@ -160,6 +163,13 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
         Set<String> filteredExternalGroups = filterSamlAuthorities(samlConfig, samlAuthorities);
         MultiValueMap<String, String> userAttributes = retrieveUserAttributes(samlConfig, (SAMLCredential) result.getCredentials());
+
+        if (samlConfig.getAuthnContext() != null) {
+            if (Collections.disjoint(userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE), samlConfig.getAuthnContext())) {
+                throw new BadCredentialsException("Identity Provider did not authenticate with the requested AuthnContext.");
+            }
+        }
+
         UaaUser user = createIfMissing(samlPrincipal, addNew, authorities, userAttributes);
         UaaPrincipal principal = new UaaPrincipal(user);
         UaaAuthentication resultUaaAuthentication = new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups, userAttributes);
@@ -171,7 +181,21 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                                            .setRoles(new LinkedList(resultUaaAuthentication.getExternalGroups()))
             );
         }
+        configureRelayRedirect(relayState);
+
         return resultUaaAuthentication;
+    }
+
+    public void configureRelayRedirect(String relayState) {
+        //configure relay state
+        if (UaaUrlUtils.isUrl(relayState)) {
+            RequestContextHolder.currentRequestAttributes()
+                .setAttribute(
+                    UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE,
+                    relayState,
+                    RequestAttributes.SCOPE_REQUEST
+                );
+        }
     }
 
     protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
@@ -194,7 +218,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Collection<GrantedAuthority> result = new LinkedList<>();
             for (GrantedAuthority authority : authorities ) {
                 String externalGroup = authority.getAuthority();
-                    for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin)) {
+                    for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
                         result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
                     }
             }

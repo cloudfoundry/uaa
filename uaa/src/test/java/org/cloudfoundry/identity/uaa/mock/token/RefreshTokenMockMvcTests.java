@@ -173,7 +173,7 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         identityZoneProvisioning.update(zone);
         String tokenId = getRefreshToken();
         IdentityZoneHolder.set(zone);
-        String token = revocableTokenProvisioning.retrieve(tokenId).getValue();
+        String token = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId()).getValue();
         Jwt jwt = JwtHelper.decode(token);
         Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         assertNotNull(claims.get(ClaimConstants.REVOCABLE));

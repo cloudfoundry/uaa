@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -122,7 +123,7 @@ public class TokenValidationTest {
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
             .thenReturn(new RevocableToken().setValue(UaaTokenUtils.constructToken(header, content, signer)));
 
         userDb = new MockUaaUserDatabase(u -> u
@@ -370,9 +371,17 @@ public class TokenValidationTest {
     }
 
     @Test
+    public void emptyAudience() {
+        TokenValidation validation = validate(getToken())
+            .checkAudience("");
+        assertFalse(validation.isValid());
+        assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
+    }
+
+    @Test
     public void tokenIsRevoked() {
         RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
             .thenThrow(new EmptyResultDataAccessException(1));
 
         TokenValidation validation = validate(getToken())
@@ -385,7 +394,7 @@ public class TokenValidationTest {
     @Test
     public void nonRevocableToken() {
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
             .thenThrow(new EmptyResultDataAccessException(1)); // should not occur
 
         content.remove("revocable");

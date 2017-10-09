@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -237,7 +238,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         JdbcScimUserProvisioning scimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
-        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'").get(0);
+        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'", IdentityZoneHolder.get().getId()).get(0);
         assertFalse(scimUser.isVerified());
 
         MvcResult mvcResult = getMockMvc().perform(get("/verify_user")

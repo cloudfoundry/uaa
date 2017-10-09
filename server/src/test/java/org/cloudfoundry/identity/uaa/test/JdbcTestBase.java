@@ -13,11 +13,9 @@
 package org.cloudfoundry.identity.uaa.test;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
@@ -27,12 +25,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.sql.DataSource;
-import java.util.Arrays;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static java.util.Collections.emptyList;
 
 public class JdbcTestBase extends TestClassNullifier {
 
@@ -65,45 +59,18 @@ public class JdbcTestBase extends TestClassNullifier {
         dataSource = webApplicationContext.getBean(DataSource.class);
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         validationQuery = webApplicationContext.getBean("validationQuery", String.class);
+        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 
     public void cleanData() {
         IdentityZoneHolder.clear();
-        //flyway.clean();
-        jdbcTemplate.update("DELETE FROM authz_approvals");
-        jdbcTemplate.update("DELETE FROM expiring_code_store");
-        jdbcTemplate.update("DELETE FROM external_group_mapping");
-        jdbcTemplate.update("DELETE FROM group_membership");
-        jdbcTemplate.update("DELETE FROM groups");
-        jdbcTemplate.update("DELETE FROM identity_provider");
-        jdbcTemplate.update("DELETE FROM identity_zone");
-        jdbcTemplate.update("DELETE FROM oauth_client_details");
-        jdbcTemplate.update("DELETE FROM oauth_code");
-        jdbcTemplate.update("DELETE FROM revocable_tokens");
-        jdbcTemplate.update("DELETE FROM sec_audit");
-        jdbcTemplate.update("DELETE FROM service_provider");
-        jdbcTemplate.update("DELETE FROM user_info");
-        jdbcTemplate.update("DELETE FROM users");
-
-        //this is data that the migration scripts insert
-        jdbcTemplate.update("INSERT INTO identity_zone (id,version,subdomain,name,description,config) VALUES ('uaa',0,'','uaa','The system zone for backwards compatibility',null)");
-
-        JdbcIdentityProviderProvisioning idp = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        for (String origin : Arrays.asList(UAA,LDAP, LOGIN_SERVER, KEYSTONE)) {
-            IdentityProvider provider = new IdentityProvider()
-                .setOriginKey(origin)
-                .setActive(true)
-                .setIdentityZoneId(IdentityZone.getUaa().getId())
-                .setName(origin)
-                .setType(origin);
-            idp.create(provider);
-        }
-
+        TestUtils.cleanTestDatabaseData(jdbcTemplate);
     }
 
     @After
-    public void tearDown() throws Exception {
-        tearDown(true);
+    public final void tearDown() throws Exception {
+        tearDown(needsToCleanData());
     }
 
     public final void tearDown(boolean cleandata) throws Exception {
@@ -111,7 +78,12 @@ public class JdbcTestBase extends TestClassNullifier {
             cleanData();
         }
         IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
         ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).close(true);
         webApplicationContext.destroy();
+    }
+
+    protected boolean needsToCleanData() {
+        return true;
     }
 }

@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -37,6 +36,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_FIELDS;
+import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_TABLE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -58,10 +59,13 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     private ScimGroup g1;
     private ScimGroup g2;
     private ScimGroup g3;
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private String zoneId;
 
     @Before
     public void initJdbcScimGroupProvisioningTests() {
-        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()));
+        zoneId = IdentityZoneHolder.get().getId();
+        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate);
         dao = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
         memberships.setScimGroupProvisioning(dao);
         users = mock(ScimUserProvisioning.class);
@@ -75,7 +79,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     private void validateGroupCount(int expected) {
-        existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='" + IdentityZoneHolder.get().getId() + "'", Integer.class);
+        existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='" + zoneId + "'", Integer.class);
         assertEquals(expected, existingGroupCount);
     }
 
@@ -100,114 +104,129 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canRetrieveGroups() throws Exception {
-        List<ScimGroup> groups = dao.retrieveAll();
+        List<ScimGroup> groups = dao.retrieveAll(zoneId);
         assertEquals(3, groups.size());
         for (ScimGroup g : groups) {
-            validateGroup(g, null, IdentityZoneHolder.get().getId());
+            validateGroup(g, null, zoneId);
         }
     }
 
     @Test
     public void canRetrieveGroupsWithFilter() throws Exception {
-        assertEquals(1, dao.query("displayName eq \"uaa.user\"").size());
-        assertEquals(3, dao.query("displayName pr").size());
-        assertEquals(1, dao.query("displayName eq \"openid\"").size());
-        assertEquals(1, dao.query("DISPLAYNAMe eq \"uaa.admin\"").size());
-        assertEquals(1, dao.query("displayName EQ \"openid\"").size());
-        assertEquals(1, dao.query("displayName eq \"Openid\"").size());
-        assertEquals(1, dao.query("displayName co \"user\"").size());
-        assertEquals(3, dao.query("id sw \"g\"").size());
-        assertEquals(3, dao.query("displayName gt \"oauth\"").size());
-        assertEquals(0, dao.query("displayName lt \"oauth\"").size());
-        assertEquals(1, dao.query("displayName eq \"openid\" and meta.version eq 0").size());
-        assertEquals(3, dao.query("meta.created gt \"1970-01-01T00:00:00.000Z\"").size());
-        assertEquals(3, dao.query("displayName pr and id co \"g\"").size());
-        assertEquals(2, dao.query("displayName eq \"openid\" or displayName co \".user\"").size());
-        assertEquals(3, dao.query("displayName eq \"foo\" or id sw \"g\"").size());
+        assertEquals(1, dao.query("displayName eq \"uaa.user\"", zoneId).size());
+        assertEquals(3, dao.query("displayName pr", zoneId).size());
+        assertEquals(1, dao.query("displayName eq \"openid\"", zoneId).size());
+        assertEquals(1, dao.query("DISPLAYNAMe eq \"uaa.admin\"", zoneId).size());
+        assertEquals(1, dao.query("displayName EQ \"openid\"", zoneId).size());
+        assertEquals(1, dao.query("displayName eq \"Openid\"", zoneId).size());
+        assertEquals(1, dao.query("displayName co \"user\"", zoneId).size());
+        assertEquals(3, dao.query("id sw \"g\"", zoneId).size());
+        assertEquals(3, dao.query("displayName gt \"oauth\"", zoneId).size());
+        assertEquals(0, dao.query("displayName lt \"oauth\"", zoneId).size());
+        assertEquals(1, dao.query("displayName eq \"openid\" and meta.version eq 0", zoneId).size());
+        assertEquals(3, dao.query("meta.created gt \"1970-01-01T00:00:00.000Z\"", zoneId).size());
+        assertEquals(3, dao.query("displayName pr and id co \"g\"", zoneId).size());
+        assertEquals(2, dao.query("displayName eq \"openid\" or displayName co \".user\"", zoneId).size());
+        assertEquals(3, dao.query("displayName eq \"foo\" or id sw \"g\"", zoneId).size());
     }
 
     @Test
     public void canRetrieveGroupsWithFilterAndSortBy() {
-        assertEquals(3, dao.query("displayName pr", "id", true).size());
-        assertEquals(1, dao.query("id co \"2\"", "displayName", false).size());
+        assertEquals(3, dao.query("displayName pr", "id", true, zoneId).size());
+        assertEquals(1, dao.query("id co \"2\"", "displayName", false, zoneId).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithIllegalQuotesFilter() {
-        assertEquals(1, dao.query("displayName eq \"bar").size());
+        assertEquals(1, dao.query("displayName eq \"bar", zoneId).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithMissingQuotesFilter() {
-        assertEquals(0, dao.query("displayName eq bar").size());
+        assertEquals(0, dao.query("displayName eq bar", zoneId).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithInvalidFieldsFilter() {
-        assertEquals(1, dao.query("name eq \"openid\"").size());
+        assertEquals(1, dao.query("name eq \"openid\"", zoneId).size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveGroupsWithWrongFilter() {
-        assertEquals(0, dao.query("displayName pr \"r\"").size());
+        assertEquals(0, dao.query("displayName pr \"r\"", zoneId).size());
     }
 
     @Test
     public void canRetrieveGroup() throws Exception {
-        ScimGroup group = dao.retrieve("g1");
-        validateGroup(group, "uaa.user", IdentityZoneHolder.get().getId());
+        ScimGroup group = dao.retrieve("g1", zoneId);
+        validateGroup(group, "uaa.user", zoneId);
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotRetrieveNonExistentGroup() {
-        dao.retrieve("invalidgroup");
+        dao.retrieve("invalidgroup", zoneId);
     }
 
     @Test
     public void canCreateGroup() throws Exception {
-        ScimGroup g = new ScimGroup(null, "test.1", IdentityZoneHolder.get().getId());
+        internalCreateGroup(generator.generate().toLowerCase());
+    }
+    public ScimGroup internalCreateGroup(String groupName) throws Exception {
+        ScimGroup g = new ScimGroup(null, groupName, zoneId);
         g.setDescription("description-create");
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
         g.setMembers(Arrays.asList(m1, m2));
-        g = dao.create(g);
+        g = dao.create(g, zoneId);
         validateGroupCount(4);
-        validateGroup(g, "test.1", IdentityZoneHolder.get().getId(), "description-create");
+        validateGroup(g, groupName, zoneId, "description-create");
+        return g;
     }
 
     @Test
-    public void canDeleteGroupsUsingFilter1() throws Exception {
-        dao.delete("displayName eq \"uaa.user\"");
-        validateGroupCount(2);
+    public void canCreateOrGetGroup() throws Exception {
+        ScimGroup g = internalCreateGroup(generator.generate().toLowerCase());
+        String id = g.getId();
+        g.setId(null);
+        ScimGroup same = dao.createOrGet(g, zoneId);
+        assertNotNull(same);
+        assertEquals(id, same.getId());
     }
 
     @Test
-    public void canDeleteGroupsUsingFilter2() throws Exception {
-        dao.delete("displayName sw \"uaa\"");
-        validateGroupCount(1);
+    public void canGetByName() throws Exception {
+        ScimGroup g = internalCreateGroup(generator.generate().toLowerCase());
+        ScimGroup same = dao.getByName(g.getDisplayName(), zoneId);
+        assertNotNull(same);
+        assertEquals(g.getId(), same.getId());
     }
 
     @Test
-    public void canDeleteGroupsUsingFilter3() throws Exception {
-        dao.delete("id eq \"g1\"");
-        validateGroupCount(2);
+    public void canCreateAndGetGroupWithQuotes() throws Exception {
+        String nameWithQuotes = generator.generate() + "\"" + generator.generate() + "\"";
+        ScimGroup g = internalCreateGroup(nameWithQuotes);
+        assertNotNull(g);
+        assertEquals(nameWithQuotes, g.getDisplayName());
+        ScimGroup same = dao.getByName(nameWithQuotes, zoneId);
+        assertNotNull(same);
+        assertEquals(g.getId(), same.getId());
     }
 
     @Test
     public void canUpdateGroup() throws Exception {
-        ScimGroup g = dao.retrieve("g1");
+        ScimGroup g = dao.retrieve("g1", zoneId);
         assertEquals("uaa.user", g.getDisplayName());
 
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER);
         g.setMembers(Arrays.asList(m1, m2));
         g.setDisplayName("uaa.none");
         g.setDescription("description-update");
 
-        dao.update("g1", g);
+        dao.update("g1", g, zoneId);
 
-        g = dao.retrieve("g1");
-        validateGroup(g, "uaa.none", IdentityZoneHolder.get().getId(), "description-update");
+        g = dao.retrieve("g1", zoneId);
+        validateGroup(g, "uaa.none", zoneId, "description-update");
     }
 
     @Test
@@ -216,9 +235,10 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         addUserToGroup(g1.getId(), "mary@example.com");
         ScimGroupMember bill = addUserToGroup(g2.getId(), "bill@example.com");
 
-        dao.delete("g1", 0);
+        dao.delete("g1", 0, zoneId);
         validateGroupCount(2);
-        List<ScimGroupMember> remainingMemberships = memberships.query("");
+        List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select "+MEMBERSHIP_FIELDS+" from "+MEMBERSHIP_TABLE,
+                                                                        new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
         assertEquals(1, remainingMemberships.size());
         ScimGroupMember survivor = remainingMemberships.get(0);
         assertThat(survivor.getType(), is(ScimGroupMember.Type.USER));
@@ -229,15 +249,16 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     public void deleteGroupWithNestedMembers() {
         ScimGroup appUsers = addGroup("appuser", "app.user");
         addGroupToGroup(appUsers.getId(), g1.getId());
-        dao.delete(appUsers.getId(), 0);
+        dao.delete(appUsers.getId(), 0, zoneId);
 
-        List<ScimGroupMember> remainingMemberships = memberships.query("");
+        List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select "+MEMBERSHIP_FIELDS+" from "+MEMBERSHIP_TABLE,
+                                                                        new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
         assertEquals(0, remainingMemberships.size());
     }
 
     @Test
     public void test_that_uaa_scopes_are_bootstrapped_when_zone_is_created() {
-        String id = new RandomValueStringGenerator().generate();
+        String id = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(id, "subdomain-" + id);
         IdentityZoneModifiedEvent event = IdentityZoneModifiedEvent.identityZoneCreated(zone);
         dao.onApplicationEvent(event);
@@ -261,54 +282,54 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
                             new Timestamp(System.currentTimeMillis()),
                             new Timestamp(System.currentTimeMillis()),
                             0,
-                            IdentityZoneHolder.get().getId());
+                            zoneId);
 
-        return dao.retrieve(id);
+        return dao.retrieve(id, zoneId);
     }
 
     private ScimGroupMember<ScimUser> addUserToGroup(String groupId, String username) {
         String userId = UUID.randomUUID().toString();
         ScimUser scimUser = new ScimUser(userId, username, username, username);
         scimUser.setZoneId(OriginKeys.UAA);
-        when(users.retrieve(userId)).thenReturn(scimUser);
+        when(users.retrieve(userId, zoneId)).thenReturn(scimUser);
         ScimGroupMember<ScimUser> member = new ScimGroupMember<>(scimUser);
-        memberships.addMember(groupId, member);
+        memberships.addMember(groupId, member, zoneId);
         return member;
     }
 
     private ScimGroupMember addGroupToGroup(String parentGroupId, String childGroupId) {
-        ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId));
-        memberships.addMember(parentGroupId, member);
+        ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId, zoneId));
+        memberships.addMember(parentGroupId, member, zoneId);
         return member;
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack1Fails() {
         dao.query("displayName='something'; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", zoneId);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack2Fails() {
         dao.query("displayName gt 'a'; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", zoneId);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack3Fails() {
         dao.query("displayName eq \"something\"; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", zoneId);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack4Fails() {
         dao.query("displayName eq \"something\"; select id from groups where id='''; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something'");
+                      + " from groups where displayName='something'", zoneId);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack5Fails() {
         dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
-                      + " from groups where displayName='something''");
+                      + " from groups where displayName='something''", zoneId);
     }
 }

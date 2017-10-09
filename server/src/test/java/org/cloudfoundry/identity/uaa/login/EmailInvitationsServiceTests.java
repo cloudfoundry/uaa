@@ -8,6 +8,8 @@ import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -19,7 +21,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
@@ -77,7 +78,7 @@ public class EmailInvitationsServiceTests {
     ScimUserProvisioning scimUserProvisioning;
 
     @Autowired
-    ClientDetailsService clientDetailsService;
+    ClientServicesExtension clientDetailsService;
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
@@ -98,18 +99,19 @@ public class EmailInvitationsServiceTests {
     public void acceptInvitationNoClientId() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
-        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
-        verify(scimUserProvisioning).changePassword(user.getId(), null, "password");
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
         assertEquals("/home", redirectLocation);
     }
 
@@ -121,7 +123,7 @@ public class EmailInvitationsServiceTests {
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), "wrong-intent"));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), "wrong-intent"));
 
         emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
     }
@@ -130,38 +132,40 @@ public class EmailInvitationsServiceTests {
     public void acceptInvitation_withoutPasswordUpdate() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         emailInvitationsService.acceptInvitation("code", "").getRedirectUri();
-        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
-        verify(scimUserProvisioning, never()).changePassword(anyString(), anyString(), anyString());
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
+        verify(scimUserProvisioning, never()).changePassword(anyString(), anyString(), anyString(), eq(zoneId));
     }
 
     @Test
     public void acceptInvitationWithClientNotFound() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(OriginKeys.UAA);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         doThrow(new NoSuchClientException("Client not found")).when(clientDetailsService).loadClientByClientId("client-not-found");
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, "client-not-found");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
-        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
-        verify(scimUserProvisioning).changePassword(user.getId(), null, "password");
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
         assertEquals("/home", redirectLocation);
     }
 
@@ -170,9 +174,10 @@ public class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
 
         Map<String,String> userData = new HashMap<>();
@@ -180,12 +185,12 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, "acmeClientId");
         userData.put(REDIRECT_URI, "http://example.com/redirect/");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
-        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
-        verify(scimUserProvisioning).changePassword(user.getId(), null, "password");
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
         assertEquals("http://example.com/redirect/", redirectLocation);
     }
 
@@ -194,21 +199,22 @@ public class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
         userData.put(REDIRECT_URI, "http://someother/redirect");
         userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
-        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
-        verify(scimUserProvisioning).changePassword(user.getId(), null, "password");
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
         assertEquals("/home", redirectLocation);
     }
 
@@ -222,8 +228,9 @@ public class EmailInvitationsServiceTests {
         userBeforeAccept.setPrimaryEmail(email);
         userBeforeAccept.setOrigin(OriginKeys.SAML);
 
-        when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userBeforeAccept);
-        when(scimUserProvisioning.retrieve(eq(userId))).thenReturn(userBeforeAccept);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.verifyUser(eq(userId), anyInt(), eq(zoneId))).thenReturn(userBeforeAccept);
+        when(scimUserProvisioning.retrieve(eq(userId), eq(zoneId))).thenReturn(userBeforeAccept);
 
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
@@ -233,19 +240,19 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
         userData.put(REDIRECT_URI, "http://someother/redirect");
         userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
         userAfterAccept.setPrimaryEmail(email);
 
-        when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userAfterAccept);
+        when(scimUserProvisioning.verifyUser(eq(userId), anyInt(), eq(zoneId))).thenReturn(userAfterAccept);
 
         ScimUser acceptedUser = emailInvitationsService.acceptInvitation("code", "password").getUser();
         assertEquals(userAfterAccept.getUserName(), acceptedUser.getUserName());
         assertEquals(userAfterAccept.getName(), acceptedUser.getName());
         assertEquals(userAfterAccept.getPrimaryEmail(), acceptedUser.getPrimaryEmail());
 
-        verify(scimUserProvisioning).verifyUser(eq(userId), anyInt());
+        verify(scimUserProvisioning).verifyUser(eq(userId), anyInt(), eq(zoneId));
 
     }
 
@@ -273,8 +280,8 @@ public class EmailInvitationsServiceTests {
         }
 
         @Bean
-        ClientDetailsService clientDetailsService() {
-            return mock(ClientDetailsService.class);
+        ClientServicesExtension clientDetailsService() {
+            return mock(ClientServicesExtension.class);
         }
 
         @Bean

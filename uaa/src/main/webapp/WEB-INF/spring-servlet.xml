@@ -22,7 +22,6 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
 
-
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="expiringTimeMillis" value="600000"/>
         <constructor-arg name="maxEntries" value="10000"/>
@@ -101,6 +100,8 @@
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
     <sec:http name="secFilterOpen18" pattern="/session" security="none" />
+    <sec:http name="secFilterWellKnownOpen19" pattern="/oauth/token/.well-known/openid-configuration" security="none" />
+    <sec:http name="secFilterWellKnownOpen20" pattern="/.well-known/openid-configuration" security="none" />
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
@@ -239,23 +240,25 @@
         </property>
         <property name="additionalFilters">
             <map>
-                <entry value-ref="headerFilter"
+                <entry value-ref="metricsFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}" />
-                <entry value-ref="utf8ConversionFilter"
+                <entry value-ref="headerFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}" />
-                <entry value-ref="corsFilter"
+                <entry value-ref="utf8ConversionFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}" />
+                <entry value-ref="corsFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}" />
                 <entry value-ref="degradedModeUaaFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
-                <entry value-ref="identityZoneResolvingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                <entry value-ref="identityZoneResolvingFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}"/>
                 <entry value-ref="logFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}" />
-                <entry value-ref="meteringFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(7)}" />
+                <entry value-ref="meteringFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(8)}" />
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -279,6 +282,8 @@
     <bean id="headerFilter" class="org.cloudfoundry.identity.uaa.web.HeaderFilter">
         <constructor-arg value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
+
+    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter"/>
 
     <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
@@ -318,7 +323,7 @@
         <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
-    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
+    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
@@ -331,6 +336,32 @@
             </bean>
         </property>
         <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
+    </bean>
+
+
+    <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
+        <constructor-arg name="minLength" value="${oauth.client.secret.policy.global.minLength:0}"/>
+        <constructor-arg name="maxLength"  value="${oauth.client.secret.policy.global.maxLength:255}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${oauth.client.secret.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.global.requireDigit:0}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.global.requireSpecialCharacter:0}"/>
+        <constructor-arg name="expireSecretInMonths" value="0"/>
+    </bean>
+
+    <bean id="defaultUaaClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
+        <constructor-arg name="minLength" value="${oauth.client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
+        <constructor-arg name="maxLength" value="${oauth.client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${oauth.client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg name="expireSecretInMonths" value="0"/>
+    </bean>
+
+
+    <bean id="zoneAwareClientSecretPolicyValidator" class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
+        <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
 
 
@@ -495,6 +526,8 @@
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="validator" ref="identityZoneValidator"/>
+        <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="selfServiceLinks" ref="links" />
@@ -511,14 +544,15 @@
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
         <property name="prompts" ref="prompts"/>
         <property name="branding" value="#{@config['login']['branding']}" />
-        <property name="samlSpPrivateKey" value="${login.serviceProviderKey}" />
-        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword}" />
-        <property name="samlSpCertificate" value="${login.serviceProviderCertificate}" />
+        <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}" />
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}" />
+        <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}" />
         <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
         <property name="samlKeys"
                   value="#{@config['login']==null ? null :
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
+        <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

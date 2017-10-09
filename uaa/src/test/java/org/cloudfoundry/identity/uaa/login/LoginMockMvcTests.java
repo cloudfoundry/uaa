@@ -209,6 +209,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void invalid_accept_media_type() throws Exception {
+        getMockMvc().perform(
+            get("/login")
+                .header("Accept", MediaType.TEXT_XML_VALUE)
+        )
+            .andExpect(status().isNotAcceptable());
+    }
+
+    @Test
     public void testLogin() throws Exception {
         getMockMvc().perform(get("/login"))
             .andExpect(status().isOk())
@@ -346,6 +355,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         assertNotEquals(csrf1.getValue(), csrf2.getValue());
     }
 
+    @Test
+    public void testLoginPageReloadOnCsrfExpiry() throws Exception {
+        CookieBasedCsrfTokenRepository cookieBasedCsrfTokenRepository = webApplicationContext.getBean(CookieBasedCsrfTokenRepository.class);
+        cookieBasedCsrfTokenRepository.setCookieMaxAge(3);
+
+        MvcResult mvcResult = getMockMvc()
+                .perform(get("/login"))
+                .andReturn();
+        assertThat("", mvcResult.getResponse().getContentAsString(), containsString("http-equiv=\"refresh\" content=\"3\""));
+    }
+
     protected void setDisableInternalAuth(boolean disable) throws Exception {
        MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), getUaa().getId(), disable);
     }
@@ -406,7 +426,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isForbidden())
             .andExpect(forwardedUrl("/login?error=invalid_login_request"));
 
-        ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'").get(0);
+        ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'", IdentityZoneHolder.get().getId()).get(0);
 
         MockHttpServletRequestBuilder validPost = post("/uaa/login.do")
             .session(session)
@@ -686,7 +706,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void testForgotPasswordSubmitDoesNotValidateCsrf() throws Exception {
         getMockMvc().perform(
             post("/forgot_password.do")
-                .param("email", "marissa@test.org")
+                .param("username", "marissa")
                 .with(csrf().useInvalidToken()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
@@ -1049,7 +1069,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testAccessConfirmationPage() throws Exception {
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
+        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
 
         UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, asList(UaaAuthority.fromAuthorities("uaa.user")));
@@ -1381,23 +1401,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
-        definition.setTokenKey("key");
-        definition.setRelyingPartyId("uaa");
-        definition.setRelyingPartySecret("secret");
-        definition.setShowLinkText(false);
-        definition.setScopes(asList("openid", "roles"));
-        definition.setResponseType("code id_token");
-        String oauthAlias = "login-oauth-" + generator.generate();
-
-        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
-        oauthIdentityProvider.setConfig(definition);
-        oauthIdentityProvider.setActive(true);
-
-        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+        String oauthAlias = createOIDCProviderInZone(identityZone, zoneAdminToken, null);
 
         IdentityZoneHolder.set(identityZone);
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
@@ -1416,6 +1420,63 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                         )
                 );
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void xOAuthRedirectOnlyOneProviderWithDiscoveryUrl() throws Exception {
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        String oauthAlias = createOIDCProviderInZone(identityZone, zoneAdminToken, "https://accounts.google.com/.well-known/openid-configuration");
+
+        IdentityZoneHolder.set(identityZone);
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
+        IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        uaaIdentityProvider.setActive(false);
+        identityProviderProvisioning.update(uaaIdentityProvider);
+
+        getMockMvc().perform(get("/login").accept(TEXT_HTML)
+            .servletPath("/login")
+            .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
+            .andExpect(
+                header()
+                    .string("Location",
+                        startsWith("https://accounts.google.com/o/oauth2/v2/auth?client_id=uaa&response_type=code+id_token&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
+                    )
+            );
+        IdentityZoneHolder.clear();
+    }
+
+    private String createOIDCProviderInZone(IdentityZone identityZone, String zoneAdminToken, String discoveryUrl) throws Exception {
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+
+
+        if(StringUtils.hasText(discoveryUrl)) {
+            definition.setDiscoveryUrl(new URL(discoveryUrl));
+        } else {
+            definition.setAuthUrl(new URL("http://auth.url"));
+            definition.setTokenUrl(new URL("http://token.url"));
+        }
+        definition.setTokenKey("key");
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        definition.setScopes(asList("openid", "roles"));
+        definition.setResponseType("code id_token");
+        String oauthAlias = "login-oauth-" + generator.generate();
+
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        oauthIdentityProvider.setConfig(definition);
+        oauthIdentityProvider.setActive(true);
+
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+        return oauthAlias;
     }
 
     @Test
@@ -1820,7 +1881,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         codeData.put("email", ((UaaPrincipal)marissaContext.getAuthentication().getPrincipal()).getEmail());
         codeData.put("origin", OriginKeys.UAA);
 
-        ExpiringCode code = getWebApplicationContext().getBean(ExpiringCodeStore.class).generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 1000 * 60), null);
+        ExpiringCode code = getWebApplicationContext().getBean(ExpiringCodeStore.class).generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 1000 * 60), null, IdentityZoneHolder.get().getId());
 
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
@@ -2083,6 +2144,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(view().name("idp_discovery/email"))
                 .andExpect(content().string(containsString("Sign in")))
                 .andExpect(xpath("//input[@name='email']").exists())
+
                 .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
     }
 
@@ -2096,7 +2158,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .header("Accept", TEXT_HTML)
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
-            .andExpect(view().name("login"));
+            .andExpect(view().name("idp_discovery/password"));
     }
 
     @Test
@@ -2112,7 +2174,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedRequest savedRequest = getSavedRequest(client);
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
@@ -2141,7 +2203,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedAccountOption savedAccount = new SavedAccountOption();
         savedAccount.setEmail("test@example.org");
@@ -2169,7 +2231,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedAccountOption savedAccount = new SavedAccountOption();
         savedAccount.setEmail("test@example.org");
@@ -2298,7 +2360,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@other.domain")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40other.domain"));
     }
 
     @Test
@@ -2321,7 +2383,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@test.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40test.org"));
     }
 
     @Test
@@ -2362,7 +2424,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@testLdap.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40testLdap.org"));
     }
 
     @Test
@@ -2373,7 +2435,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("idp_discovery/password"))
             .andExpect(xpath("//input[@name='password']").exists())
-            .andExpect(xpath("//h4[@id='email']").string("marissa@koala.com"))
+            .andExpect(xpath("//input[@name='username']/@value").string("marissa@koala.com"))
             .andExpect(xpath("//div[@class='action pull-right']//a").string("Reset password"))
             .andExpect(xpath("//input[@type='submit']/@value").string("Sign in"));
     }
@@ -2436,7 +2498,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         HashSet<String> registeredRedirectUris = new HashSet<>();
         registeredRedirectUris.add("http://idp-not-allowed.localhost/");
         client.setRegisteredRedirectUri(registeredRedirectUris);
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         MockHttpServletRequestBuilder authorize = get("/oauth/authorize")
           .with(inZone)
@@ -2478,7 +2540,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, asList(originKey, "other-provider", UAA, LDAP));
-        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, zone, status().isCreated());
 
         SavedRequest savedRequest = getSavedRequest(client);
         MockHttpSession session = new MockHttpSession();

@@ -14,8 +14,6 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
-import org.apache.commons.io.FileUtils;
-import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
 import org.cloudfoundry.identity.uaa.login.test.UnlessProfileActive;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -26,17 +24,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +42,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-@RunWith(LoginServerClassRunner.class)
+@RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 @UnlessProfileActive(values = "saml")
 //Some tests are Ignored to accomodate Predix Branding changes
@@ -71,15 +66,17 @@ public class ResetPasswordIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-    private String userEmail;
+    private String username;
+    private String email;
+
     private String scimClientId;
 
     @Before
     @After
-    public void logout_and_clear_cookies() {
+    public void logoutAndClearCookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -88,14 +85,17 @@ public class ResetPasswordIT {
 
     @Before
     public void setUp() throws Exception {
-        int randomInt = new SecureRandom().nextInt();
+        SecureRandom secureRandom = new SecureRandom();
+
+        scimClientId = "scim" + secureRandom.nextInt();
+        username = "user" + secureRandom.nextInt();
+        email = username + "@example.com";
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
-        scimClientId = "scim" + randomInt;
         testClient.createScimClient(adminAccessToken, scimClientId);
+
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
-        userEmail = "user" + randomInt + "@example.com";
-        testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", true);
+        testClient.createUser(scimAccessToken, username, email, "secr3T", true);
     }
 
     @After
@@ -104,37 +104,20 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resettingAPassword() throws Exception {
+    public void resettingAPasswordWithUsername() throws Exception {
+        beginPasswordReset(username);
+        finishPasswordReset(username, email);
+    }
 
-        // Go to Forgot Password page
-        String link = beginResetPassword();
+    @Test
+    public void resettingAPasswordWithPrimaryEmail() throws Exception {
+        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        // Enter invalid password information
-        webDriver.findElement(By.name("password")).sendKeys("newsecret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Passwords must match and not be empty."));
 
-        // Successfully choose password
-        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
+        beginPasswordReset(email);
 
-        // Log out and back in with new password
-        tearDown();
 
-        webDriver.findElement(By.name("username")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
-
-        // Attempt to use same code again        
-        tearDown();
-        webDriver.get(link);
-
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Sorry, your reset password link is no longer valid. You can request another one below."));
+        assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
     }
 
     @Test
@@ -144,7 +127,7 @@ public class ResetPasswordIT {
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
         Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
 
@@ -152,7 +135,7 @@ public class ResetPasswordIT {
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         receivedEmail.remove();
-        assertEquals(userEmail, message.getHeaderValue("To"));
+        assertEquals(email, message.getHeaderValue("To"));
         assertThat(message.getBody(), containsString("Reset your password"));
 
         Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
@@ -175,25 +158,48 @@ public class ResetPasswordIT {
     public void resettingAPasswordForANonExistentUser() throws Exception {
         webDriver.get(baseUrl + "/login");
         Assert.assertEquals("Predix", webDriver.getTitle());
-
-        webDriver.findElement(By.linkText("Reset password")).click();
-
-        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
-
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        webDriver.findElement(By.name("email")).sendKeys("nonexistent@example.com");
-        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-
-        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+        beginPasswordReset("nonexistent_user");
 
         assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
     }
 
     @Test
+    public void resettingAPasswordWithInvalidPassword() throws Exception {
+        // Go to Forgot Password page
+        beginPasswordReset(username);
+        String link = getPasswordResetLink(email);
+        webDriver.get(link);
+
+        // Enter invalid password information
+        webDriver.findElement(By.name("password")).sendKeys("newsecret");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("");
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Passwords must match and not be empty."));
+    }
+
+    @Test
+    public void codesCanOnlyBeUsedOnce() throws Exception {
+        // Go to Forgot Password page
+        beginPasswordReset(username);
+        String link = getPasswordResetLink(email);
+        webDriver.get(link);
+
+        // Attempt to use same code again
+        webDriver.get(link);
+
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Sorry, your reset password link is no longer valid. You can request another one below."));
+    }
+
+    @Test
     public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() throws Exception {
         String newPassword = new RandomValueStringGenerator(260).generate();
-        beginResetPassword();
+        beginPasswordReset(username);
+
+        String link = getPasswordResetLink(email);
+        webDriver.get(link);
+
         webDriver.findElement(By.name("password")).sendKeys(newPassword);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(newPassword);
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
@@ -202,51 +208,61 @@ public class ResetPasswordIT {
 
     @Test
     public void resetPassword_displaysErrorMessage_NewPasswordSameAsOld() throws Exception {
-        beginResetPassword();
+        beginPasswordReset(username);
+        String link = getPasswordResetLink(email);
+        webDriver.get(link);
+
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Your new password cannot be the same as the old password."));
     }
 
-    public void takeScreenShot() throws IOException {
-        File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
-        File destFile = new File("testscreenshot-" + System.currentTimeMillis() + ".png");
-        FileUtils.copyFile(scrFile, destFile);
-        System.out.println("Screenshot in : " + destFile.getAbsolutePath());
-    }
-
-    private String beginResetPassword() {
+    private void beginPasswordReset(String username) {
         webDriver.get(baseUrl + "/login");
         Assert.assertEquals("Predix", webDriver.getTitle());
         webDriver.findElement(By.linkText("Reset password")).click();
         Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
-        // Enter an invalid email address
-        webDriver.findElement(By.name("email")).sendKeys("notAnEmail");
-        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        assertThat(webDriver.findElement(By.className("error-message")).getText(), Matchers.equalTo("Please enter a valid email address."));
-
-        // Successfully enter email address
-        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
-
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        // Enter email address
+        webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
         Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+    }
 
-        // Check email
-        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+    private String getPasswordResetLink(String email) {
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         receivedEmail.remove();
-        assertEquals(userEmail, message.getHeaderValue("To"));
+        assertEquals(email, message.getHeaderValue("To"));
         assertThat(message.getBody(), containsString("Reset your password"));
 
         Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
-        // Click link in email
-        String link = testClient.extractLink(message.getBody());
-        webDriver.get(link);
-        return link;
+        // Extract link from email
+        return testClient.extractLink(message.getBody());
     }
+
+    private void finishPasswordReset(String username, String email) {
+        String link = getPasswordResetLink(email);
+        webDriver.get(link);
+
+        // Successfully choose password
+        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
+
+
+        // Log out and back in with new password
+        webDriver.findElement(By.xpath("//*[text()='"+ username +"']")).click();
+        webDriver.findElement(By.linkText("Sign Out")).click();
+
+        webDriver.findElement(By.name("username")).sendKeys(username);
+        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("You should not see this page. Set up your redirect URI."));
+    }
+
 }

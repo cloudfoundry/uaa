@@ -11,15 +11,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
+import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
-import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataManager;
 import org.springframework.security.saml.util.SAMLUtil;
 
 import java.security.Security;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.cert1Plain;
@@ -27,13 +28,17 @@ import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGener
 import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.samlKey1;
 import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.samlKey2;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_POST_BINDING_URI;
+import static org.springframework.security.saml.SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_REDIRECT_BINDING_URI;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_ARTIFACT_BINDING_URI;
 
 public class ZoneAwareIdpMetadataGeneratorTest {
 
@@ -49,7 +54,7 @@ public class ZoneAwareIdpMetadataGeneratorTest {
         Security.addProvider(new BouncyCastleProvider());
         DefaultBootstrap.bootstrap();
         NamedKeyInfoGeneratorManager keyInfoGeneratorManager = Configuration.getGlobalSecurityConfiguration().getKeyInfoGeneratorManager();
-        keyInfoGeneratorManager.getManager(SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR);
+        keyInfoGeneratorManager.getManager(SAML_METADATA_KEY_INFO_GENERATOR);
     }
 
     @Before
@@ -104,7 +109,6 @@ public class ZoneAwareIdpMetadataGeneratorTest {
         List<String> signingVerificationCerts = getCertificates(s, "signing");
         assertEquals(1, signingVerificationCerts.size());
         assertEquals(cert1Plain, signingVerificationCerts.get(0));
-
     }
 
     @Test
@@ -162,5 +166,32 @@ public class ZoneAwareIdpMetadataGeneratorTest {
         IdentityZoneHolder.set(otherZone);
 
         assertFalse(generator.isWantAuthnRequestSigned());
+    }
+
+    @Test
+    public void artifactBindingNotInSSOList() throws Exception {
+        IdentityZoneHolder.set(otherZone);
+
+        IDPSSODescriptor idpSSODescriptor = generator.buildIDPSSODescriptor(
+                                generator.getEntityBaseURL(),
+                                generator.getEntityAlias(),
+                                false,
+                                Arrays.asList("email")
+                                );
+
+        assertThat(idpSSODescriptor.getSingleSignOnServices(), not(hasItem(hasProperty("binding", equalTo(SAML2_ARTIFACT_BINDING_URI)))));
+    }
+
+    @Test
+    public void bindingOrderSSOList() {
+        IdentityZoneHolder.set(otherZone);
+        IDPSSODescriptor idpSSODescriptor = generator.buildIDPSSODescriptor(
+            generator.getEntityBaseURL(),
+            generator.getEntityAlias(),
+            false,
+            Arrays.asList("email")
+        );
+        assertEquals(SAML2_POST_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(0).getBinding());;
+        assertEquals(SAML2_REDIRECT_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(1).getBinding());;
     }
 }

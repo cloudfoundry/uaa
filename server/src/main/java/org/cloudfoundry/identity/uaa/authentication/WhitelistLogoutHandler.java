@@ -2,8 +2,9 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.util.StringUtils;
@@ -23,7 +24,7 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
 
     private List<String> whitelist = null;
 
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
 
     public WhitelistLogoutHandler(List<String> whitelist) {
         this.whitelist = whitelist;
@@ -38,11 +39,11 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
         this.whitelist = whitelist;
     }
 
-    public ClientDetailsService getClientDetailsService() {
+    public ClientServicesExtension getClientDetailsService() {
         return clientDetailsService;
     }
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -52,7 +53,7 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
 
         if (StringUtils.hasText(clientId)) {
             try {
-                ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+                ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                 redirectUris = client.getRegisteredRedirectUri();
             } catch (NoSuchClientException x) {
                 logger.debug(String.format("Unable to find client with ID:%s for logout redirect", clientId));

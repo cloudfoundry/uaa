@@ -16,19 +16,19 @@ import java.util.List;
 
 public interface ApprovalStore {
 
-    public boolean addApproval(Approval approval);
+    public boolean addApproval(Approval approval, final String zoneId);
 
-    public boolean revokeApproval(Approval approval);
+    public boolean revokeApproval(Approval approval, final String zoneId);
 
-    public boolean revokeApprovalsForUser(String userId);
+    public boolean revokeApprovalsForUser(String userId, final String zoneId);
 
-    public boolean revokeApprovalsForClient(String clientId);
+    public boolean revokeApprovalsForClient(String clientId, final String zoneId);
 
-    public boolean revokeApprovalsForClientAndUser(String clientId, String userId);
+    public boolean revokeApprovalsForClientAndUser(String clientId, String userId, final String zoneId);
 
-    public List<Approval> getApprovals(String userId, String clientId);
+    public List<Approval> getApprovals(String userId, String clientId, final String zoneId);
 
-    public List<Approval> getApprovalsForUser(String userId);
+    public List<Approval> getApprovalsForUser(String userId, final String zoneId);
 
-    public List<Approval> getApprovalsForClient(String clientId);
+    public List<Approval> getApprovalsForClient(String clientId, final String zoneId);
 }

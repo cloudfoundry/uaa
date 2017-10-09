@@ -21,17 +21,13 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPublicKeySpec;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
 
@@ -63,5 +59,9 @@ public class JsonWebKeyHelper {
         } else {
             return JsonUtils.readValue(s, new TypeReference<JsonWebKeySet<JsonWebKey>>() {});
         }
+    }
+
+    public static JsonWebKeySet<JsonWebKey> fromResultMaps(List<Map<String, Object>> resultMaps) {
+        return new JsonWebKeySet<>(resultMaps.stream().map(JsonWebKey::new).collect(Collectors.toList()));
     }
 }

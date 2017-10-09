@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +20,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.sql.Timestamp;
@@ -31,6 +31,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,16 +54,17 @@ public class AutologinAuthenticationManagerTest {
     private ExpiringCodeStore codeStore;
     private Authentication authenticationToken;
     private UaaUserDatabase userDatabase;
-    private ClientDetailsService clientDetailsService;
+    private ClientServicesExtension clientDetailsService;
     private String clientId;
 
     @Before
     public void setUp() {
+        IdentityZoneHolder.clear();
         clientId = new RandomValueStringGenerator().generate();
         manager = new AutologinAuthenticationManager();
         codeStore = mock(ExpiringCodeStore.class);
         userDatabase = mock(UaaUserDatabase.class);
-        clientDetailsService = mock(ClientDetailsService.class);
+        clientDetailsService = mock(ClientServicesExtension.class);
         manager.setExpiringCodeStore(codeStore);
         manager.setClientDetailsService(clientDetailsService);
         manager.setUserDatabase(userDatabase);
@@ -79,9 +81,10 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("client_id", clientId);
         codeData.put("username", "test-username");
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), ExpiringCodeType.AUTOLOGIN.name()));
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), ExpiringCodeType.AUTOLOGIN.name()));
 
-        when(clientDetailsService.loadClientByClientId(eq(clientId))).thenReturn(new BaseClientDetails("test-client-details","","","",""));
+        when(clientDetailsService.loadClientByClientId(eq(clientId), anyString())).thenReturn(new BaseClientDetails("test-client-details","","","",""));
+        String zoneId = IdentityZoneHolder.get().getId();
         when(userDatabase.retrieveUserById(eq("test-user-id")))
             .thenReturn(
                 new UaaUser("test-user-id",
@@ -96,7 +99,7 @@ public class AutologinAuthenticationManagerTest {
                             OriginKeys.UAA,
                             "test-external-id",
                             true,
-                            IdentityZoneHolder.get().getId(),
+                            zoneId,
                             "test-salt",
                             new Date(System.currentTimeMillis())
                 )
@@ -122,7 +125,7 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("username", "test-username");
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
         manager.authenticate(authenticationToken);
     }
@@ -134,14 +137,14 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("username", "test-username");
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
         manager.authenticate(authenticationToken);
     }
 
     @Test(expected = InvalidCodeException.class)
     public void authentication_fails_withExpiredCode() {
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(null);
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(null);
         manager.authenticate(authenticationToken);
     }
 
@@ -152,7 +155,7 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("client_id", clientId);
         codeData.put("username", "test-username");
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
         manager.authenticate(authenticationToken);
     }
@@ -161,7 +164,7 @@ public class AutologinAuthenticationManagerTest {
     public void authentication_fails_withInvalidCode() {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("action", "someotheraction");
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
+        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
         manager.authenticate(authenticationToken);
     }

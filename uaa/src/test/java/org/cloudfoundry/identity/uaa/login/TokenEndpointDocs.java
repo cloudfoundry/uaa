@@ -97,6 +97,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
     private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).required().type(STRING).description("The type of token that should be issued.");
+    private final ParameterDescriptor responseTypeOptionalParameter = parameterWithName(RESPONSE_TYPE).optional(null).type(STRING).description("The type of token that should be issued.");
+
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to '"+ OPAQUE+"' to retrieve an opaque and revocable token.");
@@ -204,10 +206,10 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(RESPONSE_TYPE, "token");
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter,
             clientIdParameter,
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
             clientSecretParameter,
+            responseTypeOptionalParameter,
             opaqueFormatParameter
         );
 
@@ -236,9 +238,9 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .header("Authorization", "Basic " + clientAuthorization);
 
         Snippet requestParameters = requestParameters(
-                responseTypeParameter,
-                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
-                opaqueFormatParameter
+            grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
+            responseTypeOptionalParameter,
+            opaqueFormatParameter
         );
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
@@ -468,7 +470,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     @Test
     public void getTokenUsingPasscode() throws Exception {
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
+        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
 

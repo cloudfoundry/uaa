@@ -26,6 +26,8 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.DialableByPhone;
 import org.cloudfoundry.identity.uaa.user.ExternallyIdentifiable;
 import org.cloudfoundry.identity.uaa.user.Mailable;
@@ -45,16 +47,15 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
@@ -74,6 +75,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     private IdentityProviderProvisioning providerProvisioning;
 
+    private ScimGroupExternalMembershipManager externalMembershipManager;
+
+
     public ExternalLoginAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
     }
@@ -84,6 +88,14 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
+    }
+
+    public ScimGroupExternalMembershipManager getExternalMembershipManager() {
+        return externalMembershipManager;
+    }
+
+    public void setExternalMembershipManager(ScimGroupExternalMembershipManager externalMembershipManager) {
+        this.externalMembershipManager = externalMembershipManager;
     }
 
     public String getOrigin() {
@@ -180,7 +192,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
     }
 
-    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) {
+    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException{
         return null;
     }
 
@@ -257,7 +269,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
                 .withFamilyName(familyName)
                 .withCreated(new Date())
                 .withModified(new Date())
-                .withOrigin(origin)
+                .withOrigin(getOrigin())
                 .withExternalId(externalId)
                 .withZoneId(IdentityZoneHolder.get().getId())
                 .withPhoneNumber(phoneNumber);
@@ -289,6 +301,17 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             return true;
         }
         return false;
+    }
+
+    protected List<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
+        List<GrantedAuthority> result = new LinkedList<>();
+        for (GrantedAuthority authority : authorities ) {
+            String externalGroup = authority.getAuthority();
+            for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
+                result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
+            }
+        }
+        return result;
     }
 
     @Override

@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkRequestedGrantTypes;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -20,9 +21,12 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
 
     private final String requiredScope;
 
+    private ClientSecretValidator clientSecretValidator;
+
     public ZoneEndpointsClientDetailsValidator(String requiredScope) {
         this.requiredScope = requiredScope;
     }
+
 
     @Override
     public ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException {
@@ -43,14 +47,17 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
                 clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN) ||
                 clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_SAML2_BEARER) ||
+                clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_JWT_BEARER) ||
                 clientDetails.getAuthorizedGrantTypes().contains("password")) {
                 if (StringUtils.isBlank(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client_secret cannot be blank");
                 }
+                clientSecretValidator.validate(clientDetails.getClientSecret());
             }
             if (!Collections.singletonList(OriginKeys.UAA).equals(clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS))) {
                 throw new InvalidClientDetailsException("only the internal IdP ('uaa') is allowed");
             }
+
 
             BaseClientDetails validatedClientDetails = new BaseClientDetails(clientDetails);
             validatedClientDetails.setAdditionalInformation(clientDetails.getAdditionalInformation());
@@ -68,4 +75,13 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
         throw new IllegalStateException("This validator must be called with a mode");
     }
 
+
+    @Override
+    public ClientSecretValidator getClientSecretValidator() {
+        return this.clientSecretValidator;
+    }
+
+    public void setClientSecretValidator(ClientSecretValidator clientSecretValidator) {
+        this.clientSecretValidator = clientSecretValidator;
+    }
 }

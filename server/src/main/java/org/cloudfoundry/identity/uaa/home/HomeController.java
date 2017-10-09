@@ -81,29 +81,49 @@ public class HomeController {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         String homePage =
             config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
-            getGlobalLinks() != null && getGlobalLinks().getHomeRedirect() != null ?
-                getGlobalLinks().getHomeRedirect() : null;
+                getGlobalLinks() != null && getGlobalLinks().getHomeRedirect() != null ?
+                    getGlobalLinks().getHomeRedirect() : null;
         if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
             homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
             return "redirect:" + homePage;
         }
+
         model.addAttribute("principal", principal);
+
         List<TileData> tiles = new ArrayList<>();
-        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
+        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
+
         clientMetadataList.stream()
-            .filter(clientMetadata -> clientMetadata.isShowOnHomePage())
-            .map(data -> new TileData(
-                data.getClientId(),
-                data.getAppLaunchUrl().toString(),
-                "data:image/png;base64," + data.getAppIcon(),
-                hasText(data.getClientName())? data.getClientName() : data.getClientId()
-            ))
-            .forEach(tile -> tiles.add(tile));
+            .filter(this::shouldShowClient)
+            .map(this::tileDataForClient)
+            .forEach(tiles::add);
 
         model.addAttribute("tiles", tiles);
 
         populateBuildAndLinkInfo(model);
+
         return "home";
+    }
+
+    private TileData tileDataForClient(ClientMetadata clientMetadata) {
+        String clientName;
+
+        if (hasText(clientMetadata.getClientName())) {
+            clientName = clientMetadata.getClientName();
+        } else {
+            clientName = clientMetadata.getClientId();
+        }
+
+        return new TileData(
+            clientMetadata.getClientId(),
+            clientMetadata.getAppLaunchUrl().toString(),
+            "data:image/png;base64," + clientMetadata.getAppIcon(),
+            clientName
+        );
+    }
+
+    private boolean shouldShowClient(ClientMetadata clientMetadata) {
+        return clientMetadata.isShowOnHomePage() && clientMetadata.getAppLaunchUrl() != null;
     }
 
     @RequestMapping("/error500")
@@ -114,8 +134,8 @@ public class HomeController {
         return "error";
     }
 
-    @RequestMapping("/error404")
-    public String error404(Model model) {
+    @RequestMapping({"/error", "/error404"})
+    public String errorGeneric(Model model) {
         populateBuildAndLinkInfo(model);
         return "error";
     }

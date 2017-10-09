@@ -34,7 +34,7 @@ public class IdpSamlContextProviderImpl extends SAMLContextProviderImpl {
     @Override
     public SAMLMessageContext getLocalEntity(HttpServletRequest request, HttpServletResponse response)
             throws MetadataProviderException {
-        SAMLMessageContext context = super.getLocalEntity(request, response);
+        SAMLMessageContext context = super.getLocalEntity(new TestRequestWrapper(request), new TestResponseWrapper(response));
         context.setPeerEntityRole(SPSSODescriptor.DEFAULT_ELEMENT_NAME);
         return context;
     }

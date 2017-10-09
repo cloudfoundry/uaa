@@ -102,7 +102,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion.";
     private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion.";
 
-    private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(false).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
+    private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
     private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).type(BOOLEAN).description("Whether users should be allowed to authenticate from LDAP without having a user pre-populated in the users database");
@@ -371,6 +371,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
             fieldWithPath("config.socketFactoryClassName").optional(null).description("Either `\"org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory\"` or" +
                 "`\"org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory\"` depending on if the `metaDataLocation` of type `URL` is HTTP or HTTPS, respectively"),
+            fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
             ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS_WHITELIST,
             ATTRIBUTE_MAPPING,
@@ -393,14 +394,42 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.zoneId").type(STRING).description("This will be set to the ID of the zone where the provider is being created")
         }));
 
-        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+        ResultActions resultActionsMetadata = getMockMvc().perform(post("/identity-providers")
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
             .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.zoneId", "config.idpEntityAlias", "config.additionalConfiguration")))
             .andExpect(status().isCreated());
 
-        resultActions.andDo(document("{ClassName}/{methodName}",
+        resultActionsMetadata.andDo(document("{ClassName}/{methodName}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestHeaders(
+                headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+            ),
+            commonRequestParams,
+            requestFields,
+            responseFields
+        ));
+
+        SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
+            .setMetaDataLocation("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php")
+            .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:transient")
+            .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
+            .setZoneId(IdentityZone.getUaa().getId());
+
+        identityProvider.setConfig(providerDefinition);
+        identityProvider.setOriginKey(identityProvider.getOriginKey() + "MetadataUrl");
+
+        ResultActions resultActionsUrl = getMockMvc().perform(post("/identity-providers")
+            .param("rawConfig", "true")
+            .header("Authorization", "Bearer " + adminToken)
+            .contentType(APPLICATION_JSON)
+            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.zoneId", "config.idpEntityAlias", "config.additionalConfiguration")))
+            .andExpect(status().isCreated());
+
+        resultActionsUrl.andDo(document("{ClassName}/{methodName}MetadataUrl",
             preprocessRequest(prettyPrint()),
             preprocessResponse(prettyPrint()),
             requestHeaders(
@@ -443,7 +472,9 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
             fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
             fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
-            ADD_SHADOW_USER_ON_LOGIN,
+            fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
+
+                ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS,
             ATTRIBUTE_MAPPING,
             fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
@@ -511,6 +542,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
                                                                                       "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
             fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth/OIDC use."),
+            fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
             fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
             fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
             ADD_SHADOW_USER_ON_LOGIN,
@@ -781,7 +813,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.passwordPolicy.requireLowerCaseCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of lowercase characters required for password to be considered valid (defaults to 0).").optional(),
             fieldWithPath("config.passwordPolicy.requireDigit").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of digits required for password to be considered valid (defaults to 0).").optional(),
             fieldWithPath("config.passwordPolicy.requireSpecialCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of special characters required for password to be considered valid (defaults to 0).").optional(),
-            fieldWithPath("config.passwordPolicy.expirePasswordInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
+            fieldWithPath("config.passwordPolicy.expireInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
             fieldWithPath("config.passwordPolicy.passwordNewerThan").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("This timestamp value can be used to force change password for every user. If the user's passwordLastModified is older than this value, the password is expired (defaults to null)."),
             fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
             fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),

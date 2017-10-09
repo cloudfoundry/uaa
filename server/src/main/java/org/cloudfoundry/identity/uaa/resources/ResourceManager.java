@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,14 +16,14 @@ import java.util.List;
 
 public interface ResourceManager<T> {
 
-    List<T> retrieveAll();
+    List<T> retrieveAll(String zoneId);
 
-    T retrieve(String id);
+    T retrieve(String id, String zoneId);
 
-    T create(T resource);
+    T create(T resource, String zoneId);
 
-    T update(String id, T resource);
+    T update(String id, T resource, String zoneId);
 
-    T delete(String id, int version);
+    T delete(String id, int version, String zoneId);
 
 }

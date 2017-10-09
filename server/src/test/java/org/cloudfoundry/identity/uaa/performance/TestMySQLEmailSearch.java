@@ -16,11 +16,10 @@ package org.cloudfoundry.identity.uaa.performance;
 
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -99,14 +98,8 @@ public class TestMySQLEmailSearch extends JdbcTestBase {
     }
 
     @Override
-    @After
-    public void tearDown() throws Exception {
-        if (HSQLDB_DEFAULT.equals(profile) || (!success)) {
-            tearDown(true);
-        } else {
-            //leaves data in place
-            tearDown(false);
-        }
+    protected boolean needsToCleanData() {
+        return HSQLDB_DEFAULT.equals(profile) || !success;
     }
 
     @Before
@@ -118,7 +111,7 @@ public class TestMySQLEmailSearch extends JdbcTestBase {
         environment.setProperty("spring.profiles.active", profile);
         super.setUp(environment);
 
-        ScimSearchQueryConverter converter = new ScimSearchQueryConverter();
+        SimpleSearchQueryConverter converter = new SimpleSearchQueryConverter ();
         converter.setDbCaseInsensitive(profile.equals(MYSQL_DEFAULT));
 
         JdbcScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));

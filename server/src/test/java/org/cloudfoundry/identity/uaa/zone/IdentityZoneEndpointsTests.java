@@ -17,20 +17,92 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.springframework.validation.BindingResult;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class IdentityZoneEndpointsTests {
 
-    IdentityZoneEndpoints endpoints = new IdentityZoneEndpoints(
-        mock(IdentityZoneProvisioning.class),
-        mock(IdentityProviderProvisioning.class),
-        mock(IdentityZoneEndpointClientRegistrationService.class)
-    );
+    IdentityZoneEndpoints endpoints;
     private IdentityZone zone;
+    private IdentityZoneProvisioning zoneDao = mock(IdentityZoneProvisioning.class);
+    private ScimGroupProvisioning groupProvisioning = mock(ScimGroupProvisioning.class);
+
+    @Before
+    public void setup() {
+        endpoints = new IdentityZoneEndpoints(
+            zoneDao,
+            mock(IdentityProviderProvisioning.class),
+            mock(IdentityZoneEndpointClientRegistrationService.class),
+            groupProvisioning
+        );
+        endpoints.setValidator((config, mode) -> config);
+        when(zoneDao.create(any())).then(invocation -> invocation.getArguments()[0]);
+    }
+
+    @Test
+    public void create_zone() throws Exception {
+        zone = createZone();
+        endpoints.createIdentityZone(zone, mock(BindingResult.class));
+        verify(zoneDao, times(1)).create(same(zone));
+    }
+
+    @Test
+    public void groups_are_created() throws Exception {
+        zone = createZone();
+        endpoints.createUserGroups(zone);
+        ArgumentCaptor<ScimGroup> captor = ArgumentCaptor.forClass(ScimGroup.class);
+        List<String> defaultGroups = zone.getConfig().getUserConfig().getDefaultGroups();
+        verify(groupProvisioning, times(defaultGroups.size())).createOrGet(captor.capture(), eq(zone.getId()));
+        assertEquals(defaultGroups.size(), captor.getAllValues().size());
+        assertThat(defaultGroups,
+                   containsInAnyOrder(
+                       captor.getAllValues().stream().map(
+                           g -> g.getDisplayName()
+                       )
+                           .collect(Collectors.toList())
+                           .toArray(new String[0])
+                   )
+        );
+    }
+
+    @Test
+    public void group_creation_called_on_create() throws Exception {
+        IdentityZoneEndpoints spy = Mockito.spy(endpoints);
+        zone = createZone();
+        spy.createIdentityZone(zone, mock(BindingResult.class));
+        verify(spy, times(1)).createUserGroups(same(zone));
+    }
+
+    @Test
+    public void group_creation_called_on_update() throws Exception {
+        IdentityZoneEndpoints spy = Mockito.spy(endpoints);
+        zone = createZone();
+        when(zoneDao.retrieve(zone.getId())).thenReturn(zone);
+        when(zoneDao.update(same(zone))).thenReturn(zone);
+        spy.updateIdentityZone(zone, zone.getId());
+        verify(spy, times(1)).createUserGroups(same(zone));
+    }
 
     @Test
     public void remove_keys_from_map() {

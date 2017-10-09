@@ -1,4 +1,5 @@
 <link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
+
 # CloudFoundry User Account and Authentication (UAA) Server
 
 [![Build Status](https://travis-ci.org/cloudfoundry/uaa.svg?branch=develop)](https://travis-ci.org/cloudfoundry/uaa)
@@ -30,7 +31,7 @@ If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
     $ cd uaa
-    $ ./gradlew  run
+    $ ./gradlew run
     
     
 NOTE: Recent changes removed default keys and default users from the UAA.
@@ -105,7 +106,7 @@ obtain an access token:
 
     $ gem install cf-uaac
     $ uaac target http://localhost:8080/uaa
-    $ uaac token get marissa koala
+    $ uaac token owner get cf marissa -s "" -p koala
 
 If you omit the username or password the CLI will prompt you for those
 fields.

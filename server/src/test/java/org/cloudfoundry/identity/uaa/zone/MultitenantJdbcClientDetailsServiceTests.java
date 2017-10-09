@@ -547,13 +547,13 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         clientDetails.setClientId(clientId);
         clientDetails.setClientSecret(SECRET);
         service.addClientDetails(clientDetails);
-        service.addClientSecret(clientId, "new_secret");
+        service.addClientSecret(clientId, "new_secret", IdentityZoneHolder.get().getId());
 
         Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL, clientId);
         String clientSecretBeforeDelete = (String) map.get("client_secret");
         assertNotNull(clientSecretBeforeDelete);
         assertEquals(2, clientSecretBeforeDelete.split(" ").length);
-        service.deleteClientSecret(clientId);
+        service.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         map = jdbcTemplate.queryForMap(SELECT_SQL, clientId);
         String clientSecret = (String) map.get("client_secret");
@@ -566,7 +566,7 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
     public void testDeleteClientSecretForInvalidClient() {
         expectedEx.expect(NoSuchClientException.class);
         expectedEx.expectMessage("No client with requested id: invalid_client_id");
-        service.deleteClientSecret("invalid_client_id");
+        service.deleteClientSecret("invalid_client_id", IdentityZoneHolder.get().getId());
     }
 
     @Test

@@ -58,6 +58,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -123,8 +124,8 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests.PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
@@ -445,18 +446,18 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
         ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        ScimUser scimUser = provisioning.retrieve(user.getId());
+        ScimUser scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
 
         doPasswordGrant(username, SECRET, "cf", "", status().isOk());
-        scimUser = provisioning.retrieve(user.getId());
+        scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNotNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
 
         long lastLogonTime = scimUser.getLastLogonTime();
         doPasswordGrant(username, SECRET, "cf", "", status().isOk());
-        scimUser = provisioning.retrieve(user.getId());
+        scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNotNull(scimUser.getLastLogonTime());
         assertNotNull(scimUser.getPreviousLogonTime());
         assertEquals(lastLogonTime, (long)scimUser.getPreviousLogonTime());
@@ -503,7 +504,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
-        userProvisioning.updatePasswordChangeRequired(user.getId(), true);
+        userProvisioning.updatePasswordChangeRequired(user.getId(), true, IdentityZoneHolder.get().getId());
 
         String response = getMockMvc().perform(
             post("/oauth/token")
@@ -600,9 +601,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Object refreshToken = tokens.get(REFRESH_TOKEN);
         String refreshTokenId = (String) refreshToken;
 
-        List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"");
+        List<ScimGroup> groups = getWebApplicationContext().getBean(ScimGroupProvisioning.class).query("displayName eq \"uaa.admin\"", IdentityZoneHolder.get().getId());
         assertEquals(1, groups.size());
-        getWebApplicationContext().getBean(ScimGroupMembershipManager.class).removeMemberById(groups.get(0).getId(), scimUser.getId());
+        getWebApplicationContext().getBean(ScimGroupMembershipManager.class).removeMemberById(groups.get(0).getId(), scimUser.getId(), IdentityZoneHolder.get().getId());
 
         getMockMvc().perform(
             post("/oauth/token")
@@ -2636,7 +2637,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         );
 
         if (token.length()<=36) {
-            token = getWebApplicationContext().getBean(JdbcRevocableTokenProvisioning.class).retrieve(token).getValue();
+            token = getWebApplicationContext().getBean(JdbcRevocableTokenProvisioning.class).retrieve(token, IdentityZoneHolder.get().getId()).getValue();
         }
 
         Jwt tokenJwt = JwtHelper.decode(token);
@@ -3363,7 +3364,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String access_token = (String) bodyMap.get("access_token");
         assertNotNull(access_token);
 
-        clientDetailsService.addClientSecret(clientId, "newSecret");
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
         getMockMvc().perform(post("/check_token")
             .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
             .param("token", access_token))
@@ -3377,7 +3378,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
-        clientDetailsService.addClientSecret(clientId, "newSecret");
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
 
         for (String secret : Arrays.asList(SECRET, "newSecret")) {
             String body = getMockMvc().perform(post("/oauth/token")
@@ -3420,8 +3421,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String access_token = (String) bodyMap.get("access_token");
         assertNotNull(access_token);
 
-        clientDetailsService.addClientSecret(clientId, "newSecret");
-        clientDetailsService.deleteClientSecret(clientId);
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
+        clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         MockHttpServletResponse response = getMockMvc().perform(post("/check_token")
                                                                     .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
@@ -3439,7 +3440,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        clientDetailsService.addClientSecret(clientId, "newSecret");
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
 
         String body = getMockMvc().perform(post("/oauth/token")
                                                .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -3455,7 +3456,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(access_token);
 
 
-        clientDetailsService.deleteClientSecret(clientId);
+        clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         getMockMvc().perform(post("/check_token")
             .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
@@ -3468,8 +3469,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        clientDetailsService.addClientSecret(clientId, "newSecret");
-        clientDetailsService.deleteClientSecret(clientId);
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
+        clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         String body = getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -3527,7 +3528,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                     .header("Authorization", "Bearer " + clientToken))
                     .andExpect(status().isOk());
 
-            tokenProvisioning.retrieve(jti);
+            tokenProvisioning.retrieve(jti, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
         } finally {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
@@ -3585,7 +3586,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
 
         try {
-            tokenProvisioning.retrieve(tokenToBeRevoked);
+            tokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
             fail("Token should have been deleted");
         } catch (EmptyResultDataAccessException e) {
             //expected
@@ -3652,7 +3653,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk());
 
         try {
-            tokenProvisioning.retrieve(opaqueUserToken);
+            tokenProvisioning.retrieve(opaqueUserToken, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
         }
     }
@@ -3832,6 +3833,31 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void misconfigured_jwt_keys_returns_proper_error() throws Exception {
+        String subdomain = "testzone" + generator.generate();
+        IdentityZone testZone = setupIdentityZone(subdomain);
+        testZone.getConfig().getTokenPolicy().setActiveKeyId("invalid-active-key");
+        identityZoneProvisioning.update(testZone);
+        IdentityZoneHolder.set(testZone);
+        String clientId = "testclient" + generator.generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+        IdentityZoneHolder.clear();
+
+        getMockMvc().perform(post("http://localhost/oauth/token")
+                                 .accept(MediaType.APPLICATION_JSON_VALUE)
+                                 .header("Host", subdomain + ".localhost")
+                                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                                 .param("grant_type", "client_credentials")
+                                 .param("client_id", clientId)
+                                 .param("client_secret", SECRET))
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").value("unauthorized"))
+            .andExpect(jsonPath("$.error_description").value("Unable to sign token, misconfigured JWT signing keys"));
+    }
+
+    @Test
     public void testGetClientCredentialsTokenForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
         String subdomain = "testzone"+ generator.generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
@@ -3937,6 +3963,31 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void password_grant_with_default_user_groups_in_zone() throws Exception {
+        String username = generator.generate()+"@test.org";
+        String subdomain = "testzone"+ generator.generate();
+        String clientId = "testclient" + generator.generate();
+        List<String> defaultGroups = new LinkedList(Arrays.asList("custom.default.group", "other.default.group"));
+        defaultGroups.addAll(UserConfig.DEFAULT_ZONE_GROUPS);
+        createNonDefaultZone(username, subdomain, clientId, defaultGroups, "custom.default.group,openid");
+
+        MvcResult result = getMockMvc().perform(post("/oauth/token")
+                                                    .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                                                    .param("username", username)
+                                                    .param("password", "secret")
+                                                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                                                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                                    .param(OAuth2Utils.GRANT_TYPE, "password")
+                                                    .param(OAuth2Utils.CLIENT_ID, clientId))
+            .andExpect(status().isOk())
+            .andReturn();
+        String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
+        Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
+        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
+        assertThat(claims.getScope(), containsInAnyOrder("openid", "custom.default.group"));
+    }
+
+    @Test
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {
         String username = generator.generate()+"@test.org";
         String subdomain = "testzone"+ generator.generate();
@@ -4017,9 +4068,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String zoneadmingroup = "zones."+ generator.generate()+".admin";
         ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
-        group = groupProvisioning.create(group);
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
         ScimGroupMember member = new ScimGroupMember(user.getId());
-        groupMembershipManager.addMember(group.getId(),member);
+        groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
         MockHttpSession session = getAuthenticatedSession(user);
 
@@ -4086,7 +4137,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String token = (String)tokenResponse.get(tokenKey);
         assertThat("Token must be shorter than 37 characters", token.length(), lessThanOrEqualTo(36));
 
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(token);
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(token, IdentityZoneHolder.get().getId());
         assertNotNull("Token should have been stored in the DB", revocableToken);
 
         Jwt jwt = JwtHelper.decode(revocableToken.getValue());
@@ -4128,10 +4179,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     protected void createNonDefaultZone(String username, String subdomain, String clientId) {
-        IdentityZone testZone = setupIdentityZone(subdomain);
+        createNonDefaultZone(username, subdomain, clientId, UserConfig.DEFAULT_ZONE_GROUPS, "cloud_controller.read");
+    }
+
+    protected void createNonDefaultZone(String username, String subdomain, String clientId, List<String> defaultUserGroups, String scopes) {
+        IdentityZone testZone = setupIdentityZone(subdomain, defaultUserGroups);
         IdentityZoneHolder.set(testZone);
         IdentityProvider provider = setupIdentityProvider();
-        String scopes = "cloud_controller.read";
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
         setUpUser(username);
         IdentityZoneHolder.clear();
@@ -4166,7 +4220,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String tokenId = (String) claims.get(JTI);
 
         IdentityZoneHolder.set(zone);
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(tokenId);
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(tokenId, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.clear();
         assertNotNull("Token should have been stored in the DB", revocableToken);
 
@@ -4197,7 +4251,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull("Revocable claim must exist", claims.get(ClaimConstants.REVOCABLE));
         assertTrue("Token revocable claim must be set to true", (Boolean)claims.get(ClaimConstants.REVOCABLE));
 
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(JTI));
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(JTI), IdentityZoneHolder.get().getId());
         assertNotNull("Token should have been stored in the DB", revocableToken);
     }
 
@@ -4238,7 +4292,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         email.setValue(username);
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setOrigin(OriginKeys.UAA);
-        return jdbcScimUserProvisioning.createUser(scimUser, "secret");
+        return jdbcScimUserProvisioning.createUser(scimUser, "secret", IdentityZoneHolder.get().getId());
     }
 
     public static class MockSecurityContext implements SecurityContext {

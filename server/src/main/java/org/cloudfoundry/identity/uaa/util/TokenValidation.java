@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
@@ -397,9 +398,10 @@ public class TokenValidation {
             }
         }
 
-        String notInAudience = clients.stream().filter(c -> !audience.contains(c)).collect(Collectors.joining(", "));
-        if(StringUtils.hasText(notInAudience)) {
-            addError("Some parties were not in the token audience: " + notInAudience);
+        List<String> notInAudience = clients.stream().filter(c -> !audience.contains(c)).collect(Collectors.toList());
+        if(!notInAudience.isEmpty()) {
+            String joinedAudiences = notInAudience.stream().map(c ->  "".equals(c) ? "EMPTY_VALUE" : c  ).collect(Collectors.joining(", "));
+            addError("Some parties were not in the token audience: " + joinedAudiences);
         }
 
         return this;
@@ -421,7 +423,7 @@ public class TokenValidation {
 
                 RevocableToken revocableToken = null;
                 try {
-                    revocableToken = revocableTokenProvisioning.retrieve(tokenId);
+                    revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
                 } catch(EmptyResultDataAccessException ex) {
                 }
 

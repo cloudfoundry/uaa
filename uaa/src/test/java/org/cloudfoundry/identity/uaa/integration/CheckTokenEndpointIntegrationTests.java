@@ -36,13 +36,12 @@ import org.springframework.util.MultiValueMap;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
@@ -228,6 +227,44 @@ public class CheckTokenEndpointIntegrationTests {
         Map<String, String> map = response.getBody();
         assertTrue(map.containsKey("error"));
 
+    }
+
+    @Test
+    public void testInvalidScope() throws Exception {
+        OAuth2AccessToken accessToken = getAdminToken();
+
+        String requestBody = String.format("token=%s&scopes=%s", accessToken.getValue(), "uaa.resource%");
+
+        HttpHeaders headers = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+        headers.set("Authorization", testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap("/check_token", requestBody, headers);
+        System.out.println(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = response.getBody();
+        assertEquals("parameter_parsing_error", map.get("error"));
+        assertTrue(map.containsKey("error_description"));
+    }
+
+    private OAuth2AccessToken getAdminToken() {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.set("client_id", testAccounts.getAdminClientId());
+        formData.set("client_secret", testAccounts.getAdminClientSecret());
+        formData.set("response_type", "token");
+        formData.set("grant_type", "client_credentials");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        return DefaultOAuth2AccessToken.valueOf(response.getBody());
     }
 
 }

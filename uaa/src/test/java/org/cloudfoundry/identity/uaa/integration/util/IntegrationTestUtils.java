@@ -15,15 +15,12 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.httpclient.Header;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
-import org.apache.http.cookie.CookieSpec;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
-import org.apache.http.impl.cookie.BestMatchSpec;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -36,6 +33,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -74,7 +72,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
@@ -86,9 +83,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -110,6 +109,7 @@ import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
+import static org.springframework.util.StringUtils.hasText;
 
 public class IntegrationTestUtils {
 
@@ -132,6 +132,16 @@ public class IntegrationTestUtils {
 
         return user;
     }
+
+    public static boolean isMember(String userId, ScimGroup group) {
+        for (ScimGroupMember member : group.getMembers()) {
+            if(userId.equals(member.getMemberId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     public static UserInfoResponse getUserInfo(String url, String token) throws URISyntaxException {
         RestTemplate rest = new RestTemplate(createRequestFactory(true));
@@ -234,7 +244,16 @@ public class IntegrationTestUtils {
                                       String lastName,
                                       String email,
                                       boolean verified) {
-
+        return createUserWithPhone(client, url, username, firstName, lastName, email, verified, null);
+    }
+    public static ScimUser createUserWithPhone(RestTemplate client,
+                                               String url,
+                                               String username,
+                                               String firstName,
+                                               String lastName,
+                                               String email,
+                                               boolean verified,
+                                               String phoneNumber) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
@@ -242,7 +261,31 @@ public class IntegrationTestUtils {
         user.setVerified(verified);
         user.setActive(true);
         user.setPassword("secr3T");
+        user.setPhoneNumbers(Collections.singletonList(new PhoneNumber(phoneNumber)));
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
+    }
+
+    public static ScimUser createUser(String token, String url, ScimUser user, String zoneSwitchId) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+        headers.add("If-Match", String.valueOf(user.getVersion()));
+        if (hasText(zoneSwitchId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneSwitchId);
+        }
+        HttpEntity getHeaders = new HttpEntity(user,headers);
+        ResponseEntity<ScimUser> userInfoGet = template.exchange(
+            url+"/Users",
+            HttpMethod.POST,
+            getHeaders,
+            ScimUser.class
+        );
+        if (userInfoGet.getStatusCode() == HttpStatus.CREATED) {
+            return userInfoGet.getBody();
+        }
+        throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
     }
 
     public static ScimUser updateUser(String token, String url, ScimUser user) {
@@ -442,7 +485,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<SearchResults<ScimGroup>> findGroup = template.exchange(
@@ -469,7 +512,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<ScimGroup> createGroup = template.exchange(
@@ -492,7 +535,7 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer " + token);
         headers.add("If-Match", "*");
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<ScimGroup> updateGroup = template.exchange(
@@ -531,7 +574,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<ScimGroupExternalMember> mapGroup = template.exchange(
@@ -586,8 +629,10 @@ public class IntegrationTestUtils {
             IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
             existing.setSubdomain(subdomain);
             existing.setConfig(config);
-            client.put(url + "/identity-zones/{id}", existing, id);
-            return existing;
+            HttpEntity<IdentityZone> updateZoneRequest = new HttpEntity<>(existing);
+            ResponseEntity<String> getUpdatedZone = client.exchange(url + "/identity-zones/{id}", HttpMethod.PUT, updateZoneRequest, String.class, id);
+            IdentityZone updatedZone = JsonUtils.readValue(getUpdatedZone.getBody(), IdentityZone.class);
+            return updatedZone;
         }
         IdentityZone identityZone = fixtureIdentityZone(id, subdomain, config);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
@@ -658,7 +703,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer "+ adminToken);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(switchToZoneId)) {
+        if (hasText(switchToZoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, switchToZoneId);
         }
         HttpEntity getHeaders = new HttpEntity(JsonUtils.writeValueAsBytes(client), headers);
@@ -684,7 +729,7 @@ public class IntegrationTestUtils {
                 throw new RuntimeException("Invalid update return code:"+clientUpdate.getStatusCode());
             }
         }
-        throw new RuntimeException("Invalid crete return code:"+clientCreate.getStatusCode());
+        throw new RuntimeException("Invalid create return code:"+clientCreate.getStatusCode());
     }
 
     public static BaseClientDetails updateClient(RestTemplate template,
@@ -814,22 +859,26 @@ public class IntegrationTestUtils {
     }
 
     public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning) throws Exception {
+        return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
+    }
+
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) throws Exception {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
         );
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
 
         return IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
-            UaaTestAccounts.standard(serverRunning),
-            "identity",
-            "identitysecret",
-            email,
-            "secr3T");
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                email,
+                "secr3T");
     }
 
     public static ScimUser createRandomUser(String baseUrl) throws Exception {
@@ -870,37 +919,9 @@ public class IntegrationTestUtils {
         if (!("simplesamlphp".equals(alias) || "simplesamlphp2".equals(alias))) {
             throw new IllegalArgumentException("Only valid origins are: simplesamlphp,simplesamlphp2");
         }
-        String idpMetaData = "<?xml version=\"1.0\"?>\n" +
-            "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://"+alias+".cfapps.io/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
-            "  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
-            "    <ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>\n" +
-            "  <ds:Reference URI=\"#pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Transforms><ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/><ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/></ds:Transforms><ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/><ds:DigestValue>begl1WVCsXSn7iHixtWPP8d/X+k=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BmbKqA3A0oSLcn5jImz/l5WbpVXj+8JIpT/ENWjOjSd/gcAsZm1QvYg+RxYPBk+iV2bBxD+/yAE/w0wibsHrl0u9eDhoMRUJBUSmeyuN1lYzBuoVa08PdAGtb5cGm4DMQT5Rzakb1P0hhEPPEDDHgTTxop89LUu6xx97t2Q03Khy8mXEmBmNt2NlFxJPNt0FwHqLKOHRKBOE/+BpswlBocjOQKFsI9tG3TyjFC68mM2jo0fpUQCgj5ZfhzolvS7z7c6V201d9Tqig0/mMFFJLTN8WuZPavw22AJlMjsDY9my+4R9HKhK5U53DhcTeECs9fb4gd7p5BJy4vVp7tqqOg==</ds:SignatureValue>\n" +
-            "<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>\n" +
-            "  <md:IDPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n" +
-            "    <md:KeyDescriptor use=\"signing\">\n" +
-            "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
-            "        <ds:X509Data>\n" +
-            "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
-            "        </ds:X509Data>\n" +
-            "      </ds:KeyInfo>\n" +
-            "    </md:KeyDescriptor>\n" +
-            "    <md:KeyDescriptor use=\"encryption\">\n" +
-            "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
-            "        <ds:X509Data>\n" +
-            "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
-            "        </ds:X509Data>\n" +
-            "      </ds:KeyInfo>\n" +
-            "    </md:KeyDescriptor>\n" +
-            "    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://"+alias+".cfapps.io/saml2/idp/SingleLogoutService.php\"/>\n" +
-            "    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n" +
-            "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://"+alias+".cfapps.io/saml2/idp/SSOService.php\"/>\n" +
-            "  </md:IDPSSODescriptor>\n" +
-            "  <md:ContactPerson contactType=\"technical\">\n" +
-            "    <md:GivenName>Filip</md:GivenName>\n" +
-            "    <md:SurName>Hanik</md:SurName>\n" +
-            "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
-            "  </md:ContactPerson>\n" +
-            "</md:EntityDescriptor>";
+        String idpMetaData = "simplesamlphp".equals(alias) ?
+            "http://simplesamlphp.cfapps.io/saml2/idp/metadata.php" :
+            "http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php";
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);
         def.setMetaDataLocation(idpMetaData);
@@ -1013,7 +1034,7 @@ public class IntegrationTestUtils {
         formData.add("username", username);
         formData.add("password", password);
         formData.add("response_type", "token id_token");
-        if (StringUtils.hasText(scopes)) {
+        if (hasText(scopes)) {
             formData.add("scope", scopes);
         }
         HttpHeaders headers = new HttpHeaders();
@@ -1109,7 +1130,7 @@ public class IntegrationTestUtils {
                                                                   boolean callCheckToken) throws Exception {
         BasicCookieStore cookies = new BasicCookieStore();
         // TODO Fix to use json API rather than HTML
-        if (StringUtils.hasText(jSessionId)) {
+        if (hasText(jSessionId)) {
             cookies.addCookie(new BasicClientCookie("JSESSIONID", jSessionId));
         }
 
@@ -1118,7 +1139,7 @@ public class IntegrationTestUtils {
                 .queryParam("response_type", "code")
                 .queryParam("state", mystateid)
                 .queryParam("client_id", clientId);
-        if( StringUtils.hasText(redirectUri)) {
+        if( hasText(redirectUri)) {
             builder = builder.queryParam("redirect_uri", redirectUri);
         }
         URI uri = builder.build();
@@ -1151,7 +1172,7 @@ public class IntegrationTestUtils {
         }
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        if (!StringUtils.hasText(jSessionId)) {
+        if (!hasText(jSessionId)) {
             // should be directed to the login screen...
             assertTrue(response.getBody().contains("/login.do"));
             assertTrue(response.getBody().contains("username"));
@@ -1201,17 +1222,17 @@ public class IntegrationTestUtils {
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = response.getHeaders().getLocation().toString();
         }
-        if (StringUtils.hasText(redirectUri)) {
+        if (hasText(redirectUri)) {
             assertTrue("Wrong location: " + location, location.matches(redirectUri + ".*code=.+"));
         }
 
         formData.clear();
         formData.add("client_id", clientId);
         formData.add("grant_type", "authorization_code");
-        if (StringUtils.hasText(redirectUri)) {
+        if (hasText(redirectUri)) {
             formData.add("redirect_uri", redirectUri);
         }
-        if (StringUtils.hasText(tokenResponseType)) {
+        if (hasText(tokenResponseType)) {
             formData.add("response_type", tokenResponseType);
         }
         formData.add("code", location.split("code=")[1].split("&")[0]);
@@ -1260,9 +1281,14 @@ public class IntegrationTestUtils {
     }
 
     public static void takeScreenShot(WebDriver webDriver) {
+        takeScreenShot("testscreenshot-", webDriver);
+    }
+    public static void takeScreenShot(String prefix, WebDriver webDriver) {
         File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
         try {
-            FileUtils.copyFile(scrFile, new File("testscreenshot-" + System.currentTimeMillis() + ".png"));
+            SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS");
+            String now = format.format(new Date(System.currentTimeMillis()));
+            FileUtils.copyFile(scrFile, new File(prefix + now + ".png"));
         } catch (IOException e) {
             e.printStackTrace();
         }

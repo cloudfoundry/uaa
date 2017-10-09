@@ -39,16 +39,18 @@
         <constructor-arg ref="identityZoneProvisioning"/>
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="zoneEndpointsClientRegistrationService"/>
+        <constructor-arg ref="scimGroupProvisioning"/>
+        <property name="validator" ref="identityZoneValidator"/>
     </bean>
 
     <bean id="zoneEndpointsClientDetailsValidator"
           class="org.cloudfoundry.identity.uaa.zone.ZoneEndpointsClientDetailsValidator">
         <constructor-arg value="zones.write"/>
+        <property name="clientSecretValidator" ref="zoneAwareClientSecretPolicyValidator"/>
     </bean>
 
     <bean id="zoneEndpointsClientRegistrationService"
           class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpointClientRegistrationService">
-        <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="zoneEndpointsClientDetailsValidator"/>
         <constructor-arg ref="approvalStore"/>
@@ -220,6 +222,7 @@
         <intercept-url pattern="/**"
                        access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="DELETE"/>
+        <intercept-url pattern="/**" access="denyAll"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>

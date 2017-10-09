@@ -200,7 +200,7 @@ Support for additional authorization attributes
 
 Additional user defined claims can be added to the token by sending them in the token request. The format of the request is as follows::
 
-        authorities={"additionalAuthorizationAttributes":{"external_group":"domain\\group1","external_id":"abcd1234"}}
+        authorities={"az_attr":{"external_group":"domain\\group1","external_id":"abcd1234"}}
 
 A sample password grant request is as follows::
 
@@ -208,7 +208,7 @@ A sample password grant request is as follows::
         Host: localhost:8080
         Accept: application/json
         Authorization: Basic YXBwOmFwcGNsaWVudHNlY3JldA==
-        "grant_type=password&username=marissa&password=koala&authorities=%7B%22additionalAuthorizationAttributes%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
+        "grant_type=password&username=marissa&password=koala&authorities=%7B%22az_attr%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
 
 The access token will contain an az_attr claim like::
 
@@ -969,7 +969,7 @@ Example::
 
     uaac token client get admin -s adminsecret
 
-    uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.testzone1.admin,zones.write"
+    uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.write"
 
     uaac token client get admin -s adminsecret
 

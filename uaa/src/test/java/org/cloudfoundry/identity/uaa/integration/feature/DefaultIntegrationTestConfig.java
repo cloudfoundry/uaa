@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.phantomjs.PhantomJSDriver;
@@ -26,8 +27,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.web.client.RestTemplate;
-
-import com.dumbster.smtp.SimpleSmtpServer;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;

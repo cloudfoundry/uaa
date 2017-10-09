@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -90,7 +91,7 @@ public class IsSelfCheck {
         String tokenId = extractIdFromUrl(index, pathInfo);
         if (hasText(pathInfo) && hasText(tokenId)) {
             try {
-                RevocableToken revocableToken = tokenProvisioning.retrieve(tokenId);
+                RevocableToken revocableToken = tokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
                 String clientIdFromToken = revocableToken.getClientId();
                 String clientIdFromAuthentication = extractClientIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
                 if (clientIdFromToken.equals(clientIdFromAuthentication)) {

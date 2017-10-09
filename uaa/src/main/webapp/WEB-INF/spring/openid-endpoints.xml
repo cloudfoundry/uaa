@@ -27,16 +27,6 @@
         <csrf disabled="true"/>
     </http>
 
-    <http name="wellKnown"
-          pattern="/.well-known/**"
-          disable-url-rewriting="true"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-      <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-      <csrf disabled="true"/>
-    </http>
-
     <oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
         resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint" />
 

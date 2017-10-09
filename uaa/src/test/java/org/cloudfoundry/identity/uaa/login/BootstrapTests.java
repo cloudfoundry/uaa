@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
@@ -39,17 +40,22 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlEntryPoint;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.HeaderFilter;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -97,6 +103,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -163,13 +170,12 @@ public class BootstrapTests {
 
     @After
     public synchronized void cleanup() throws Exception {
+        TestUtils.cleanTestDatabaseData(context.getBean(JdbcTemplate.class));
         System.clearProperty("spring.profiles.active");
         System.clearProperty("uaa.url");
         System.clearProperty("login.url");
         System.clearProperty("require_https");
-        if (context != null) {
-            context.close();
-        }
+        context.close();
         Set<String> removeme = new HashSet<>();
         for ( Map.Entry<Object,Object> entry : System.getProperties().entrySet()) {
             if (entry.getKey().toString().startsWith("login.") || entry.getKey().toString().startsWith("database.")) {
@@ -189,6 +195,16 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        LoginSamlEntryPoint samlEntryPoint = context.getBean(LoginSamlEntryPoint.class);
+        assertEquals("cloudfoundry-uaa-sp", samlEntryPoint.getDefaultProfileOptions().getRelayState());
+
+        Collection<String> defaultZoneGroups = context.getBean("defaultUserAuthorities", Collection.class);
+        String[] expectedZoneGroups = CheckDefaultAuthoritiesMvcMockTests.EXPECTED_DEFAULT_GROUPS;
+        assertThat(defaultZoneGroups,containsInAnyOrder(expectedZoneGroups));
+        IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
+        assertNotNull(defaultZone);
+        assertThat(defaultZone.getConfig().getUserConfig().getDefaultGroups(),containsInAnyOrder(expectedZoneGroups));
 
         HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
         assertNotNull(filterWrapper);
@@ -395,6 +411,83 @@ public class BootstrapTests {
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        ScimGroupExternalMembershipManager externalMembershipManager = context.getBean(ScimGroupExternalMembershipManager.class);
+        List<ScimGroupExternalMember> externalGroupMappings = externalMembershipManager.getExternalGroupMappings(IdentityZone.getUaa().getId());
+        Set<String> externalLdapGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> OriginKeys.LDAP.equals(eq.getOrigin()))
+            .map(eg -> eg.getExternalGroup())
+            .collect(Collectors.toSet());
+        System.out.println("ExternalGroups:"+externalLdapGroups);
+        assertThat(externalLdapGroups,
+                   containsInAnyOrder(
+                       "cn=admins,ou=user accounts,dc=mydomain,dc=com"
+                   )
+        );
+        Set<String> internalLdapGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> OriginKeys.LDAP.equals(eq.getOrigin()))
+            .map(eg -> eg.getDisplayName())
+            .collect(Collectors.toSet());
+        System.out.println("InternalLdapGroups:"+internalLdapGroups);
+        assertThat(internalLdapGroups,
+                   containsInAnyOrder(
+                       "bosh.admin",
+                       "scim.read"
+                   )
+        );
+        Set<String> externalSamlGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> "some-saml-provider".equals(eq.getOrigin()))
+            .map(eg -> eg.getExternalGroup())
+            .collect(Collectors.toSet());
+        assertThat(externalSamlGroups,
+                   containsInAnyOrder(
+                       "saml-bosh-admin-group",
+                       "saml-admin-group"
+                   )
+        );
+        Set<String> internalSamlGroups = externalGroupMappings
+            .stream()
+            .filter(eq -> "some-saml-provider".equals(eq.getOrigin()))
+            .map(eg -> eg.getDisplayName())
+            .collect(Collectors.toSet());
+        assertThat(internalSamlGroups,
+                   containsInAnyOrder(
+                       "bosh.admin",
+                       "scim.read",
+                       "scim.write"
+                   )
+        );
+
+
+
+        Collection<String> defaultZoneGroups = context.getBean("defaultUserAuthorities", Collection.class);
+        String[] expectedZoneGroups = {
+            "openid",
+            "scim.me",
+            "cloud_controller.read",
+            "cloud_controller.write",
+            "cloud_controller_service_permissions.read",
+            "password.write",
+            "uaa.user",
+            "approvals.me",
+            "oauth.approvals",
+            "notification_preferences.read",
+            "notification_preferences.write",
+            "profile",
+            "roles",
+            "user_attributes",
+            "cloud_controller.user",
+            "actuator.read",
+            "foo.foo"
+        };
+        assertThat(defaultZoneGroups,containsInAnyOrder(expectedZoneGroups));
+        IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId());
+        assertNotNull(defaultZone);
+        assertThat(defaultZone.getConfig().getUserConfig().getDefaultGroups(),containsInAnyOrder(expectedZoneGroups));
+        IdentityZoneHolder.set(defaultZone);
+
         HeaderFilter filterWrapper = context.getBean(HeaderFilter.class);
         assertNotNull(filterWrapper);
         assertThat(
@@ -470,7 +563,7 @@ public class BootstrapTests {
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
 
         assertEquals("key1", zoneConfiguration.getSamlConfig().getActiveKeyId());
-        assertEquals(3, zoneConfiguration.getSamlConfig().getKeys().size());
+        assertEquals(2, zoneConfiguration.getSamlConfig().getKeys().size());
 
 
         assertTrue(zoneConfiguration.isAccountChooserEnabled());
@@ -488,10 +581,6 @@ public class BootstrapTests {
         assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
         assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
 
-        assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), zoneConfiguration.getSamlConfig().getCertificate().trim());
-        assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), zoneConfiguration.getSamlConfig().getPrivateKey().trim());
-        assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), zoneConfiguration.getSamlConfig().getPrivateKeyPassword().trim());
-
         assertTrue(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
         assertFalse(zoneAwareMetadataGenerator.isWantAssertionSigned());
@@ -505,6 +594,16 @@ public class BootstrapTests {
             ),
             zoneConfiguration.getPrompts()
         );
+        ClientSecretPolicy expectedSecretPolicy = new ClientSecretPolicy();
+        expectedSecretPolicy.setMinLength(8);
+        expectedSecretPolicy.setMaxLength(128);
+        expectedSecretPolicy.setRequireUpperCaseCharacter(1);
+        expectedSecretPolicy.setRequireLowerCaseCharacter(3);
+        expectedSecretPolicy.setRequireDigit(2);
+        expectedSecretPolicy.setRequireSpecialCharacter(0);
+        expectedSecretPolicy.setExpireSecretInMonths(-1);
+
+        assertEquals(expectedSecretPolicy, zoneConfiguration.getClientSecretPolicy());
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
@@ -513,6 +612,7 @@ public class BootstrapTests {
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
         assertNotNull(oidcProvider);
+        assertTrue(oidcProvider.getConfig().isClientAuthInBody());
         assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
         assertNull(oidcProvider.getConfig().getIssuer());
@@ -531,6 +631,7 @@ public class BootstrapTests {
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
         assertNotNull(oauthProvider);
+        assertFalse(oauthProvider.getConfig().isClientAuthInBody());
         assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oauthProvider.getConfig().getTokenUrl().toString());
         assertEquals("http://issuer-my-token.com", oauthProvider.getConfig().getIssuer());
@@ -651,7 +752,7 @@ public class BootstrapTests {
         assertEquals(SignatureConstants.ALGO_ID_DIGEST_SHA256, Configuration.getGlobalSecurityConfiguration().getSignatureReferenceDigestMethod());
 
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
-        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
+        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
 
@@ -694,6 +795,7 @@ public class BootstrapTests {
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = providerProvisioning.retrieveByOrigin("okta-local-2", IdentityZone.getUaa().getId());
         assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES, samlProvider2.getConfig().getGroupMappingMode());
         assertFalse(samlProvider2.getConfig().isSkipSslValidation());
+        assertTrue(samlProvider2.getConfig().isStoreCustomAttributes());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider3 = providerProvisioning.retrieveByOrigin("vsphere.local", IdentityZone.getUaa().getId());
         assertTrue(samlProvider3.getConfig().isSkipSslValidation());
@@ -709,11 +811,18 @@ public class BootstrapTests {
     public void xlegacy_test_deprecated_properties() throws Exception {
         context = getServletContext(null, "login.yml", "test/bootstrap/deprecated_properties_still_work.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
-        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
+        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
         IdentityZoneConfigurationBootstrap zoneBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);
         assertEquals("https://deprecated.home_redirect.com", zoneBootstrap.getHomeRedirect());
+        IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve("uaa");
+        IdentityZoneConfiguration defaultConfig = defaultZone.getConfig();
+        assertTrue("Legacy SAML keys should be available", defaultConfig.getSamlConfig().getKeys().containsKey(SamlConfig.LEGACY_KEY_ID));
+        assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), defaultConfig.getSamlConfig().getCertificate().trim());
+        assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), defaultConfig.getSamlConfig().getPrivateKey().trim());
+        assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), defaultConfig.getSamlConfig().getPrivateKeyPassword().trim());
+
     }
 
     @Test

@@ -22,8 +22,13 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -37,6 +42,28 @@ public class IdentityZoneConfigurationTests {
     @Before
     public void configure() {
         definition = new IdentityZoneConfiguration();
+    }
+
+    @Test
+    public void default_user_groups_when_json_is_deserialized() throws Exception {
+        definition.setUserConfig(null);
+        String s = JsonUtils.writeValueAsString(definition);
+        assertThat(s, not(containsString("userConfig")));
+        definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
+        assertNotNull(definition.getUserConfig());
+        assertThat(definition.getUserConfig().getDefaultGroups(), containsInAnyOrder(
+            "openid",
+            "password.write",
+            "uaa.user",
+            "approvals.me",
+            "profile",
+            "roles",
+            "user_attributes",
+            "uaa.offline_token"
+        ));
+        s = JsonUtils.writeValueAsString(definition);
+        assertThat(s, containsString("userConfig"));
+        assertThat(s, containsString("uaa.offline_token"));
     }
 
     @Test

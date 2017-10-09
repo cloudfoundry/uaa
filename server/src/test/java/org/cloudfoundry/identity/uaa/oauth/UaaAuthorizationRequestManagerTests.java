@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -38,7 +39,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -70,7 +70,7 @@ public class UaaAuthorizationRequestManagerTests {
 
     private UaaAuthorizationRequestManager factory;
 
-    private ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+    private ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
 
     private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
 
@@ -169,7 +169,7 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("scope", "aud1.test aud2.test");
         parameters.put("client_id", client.getClientId());
         parameters.put(OAuth2Utils.GRANT_TYPE, "client_credentials");
-        factory.setDefaultScopes(Arrays.asList("aud1.test"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("aud1.test"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
@@ -195,7 +195,7 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("client_id", recipient.getClientId());
         parameters.put("expires_in", "44000");
         parameters.put(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
-        factory.setDefaultScopes(Arrays.asList("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("uaa.user"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
         when(clientDetailsService.loadClientByClientId(recipient.getClientId())).thenReturn(recipient);
@@ -279,7 +279,7 @@ public class UaaAuthorizationRequestManagerTests {
             }
         };
         parameters.put("scope", "openid foo.bar");
-        factory.setDefaultScopes(Arrays.asList("openid"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("openid"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
