@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,18 +12,35 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.web;
 
-import static org.junit.Assert.assertEquals;
-
 import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
 import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import static org.junit.Assert.assertEquals;
 
 public class HealthzEndpointTests {
 
     private HealthzEndpoint endpoint = new HealthzEndpoint();
+    private MockHttpServletResponse response = new MockHttpServletResponse();
 
     @Test
     public void testGetHealthz() throws Exception {
-        assertEquals("ok\n", endpoint.getHealthz());
+        assertEquals("ok\n", endpoint.getHealthz(response));
+    }
+
+    @Test
+    public void shutdown_sends_stopping() throws Exception {
+        assertEquals("ok\n", endpoint.getHealthz(response));
+        runShutdownHook();
+        assertEquals("stopping\n", endpoint.getHealthz(response));
+        assertEquals(503, response.getStatus());
+    }
+
+    protected void runShutdownHook() {
+        Object t = ReflectionTestUtils.getField(endpoint, "shutdownhook");
+        ReflectionTestUtils.invokeMethod(t, "run");
+        ReflectionTestUtils.invokeMethod(t, "join");
     }
 
 }
