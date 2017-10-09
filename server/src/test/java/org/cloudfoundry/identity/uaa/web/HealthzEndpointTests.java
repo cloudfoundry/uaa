@@ -13,11 +13,13 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class HealthzEndpointTests {
 
@@ -31,10 +33,13 @@ public class HealthzEndpointTests {
 
     @Test
     public void shutdown_sends_stopping() throws Exception {
+        long now = System.currentTimeMillis();
         assertEquals("ok\n", endpoint.getHealthz(response));
         runShutdownHook();
         assertEquals("stopping\n", endpoint.getHealthz(response));
         assertEquals(503, response.getStatus());
+        long after = System.currentTimeMillis();
+        assertThat(after, Matchers.greaterThanOrEqualTo(now+5000));
     }
 
     protected void runShutdownHook() {

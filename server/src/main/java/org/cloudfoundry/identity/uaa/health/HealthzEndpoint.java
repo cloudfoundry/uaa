@@ -13,13 +13,13 @@
 
 package org.cloudfoundry.identity.uaa.health;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * Simple controller that just returns "ok" in a request body for the purposes
@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  */
 @Controller
 public class HealthzEndpoint {
-
+    private static final int SLEEP_UPON_SHUTDOWN = 5000;
     private static Log logger = LogFactory.getLog(HealthzEndpoint.class);
     private volatile boolean stopping = false;
     private final Thread shutdownhook;
@@ -38,6 +38,12 @@ public class HealthzEndpoint {
         shutdownhook = new Thread(() -> {
             stopping = true;
             logger.warn("Shutdown hook received, future requests to this endpoint will return 503");
+            logger.debug("Healthz is sleeping shutdown thread for "+SLEEP_UPON_SHUTDOWN+" ms.");
+            try {
+                Thread.sleep(SLEEP_UPON_SHUTDOWN);
+            } catch (InterruptedException e) {
+                logger.warn("Shutdown sleep interrupted.", e);
+            }
         });
         Runtime.getRuntime().addShutdownHook(shutdownhook);
     }
