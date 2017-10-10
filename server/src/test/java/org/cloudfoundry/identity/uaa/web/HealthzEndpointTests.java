@@ -23,7 +23,9 @@ import static org.junit.Assert.assertThat;
 
 public class HealthzEndpointTests {
 
-    private HealthzEndpoint endpoint = new HealthzEndpoint();
+    private static final int SLEEP_UPON_SHUTDOWN = 150;
+
+    private HealthzEndpoint endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN);
     private MockHttpServletResponse response = new MockHttpServletResponse();
 
     @Test
@@ -39,7 +41,18 @@ public class HealthzEndpointTests {
         assertEquals("stopping\n", endpoint.getHealthz(response));
         assertEquals(503, response.getStatus());
         long after = System.currentTimeMillis();
-        assertThat(after, Matchers.greaterThanOrEqualTo(now+5000));
+        assertThat(after, Matchers.greaterThanOrEqualTo(now+SLEEP_UPON_SHUTDOWN));
+    }
+
+    @Test
+    public void shutdown_without_sleep() throws Exception {
+        long now = System.currentTimeMillis();
+        endpoint = new HealthzEndpoint(-1);
+        runShutdownHook();
+        assertEquals("stopping\n", endpoint.getHealthz(response));
+        assertEquals(503, response.getStatus());
+        long after = System.currentTimeMillis();
+        assertThat(after, Matchers.lessThanOrEqualTo(now+SLEEP_UPON_SHUTDOWN));
     }
 
     protected void runShutdownHook() {

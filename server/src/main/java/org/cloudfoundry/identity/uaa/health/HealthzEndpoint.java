@@ -29,18 +29,21 @@ import javax.servlet.http.HttpServletResponse;
  */
 @Controller
 public class HealthzEndpoint {
-    private static final int SLEEP_UPON_SHUTDOWN = 5000;
     private static Log logger = LogFactory.getLog(HealthzEndpoint.class);
     private volatile boolean stopping = false;
     private final Thread shutdownhook;
+    private final long sleepTime;
 
-    public HealthzEndpoint() {
+    public HealthzEndpoint(long sleepTime) {
+        this.sleepTime = sleepTime;
         shutdownhook = new Thread(() -> {
             stopping = true;
             logger.warn("Shutdown hook received, future requests to this endpoint will return 503");
-            logger.debug("Healthz is sleeping shutdown thread for "+SLEEP_UPON_SHUTDOWN+" ms.");
             try {
-                Thread.sleep(SLEEP_UPON_SHUTDOWN);
+                if (sleepTime>0) {
+                    logger.debug("Healthz is sleeping shutdown thread for "+sleepTime+" ms.");
+                    Thread.sleep(sleepTime);
+                }
             } catch (InterruptedException e) {
                 logger.warn("Shutdown sleep interrupted.", e);
             }
@@ -60,4 +63,7 @@ public class HealthzEndpoint {
         }
     }
 
+    public long getSleepTime() {
+        return sleepTime;
+    }
 }

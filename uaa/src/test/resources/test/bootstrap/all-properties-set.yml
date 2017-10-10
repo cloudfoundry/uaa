@@ -565,6 +565,8 @@ smtp:
   starttls: true
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
+  shutdown:
+    sleep: 5000
   limitedFunctionality:
     enabled: true
     whitelist:
