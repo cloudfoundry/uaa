@@ -1,0 +1,25 @@
+#logo-header {
+    background-color: #393939;
+}
+
+#logo-header img {
+    max-height: 50px;
+    margin-left: 20px;
+}
+
+body {
+    background-color: #eaf2f6;
+}
+
+#prop-mappings {
+    margin-left: 20px;
+    margin-top: 20px;
+    background-color: #f9fbfc;
+}
+
+#description {
+    background-color: #f3f7fa;
+    padding: 10px 60% 10px 10px;
+    font-family: sans-serif;
+    min-width: 400px;
+}
