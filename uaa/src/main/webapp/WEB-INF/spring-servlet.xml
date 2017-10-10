@@ -479,7 +479,9 @@
         <property name="globalLinks" ref="globalLinks"/>
     </bean>
 
-    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
+    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint">
+        <constructor-arg name="sleepTime" value="${uaa.shutdown.sleep:-1}"/>
+    </bean>
 
     <context:annotation-config />
 

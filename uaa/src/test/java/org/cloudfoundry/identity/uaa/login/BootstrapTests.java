@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
 import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
@@ -200,6 +201,9 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(-1, hend.getSleepTime());
 
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertTrue(metricsFilter.isEnabled());
@@ -450,6 +454,9 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(5000, hend.getSleepTime());
 
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertFalse(metricsFilter.isEnabled());
