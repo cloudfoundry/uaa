@@ -40,7 +40,7 @@ public class PredixAuditServiceTest {
                 AuditEventType.ClientAuthenticationFailure, "princialID",
                 "origin", DATA, System.currentTimeMillis(), IDENTITY_ZONE_ID);
         try {
-            auditService.log(auditEvent);
+            auditService.log(auditEvent, IDENTITY_ZONE_ID);
             verify(mockAuditClient)
                     .audit(argThat(new AuditServiceOutputValidator(
                             AuditEnums.CategoryType.AUTHENTICATIONS,
@@ -62,7 +62,7 @@ public class PredixAuditServiceTest {
                 "origin", DATA, System.currentTimeMillis(), null);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
-            auditService.log(auditEvent);
+            auditService.log(auditEvent, null);
             verify(mockAuditClient)
                     .audit(argThat(new AuditServiceOutputValidator(
                             AuditEnums.CategoryType.AUTHENTICATIONS,
@@ -85,7 +85,7 @@ public class PredixAuditServiceTest {
                 "origin", DATA, System.currentTimeMillis(), identityZoneId);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
-            auditService.log(auditEvent);
+            auditService.log(auditEvent, identityZoneId);
             verify(mockAuditClient)
                     .audit(argThat(new AuditServiceOutputValidator(
                             AuditEnums.CategoryType.AUTHENTICATIONS,
@@ -106,7 +106,7 @@ public class PredixAuditServiceTest {
                 System.currentTimeMillis(), IDENTITY_ZONE_ID);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
-            auditService.log(auditEvent);
+            auditService.log(auditEvent, IDENTITY_ZONE_ID);
             verify(mockAuditClient)
                     .audit(argThat(new AuditServiceOutputValidator(
                             AuditEnums.CategoryType.AUTHORIZATION,
@@ -127,7 +127,7 @@ public class PredixAuditServiceTest {
                 System.currentTimeMillis(), IDENTITY_ZONE_ID);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
-            auditService.log(auditEvent);
+            auditService.log(auditEvent, IDENTITY_ZONE_ID);
             verify(mockAuditClient)
                     .audit(argThat(new AuditServiceOutputValidator(
                             AuditEnums.CategoryType.ADMINISTRATIONS,

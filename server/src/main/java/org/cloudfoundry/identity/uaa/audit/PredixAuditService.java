@@ -22,15 +22,14 @@ public class PredixAuditService implements UaaAuditService {
     private AuditClient predixAuditClient;
 
     @Override
-    public List<AuditEvent> find(String principal, long after) {
+    public List<AuditEvent> find(String principal, long after, String zoneId) {
         throw new UnsupportedOperationException("This implementation does not store data");
     }
 
     @Override
-    public void log(AuditEvent auditEvent) {
+    public void log(AuditEvent auditEvent, String zoneId) {
         //map and send to audit service
         String correlationId = getCorrelationId();
-        String zoneId = auditEvent.getIdentityZoneId();
         try{
             UUID.fromString(correlationId);
         } catch (Exception e){

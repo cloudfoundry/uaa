@@ -43,6 +43,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -358,7 +359,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testSelfServiceLinksDoNotHaveDefaultValues() {
+    public void testSelfServiceLinksDoNotHaveDefaultValues() throws Exception{
         LoginInfoEndpoint endpoint = getEndpoint();
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
@@ -369,19 +370,19 @@ public class LoginInfoEndpointTests {
 
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup(null);
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), null);
         validateSelfServiceLinks(null, "http://custom_passwd_link", model);
         validateSelfServiceLinks(null, "http://custom_passwd_link", endpoint.getSelfServiceLinks());
 
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("");
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), null);
         validateSelfServiceLinks(null, "http://custom_passwd_link", model);
         validateSelfServiceLinks(null, "http://custom_passwd_link", endpoint.getSelfServiceLinks());
 
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("");
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), null);
         validateSelfServiceLinks("http://custom_signup_link", null, model);
         validateSelfServiceLinks("http://custom_signup_link", null, endpoint.getSelfServiceLinks());
 

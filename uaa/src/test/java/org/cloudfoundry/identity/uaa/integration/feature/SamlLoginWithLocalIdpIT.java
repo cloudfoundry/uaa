@@ -428,7 +428,9 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("username")).sendKeys(email);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(),
+                containsString("You should not see this page. Set up your redirect URI."));
+
         webDriver.get(testZone1Url + "/saml/idp/initiate");
         assertNotNull(webDriver.findElement(By.xpath("//h2[contains(text(), 'Missing sp request parameter')]")));
         webDriver.get(testZone1Url + "/saml/idp/initiate?sp=invalid_entity_id");
@@ -489,7 +491,9 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("username")).sendKeys(email);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(),
+                containsString("You should not see this page. Set up your redirect URI."));
+
         assertThat(webDriver.getCurrentUrl(), containsString(testZone2Url));
         for (String logout : Arrays.asList(baseUrl, testZone1Url, testZone2Url)) {
             webDriver.get(logout + "/logout.do");

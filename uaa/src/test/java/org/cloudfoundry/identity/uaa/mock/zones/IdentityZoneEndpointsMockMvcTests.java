@@ -488,6 +488,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(JWT.getStringValue(),zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         assertTrue(zone.isEnableRedirectUriCheck());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
+        return zone;
     }
 
     @Test
@@ -507,7 +508,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         for (String g : UserConfig.DEFAULT_ZONE_GROUPS) {
             assertNotNull(groupProvisioning.getByName(g, id));
         }
-        return zone;
     }
 
     @Test

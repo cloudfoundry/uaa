@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 //)
 public class LoggingAuditService implements UaaAuditService {
 
-    private final Log logger = LogFactory.getLog("UAA.Audit");
+    private Log logger = LogFactory.getLog("UAA.Audit");
 
     private AtomicInteger userAuthenticationCount = new AtomicInteger();
 

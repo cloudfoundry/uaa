@@ -243,7 +243,7 @@ public class ResetPasswordIT {
         return testClient.extractLink(message.getBody());
     }
 
-    private void finishPasswordReset(String username, String email) {
+    private void finishPasswordReset(String username, String email) throws Exception{
         String link = getPasswordResetLink(email);
         webDriver.get(link);
 
@@ -252,11 +252,9 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
-
-
+        
         // Log out and back in with new password
-        webDriver.findElement(By.xpath("//*[text()='"+ username +"']")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
+        tearDown();
 
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
