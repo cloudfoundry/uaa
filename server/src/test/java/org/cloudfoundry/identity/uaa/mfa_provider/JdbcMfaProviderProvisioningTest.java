@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.doNothing;
@@ -36,6 +37,28 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         MfaProvider retrieved = mfaProviderProvisioning.retrieve(created.getId(), zoneId);
         assertEquals(mfaProvider.getName(), retrieved.getName());
         assertEquals(mfaProvider.getConfig(), retrieved.getConfig());
+    }
+
+    @Test
+    public void testCreateAndUpdate() {
+        MfaProvider mfaProvider = constructGoogleProvider();
+        String zoneId = IdentityZoneHolder.get().getId();
+        assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
+
+        MfaProvider created = mfaProviderProvisioning.create(mfaProvider, zoneId);
+        assertNotNull(created);
+        assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and id=?", new Object[]{zoneId, created.getId()}, Integer.class));
+
+        mfaProvider = created;
+        mfaProvider.setName("UpdatedName");
+        mfaProvider.getConfig().setIssuer("new issuer");
+
+        MfaProvider updated = mfaProviderProvisioning.update(created, zoneId);
+        assertNotNull(updated);
+
+        MfaProvider retrieved = mfaProviderProvisioning.retrieve(created.getId(), zoneId);
+        assertEquals(mfaProvider.getName(), retrieved.getName());
+        assertEquals(mfaProvider.getConfig().getIssuer(), retrieved.getConfig().getIssuer());
     }
 
     @Test

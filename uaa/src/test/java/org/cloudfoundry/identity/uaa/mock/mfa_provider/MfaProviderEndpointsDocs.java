@@ -15,8 +15,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
-import org.springframework.restdocs.request.ParameterDescriptor;
-import org.springframework.restdocs.request.RequestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.ResultActions;
@@ -39,7 +37,6 @@ import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -92,6 +89,33 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
                 .contentType(APPLICATION_JSON)
                 .content(serializeExcludingProperties(mfaProvider, "id", "created", "last_modified", "identityZoneId")))
                 .andExpect(status().isCreated())
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                MFA_AUTHORIZATION_HEADER,
+                                IDENTITY_ZONE_ID_HEADER
+                        ),
+                        requestFields,
+                        responseFields)
+                );
+    }
+
+
+    @Test
+    public void testUpdateGoogleMfaProvider() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createMfaProviderHelper(getGoogleMfaProvider());
+
+        FieldDescriptor[] idempotentFields = getGoogleMfaProviderFields();
+        Snippet requestFields = requestFields(idempotentFields);
+
+        Snippet responseFields = responseFields(getMfaProviderResponseFields(idempotentFields));
+        getMockMvc().perform(RestDocumentationRequestBuilders.put("/mfa-providers/{id}", mfaProvider.getId())
+                .accept(APPLICATION_JSON)
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(serializeExcludingProperties(mfaProvider, "id", "created", "last_modified", "identityZoneId")))
+                .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}",
                         preprocessRequest(prettyPrint()),
                         preprocessResponse(prettyPrint()),

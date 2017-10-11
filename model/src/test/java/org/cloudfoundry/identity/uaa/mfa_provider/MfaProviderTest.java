@@ -13,6 +13,7 @@ import javax.xml.bind.ValidationException;
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class MfaProviderTest {
@@ -63,7 +64,30 @@ public class MfaProviderTest {
         assertEquals(32, config.getDuration());
         assertEquals("issuer", config.getIssuer());
         assertEquals("ddd", config.getProviderDescription());
+    }
 
+
+    @Test
+    public void testDeserializeInvalidType() {
+        String json = "{\n" +
+                "  \"type\" : \"invalid-type\",\n" +
+                "  \"config\" : {\n" +
+                "    \"providerDescription\" : \"ddd\",\n" +
+                "    \"issuer\": \"issuer\",\n" +
+                "    \"algorithm\": \"SHA256\",\n" +
+                "    \"digits\": 8, \n" +
+                "    \"duration\": 32 \n" +
+                "  },\n" +
+                "  \"name\" : \"UAA Provider\",  \n" +
+                "  \"active\" : true\n" +
+                "}";
+
+        MfaProvider<GoogleMfaProviderConfig> provider = JsonUtils.readValue(json, MfaProvider.class);
+
+        assertEquals(null, provider.getType());
+        assertEquals("UAA Provider", provider.getName());
+        assertEquals(true, provider.isActive());
+        assertNull(provider.getConfig());
     }
 
     @Test
