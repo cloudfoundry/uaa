@@ -1294,17 +1294,17 @@ The MFA provider
 
 ## Create
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/http-response.md")).result(binding) %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/request-headers.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/request-headers.md")).result(binding) %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/response-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/response-fields.md")).result(binding) %>
 
 _Error Codes_
 
@@ -1313,6 +1313,51 @@ _Error Codes_
 | 400        | Bad Request - invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
 | 403        | Forbidden - Insufficient scope (uaa.admin or zones.<zoneid>.admin is required to create a MFA provider)|
+
+## Get
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (uaa.admin or zones.<zoneid>.admin is required to create a MFA provider)|
+| 404        | Provider id not found                                                                                  |
+
+
+## List
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (uaa.admin or zones.<zoneid>.admin is required to create a MFA provider)|
+
 
 # Users
 

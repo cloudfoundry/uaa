@@ -15,14 +15,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.UUID;
 
 public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, SystemDeletable {
 
     private static Log logger = LogFactory.getLog(JdbcMfaProviderProvisioning.class);
+    public static final String TABLE_NAME = "mfa_providers";
     public static final String MFA_PROVIDER_FIELDS = "id,name,type,config,active,identity_zone_id,created,lastmodified";
     public static final String CREATE_PROVIDER_SQL = "insert into mfa_providers(" + MFA_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?)";
-    public static final String MFA_PROVIDER_BY_ID_QUERY = "select " + MFA_PROVIDER_FIELDS + " from mfa_providers " + "where id=? and identity_zone_id=?";
+    public static final String MFA_PROVIDER_BY_ID_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where id=? and identity_zone_id=?";
+    public static final String MFA_PROVIDERS_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where identity_zone_id=?";
+
     protected final JdbcTemplate jdbcTemplate;
     private MfaProviderValidator mfaProviderValidator;
     private MfaProviderMapper mapper = new MfaProviderMapper();
@@ -63,7 +67,10 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
         return provider;
     }
 
-
+    @Override
+    public List<MfaProvider> retrieveAll(String zoneId) {
+        return jdbcTemplate.query(MFA_PROVIDERS_QUERY, mapper, zoneId);
+    }
 
     @Override
     public int deleteByIdentityZone(String zoneId) {
