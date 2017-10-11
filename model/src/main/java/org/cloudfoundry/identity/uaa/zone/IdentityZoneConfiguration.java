@@ -38,7 +38,7 @@ public class IdentityZoneConfiguration {
     private BrandingInformation branding;
     private boolean accountChooserEnabled;
     private UserConfig userConfig = new UserConfig();
-    private ZoneMfaConfig mfaConfig = new ZoneMfaConfig();
+    private MfaConfig mfaConfig = new MfaConfig();
 
     public IdentityZoneConfiguration() {}
 
@@ -109,11 +109,11 @@ public class IdentityZoneConfiguration {
         this.accountChooserEnabled = accountChooserEnabled;
     }
 
-    public ZoneMfaConfig getMfaConfig() {
+    public MfaConfig getMfaConfig() {
         return mfaConfig;
     }
 
-    public IdentityZoneConfiguration setMfaConfig(ZoneMfaConfig mfaConfig) {
+    public IdentityZoneConfiguration setMfaConfig(MfaConfig mfaConfig) {
         this.mfaConfig = mfaConfig;
         return this;
     }

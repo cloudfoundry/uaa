@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -32,21 +34,21 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1066,7 +1068,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isUnprocessableEntity())
                 .andReturn().getResponse();
 
-        assertThat(response.getContentAsString(), Matchers.containsString("Invalid banner link: " + invalidUrl + ". Must be a properly formatted URI beginning with http:// or https://"));
+        assertThat(response.getContentAsString(), containsString("Invalid banner link: " + invalidUrl + ". Must be a properly formatted URI beginning with http:// or https://"));
     }
 
     @Test
@@ -1103,7 +1105,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andReturn()
                 .getResponse();
 
-        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner link: " + invalidUrl + ". Must be a properly formatted URI beginning with http:// or https://"));
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid banner link: " + invalidUrl + ". Must be a properly formatted URI beginning with http:// or https://"));
     }
 
 
@@ -1128,7 +1130,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isUnprocessableEntity())
             .andReturn().getResponse();
 
-        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner background color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid banner background color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
     }
 
     @Test
@@ -1165,7 +1167,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn()
             .getResponse();
 
-        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner background color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid banner background color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
     }
 
     @Test
@@ -1189,7 +1191,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isUnprocessableEntity())
             .andReturn().getResponse();
 
-        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner text color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid banner text color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
     }
 
     @Test
@@ -1226,7 +1228,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn()
             .getResponse();
 
-        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner text color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid banner text color: " + invalidColor + ". Must be a properly formatted hexadecimal color code."));
     }
 
     @Test
@@ -1251,7 +1253,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isUnprocessableEntity())
             .andReturn().getResponse();
 
-        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner logo. Must be in BASE64 format."));
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid banner logo. Must be in BASE64 format."));
     }
 
     @Test
@@ -1290,7 +1292,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn()
             .getResponse();
 
-        assertThat(mvcResult.getContentAsString(), Matchers.containsString("Invalid banner logo. Must be in BASE64 format."));
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid banner logo. Must be in BASE64 format."));
     }
 
     @Test
@@ -1887,6 +1889,68 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
         assertEquals("kid", zoneResult.getConfig().getTokenPolicy().getActiveKeyId());
+    }
+
+    @Test
+    public void createZoneWithMfaConfig() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider();
+        String zoneId = new RandomValueStringGenerator(5).generate();
+        String zoneContent = "{\"id\" : \""+zoneId+"\", \"name\" : \""+zoneId+"\", \"subdomain\" : \""+zoneId+"\", \"config\" : { \"mfaConfig\" : {\"enabled\" : true, \"providerId\" : \""+mfaProvider.getId()+"\"}}}";
+        MockHttpServletResponse response = getMockMvc().perform(post("/identity-zones")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(zoneContent))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse();
+
+        IdentityZone zoneCreated = JsonUtils.readValue(response.getContentAsString(), IdentityZone.class);
+        assertEquals(mfaProvider.getId(), zoneCreated.getConfig().getMfaConfig().getProviderId());
+        assertTrue(zoneCreated.getConfig().getMfaConfig().isEnabled());
+    }
+
+    @Test
+    public void createZoneWithInvalidMfaConfig() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider();
+        String zoneId = new RandomValueStringGenerator(5).generate();
+        String zoneContent = "{\"id\" : \""+zoneId+"\", \"name\" : \""+zoneId+"\", \"subdomain\" : \""+zoneId+"\", \"config\" : { \"mfaConfig\" : {\"enabled\" : true, \"providerId\" : \"INVALID_ID\"}}}";
+        MockHttpServletResponse response = getMockMvc().perform(post("/identity-zones")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(zoneContent))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn().getResponse();
+
+        assertThat(response.getContentAsString(), containsString("Active MFA Provider not found for id: INVALID_ID"));
+    }
+
+    @Test
+    public void updateZoneWithValidMfaConfig() throws Exception {
+        IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider();
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderId(mfaProvider.getId()));
+
+        IdentityZone updatedZone = updateZone(identityZone, HttpStatus.OK, adminToken);
+
+        assertEquals(mfaProvider.getId(), updatedZone.getConfig().getMfaConfig().getProviderId());
+        assertFalse(updatedZone.getConfig().getMfaConfig().isEnabled());
+    }
+
+    @Test
+    public void updateZoneWithInvalidMfaConfig() throws Exception {
+        IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderId("INVALID_ID"));
+
+        updateZone(identityZone, HttpStatus.UNPROCESSABLE_ENTITY, adminToken);
+    }
+
+    private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
+        MockHttpServletResponse mfaProviderResponse = getMockMvc().perform(post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn().getResponse();
+        mfaProvider = JsonUtils.readValue(mfaProviderResponse.getContentAsString(), MfaProvider.class);
+        return mfaProvider;
     }
 
     private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {

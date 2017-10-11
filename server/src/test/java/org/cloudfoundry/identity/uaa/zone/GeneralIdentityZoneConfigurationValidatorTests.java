@@ -27,6 +27,9 @@ import java.security.Security;
 
 import static java.util.Collections.EMPTY_MAP;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 @RunWith(Parameterized.class)
 public class GeneralIdentityZoneConfigurationValidatorTests {
@@ -215,6 +218,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
         config.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
         validator = new GeneralIdentityZoneConfigurationValidator();
+        validator.setMfaConfigValidator(mock(MfaConfigValidator.class));
         zoneConfiguration = new IdentityZoneConfiguration();
         zoneConfiguration.setSamlConfig(config);
         IdentityZoneHolder.clear();
@@ -265,5 +269,14 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         validator.validate(zoneConfiguration, mode);
     }
 
+    @Test
+    public void mfa_validation_exception_gets_thrown_back() throws Exception{
+        MfaConfigValidator mfaConfigValidator = mock(MfaConfigValidator.class);
+        validator.setMfaConfigValidator(mfaConfigValidator);
+        doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mfaConfigValidator).validate(any());
 
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid MFA Config");
+        validator.validate(zoneConfiguration, mode);
+    }
 }

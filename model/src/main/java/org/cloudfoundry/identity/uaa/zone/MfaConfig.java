@@ -1,16 +1,18 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ZoneMfaConfig {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class MfaConfig {
 
     private boolean enabled = false;
-    private String providerId = "";
+    private String providerId;
 
     @Override
     public String toString() {
-        return "ZoneMfaConfig: {" +
+        return "MfaConfig: {" +
                 "enabled:" + enabled +
                 ", providerId:\"" + providerId + '\"' +
                 '}';
@@ -21,7 +23,7 @@ public class ZoneMfaConfig {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ZoneMfaConfig that = (ZoneMfaConfig) o;
+        MfaConfig that = (MfaConfig) o;
 
         if (enabled != that.enabled) return false;
         return providerId != null ? providerId.equals(that.providerId) : that.providerId == null;
@@ -38,7 +40,7 @@ public class ZoneMfaConfig {
         return enabled;
     }
 
-    public ZoneMfaConfig setEnabled(boolean enabled) {
+    public MfaConfig setEnabled(boolean enabled) {
         this.enabled = enabled;
         return this;
     }
@@ -47,7 +49,7 @@ public class ZoneMfaConfig {
         return providerId;
     }
 
-    public ZoneMfaConfig setProviderId(String providerId) {
+    public MfaConfig setProviderId(String providerId) {
         this.providerId = providerId;
         return this;
     }
