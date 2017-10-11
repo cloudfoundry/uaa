@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,6 +47,25 @@ public class MfaProviderEndpointsMockMVCTest extends InjectedMockContextTest {
         assertEquals(IdentityZoneHolder.get().getName(), mfaProviderCreated.getConfig().getIssuer());
         assertEquals(IdentityZoneHolder.get().getId(), mfaProviderCreated.getIdentityZoneId());
 
+    }
+    
+    @Test
+    public void testCreateGoogleMfaProvider_UnauthorizedResponse() throws Exception{
+        MfaProvider mfaProvider = constructGoogleProvider();
+        ((GoogleMfaProviderConfig)mfaProvider.getConfig())
+            .setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA512)
+            .setDigits(25)
+            .setDuration(10);
+        String unauthorizedToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
+            "clients.read clients.write clients.secret clients.admin");
+        MvcResult mfaResponse = getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + unauthorizedToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+        assertEquals(HttpStatus.FORBIDDEN.value(), mfaResponse.getResponse().getStatus());
+        JsonNode json = JsonUtils.readTree(mfaResponse.getResponse().getContentAsString());
+        assertNotNull("response was not json",json);
     }
 
     @Test
