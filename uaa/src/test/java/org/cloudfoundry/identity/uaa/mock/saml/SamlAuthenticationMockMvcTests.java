@@ -31,8 +31,11 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.xml.sax.InputSource;
 
@@ -50,7 +53,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
 
@@ -95,21 +101,43 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
         sp.getConfig().getStaticCustomAttributes().put("portal_emails", Arrays.asList("portal1@portal.test", "portal2@portal.test"));
         spProvisioning.update(sp, idpZone.getIdentityZone().getId());
 
+        String samlResponse = performIdpAuthentication();
+        String xml = extractAssertion(samlResponse, true);
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String emails = (String) xpath.evaluate("//*[local-name()='Attribute'][@*[local-name()='Name' and .='portal_emails']]", new InputSource(new StringReader(xml)), XPathConstants.STRING);
+        assertThat(emails, containsString("portal1@portal.test"));
+        assertThat(emails, containsString("portal2@portal.test"));
+    }
+
+    @Test
+    public void sp_is_authenticated() throws Exception {
+        String samlResponse = performIdpAuthentication();
+        String xml = extractAssertion(samlResponse, false);
+        performSPAuthentication(xml)
+            .andExpect(authenticated());
+    }
+
+    public ResultActions performSPAuthentication(String assertion) throws Exception {
+        String spEntityId = spZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
+        return getMockMvc().perform(
+            post("/uaa/saml/SSO/alias/"+spEntityId)
+                .contextPath("/uaa")
+                .header(HttpHeaders.HOST, spZone.getIdentityZone().getSubdomain()+".localhost:8080")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param("SAMLResponse", assertion)
+        );
+    }
+
+    public String performIdpAuthentication() throws Exception {
         RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", getWebApplicationContext(), idpZone.getIdentityZone()));
-        String assertion = getMockMvc().perform(
+        return getMockMvc().perform(
             get("/saml/idp/initiate")
                 .header("Host", idpZone.getIdentityZone().getSubdomain()+".localhost")
                 .param("sp", entityId)
                 .with(marissa)
         )
+            .andDo(print())
             .andReturn().getResponse().getContentAsString();
-
-        String xml = extractAssertion(assertion);
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String emails = (String) xpath.evaluate("//*[local-name()='Attribute'][@*[local-name()='Name' and .='portal_emails']]", new InputSource(new StringReader(xml)), XPathConstants.STRING);
-        assertThat(emails, containsString("portal1@portal.test"));
-        assertThat(emails, containsString("portal2@portal.test"));
-
     }
 
     public void createUser() throws Exception {
@@ -163,13 +191,18 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
 
 
 
-    public String extractAssertion(String response) {
+    public String extractAssertion(String response, boolean decode) {
         String searchFor = "name=\"SAMLResponse\" value=\"";
         int start = response.indexOf(searchFor) + searchFor.length();
         assertThat("Must find the SAML response in output\n"+response, start, greaterThan(searchFor.length()));
         int end = response.indexOf("\"/>", start);
         assertThat("Must find the SAML response in output\n"+response, end, greaterThan(start));
-        return new String(Base64.getDecoder().decode(response.substring(start, end)));
+        String encoded = response.substring(start, end);
+        if (decode) {
+            return new String(Base64.getDecoder().decode(encoded));
+        } else {
+            return encoded;
+        }
     }
 
 }
