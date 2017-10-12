@@ -447,12 +447,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public int deleteByClient(String clientId, String zoneId) {
-        //no op - nothing to do here
-        return 0;
-    }
-
-    @Override
     public int deleteByUser(String userId, String zoneId) {
         deleteUser(userId, -1, zoneId);
         return 1;
