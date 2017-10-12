@@ -16,7 +16,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;
@@ -199,6 +198,30 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
                     MFA_AUTHORIZATION_HEADER,
                     IDENTITY_ZONE_ID_HEADER),
             responseFields
+        ));
+    }
+
+    @Test
+    public void testDeleteMfaProvider() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = getGoogleMfaProvider();
+        mfaProvider = createMfaProviderHelper(mfaProvider);
+
+        Snippet responseFields = responseFields(getMfaProviderResponseFields(getGoogleMfaProviderFields()));
+
+        ResultActions getMFaResultAction = getMockMvc().perform(
+                RestDocumentationRequestBuilders.delete("/mfa-providers/{id}", mfaProvider.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .accept(APPLICATION_JSON));
+
+        getMFaResultAction.andDo(document(
+                "{ClassName}/{methodName}",
+                preprocessResponse(prettyPrint()),
+                pathParameters(parameterWithName("id").required().description(ID_DESC)),
+                requestHeaders(
+                        MFA_AUTHORIZATION_HEADER,
+                        IDENTITY_ZONE_ID_HEADER
+                ),
+                responseFields
         ));
     }
 

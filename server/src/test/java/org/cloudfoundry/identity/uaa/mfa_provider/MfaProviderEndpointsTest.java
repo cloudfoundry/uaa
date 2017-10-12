@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.mfa_provider;
 
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
@@ -88,6 +89,22 @@ public class MfaProviderEndpointsTest {
         verify(provisioning, times(1)).retrieve(providerId, IdentityZoneHolder.get().getId());
         assertTrue("got response", mfaGetResponse.getStatusCode().is2xxSuccessful());
 
+    }
+
+    @Test
+    public void testDeleteMFaProvider() {
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        endpoint.setApplicationEventPublisher(publisher);
+        MfaProvider<GoogleMfaProviderConfig> providerToDelete = constructGoogleProvider();
+        String id = new RandomValueStringGenerator(5).generate();
+        when(provisioning.retrieve(eq(id), anyString())).thenReturn(providerToDelete);
+
+        ResponseEntity<MfaProvider> mfaDeleteResponse = endpoint.deleteMfaProviderById(id);
+        assertEquals(providerToDelete, mfaDeleteResponse.getBody());
+        ArgumentCaptor<EntityDeletedEvent> entityDeletedCaptor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+        verify(provisioning, times(1)).retrieve(id, IdentityZoneHolder.get().getId());
+        verify(publisher, times(1)).publishEvent(entityDeletedCaptor.capture());
+        assertEquals(providerToDelete.getId(), ((MfaProvider)(entityDeletedCaptor.getAllValues().get(0)).getDeleted()).getId());
     }
 
     private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {

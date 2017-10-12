@@ -32,6 +32,7 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
 
     public static final String MFA_PROVIDER_BY_ID_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where id=? and identity_zone_id=?";
     public static final String MFA_PROVIDERS_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where identity_zone_id=?";
+    public static final String MFA_PROVIDER_DELETE_BY_ID = "delete from " + TABLE_NAME + " where id =? and identity_zone_id=?";
 
     protected final JdbcTemplate jdbcTemplate;
     private MfaProviderValidator mfaProviderValidator;
@@ -101,23 +102,8 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
     }
 
     @Override
-    public int deleteByIdentityZone(String zoneId) {
-        return 0;
-    }
-
-    @Override
-    public int deleteByOrigin(String origin, String zoneId) {
-        return 0;
-    }
-
-    @Override
-    public int deleteByClient(String clientId, String zoneId) {
-        return 0;
-    }
-
-    @Override
-    public int deleteByUser(String userId, String zoneId) {
-        return 0;
+    public int deleteByMfaProvider(String providerId, String zoneId) {
+        return jdbcTemplate.update(MFA_PROVIDER_DELETE_BY_ID, providerId, zoneId);
     }
 
     @Override
