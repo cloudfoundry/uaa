@@ -23,7 +23,13 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
     private static Log logger = LogFactory.getLog(JdbcMfaProviderProvisioning.class);
     public static final String TABLE_NAME = "mfa_providers";
     public static final String MFA_PROVIDER_FIELDS = "id,name,type,config,active,identity_zone_id,created,lastmodified";
-    public static final String CREATE_PROVIDER_SQL = "insert into mfa_providers(" + MFA_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?)";
+    public static final String CREATE_PROVIDER_SQL = "insert into " + TABLE_NAME + "(" + MFA_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?)";
+
+    public static final String MFA_PROVIDER_UPDATE_FIELDS = "name,type,config,active,identity_zone_id,lastmodified".replace(",","=?,")+"=?";
+
+    public static final String UPDATE_PROVIDER_SQL = "update " + TABLE_NAME + " set " + MFA_PROVIDER_UPDATE_FIELDS + " where id=? and identity_zone_id=?";
+
+
     public static final String MFA_PROVIDER_BY_ID_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where id=? and identity_zone_id=?";
     public static final String MFA_PROVIDERS_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where identity_zone_id=?";
 
@@ -59,6 +65,28 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
             throw new IdpAlreadyExistsException(e.getMostSpecificCause().getMessage());
         }
         return retrieve(id, zoneId);
+    }
+
+    @Override
+    public MfaProvider update(MfaProvider provider, String zoneId) {
+        jdbcTemplate.update(UPDATE_PROVIDER_SQL, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int pos = 1;
+                ps.setString(pos++, provider.getName());
+                ps.setString(pos++, provider.getType().toValue());
+                ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
+                ps.setBoolean(pos++, provider.isActive());
+                ps.setString(pos++, zoneId);
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+
+                ps.setString(pos++, provider.getId().trim());
+                ps.setString(pos++, zoneId);
+
+            }
+        });
+
+        return retrieve(provider.getId(), zoneId);
     }
 
     @Override

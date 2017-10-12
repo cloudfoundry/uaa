@@ -9,12 +9,15 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RequestMapping("/mfa-providers")
 @RestController
@@ -30,15 +33,26 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     }
 
     @RequestMapping(method = POST)
-    public ResponseEntity<MfaProvider> createMfaProvider(@RequestBody MfaProvider provider) {
+    public ResponseEntity<MfaProvider> createMfaProvider(@RequestBody MfaProvider body) {
         String zoneId = IdentityZoneHolder.get().getId();
-        provider.setIdentityZoneId(zoneId);
-        mfaProviderValidator.validate(provider);
-        if(!StringUtils.hasText(provider.getConfig().getIssuer())){
-            provider.getConfig().setIssuer(IdentityZoneHolder.get().getName());
+        body.setIdentityZoneId(zoneId);
+        mfaProviderValidator.validate(body);
+        if(!StringUtils.hasText(body.getConfig().getIssuer())){
+            body.getConfig().setIssuer(IdentityZoneHolder.get().getName());
         }
-        MfaProvider created = mfaProviderProvisioning.create(provider,zoneId);
+        MfaProvider created = mfaProviderProvisioning.create(body,zoneId);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+    @RequestMapping(value = "{id}", method = PUT)
+    public ResponseEntity<MfaProvider> updateMfaProvider(@PathVariable String id, @RequestBody MfaProvider body) {
+        String zoneId = IdentityZoneHolder.get().getId();
+        mfaProviderProvisioning.retrieve(id, zoneId);
+        body.setId(id);
+        body.setIdentityZoneId(zoneId);
+        mfaProviderValidator.validate(body);
+
+        MfaProvider updated = mfaProviderProvisioning.update(body, zoneId);
+        return new ResponseEntity<>(updated, HttpStatus.OK);
     }
 
     @RequestMapping(method = GET)
@@ -76,4 +90,5 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     public void setMfaProviderValidator(MfaProviderValidator mfaProviderValidator) {
         this.mfaProviderValidator = mfaProviderValidator;
     }
+
 }

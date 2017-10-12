@@ -112,6 +112,9 @@
                        method="GET"/>
         <intercept-url pattern="/mfa-providers/*"
                        access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PUT"/>
+        <intercept-url pattern="/mfa-providers/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="GET"/>
         <intercept-url pattern="/**" access="denyAll"/>
         <csrf disabled="true"/>

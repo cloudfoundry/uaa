@@ -38,13 +38,29 @@ public class MfaProviderEndpointsTest {
     }
 
     @Test
-    public void testDefaultIssuer() {
+    public void testCreateDefaultIssuer() {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
         Mockito.when(provisioning.create(Mockito.any(), Mockito.anyString())).thenReturn(mfaProvider);
 
 
         ResponseEntity<MfaProvider> mfaProviderResponseEntity = endpoint.createMfaProvider(mfaProvider);
         assertEquals(IdentityZoneHolder.get().getName(), mfaProviderResponseEntity.getBody().getConfig().getIssuer());
+    }
+
+    @Test
+    public void testUpdateProvider() {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
+        Mockito.when(provisioning.create(Mockito.any(), Mockito.anyString())).thenReturn(mfaProvider);
+        Mockito.when(provisioning.update(Mockito.any(), Mockito.anyString())).thenReturn(mfaProvider);
+
+        mfaProvider = endpoint.createMfaProvider(mfaProvider).getBody();
+        mfaProvider.setId("providerId");
+        mfaProvider.setName("UpdatedName");
+
+        MfaProvider<GoogleMfaProviderConfig> updatedMfaProvider = endpoint.updateMfaProvider(mfaProvider.getId(), mfaProvider).getBody();
+
+        assertEquals("UpdatedName", updatedMfaProvider.getName());
+        assertEquals(mfaProvider.getId(), updatedMfaProvider.getId());
     }
 
     @Test
