@@ -35,7 +35,17 @@
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
-    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator" />
+    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
+        <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
+    </bean>
+
+    <bean id ="identityZoneConfigValidator" class ="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
+        <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
+    </bean>
+
+    <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
+        <property name="mfaProviderProvisioning" ref="mfaProvideProvisioning"/>
+    </bean>
 
     <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
         <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>

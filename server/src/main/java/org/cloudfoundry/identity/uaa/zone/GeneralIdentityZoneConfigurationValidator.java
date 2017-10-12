@@ -22,6 +22,8 @@ import java.util.Map;
 
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
 
+    private MfaConfigValidator mfaConfigValidator;
+
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
         if (mode == IdentityZoneValidator.Mode.CREATE || mode == IdentityZoneValidator.Mode.MODIFY) {
@@ -71,6 +73,10 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
            BannerValidator.validate(config.getBranding().getBanner());
         }
 
+        if(config.getMfaConfig() != null) {
+            mfaConfigValidator.validate(config.getMfaConfig());
+        }
+
         return config;
     }
 
@@ -80,5 +86,10 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             return;
         }
         throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be udpated with partial Saml CertKey config.", null);
+    }
+
+    public GeneralIdentityZoneConfigurationValidator setMfaConfigValidator(MfaConfigValidator mfaConfigValidator) {
+        this.mfaConfigValidator = mfaConfigValidator;
+        return this;
     }
 }
