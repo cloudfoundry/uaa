@@ -87,7 +87,7 @@ public class TokenRevocationEndpointTest extends AbstractTokenMockMvcTests {
 
         BaseClientDetails targetClient =
                 setUpClients(resourceClientId,
-                        "",
+                        "uaa.none",
                         "openid",
                         "client_credentials,password",
                         true
