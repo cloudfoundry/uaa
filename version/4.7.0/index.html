@@ -13230,7 +13230,11 @@ This is a browser flow.</p>
 </tbody></table>
 <h1 id='mfa-providers'>MFA Providers</h1>
 <p>The MFA provider</p>
-<h2 id='create-3'>Create</h2><pre class="highlight shell"><code><span class="gp">$ </span>curl <span class="s1">'http://localhost/mfa-providers'</span> -i -X POST <span class="se">\</span>
+<h2 id='create-3'>Create</h2>
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+<pre class="highlight shell"><code><span class="gp">$ </span>curl <span class="s1">'http://localhost/mfa-providers'</span> -i -X POST <span class="se">\</span>
     -H <span class="s1">'Content-Type: application/json'</span> <span class="se">\</span>
     -H <span class="s1">'Accept: application/json'</span> <span class="se">\</span>
     -H <span class="s1">'Authorization: Bearer ab8110b19344484ebcd2b2461b401be5'</span> <span class="se">\</span>
