@@ -314,12 +314,6 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     }
 
     @Override
-    public int deleteByClient(String clientId, String zoneId) {
-        //no op - nothing to do here
-        return 0;
-    }
-
-    @Override
     public int deleteByUser(String userId, String zoneId) {
         int result = jdbcTemplate.update(DELETE_MEMBER_SQL, userId, userId, zoneId);
 

@@ -138,11 +138,6 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     }
 
     @Override
-    public int deleteByOrigin(String origin, String zoneId) {
-        return 0;
-    }
-
-    @Override
     public int deleteByClient(String clientId, String zoneId) {
         return template.update(DELETE_BY_CLIENT_QUERY, clientId, zoneId);
     }

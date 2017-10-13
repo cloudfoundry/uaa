@@ -2,19 +2,24 @@ package org.cloudfoundry.identity.uaa.mfa_provider;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
@@ -28,8 +33,8 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     private MfaProviderValidator mfaProviderValidator;
 
     @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        this.publisher = applicationEventPublisher;
+    public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
     }
 
     @RequestMapping(method = POST)
@@ -69,6 +74,13 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
         return new ResponseEntity<>(provider, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "{id}", method = DELETE)
+    public ResponseEntity<MfaProvider> deleteMfaProviderById(@PathVariable String id) {
+        MfaProvider existing = mfaProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
+        publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication()));
+        return new ResponseEntity<>(existing, HttpStatus.OK);
+    }
+
     @ExceptionHandler(InvalidMfaProviderException.class)
     public ResponseEntity<InvalidMfaProviderException> handleInvalidMfaProviderException(InvalidMfaProviderException e) {
         return new ResponseEntity<>(e, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -90,5 +102,4 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     public void setMfaProviderValidator(MfaProviderValidator mfaProviderValidator) {
         this.mfaProviderValidator = mfaProviderValidator;
     }
-
 }

@@ -10,5 +10,4 @@ public interface MfaProviderProvisioning {
     MfaProvider retrieve(String id, String zoneId);
 
     List<MfaProvider> retrieveAll(String zoneId);
-
 }

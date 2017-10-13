@@ -1353,6 +1353,7 @@ _Error Codes_
 | 401        | Unauthorized - Invalid token                                                                           |
 | 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
 | 422        | Unprocessable Entity - Some values in the MFA configuration are invalid                                |
+| 404        | Not Found - Provider id not found                                                                      |
 
 
 ## Get
@@ -1381,6 +1382,32 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
 | 404        | Not Found - Provider id not found                                                                      |
 
+
+## Delete
+
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 404        | Not Found - Provider id not found                                                                      |
 
 ## List
 
