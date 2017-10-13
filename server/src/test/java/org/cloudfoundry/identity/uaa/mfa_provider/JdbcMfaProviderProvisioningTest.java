@@ -106,6 +106,19 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId);
     }
 
+    @Test
+    public void testDeleteByIdentityZone() {
+        String zoneId = IdentityZoneHolder.get().getId();
+        doNothing().when(mfaProviderValidator);
+        MfaProvider mfaProvider = mfaProviderProvisioning.create(constructGoogleProvider(), zoneId);
+        assertNotNull(mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId));
+
+        mfaProviderProvisioning.deleteByIdentityZone(zoneId);
+
+        expection.expect(EmptyResultDataAccessException.class);
+        mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId);
+    }
+
     private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {
         return new MfaProvider<GoogleMfaProviderConfig>()
                 .setName(new RandomValueStringGenerator(10).generate())
