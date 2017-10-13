@@ -1429,10 +1429,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.read is required to retrieve a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.read` is required to retrieve a user)                            |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to get users:
 
@@ -1470,9 +1470,9 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.read is required to search users)                                 |
+| 403        | Forbidden - Insufficient scope (`scim.read` is required to search users)                               |
 
 >Example using uaac to view users:
 
@@ -1529,10 +1529,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
-| 409        | Username already exists                                                                                |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)                             |
+| 409        | Conflict - Username already exists                                                                     |
 
 >Example using uaac to view users:
 
@@ -1566,10 +1566,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to update a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to view users:
 
@@ -1603,10 +1603,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to update a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to patch users:
 
@@ -1636,10 +1636,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to delete a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to delete users:
 
@@ -1671,9 +1671,9 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (openid is required to get the user info)                               |
+| 403        | Forbidden - Insufficient scope (`openid` is required to get the user info)                             |
 
 >Example using uaac to view user info:
 
@@ -1708,10 +1708,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                                |
 |------------|------------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                        |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                        |
 | 401        | Unauthorized - Invalid token                                                                               |
-| 403        | Forbidden - Insufficient scope (scim.write or a token containing the user id is required to create a user) |
-| 404        | User id not found                                                                                          |
+| 403        | Forbidden - Insufficient scope (`scim.write` or a token containing the user id is required)                |
+| 404        | Not Found - User id not found                                                                              |
 
 >Example using uaac to view users:
 
@@ -1790,8 +1790,8 @@ _Error Codes_
 |------------|------------------------------------------------------------------------------------------------------------|
 | 400        | Bad Request - invalid JSON format or illegal value                                                         |
 | 401        | Unauthorized - Invalid token                                                                               |
-| 403        | Forbidden - Insufficient scope (scim.write or uaa.account_status.write)                                    |
-| 404        | User id not found
+| 403        | Forbidden - Insufficient scope (`scim.write` or `uaa.account_status.write` required)                       |
+| 404        | Not Found - User id not found                                                                              |
 
 ## Get user verification link
 
