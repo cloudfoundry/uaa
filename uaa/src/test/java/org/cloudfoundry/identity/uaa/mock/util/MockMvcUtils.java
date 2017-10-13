@@ -120,6 +120,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public final class MockMvcUtils {
 
@@ -1069,8 +1070,10 @@ public final class MockMvcUtils {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
-                .param("recovable","true")
-                .param("scope", scope);
+                .param("recovable", "true");
+        if (!isEmpty(scope)){
+            oauthTokenPost.param("scope", scope);
+        }
         if (subdomain != null && !subdomain.equals("")) {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         }

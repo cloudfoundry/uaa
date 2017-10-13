@@ -18,6 +18,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -25,8 +26,11 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -48,7 +52,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @Controller
-public class TokenRevocationEndpoint {
+public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
 
     protected final Log logger = LogFactory.getLog(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
@@ -56,6 +60,7 @@ public class TokenRevocationEndpoint {
     private final MultitenantJdbcClientDetailsService clientDetailsService;
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
     private final RevocableTokenProvisioning tokenProvisioning;
+    private ApplicationEventPublisher eventPublisher;
 
     public TokenRevocationEndpoint(MultitenantJdbcClientDetailsService clientDetailsService, ScimUserProvisioning userProvisioning, RevocableTokenProvisioning tokenProvisioning) {
         this.clientDetailsService = clientDetailsService;
@@ -66,9 +71,11 @@ public class TokenRevocationEndpoint {
     @RequestMapping("/oauth/token/revoke/user/{userId}")
     public ResponseEntity<Void> revokeTokensForUser(@PathVariable String userId) {
         logger.debug("Revoking tokens for user: " + userId);
-        ScimUser user = userProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
+        String zoneId = IdentityZoneHolder.get().getId();
+        ScimUser user = userProvisioning.retrieve(userId, zoneId);
         user.setSalt(generator.generate());
-        userProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
+        userProvisioning.update(userId, user, zoneId);
+        eventPublisher.publishEvent(new TokenRevocationEvent(userId, null, zoneId, SecurityContextHolder.getContext().getAuthentication()));
         logger.debug("Tokens revoked for user: " + userId);
         return new ResponseEntity<>(OK);
     }
@@ -81,6 +88,7 @@ public class TokenRevocationEndpoint {
         for (RevocableToken token: tokens) {
             tokenProvisioning.delete(token.getTokenId(), -1, zoneId);
         }
+        eventPublisher.publishEvent(new TokenRevocationEvent(userId, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
         logger.debug("Tokens revoked for user " + userId + " and client " + clientId);
         return new ResponseEntity<>(OK);
     }
@@ -88,9 +96,11 @@ public class TokenRevocationEndpoint {
     @RequestMapping("/oauth/token/revoke/client/{clientId}")
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
-        BaseClientDetails client = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        String zoneId = IdentityZoneHolder.get().getId();
+        BaseClientDetails client = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId, zoneId);
         client.addAdditionalInformation(ClientConstants.TOKEN_SALT,generator.generate());
-        clientDetailsService.updateClientDetails(client, IdentityZoneHolder.get().getId());
+        clientDetailsService.updateClientDetails(client, zoneId);
+        eventPublisher.publishEvent(new TokenRevocationEvent(null, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
         logger.debug("Tokens revoked for client: " + clientId);
         return new ResponseEntity<>(OK);
     }
@@ -98,7 +108,9 @@ public class TokenRevocationEndpoint {
     @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = DELETE)
     public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
         logger.debug("Revoking token with ID:"+tokenId);
-        tokenProvisioning.delete(tokenId, -1, IdentityZoneHolder.get().getId());
+        String zoneId = IdentityZoneHolder.get().getId();
+        RevocableToken revokedToken = tokenProvisioning.delete(tokenId, -1, zoneId);
+        eventPublisher.publishEvent(new TokenRevocationEvent(revokedToken.getUserId(), revokedToken.getClientId(), zoneId, SecurityContextHolder.getContext().getAuthentication()));
         logger.debug("Revoked token with ID: " + tokenId);
         return new ResponseEntity<>(OK);
     }
@@ -153,5 +165,10 @@ public class TokenRevocationEndpoint {
             }
         };
         return exceptionTranslator.translate(e404);
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
     }
 }
