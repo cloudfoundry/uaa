@@ -160,8 +160,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
         fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
         fieldWithPath("name.formatted").ignored().type(STRING).description("First and last name combined"),
-        fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
-        fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
+        fieldWithPath("name.familyName").optional(null).type(STRING).description(lastnameDescription),
+        fieldWithPath("name.givenName").optional(null).type(STRING).description(firstnameDescription),
         fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
         fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
         fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
@@ -461,7 +461,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                     preprocessRequest(prettyPrint()),
                     preprocessResponse(prettyPrint()),
                     requestHeaders(
-                        headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
+                        headerWithName("Authorization").description("Access token with `scim.write` or `uaa.admin` scope required"),
                         IDENTITY_ZONE_ID_HEADER,
                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                     ),
