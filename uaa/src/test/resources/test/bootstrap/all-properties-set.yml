@@ -557,6 +557,7 @@ servlet:
     name: cookiemonster
     path: /the/path/to/the/jar
     secure: true
+  idle-timeout: 300
 smtp:
   auth: true
   from_address: test@example.com

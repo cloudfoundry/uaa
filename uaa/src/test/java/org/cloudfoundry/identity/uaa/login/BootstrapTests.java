@@ -58,6 +58,7 @@ import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.HeaderFilter;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
@@ -201,6 +202,9 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(1800, sessionIdleTimeoutSetter.getTimeout());
 
         HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
         assertEquals(-1, hend.getSleepTime());
@@ -454,6 +458,9 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(300, sessionIdleTimeoutSetter.getTimeout());
 
         HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
         assertEquals(5000, hend.getSleepTime());
