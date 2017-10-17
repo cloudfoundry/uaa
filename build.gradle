@@ -285,6 +285,7 @@ def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageR
 cargo {
   containerId = tomcatContainerId
   port = 8080
+  timeout = 240000
 
   deployable {
     file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
