@@ -112,6 +112,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EventListener;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1086,6 +1087,11 @@ public class BootstrapTests {
             @Override
             public String getVirtualServerName() {
                 return "localhost";
+            }
+
+            @Override
+            public <Type extends EventListener> void addListener(Type t) {
+                //no op
             }
         };
         context.setServletContext(servletContext);

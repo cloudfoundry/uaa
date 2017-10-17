@@ -22,6 +22,7 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
+import java.util.EventListener;
 
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
@@ -59,7 +60,12 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         webApplicationContext = new XmlWebApplicationContext();
         MockEnvironment mockEnvironment = getMockEnvironment();
         webApplicationContext.setEnvironment(mockEnvironment);
-        webApplicationContext.setServletContext(new MockServletContext());
+        webApplicationContext.setServletContext(new MockServletContext() {
+            @Override
+            public <Type extends EventListener> void addListener(Type t) {
+                //no op
+            }
+        });
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml,required_configuration.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();

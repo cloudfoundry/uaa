@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -40,10 +39,10 @@ import org.springframework.web.context.support.AbstractRefreshableWebApplication
 import javax.servlet.RequestDispatcher;
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.util.EventListener;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * @author Dave Syer
@@ -171,6 +170,11 @@ public class BootstrapTests {
 
             public String getVirtualServerName() {
                 return null;
+            }
+
+            @Override
+            public <Type extends EventListener> void addListener(Type t) {
+                //no op
             }
         };
         context.setServletContext(servletContext);
