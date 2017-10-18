@@ -718,7 +718,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName("Authorization").description("Bearer token with `uaa.admin` or `tokens.revoke` scope."),
+            headerWithName("Authorization").description("Bearer token with uaa.admin or tokens.revoke scope. Any token with the matching user_id and client_id may also be used for self revocation."),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
