@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -25,6 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
+import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER;
 
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
     private AuthenticationFailureHandler delegate;
@@ -35,11 +37,19 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        if(exception != null && exception instanceof PasswordChangeRequiredException) {
-            request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
-            addCookie(response, request.getContextPath());
-            response.sendRedirect(request.getContextPath()+"/force_password_change");
-            return;
+        if(exception != null) {
+            if (exception instanceof PasswordChangeRequiredException) {
+                request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
+                addCookie(response, request.getContextPath());
+                response.sendRedirect(request.getContextPath() + "/force_password_change");
+                return;
+            }
+            if (exception instanceof MfaAuthenticationRequiredException) {
+                request.getSession().setAttribute(MFA_VALIDATE_USER, ((MfaAuthenticationRequiredException) exception).getAuthentication());
+                addCookie(response, request.getContextPath());
+                response.sendRedirect(request.getContextPath() + "/totp_qr_code");
+                return;
+            }
         }
         addCookie(response, request.getContextPath());
         if (delegate!=null) {

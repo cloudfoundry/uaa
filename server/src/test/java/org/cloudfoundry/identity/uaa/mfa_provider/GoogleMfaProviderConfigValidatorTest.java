@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mfa_provider;
 
+import org.cloudfoundry.identity.uaa.mfa_provider.exception.InvalidMfaProviderConfigException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

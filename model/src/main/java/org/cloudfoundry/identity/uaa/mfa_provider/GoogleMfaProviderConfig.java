@@ -27,7 +27,7 @@ public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig<GoogleMfa
             return namesMap.get(value);
         }
 
-        public static Set<String> getStringaValues() {
+        public static Set<String> getStringValues() {
             return namesMap.keySet();
         }
 

@@ -90,6 +90,8 @@ dependencies {
 
   compile group: 'org.passay', name: 'passay', version: parent.passayVersion
 
+  compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
+
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')

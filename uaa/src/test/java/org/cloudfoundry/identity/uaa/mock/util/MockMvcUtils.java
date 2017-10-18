@@ -24,6 +24,8 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -1225,5 +1227,18 @@ public final class MockMvcUtils {
         public String generate() {
             return  "test"+counter.incrementAndGet();
         }
+    }
+
+
+    public static MfaProvider<GoogleMfaProviderConfig> constructGoogleMfaProvider() {
+        MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
+        res.setName(new RandomValueStringGenerator(5).generate());
+        res.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
+        res.setConfig(constructGoogleProviderConfiguration());
+        return res;
+    }
+
+    public static GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
+        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
     }
 }

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!--
++  ~ ******************************************************************************
++  ~      Cloud Foundry
++  ~      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
++  ~      This product is licensed to you under the Apache License, Version 2.0 (the "License").
++  ~      You may not use this product except in compliance with the License.
++  ~
++  ~      This product includes a number of subcomponents with
++  ~      separate copyright notices and license terms. Your use of these
++  ~      subcomponents is subject to the terms and conditions of the
++  ~      subcomponent's license, as noted in the LICENSE file.
++  ~ ******************************************************************************
++  -->
+
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/pivotal-ui-main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+</head>
+<body>
+<div class="header" layout:fragment="page-header">
+    <th:block layout:include="nav :: nav"></th:block>
+</div>
+<div class="island" layout:fragment="page-content">
+    <h1>Google Authenticator Code</h1>
+    <div class="island-content">
+        <form th:action="@{/totp_qr_code.do}" method="post" novalidate="novalidate">
+            <div th:if="${error}" th:text="${error}" class="error-message"></div>
+            <input name="code" type="text" placeholder="Code" autofocus="autofocus" class="form-control" maxlength="6"/>
+            <input type="submit" value="Submit" class="forgot-password-button"/>
+        </form>
+    </div>
+</div>
+</body>
+</html>

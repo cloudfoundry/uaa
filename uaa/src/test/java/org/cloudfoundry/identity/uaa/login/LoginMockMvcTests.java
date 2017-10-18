@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.HomeController;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -107,6 +108,7 @@ import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
@@ -226,6 +228,38 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
             .andExpect(model().attributeExists("prompts"))
             .andExpect(content().string(containsString("/create_account")));
+    }
+
+    @Test
+    public void testLoginMfaRedirect() throws Exception {
+        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext(), false);
+        MockHttpSession session = new MockHttpSession();
+
+        ScimUser user = createUser(zone.getId());
+
+        MfaProvider mfaProvider = constructGoogleMfaProvider();
+        mfaProvider = JsonUtils.readValue(getMockMvc().perform(
+                post("/mfa-providers")
+                        .header("X-Identity-Zone-Id", zone.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(mfaProvider)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
+
+        zone.getConfig().getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
+        MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+
+        getMockMvc().perform(post("/login.do")
+                .with(cookieCsrf())
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                .session(session)
+                .param("username", user.getUserName())
+                .param("password", user.getPassword()))
+        .andExpect(status().isFound())
+        .andExpect(redirectedUrl("/totp_qr_code"));
+
     }
 
     public IdentityZone createZoneLinksZone() throws Exception {

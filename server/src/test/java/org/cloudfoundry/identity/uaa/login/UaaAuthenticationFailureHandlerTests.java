@@ -15,23 +15,23 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
-
 import java.io.IOException;
 
 import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
+import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -88,6 +88,19 @@ public class UaaAuthenticationFailureHandlerTests {
         assertEquals(uaaAuthentication, request.getSession().getAttribute(FORCE_PASSWORD_EXPIRED_USER));
         validateCookie();
         assertEquals("/force_password_change", response.getRedirectedUrl());
+    }
+
+    @Test
+    public void testExceptionThrownWhenMFARequired() throws Exception {
+        MfaAuthenticationRequiredException exception = mock(MfaAuthenticationRequiredException.class);
+        UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
+        when(exception.getAuthentication()).thenReturn(uaaAuthentication);
+        uaaAuthenticationFailureHandler.onAuthenticationFailure(request, response, exception);
+
+        assertNotNull(request.getSession().getAttribute(MFA_VALIDATE_USER));
+        assertEquals(uaaAuthentication, request.getSession().getAttribute(MFA_VALIDATE_USER));
+        assertEquals("/totp_qr_code", response.getRedirectedUrl());
+
     }
 
     private void validateCookie() {

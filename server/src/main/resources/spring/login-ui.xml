@@ -292,7 +292,21 @@
           use-expressions="false"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <csrf disabled="false"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"
+                />
+        <access-denied-handler ref="loginEntryPoint"/>
+    </http>
+
+    <http name="totpSecurity"
+          pattern="/totp_qr_code**"
+          entry-point-ref="loginEntryPoint"
+          use-expressions="false"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"
+                />
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
@@ -640,4 +654,13 @@
         <constructor-arg ref="changeEmailService"/>
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
+
+    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning">
+        <constructor-arg index="0" ref="jdbcTemplate"/>
+    </bean>
+
+    <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpEndpoint">
+        <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
+    </bean>
+
 </beans>

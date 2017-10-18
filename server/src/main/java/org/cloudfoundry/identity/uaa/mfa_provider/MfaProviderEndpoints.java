@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.mfa_provider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.mfa_provider.exception.InvalidMfaProviderException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;

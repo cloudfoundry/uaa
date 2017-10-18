@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.mfa_provider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
-import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.mfa_provider.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -64,7 +64,7 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
                 }
             });
         } catch (DuplicateKeyException e) {
-            throw new IdpAlreadyExistsException(e.getMostSpecificCause().getMessage());
+            throw new MfaAlreadyExistsException(e.getMostSpecificCause().getMessage());
         }
         return retrieve(id, zoneId);
     }

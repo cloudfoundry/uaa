@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.integration.util;
 
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.client.CookieStore;
@@ -24,6 +26,7 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
 import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -46,6 +49,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
+import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
@@ -85,12 +89,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1374,6 +1380,23 @@ public class IntegrationTestUtils {
             }
             return  builder.build();
         }
+    }
+
+    public static String createAnotherUser(WebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {
+        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
+
+        webDriver.get(url + "/create_account");
+        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
+        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        receivedEmail.remove();
+        webDriver.get(testClient.extractLink(message.getBody()));
+
+        return userEmail;
     }
 
 

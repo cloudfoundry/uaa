@@ -21,7 +21,6 @@ import org.junit.rules.ExpectedException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -29,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -62,7 +62,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreateGoogleMfaProviderConfigDefaults() throws Exception {
-        MfaProvider mfaProvider = constructGoogleProvider();
+        MfaProvider mfaProvider = constructGoogleMfaProvider();
         mfaProvider.setConfig(null);
         MvcResult mfaResponse = getMockMvc().perform(
                 post("/mfa-providers")
@@ -78,7 +78,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreateGoogleMfaProviderInvalidType() throws Exception {
-        MfaProvider mfaProvider = constructGoogleProvider();
+        MfaProvider mfaProvider = constructGoogleMfaProvider();
         ObjectNode mfaAsJSON = (ObjectNode) JsonUtils.readTree(JsonUtils.writeValueAsString(mfaProvider));
         mfaAsJSON.put("type", "not-google-authenticator");
         ResultActions authorization = getMockMvc().perform(
@@ -91,7 +91,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testUpdateGoogleMfaProviderInvalidType() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
         mfaProvider.setConfig(null);
         MvcResult mfaResponse = getMockMvc().perform(
                 post("/mfa-providers")
@@ -131,7 +131,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreateAndUpdateMfaProvider() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
         mfaProvider.setConfig(null);
         MvcResult mfaResponse = getMockMvc().perform(
                 post("/mfa-providers")
@@ -172,7 +172,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testRetrieveMfaProviderById() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> createdProvider = constructGoogleProvider();
+        MfaProvider<GoogleMfaProviderConfig> createdProvider = constructGoogleMfaProvider();
         createdProvider.setIdentityZoneId(IdentityZoneHolder.get().getId());
         createdProvider = mfaProviderProvisioning.create(createdProvider, IdentityZoneHolder.get().getId());
         MvcResult result = getMockMvc().perform(
@@ -187,7 +187,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testCreateMfaForOtherZone() throws Exception{
         IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
 
-        MfaProvider mfaProvider = constructGoogleProvider();
+        MfaProvider mfaProvider = constructGoogleMfaProvider();
         MvcResult mfaResponse = getMockMvc().perform(
                 post("/mfa-providers")
                         .header("Authorization", "Bearer " + adminToken)
@@ -201,7 +201,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testUpdateMfaForOtherZone() throws Exception{
         IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
 
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
         MvcResult mfaResponse = getMockMvc().perform(
                 post("/mfa-providers")
                         .header("Authorization", "Bearer " + adminToken)
@@ -234,7 +234,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testGetMfaInOtherZone() throws Exception{
         IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
 
-        MfaProvider mfaProvider = constructGoogleProvider();
+        MfaProvider mfaProvider = constructGoogleMfaProvider();
         MvcResult createResult = getMockMvc().perform(
                 post("/mfa-providers")
                         .header("Authorization", "Bearer " + adminToken)
@@ -264,7 +264,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testDeleteMfaProvider() throws Exception {
-        MfaProvider provider = constructGoogleProvider();
+        MfaProvider provider = constructGoogleMfaProvider();
         MockHttpServletResponse createResponse = getMockMvc().perform(post("/mfa-providers")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
@@ -303,7 +303,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testDeleteZoneAlsoDeletesMfaProviderInThatZone() throws Exception {
         IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
 
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
         MockHttpServletResponse response = getMockMvc().perform(post("/mfa-providers")
                 .header("Authorization", "Bearer " + adminToken)
                 .header("X-Identity-Zone-Id", identityZone.getId())
@@ -318,17 +318,5 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
         expection.expect(EmptyResultDataAccessException.class);
         providerProvisioning.retrieve(mfaProvider.getId(), identityZone.getId());
 
-    }
-
-    private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {
-        MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
-        res.setName(new RandomValueStringGenerator(5).generate());
-        res.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
-        res.setConfig(constructGoogleProviderConfiguration());
-        return res;
-    }
-
-    private GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
-        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
     }
 }

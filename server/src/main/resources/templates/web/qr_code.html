@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
++  ~ ******************************************************************************
++  ~      Cloud Foundry
++  ~      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
++  ~      This product is licensed to you under the Apache License, Version 2.0 (the "License").
++  ~      You may not use this product except in compliance with the License.
++  ~
++  ~      This product includes a number of subcomponents with
++  ~      separate copyright notices and license terms. Your use of these
++  ~      subcomponents is subject to the terms and conditions of the
++  ~      subcomponent's license, as noted in the LICENSE file.
++  ~ ******************************************************************************
++  -->
+
+<html xmlns:th="http://www.thymeleaf.org"
+            xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+            layout:decorator="layouts/pivotal-ui-main">
+<body>
+<div class="island" layout:fragment="page-content">
+       <h1>Setup Multifactor Authentication with Google Authenticator</h1>
+       <div class="island-content">
+           <img id="qr" th:src="${qrurl}"/>
+           <div class="help-block">
+               <ol>
+                   <li>Install Google Authenticator on your mobile device from the <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605">App Store on your iPhone</a> or <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2">Google Play on your Android. </a></li>
+                   <li>Open Google Authenticator on your mobile device.</li>
+                   <li>Tap the "+" button.</li>
+                   <li>Tap "Scan barcode".</li>
+                   <li>Scan this barcode:</li>
+               </ol>
+           </div>
+           <form th:action="@{/totp_qr_code.do}" class="center-block" method="post" novalidate="novalidate">
+               <div th:if="${error}" th:text="${error}" class="error-message"></div>
+               <button id="Back"
+                       type="Button"
+                       class="btn btn-lowlight"><a href="/login">Back</a></button>
+               <button id="Next"
+                       type="submit"
+                       value="true"
+                       class="btn btn-primary">Next</button>
+           </form>
+       </div>
+   </div>
+</body>
+</html>

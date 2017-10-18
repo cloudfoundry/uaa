@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.mfa_provider;
+package org.cloudfoundry.identity.uaa.mfa_provider.exception;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
