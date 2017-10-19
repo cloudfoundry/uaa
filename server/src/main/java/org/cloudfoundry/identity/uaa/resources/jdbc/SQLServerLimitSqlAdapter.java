@@ -28,4 +28,17 @@ public class SQLServerLimitSqlAdapter implements LimitSqlAdapter {
         }
     }
 
+    @Override
+    public String getDeleteExpiredQuery(String tablename, String primaryKeyColumn, String expiresColumn, int maxRows) {
+        return "DELETE FROM " +
+            tablename +
+            " WHERE " +
+            primaryKeyColumn+" IN " +
+            "(SELECT TOP " + maxRows +
+            " " + primaryKeyColumn +
+            " FROM " + tablename +
+            " WHERE " + expiresColumn + " < ?" +
+            " ORDER BY "+ expiresColumn + ")";
+    }
+
 }

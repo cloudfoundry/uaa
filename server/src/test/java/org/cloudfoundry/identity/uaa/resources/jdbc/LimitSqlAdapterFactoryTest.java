@@ -45,13 +45,15 @@ public class LimitSqlAdapterFactoryTest {
 
     @Test
     public void getLimitSqlAdapter_no_args() throws Exception {
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
+        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.setProperty("spring.profiles.active", "mysql");
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
+        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
+        System.setProperty("spring.profiles.active", "postgresql");
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.setProperty("spring.profiles.active", "mysql,default");
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
+        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.setProperty("spring.profiles.active", "");
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
+        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.setProperty("spring.profiles.active", "sqlserver");
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.setProperty("spring.profiles.active", "default,sqlserver");
@@ -59,29 +61,35 @@ public class LimitSqlAdapterFactoryTest {
         System.setProperty("spring.profiles.active", "sqlserver,default");
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.clearProperty("spring.profiles.active");
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
+        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
     }
 
     @Test
     public void getLimitSqlAdapter_profiles_arg() throws Exception {
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((String) null).getClass());
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql").getClass());
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql,default").getClass());
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("").getClass());
+        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((String) null).getClass());
+        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql").getClass());
+        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql,default").getClass());
+        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("").getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("sqlserver").getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("default,sqlserver").getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("sqlserver,default").getClass());
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("postgresql").getClass());
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("default,postgresql").getClass());
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("postgresql,default").getClass());
     }
 
     @Test
     public void getLimitSqlAdapter_list_args() throws Exception {
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((Collection<String>) null).getClass());
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql")).getClass());
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql","default")).getClass());
-        assertSame(DefaultLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(EMPTY_LIST).getClass());
+        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((Collection<String>) null).getClass());
+        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql")).getClass());
+        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql","default")).getClass());
+        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(EMPTY_LIST).getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("sqlserver")).getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("default","sqlserver")).getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("sqlserver","default")).getClass());
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("postgresql")).getClass());
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("default","postgresql")).getClass());
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("postgresql","default")).getClass());
     }
 
 }

@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -51,13 +52,16 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected static final Log logger = LogFactory.getLog(JdbcRevocableTokenProvisioning.class);
     protected final RowMapper<RevocableToken> rowMapper;
     protected final JdbcTemplate template;
+    protected final LimitSqlAdapter limitSqlAdapter;
 
     protected AtomicLong lastExpiredCheck = new AtomicLong(0);
     protected long expirationCheckInterval = 30000; //30 seconds
+    private long maxExpirationRuntime = 2500l;
 
-    protected JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate) {
+    protected JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
         this.rowMapper =  new RevocableTokenRowMapper();
         this.template = jdbcTemplate;
+        this.limitSqlAdapter = limitSqlAdapter;
     }
 
     @Override
@@ -178,14 +182,44 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         this.expirationCheckInterval = expirationCheckInterval;
     }
 
+    public long getMaxExpirationRuntime() {
+        return maxExpirationRuntime;
+    }
+
     public void checkExpired() {
         long now = System.currentTimeMillis();
         long lastCheck = lastExpiredCheck.get();
         if ((now - lastCheck) > getExpirationCheckInterval() && lastExpiredCheck.compareAndSet(lastCheck, now)) {
-            int removed = template.update(DELETE_EXPIRED_QUERY, now);
-            logger.info("Removed " + removed + " expired revocable tokens.");
+            if (runDeleteExpired(now)) {
+                lastExpiredCheck.set(0);
+            }
         }
 
+    }
+
+    /**
+     * @param now
+     * @return true if the last delete action deleted the max rows, this also signals there could be more rows to be deleted.
+     */
+    protected boolean runDeleteExpired(long now) {
+        final int maxRows = 500;
+        String sql = limitSqlAdapter.getDeleteExpiredQuery(
+            TABLE, "token_id", "expires_at", maxRows
+        );
+        int removed;
+        do {
+            removed = template.update(sql, now);
+            logger.info("Removed " + removed + " expired revocable tokens.");
+        } while (removed > 0 && (System.currentTimeMillis()-now)< maxExpirationRuntime);
+        return removed >= maxRows;
+    }
+
+    public long getLastExpiredRun() {
+        return lastExpiredCheck.get();
+    }
+
+    public void setMaxExpirationRuntime(long maxExpirationRuntime) {
+        this.maxExpirationRuntime = maxExpirationRuntime;
     }
 
     protected static final class RevocableTokenRowMapper implements RowMapper<RevocableToken> {
