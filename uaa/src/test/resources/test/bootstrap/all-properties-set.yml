@@ -51,6 +51,7 @@ database:
   #password:
 
 delete:
+  expirationRunTime: 3000
   clients:
     - client-should-not-exist-1
     - client-should-not-exist-2

@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -203,6 +204,9 @@ public class BootstrapTests {
         System.setProperty("smtp.host","");
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(2500, revocableTokenProvisioning.getMaxExpirationRuntime());
 
         SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
         assertEquals(1800, sessionIdleTimeoutSetter.getTimeout());
@@ -459,6 +463,9 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(3000, revocableTokenProvisioning.getMaxExpirationRuntime());
 
         SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
         assertEquals(300, sessionIdleTimeoutSetter.getTimeout());
