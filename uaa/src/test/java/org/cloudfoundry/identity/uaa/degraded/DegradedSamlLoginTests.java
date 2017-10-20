@@ -259,7 +259,7 @@ public class DegradedSamlLoginTests {
         assertThat(webDriver.getCurrentUrl(), Matchers.containsString("test-platform-zone"));
         webDriver.findElement(By.name("email")).clear();
         webDriver.findElement(By.name("email")).sendKeys(SAML_USERNAME + "@ge.com");
-        webDriver.findElement(By.name("commit")).click();
+        webDriver.findElement(By.cssSelector(".form-group input[value='Next']")).click();
         logger.info(webDriver.getCurrentUrl());
         webDriver.findElement(By.xpath("//h1[contains(text(), 'test-saml-zone')]"));
         webDriver.findElement(By.name("username")).clear();
