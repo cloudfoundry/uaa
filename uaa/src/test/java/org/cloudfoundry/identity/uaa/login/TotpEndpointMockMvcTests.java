@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.login;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -24,11 +25,13 @@ import javax.servlet.http.Cookie;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -78,8 +81,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
                 .session(session)
                 .param("username", user.getUserName())
                 .param("password", password)
-                .cookie(csrfCookie)
-                .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
+                .with(cookieCsrf());
 
         MockHttpServletResponse jsessionid = getMockMvc().perform(validPost)
                 .andDo(print())
@@ -92,7 +94,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
     }
 
     @Test
-    public void testQRCodeGetsSubmitted() throws Exception {
+    public void testGoogleAuthenticatorLoginFlow() throws Exception {
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
 
         String password = "sec3Tas";
@@ -101,8 +103,6 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         user = createUser(user);
 
         MockHttpSession session = new MockHttpSession();
-        String csrfValue = "12345";
-        Cookie csrfCookie = new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
         MockHttpServletRequestBuilder validPost = post("/login.do")
                 .session(session)
                 .param("username", user.getUserName())
@@ -112,16 +112,22 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         MockHttpServletResponse jsessionid = getMockMvc().perform(validPost)
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/totp_qr_code")).andReturn().getResponse();
+                .andExpect(redirectedUrl("/totp_qr_code"))
+                .andReturn().getResponse();
 
         MockHttpServletResponse getQrResponse = getMockMvc().perform(get("/uaa/totp_qr_code")
                 .session(session)
-                .contextPath("/uaa")).andReturn().getResponse();
+                .contextPath("/uaa"))
+                .andExpect(view().name("qr_code"))
+                .andReturn().getResponse();
 
         List<ScimUser> scimUsers = userProvisioning.query("userName eq \"" + user.getUserName() + "\"", IdentityZoneHolder.get().getId());
-        String secretKey = userGoogleMfaCredentialsProvisioning.retrieve(scimUsers.get(0).getId()).getSecretKey();
+        UserGoogleMfaCredentials retrieved = userGoogleMfaCredentialsProvisioning.retrieve(scimUsers.get(0).getId());
+        assertFalse(retrieved.isActive());
+        String secretKey = retrieved.getSecretKey();
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
        int code = authenticator.getTotpPassword(secretKey);
+
 
         MvcResult performTotp = getMockMvc().perform(post("/totp_qr_code.do")
                 .param("code", Integer.toString(code))
@@ -135,6 +141,57 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
                 .andExpect(status().isOk())
                 .andExpect(view().name("home"))
                 .andReturn().getResponse();
+
+        UserGoogleMfaCredentials activeCreds = userGoogleMfaCredentialsProvisioning.retrieveActive(scimUsers.get(0).getId());
+        assertTrue(activeCreds.isActive());
+        getMockMvc().perform(get("/uaa/logout.do").session(session)).andReturn();
+
+        getMockMvc().perform(post("/login.do")
+            .session(session)
+            .param("username", user.getUserName())
+            .param("password", password)
+            .with(cookieCsrf()));
+
+        getMockMvc().perform(get("/uaa/totp_qr_code")
+            .session(session)
+            .contextPath("/uaa"))
+            .andExpect(view().name("enter_code"))
+            .andReturn();
+
+    }
+
+    @Test
+    public void testQRCodeRedirectIfCodeNotValidated()  throws Exception {
+        ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
+
+        String password = "sec3Tas";
+        user.setPrimaryEmail(user.getUserName());
+        user.setPassword(password);
+        user = createUser(user);
+
+        MockHttpSession session = new MockHttpSession();
+        MockHttpServletRequestBuilder validPost = post("/login.do")
+            .session(session)
+            .param("username", user.getUserName())
+            .param("password", password)
+            .with(cookieCsrf());
+
+        MockHttpServletResponse jsessionid = getMockMvc().perform(validPost)
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/totp_qr_code")).andReturn().getResponse();
+
+        MockHttpServletResponse getQrResponse = getMockMvc().perform(get("/uaa/totp_qr_code")
+            .session(session)
+            .contextPath("/uaa"))
+            .andExpect(view().name("qr_code"))
+            .andReturn().getResponse();
+
+        getQrResponse = getMockMvc().perform(get("/uaa/totp_qr_code")
+            .session(session)
+            .contextPath("/uaa"))
+            .andExpect(view().name("qr_code"))
+            .andReturn().getResponse();
 
     }
 

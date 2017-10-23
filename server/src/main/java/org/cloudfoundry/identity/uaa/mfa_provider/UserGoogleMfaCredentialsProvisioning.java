@@ -6,8 +6,6 @@ import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigAlready
 import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigDoesNotExistException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.dao.IncorrectResultSizeDataAccessException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -27,6 +25,9 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
 
     private static final String UPDATE_USER_MFA_CONFIG_SQL =
         "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=?, active=? WHERE user_id=?";
+
+    private static final String ACTIVATE_USER_MFA_CONFIG_SQL =
+        "UPDATE " + TABLE_NAME + " SET active=true WHERE user_id=?";
 
     private static final String QUERY_USER_MFA_CONFIG_ACTIVE_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=? AND active=true";
     private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=?";
@@ -58,7 +59,15 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
 
     @Override
     public void saveUserCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes) {
-        save(new UserGoogleMfaCredentials(userId, secretKey, validationCode, scratchCodes));
+        try {
+            UserGoogleMfaCredentials creds = retrieve(userId);
+            creds.setSecretKey(secretKey);
+            creds.setValidationCode(validationCode);
+            creds.setScratchCodes(scratchCodes);
+            update(creds);
+        } catch (UserMfaConfigDoesNotExistException e) {
+            save(new UserGoogleMfaCredentials(userId, secretKey, validationCode, scratchCodes, false));
+        }
     }
 
     @Override
@@ -110,6 +119,16 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
     @Override
     public int delete(String userId) {
         return jdbcTemplate.update(DELETE_USER_MFA_CONFIG_SQL, userId);
+    }
+
+    @Override
+    public void activateUser(String userId) {
+        int updated = jdbcTemplate.update(ACTIVATE_USER_MFA_CONFIG_SQL, ps -> {
+            ps.setString(1, userId);
+        });
+        if(updated < 1) {
+            throw new UserMfaConfigDoesNotExistException("No Creds for user " +userId);
+        }
     }
 
     private String toCSScratchCode(List<Integer> scratchCodes) {

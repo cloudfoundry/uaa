@@ -87,6 +87,21 @@ public class TotpEndpointTest {
     }
 
     @Test
+    public void testValidOTPActivatesUser() throws Exception {
+        authenticator = mock(GoogleAuthenticator.class);
+        endpoint.setAuthenticator(authenticator);
+        int code = 1234;
+        when(authenticator.authorizeUser(userId, code)).thenReturn(true);
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
+
+        endpoint.validateCode(mock(Model.class), session, Integer.toString(code));
+        verify(userGoogleMfaCredentialsProvisioning).activateUser(userId);
+
+    }
+
+
+
+    @Test
     public void testInvalidOTPReturnsError() throws Exception{
         authenticator = mock(GoogleAuthenticator.class);
         endpoint.setAuthenticator(authenticator);

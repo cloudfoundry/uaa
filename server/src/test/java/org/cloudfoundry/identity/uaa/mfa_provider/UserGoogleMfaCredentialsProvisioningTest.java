@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,8 +49,9 @@ public class UserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         assertTrue((boolean) record.get("active"));
     }
 
+    // db.save is a provisioning method and should throw error when creating duplicate
     @Test(expected = UserMfaConfigAlreadyExistsException.class)
-    public void testSaveUserGoogleMfaCredentials_whenExistsForUser(){
+    public void testSave_whenExistsForUser() {
         assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
                 "very_sercret_key",
@@ -60,6 +60,32 @@ public class UserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
 
         db.save(userGoogleMfaCredentials);
         db.save(userGoogleMfaCredentials);
+    }
+
+    // saveUserCredential is ICredentialRepository method and should update when saving on same userId
+    @Test
+    public void testSaveUserCredentials_updatesWhenUserExists() {
+        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials("jabbahut",
+            "very_sercret_key",
+            74718234,
+            Arrays.asList(1,22));
+        db.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+
+        creds.setSecretKey("different_key");
+        creds.setValidationCode(45678);
+
+        db.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+
+        List<Map<String, Object>> credentials = jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials");
+        Map<String, Object> record = credentials.get(0);
+        assertEquals(1, credentials.size());
+        assertEquals("jabbahut", record.get("user_id"));
+        assertEquals("different_key", record.get("secret_key"));
+        assertEquals(45678, record.get("validation_code"));
+
+
+
     }
 
     @Test(expected = UserMfaConfigDoesNotExistException.class)
@@ -89,6 +115,42 @@ public class UserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         UserGoogleMfaCredentials updated = db.retrieve(userGoogleMfaCredentials.getUserId());
         assertEquals("new_secret_key", updated.getSecretKey());
         assertEquals(true, updated.isActive());
+    }
+
+    @Test
+    public void testActivateUser() {
+        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
+            "very_sercret_key",
+            74718234,
+            Arrays.asList(1,22));
+
+        db.save(userGoogleMfaCredentials);
+        db.activateUser("jabbahut");
+
+        UserGoogleMfaCredentials activated = db.retrieve(userGoogleMfaCredentials.getUserId());
+        assertEquals(true, activated.isActive());
+    }
+
+    @Test(expected = UserMfaConfigDoesNotExistException.class)
+    public void testActivateUserNotFound() {
+        db.activateUser("randomUser");
+    }
+
+    @Test
+    public void testActivateAlreadyActivatedUser() {
+        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
+            "very_sercret_key",
+            74718234,
+            Arrays.asList(1,22),
+            true);
+
+        db.save(userGoogleMfaCredentials);
+        db.activateUser("jabbahut");
+
+        UserGoogleMfaCredentials activated = db.retrieve(userGoogleMfaCredentials.getUserId());
+        assertEquals(true, activated.isActive());
     }
 
     @Test

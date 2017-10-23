@@ -39,8 +39,6 @@ public class TotpEndpoint {
         return authenticator.createCredentials(userId);
     }
 
-
-
     @RequestMapping(value = {"/totp_qr_code"}, method = RequestMethod.GET)
     public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, IOException {
 
@@ -89,11 +87,7 @@ public class TotpEndpoint {
         try {
             codeValue = Integer.valueOf(code);
             if(authenticator.authorizeUser(uaaPrincipal.getId(), codeValue)) {
-                //Add user to session
-//                session.invalidate();
-//                TODO if(user.mfa_not_active) {
-//                TODO     set_to_active
-//                TODO }
+                userGoogleMfaCredentialsProvisioning.activateUser(uaaPrincipal.getId());
 
                 session.removeAttribute(MFA_VALIDATE_USER);
                 Set<String> authMethods = new HashSet<>(sessionAuth.getAuthenticationMethods());
