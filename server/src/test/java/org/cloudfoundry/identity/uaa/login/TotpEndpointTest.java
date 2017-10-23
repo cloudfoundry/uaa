@@ -56,7 +56,7 @@ public class TotpEndpointTest {
     @Test
     public void testGenerateQrUrl() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        when(userGoogleMfaCredentialsProvisioning.userCredentialExists(userId)).thenReturn(false);
+        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId)).thenReturn(false);
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 
@@ -66,7 +66,7 @@ public class TotpEndpointTest {
     @Test
     public void testGenerateQrUrlForNewUserRegistration() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        when(userGoogleMfaCredentialsProvisioning.userCredentialExists(userId)).thenReturn(true);
+        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId)).thenReturn(true);
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 

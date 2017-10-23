@@ -6,6 +6,8 @@ import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigAlready
 import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigDoesNotExistException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -21,10 +23,13 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
     public static final String TABLE_NAME = "user_google_mfa_credentials";
 
     private static final String CREATE_USER_MFA_CONFIG_SQL =
-            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes) VALUES (?,?,?,?)";
+            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes, active) VALUES (?,?,?,?,?)";
 
-    private static final String QUERY_USER_MFA_CONFIG_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=? AND active=true";
-    private static final String QUERY_USER_MFA_CONFIG_INACTIVE_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=? AND active=true";
+    private static final String UPDATE_USER_MFA_CONFIG_SQL =
+        "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=?, active=? WHERE user_id=?";
+
+    private static final String QUERY_USER_MFA_CONFIG_ACTIVE_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=? AND active=true";
+    private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=?";
 
     private static final String DELETE_USER_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE user_id=?";
 
@@ -35,7 +40,7 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public boolean userCredentialExists(String userId) {
+    public boolean activeUserCredentialExists(String userId) {
         try {
             retrieveActive(userId);
             return true;
@@ -65,6 +70,7 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
                 ps.setString(pos++, credentials.getSecretKey());
                 ps.setInt(pos++, credentials.getValidationCode());
                 ps.setString(pos++, toCSScratchCode(credentials.getScratchCodes()));
+                ps.setBoolean(pos++, credentials.isActive());
             });
         } catch (DuplicateKeyException e) {
             throw new UserMfaConfigAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -72,16 +78,33 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
     }
 
     @Override
+    public void update(UserGoogleMfaCredentials credentials) {
+        int updated = jdbcTemplate.update(UPDATE_USER_MFA_CONFIG_SQL, ps -> {
+            int pos = 1;
+            ps.setString(pos++, credentials.getSecretKey());
+            ps.setInt(pos++, credentials.getValidationCode());
+            ps.setString(pos++, toCSScratchCode(credentials.getScratchCodes()));
+            ps.setBoolean(pos++, credentials.isActive());
+            ps.setString(pos++, credentials.getUserId());
+        });
+        retrieve(credentials.getUserId());
+    }
+
+    @Override
     public UserGoogleMfaCredentials retrieve(String userId) {
         try{
-            return jdbcTemplate.queryForObject(QUERY_USER_MFA_CONFIG_SQL, mapper, userId);
+            return jdbcTemplate.queryForObject(QUERY_USER_MFA_CONFIG_ALL_SQL, mapper, userId);
         } catch(EmptyResultDataAccessException e) {
             throw new UserMfaConfigDoesNotExistException("No Creds for user " +userId);
         }
     }
 
     public UserGoogleMfaCredentials retrieveActive(String userId) {
-        return null;
+        try{
+            return jdbcTemplate.queryForObject(QUERY_USER_MFA_CONFIG_ACTIVE_SQL, mapper, userId);
+        } catch(EmptyResultDataAccessException e) {
+            throw new UserMfaConfigDoesNotExistException("No Creds for user " +userId);
+        }
     }
 
     @Override
@@ -100,7 +123,8 @@ public class UserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsP
                     rs.getString("user_id"),
                     rs.getString("secret_key"),
                     rs.getInt("validation_code"),
-                    fromSCString(rs.getString("scratch_codes"))
+                    fromSCString(rs.getString("scratch_codes")),
+                    rs.getBoolean("active")
             );
         }
 

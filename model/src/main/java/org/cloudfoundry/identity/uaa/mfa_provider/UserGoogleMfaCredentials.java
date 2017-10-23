@@ -5,15 +5,22 @@ import java.util.List;
 public class UserGoogleMfaCredentials {
     private String userId;
     private String secretKey;
+    private boolean active;
     private List<Integer> scratchCodes;
     private int validationCode;
 
     public UserGoogleMfaCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes) {
+        this(userId, secretKey, validationCode, scratchCodes, false);
+    }
+
+    public UserGoogleMfaCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes, boolean active) {
         this.userId = userId;
         this.secretKey = secretKey;
         this.scratchCodes = scratchCodes;
         this.validationCode = validationCode;
+        this.active = active;
     }
+
 
     public String getUserId() {
         return userId;
@@ -45,5 +52,13 @@ public class UserGoogleMfaCredentials {
 
     public void setValidationCode(int validationCode) {
         this.validationCode = validationCode;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

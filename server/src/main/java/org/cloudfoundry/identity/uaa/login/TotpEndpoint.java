@@ -53,7 +53,7 @@ public class TotpEndpoint {
          }
 
          //TODO and credential is active
-        if(userGoogleMfaCredentialsProvisioning.userCredentialExists(uaaPrincipal.getId())) {
+        if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId())) {
             return "enter_code";
         } else{
             //TODO set credential to inactive
