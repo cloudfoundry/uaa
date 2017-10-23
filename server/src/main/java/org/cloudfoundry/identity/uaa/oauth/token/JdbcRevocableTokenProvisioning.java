@@ -58,7 +58,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected long expirationCheckInterval = 30000; //30 seconds
     private long maxExpirationRuntime = 2500l;
 
-    protected JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
+    public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
         this.rowMapper =  new RevocableTokenRowMapper();
         this.template = jdbcTemplate;
         this.limitSqlAdapter = limitSqlAdapter;

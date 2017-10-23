@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
@@ -102,6 +103,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         clientDetailsService.updateClientDetails(client, zoneId);
         eventPublisher.publishEvent(new TokenRevocationEvent(null, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
         logger.debug("Tokens revoked for client: " + clientId);
+        ((SystemDeletable)tokenProvisioning).deleteByClient(clientId, zoneId);
         return new ResponseEntity<>(OK);
     }
 
