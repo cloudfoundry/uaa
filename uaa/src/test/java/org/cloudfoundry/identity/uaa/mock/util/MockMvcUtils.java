@@ -47,6 +47,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -94,6 +95,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -163,6 +165,20 @@ public final class MockMvcUtils {
         // this is all static now
         // TODO: replace calls to this method with static references
         return null;
+    }
+
+    public static File getLimitedModeStatusFile(ApplicationContext context) {
+        return context.getBean(LimitedModeUaaFilter.class).getStatusFile();
+    }
+
+    public static File setLimitedModeStatusFile(ApplicationContext context) throws Exception {
+        File tempFile = File.createTempFile("uaa-limited-mode-negative-test.", ".status");
+        context.getBean(LimitedModeUaaFilter.class).setStatusFile(tempFile);
+        return tempFile;
+    }
+
+    public static void resetLimitedModeStatusFile(ApplicationContext context, File file) throws Exception {
+        context.getBean(LimitedModeUaaFilter.class).setStatusFile(file);
     }
 
     public static String getSPMetadata(MockMvc mockMvc, String subdomain) throws Exception {

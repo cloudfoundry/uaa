@@ -570,7 +570,7 @@ uaa:
   shutdown:
     sleep: 5000
   limitedFunctionality:
-    enabled: true
+    statusFile: /tmp/uaa-test-limited-mode-status-file.txt
     whitelist:
       endpoints:
         - /other-url/**

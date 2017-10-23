@@ -17,13 +17,17 @@ package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.io.File;
+
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -32,20 +36,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
-    private boolean original;
+    private File existingStatusFile;
+    private File statusFile;
 
     @Before
     @Override
-    public void setup () throws Exception {
-        super.setup();
-        LimitedModeUaaFilter bean = getWebApplicationContext().getBean(LimitedModeUaaFilter.class);
-        original = bean.isEnabled();
-        bean.setEnabled(true);
+    public void setUpContext() throws Exception {
+        super.setUpContext();
+        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
+        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
     }
 
+
     @After
-    public void teardown() throws Exception {
-        getWebApplicationContext().getBean(LimitedModeUaaFilter.class).setEnabled(original);
+    public void tearDown() throws Exception {
+        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
     }
 
     @Test
