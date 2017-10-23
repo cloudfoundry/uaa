@@ -26,6 +26,6 @@ public interface RevocableTokenProvisioning extends ResourceManager<RevocableTok
 
     List<RevocableToken> getClientTokens(String clientId);
 
-
+    int deleteByClient(String clientId, String zoneId);
 
 }

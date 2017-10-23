@@ -46,6 +46,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected final static String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
     protected final static String DELETE_EXPIRED_QUERY = "DELETE FROM " + TABLE + " WHERE expires_at < ?";
     protected final static String DELETE_REFRESH_TOKEN_QUERY = "DELETE FROM " + TABLE + " WHERE user_id=? AND client_id=? AND response_type='" +REFRESH_TOKEN_RESPONSE_TYPE+ "' AND identity_zone_id=?";
+    protected final static String DELETE_BY_CLIENT_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=? and client_id=?";
     protected final static String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
 
 
@@ -56,7 +57,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected AtomicLong lastExpiredCheck = new AtomicLong(0);
     protected long expirationCheckInterval = 30000; //30 seconds
 
-    protected JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate) {
+    public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate) {
         this.rowMapper =  new RevocableTokenRowMapper();
         this.template = jdbcTemplate;
     }
@@ -134,6 +135,11 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         RevocableToken previous = retrieve(id, false);
         template.update(DELETE_QUERY, id, IdentityZoneHolder.get().getId());
         return previous;
+    }
+
+    @Override
+    public int deleteByClient(String clientId, String zoneId) {
+        return template.update(DELETE_BY_CLIENT_QUERY, zoneId, clientId);
     }
 
     @Override

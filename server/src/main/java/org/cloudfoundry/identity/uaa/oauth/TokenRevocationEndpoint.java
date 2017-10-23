@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -75,10 +76,12 @@ public class TokenRevocationEndpoint {
     @RequestMapping("/oauth/token/revoke/client/{clientId}")
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
+        String zoneId = IdentityZoneHolder.get().getId();
         BaseClientDetails client = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId);
         client.addAdditionalInformation(ClientConstants.TOKEN_SALT,generator.generate());
         clientDetailsService.updateClientDetails(client);
         logger.debug("Tokens revoked for client: " + clientId);
+        tokenProvisioning.deleteByClient(clientId, zoneId);
         return new ResponseEntity<>(OK);
     }
 

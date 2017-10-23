@@ -2948,50 +2948,119 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void revokeOtherClientToken() throws Exception {
+    public void revokeOtherClientTokenByJti() throws Exception {
+        String revokerClientId = generator.generate();
         String resourceClientId = generator.generate();
         BaseClientDetails resourceClient = new BaseClientDetails(
                 resourceClientId,
-                "",
+                "tokens.revoke",
                 "uaa.resource",
                 "client_credentials,password",
-                "uaa.resource");
+                "uaa.resource",
+                "http://redirect.uri");
         resourceClient.setClientSecret("secret");
         createClient(getMockMvc(), adminToken, resourceClient);
 
-        BaseClientDetails client = new BaseClientDetails(
+        BaseClientDetails revokerClient = new BaseClientDetails(
             generator.generate(),
-            "",
+            "uaa.none",
             "openid",
             "client_credentials,password",
-            "tokens.revoke");
-        client.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, client);
+            "tokens.revoke",
+             "http://redirect.uri");
+        revokerClient.setClientSecret("secret");
+        createClient(getMockMvc(), adminToken, revokerClient);
 
         //this is the token we will revoke
         String revokeAccessToken =
-                getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
-                        client.getClientId(),
-                        client.getClientSecret(),
-                        "tokens.revoke",
-                        null,
-                        false
-                );
+            getClientCredentialsOAuthAccessToken(
+                getMockMvc(),
+                revokerClient.getClientId(),
+                SECRET,
+                "tokens.revoke",
+                null,
+                false
+            );
 
         String tokenToBeRevoked =
-                getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
-                        resourceClientId,
-                        resourceClient.getClientSecret(),
-                        null,
-                        null,
-                        true
-                );
+            getClientCredentialsOAuthAccessToken(
+                getMockMvc(),
+                resourceClientId,
+                SECRET,
+                null,
+                null,
+                true
+            );
 
         getMockMvc().perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
-                .header("Authorization", "Bearer " + revokeAccessToken))
-                .andExpect(status().isOk());
+                                 .header("Authorization", "Bearer " + revokeAccessToken))
+            .andExpect(status().isOk());
+
+
+        try {
+            tokenProvisioning.retrieve(tokenToBeRevoked);
+            fail("Token should have been deleted");
+        } catch (EmptyResultDataAccessException e) {
+            //expected
+        }
+    }
+
+    @Test
+    public void revokeOtherClientTokenByClientId_tokensDotRevoke() throws Exception {
+        revokeOtherClientTokenByClientId("tokens.revoke");
+    }
+
+    @Test
+    public void revokeOtherClientTokenByClientId_uaaDotAdmin() throws Exception {
+        revokeOtherClientTokenByClientId("uaa.admin");
+    }
+
+    public void revokeOtherClientTokenByClientId(String scope) throws Exception {
+        String revokerClientId = generator.generate();
+        String resourceClientId = generator.generate();
+
+        BaseClientDetails revokerClient =
+            setUpClients(revokerClientId,
+                         scope,
+                         "openid",
+                         "client_credentials,password",
+                         true
+            );
+
+
+        BaseClientDetails targetClient =
+            setUpClients(resourceClientId,
+                         "uaa.none",
+                         "openid",
+                         "client_credentials,password",
+                         true
+            );
+
+
+        //this is the token we will revoke
+        String revokeAccessToken =
+            getClientCredentialsOAuthAccessToken(
+                getMockMvc(),
+                revokerClient.getClientId(),
+                SECRET,
+                scope,
+                null,
+                false
+            );
+
+        String tokenToBeRevoked =
+            getClientCredentialsOAuthAccessToken(
+                getMockMvc(),
+                resourceClientId,
+                SECRET,
+                null,
+                null,
+                true
+            );
+
+        getMockMvc().perform(delete("/oauth/token/revoke/client/" + resourceClientId)
+                                 .header("Authorization", "Bearer " + revokeAccessToken))
+            .andExpect(status().isOk());
 
 
         try {
