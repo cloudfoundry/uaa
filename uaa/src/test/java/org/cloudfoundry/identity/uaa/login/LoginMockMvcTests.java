@@ -1480,6 +1480,77 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testLoginHintFallbackToLoginPage() throws Exception {
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        
+        identityZone.setConfig(config);
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(identityZone);
+
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+
+        definition.setAuthUrl(new URL("http://auth.url"));
+        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setTokenKey("key");
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        definition.setScopes(asList("openid", "roles"));
+        String oauthAlias = "login-oauth-" + generator.generate();
+
+        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        oauthIdentityProvider.setConfig(definition);
+        oauthIdentityProvider.setActive(true);
+        oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
+
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+
+        IdentityZoneHolder.set(identityZone);
+
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = mock(DefaultSavedRequest.class);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "other.com" });
+        session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+
+
+        MvcResult result = getMockMvc().perform(get("/")
+                .accept(TEXT_HTML)
+                .session(session)
+                .servletPath("")
+                .param("login_hint", "other.com")
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+        )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://" + identityZone.getSubdomain() + ".localhost/login")).andReturn();
+
+        MockHttpSession redirectSession = new MockHttpSession();
+        SavedRequest redirectSavedRequest = mock(DefaultSavedRequest.class);
+        when(redirectSavedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "other.com" });
+        redirectSession.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, redirectSavedRequest);
+        
+        getMockMvc().perform(get(result.getResponse().getRedirectedUrl())
+                .accept(TEXT_HTML)
+                .session(redirectSession)
+                .param("login_hint", "other.com")
+                .servletPath("/login")
+                .cookie(result.getResponse().getCookies())
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+        )
+                .andExpect(xpath("//input[@name='username']").exists())
+                .andExpect(xpath("//input[@name='password']").exists()).andReturn();
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
     public void testLoginHintRedirect() throws Exception {
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
@@ -1487,6 +1558,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        identityZone.setConfig(config);
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(identityZone);
 
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
@@ -1530,9 +1605,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                         )
                 );
         IdentityZoneHolder.clear();
-
-
-
     }
 
     @Test

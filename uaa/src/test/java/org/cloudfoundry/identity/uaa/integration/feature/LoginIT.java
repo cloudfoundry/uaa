@@ -333,7 +333,6 @@ public class LoginIT {
     }
 
     @Test
-    @Ignore
     public void userLockedoutAfterFailedAttempts() throws Exception {
         String userEmail = createAnotherUser();
 

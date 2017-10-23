@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
 <div layout:fragment="page-content">
-  <h4 class="txt-c pbxxl ptxl" th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
+  <h4 class="txt-c u-pt++ u-pb++" th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
     Choose an account
   </h4>
-  <div th:if="${param.error}" class="alert alert-error mbxl">
+  <div th:if="${param.error}" class="alert alert-error u-mb++">
     <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
   </div>
 
@@ -15,10 +15,10 @@
           <input type="hidden" class="form-control" name="email" th:value="${account.origin == 'uaa' || account.origin == 'ldap' ? account.username : account.email}" />
         </form>
         <a href="#" th:onclick="'javascript:document.getElementById(\'' + ${account.userId} + '\').submit();'">
-          <span class="account-avatar txt-c ptl txt-m" th:style="'background-color: rgb(' + ${account.red} + ',' + ${account.green} + ',' + ${account.blue} +')'">
+          <span class="account-avatar txt-c u-pt+ txt-m" th:style="'background-color: rgb(' + ${account.red} + ',' + ${account.green} + ',' + ${account.blue} +')'">
             <div class="h2 abbr txt-c pan man em-high">[[${account.username[0]}]]</div>
           </span>
-          <span class="email-address txt-m mll pvxl">
+          <span class="email-address txt-m mll u-pv++ u-pl+">
           [[${account.username}]]
           </span>
         </a>
@@ -28,7 +28,7 @@
       </li>
     </ul>
   </div>
-  <div class="addl-actions txt-c mbxl mtxxl clearfix">
+  <div class="addl-actions txt-c u-mb++ u-mt++ clearfix">
     <div class="action">
       <a th:href="@{/login(otherAccountSignIn=true)}">Sign in to another account</a>
     </div>

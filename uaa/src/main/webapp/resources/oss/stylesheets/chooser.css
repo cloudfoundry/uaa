@@ -14,7 +14,10 @@
     height: 50px
 }
 .choose .list-group-item .account-avatar .h2 {
-    opacity: 0.8
+    opacity: 0.8;
+    text-align: center;
+    font-size: 25px!important;
+    font-weight: 600!important;
 }
 
 .login-header {

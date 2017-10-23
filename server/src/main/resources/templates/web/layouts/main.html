@@ -22,6 +22,7 @@
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
     <link th:href="@{${assetBaseUrl}+'/stylesheets/predix-styles.css'}" rel="stylesheet"/>
+    <link rel="stylesheet" media="screen" href="/resources/oss/stylesheets/chooser.css" th:href="@{/resources/oss/stylesheets/chooser.css}"/>
     <style th:with="logo=${branding.getProductLogo()}" th:text="'.header {' + (|background-image: url(@{${logo != null and !logo.isEmpty() ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : assetBaseUrl+'/images/predix-word.svg' }});|) + '}'">
         .header-image {
             background-image: url(/resources/oss/images/product-logo.png);
