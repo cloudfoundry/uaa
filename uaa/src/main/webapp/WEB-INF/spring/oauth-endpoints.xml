@@ -63,7 +63,7 @@
            authentication-manager-ref="emptyAuthenticationManager"
            entry-point-ref="oauthAuthenticationEntryPoint"
            xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/oauth/token/revoke/client/**" access="#oauth2.hasScope('uaa.admin') or @self.isClientTokenRevocationForSelf(request, 4)" />
+        <intercept-url pattern="/oauth/token/revoke/client/**" access="#oauth2.hasScope('tokens.revoke')" />
         <intercept-url pattern="/oauth/token/revoke/user/**" access="#oauth2.hasScope('uaa.admin') or (#oauth2.hasScope('tokens.revoke') and @self.isUserTokenRevocationForSelf(request, 4))" />
         <intercept-url pattern="/oauth/token/revoke/**" access="#oauth2.hasScope('tokens.revoke') or @self.isTokenRevocationForSelf(request, 3)" method="DELETE"/>
         <intercept-url pattern="/**" access="denyAll" />

@@ -55,7 +55,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected AtomicLong lastExpiredCheck = new AtomicLong(0);
     protected long expirationCheckInterval = 30000; //30 seconds
 
-    protected JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate) {
+    public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate) {
         this.rowMapper =  new RevocableTokenRowMapper();
         this.template = jdbcTemplate;
     }
