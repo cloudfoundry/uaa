@@ -4,7 +4,7 @@ ext {
   bcpkixVersion  = '1.57'
   bcprovVersion  = '1.57'
   cglibVersion = '2.2.2'
-  commonsHttpClientVersion = '4.3.6'
+  commonsHttpClientVersion = '4.5.3'
   commonsLoggingVersion = '1.2'
   esapiVersion = '2.1.0.1'
   flywayVersion = '4.0'
