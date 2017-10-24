@@ -85,6 +85,29 @@ public class UaaMetricsEmitter {
         }
     }
 
+
+    @Scheduled(fixedRate = 5000, initialDelay = 1000)
+    public void emitUrlGroupRequestMetrics() throws Exception {
+        try {
+            UaaMetrics metrics = metricsUtils.getUaaMetrics(server);
+            emitUrlGroupRequestMetrics(metrics);
+        } catch (Exception x) {
+            throwIfOtherThanNotFound(x);
+        }
+    }
+
+    private void emitUrlGroupRequestMetrics(UaaMetrics metrics) {
+        Map<String,String> perUrlMetrics = metrics.getSummary();
+        String prefix = "requests.%s.";
+        for(String key : perUrlMetrics.keySet()) {
+            String prefixName = key.startsWith("/") ? key.substring(1) : key;
+            MetricsQueue metric = JsonUtils.readValue(perUrlMetrics.get(key), MetricsQueue.class);
+            RequestMetricSummary metricTotals = metric.getTotals();
+            statsDClient.gauge(String.format(prefix + "completed.count", prefixName), metricTotals.getCount());
+            statsDClient.gauge(String.format(prefix + "completed.time", prefixName), (long) metricTotals.getAverageTime());
+        }
+    }
+
     public void emitGlobalServerStats(UaaMetrics metrics) {
         //server statistics
         statsDClient.gauge("server.inflight.count", metrics.getInflightCount());

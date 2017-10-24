@@ -47,14 +47,20 @@ public class UaaMetricsEmitterTests {
     private MBeanMap serverRequestsBeanMap;
     private MetricsUtils metricsUtils;
     private UaaMetrics uaaMetrics;
+    private Map<String,String> urlGroupJsonMap;
 
     @Before
     public void setUp() {
         //mocked in each method
         metricsUtils = mock(MetricsUtils.class);
 
+        urlGroupJsonMap = new HashMap<>();
+        urlGroupJsonMap.put("/ui", uiJson);
+        urlGroupJsonMap.put("/static-content", staticContentJson);
+
         uaaMetrics = mock(UaaMetrics.class);
         when(uaaMetrics.getGlobals()).thenReturn(globalsJson);
+        when(uaaMetrics.getSummary()).thenReturn(urlGroupJsonMap);
         when(uaaMetrics.getIdleTime()).thenReturn(12349l);
         when(uaaMetrics.getUpTime()).thenReturn(12349843l);
         when(uaaMetrics.getInflightCount()).thenReturn(3l);
@@ -133,6 +139,17 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
+    public void perUrlGroup_request_metrics() throws Exception {
+        Mockito.when(metricsUtils.getUaaMetrics(any())).thenReturn(uaaMetrics);
+        uaaMetricsEmitter.emitUrlGroupRequestMetrics();
+        Mockito.verify(statsDClient).gauge(eq("requests.ui.completed.count"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("requests.ui.completed.time"), geq(300l));
+
+        Mockito.verify(statsDClient).gauge(eq("requests.static-content.completed.count"), gt(0l));
+        Mockito.verify(statsDClient).gauge(eq("requests.static-content.completed.time"), geq(23l));
+    }
+
+    @Test
     public void jvm_vitals() throws Exception {
         uaaMetricsEmitter.emitJvmVitals();
         Mockito.verify(statsDClient).gauge(eq("vitals.jvm.cpu.load"), and(geq(0l), leq(100l)));
@@ -168,6 +185,139 @@ public class UaaMetricsEmitterTests {
         Collection<String> cs = null;
         test(cs);
     }
+
+    String staticContentJson = "{\n" +
+            "   \"lastRequests\":[\n" +
+            "      {\n" +
+            "         \"uri\":\"/uaa/resources/oss/stylesheets/application.css\",\n" +
+            "         \"uriGroup\":{\n" +
+            "            \"pattern\":\"/resources/**\",\n" +
+            "            \"group\":\"/static-content\",\n" +
+            "            \"limit\":1000,\n" +
+            "            \"category\":\"static-content\"\n" +
+            "         },\n" +
+            "         \"statusCode\":200,\n" +
+            "         \"requestStartTime\":1508872502264,\n" +
+            "         \"requestCompleteTime\":1508872502317,\n" +
+            "         \"nrOfDatabaseQueries\":1,\n" +
+            "         \"databaseQueryTime\":0\n" +
+            "      },\n" +
+            "      {\n" +
+            "         \"uri\":\"/uaa/resources/oss/images/product-logo.png\",\n" +
+            "         \"uriGroup\":{\n" +
+            "            \"pattern\":\"/resources/**\",\n" +
+            "            \"group\":\"/static-content\",\n" +
+            "            \"limit\":1000,\n" +
+            "            \"category\":\"static-content\"\n" +
+            "         },\n" +
+            "         \"statusCode\":200,\n" +
+            "         \"requestStartTime\":1508872502420,\n" +
+            "         \"requestCompleteTime\":1508872502434,\n" +
+            "         \"nrOfDatabaseQueries\":1,\n" +
+            "         \"databaseQueryTime\":0\n" +
+            "      },\n" +
+            "      {\n" +
+            "         \"uri\":\"/uaa/resources/font/sourcesanspro_regular.woff2\",\n" +
+            "         \"uriGroup\":{\n" +
+            "            \"pattern\":\"/resources/**\",\n" +
+            "            \"group\":\"/static-content\",\n" +
+            "            \"limit\":1000,\n" +
+            "            \"category\":\"static-content\"\n" +
+            "         },\n" +
+            "         \"statusCode\":200,\n" +
+            "         \"requestStartTime\":1508872502497,\n" +
+            "         \"requestCompleteTime\":1508872502509,\n" +
+            "         \"nrOfDatabaseQueries\":1,\n" +
+            "         \"databaseQueryTime\":0\n" +
+            "      },\n" +
+            "      {\n" +
+            "         \"uri\":\"/uaa/resources/font/sourcesanspro_light.woff2\",\n" +
+            "         \"uriGroup\":{\n" +
+            "            \"pattern\":\"/resources/**\",\n" +
+            "            \"group\":\"/static-content\",\n" +
+            "            \"limit\":1000,\n" +
+            "            \"category\":\"static-content\"\n" +
+            "         },\n" +
+            "         \"statusCode\":200,\n" +
+            "         \"requestStartTime\":1508872502498,\n" +
+            "         \"requestCompleteTime\":1508872502509,\n" +
+            "         \"nrOfDatabaseQueries\":1,\n" +
+            "         \"databaseQueryTime\":0\n" +
+            "      },\n" +
+            "      {\n" +
+            "         \"uri\":\"/uaa/resources/oss/images/square-logo.png\",\n" +
+            "         \"uriGroup\":{\n" +
+            "            \"pattern\":\"/resources/**\",\n" +
+            "            \"group\":\"/static-content\",\n" +
+            "            \"limit\":1000,\n" +
+            "            \"category\":\"static-content\"\n" +
+            "         },\n" +
+            "         \"statusCode\":200,\n" +
+            "         \"requestStartTime\":1508872502640,\n" +
+            "         \"requestCompleteTime\":1508872502647,\n" +
+            "         \"nrOfDatabaseQueries\":1,\n" +
+            "         \"databaseQueryTime\":1\n" +
+            "      }\n" +
+            "   ],\n" +
+            "   \"detailed\":{\n" +
+            "      \"SUCCESS\":{\n" +
+            "         \"count\":6,\n" +
+            "         \"averageTime\":23.0,\n" +
+            "         \"intolerableCount\":0,\n" +
+            "         \"averageIntolerableTime\":0.0,\n" +
+            "         \"databaseQueryCount\":6,\n" +
+            "         \"averageDatabaseQueryTime\":0.33333333333333337,\n" +
+            "         \"databaseIntolerableQueryCount\":0,\n" +
+            "         \"averageDatabaseIntolerableQueryTime\":0.0\n" +
+            "      }\n" +
+            "   },\n" +
+            "   \"summary\":{\n" +
+            "      \"count\":6,\n" +
+            "      \"averageTime\":23.0,\n" +
+            "      \"intolerableCount\":0,\n" +
+            "      \"averageIntolerableTime\":0.0,\n" +
+            "      \"databaseQueryCount\":6,\n" +
+            "      \"averageDatabaseQueryTime\":0.33333333333333337,\n" +
+            "      \"databaseIntolerableQueryCount\":0,\n" +
+            "      \"averageDatabaseIntolerableQueryTime\":0.0\n" +
+            "   }\n" +
+            "}";
+
+    String uiJson = "{  \n" +
+            "   \"lastRequests\":[  ],\n" +
+            "   \"detailed\":{  \n" +
+            "      \"REDIRECT\":{  \n" +
+            "         \"count\":2,\n" +
+            "         \"averageTime\":23.0,\n" +
+            "         \"intolerableCount\":0,\n" +
+            "         \"averageIntolerableTime\":0.0,\n" +
+            "         \"databaseQueryCount\":2,\n" +
+            "         \"averageDatabaseQueryTime\":0.5,\n" +
+            "         \"databaseIntolerableQueryCount\":0,\n" +
+            "         \"averageDatabaseIntolerableQueryTime\":0.0\n" +
+            "      },\n" +
+            "      \"SUCCESS\":{  \n" +
+            "         \"count\":2,\n" +
+            "         \"averageTime\":578.0,\n" +
+            "         \"intolerableCount\":0,\n" +
+            "         \"averageIntolerableTime\":0.0,\n" +
+            "         \"databaseQueryCount\":24,\n" +
+            "         \"averageDatabaseQueryTime\":0.08333333333333333,\n" +
+            "         \"databaseIntolerableQueryCount\":0,\n" +
+            "         \"averageDatabaseIntolerableQueryTime\":0.0\n" +
+            "      }\n" +
+            "   },\n" +
+            "   \"summary\":{  \n" +
+            "      \"count\":4,\n" +
+            "      \"averageTime\":300.5,\n" +
+            "      \"intolerableCount\":0,\n" +
+            "      \"averageIntolerableTime\":0.0,\n" +
+            "      \"databaseQueryCount\":26,\n" +
+            "      \"averageDatabaseQueryTime\":0.11538461538461539,\n" +
+            "      \"databaseIntolerableQueryCount\":0,\n" +
+            "      \"averageDatabaseIntolerableQueryTime\":0.0\n" +
+            "   }\n" +
+            "}";
 
     String globalsJson = "{\n" +
         "   \"lastRequests\":[\n" +
