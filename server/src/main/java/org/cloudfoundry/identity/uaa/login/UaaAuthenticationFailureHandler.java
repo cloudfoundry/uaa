@@ -47,7 +47,7 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
             if (exception instanceof MfaAuthenticationRequiredException) {
                 request.getSession().setAttribute(MFA_VALIDATE_USER, ((MfaAuthenticationRequiredException) exception).getAuthentication());
                 addCookie(response, request.getContextPath());
-                response.sendRedirect(request.getContextPath() + "/totp_qr_code");
+                response.sendRedirect(request.getContextPath() + "/login/mfa/register");
                 return;
             }
         }

@@ -99,8 +99,7 @@ public class UaaAuthenticationFailureHandlerTests {
 
         assertNotNull(request.getSession().getAttribute(MFA_VALIDATE_USER));
         assertEquals(uaaAuthentication, request.getSession().getAttribute(MFA_VALIDATE_USER));
-        assertEquals("/totp_qr_code", response.getRedirectedUrl());
-
+        assertEquals("/login/mfa/register", response.getRedirectedUrl());
     }
 
     private void validateCookie() {

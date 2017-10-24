@@ -86,7 +86,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         MockHttpServletResponse jsessionid = getMockMvc().perform(validPost)
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/totp_qr_code")).andReturn().getResponse();
+                .andExpect(redirectedUrl("/login/mfa/register")).andReturn().getResponse();
 
         MockHttpServletResponse response = getMockMvc().perform(get("/profile")
                 .session(session)).andReturn().getResponse();
@@ -112,10 +112,10 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         MockHttpServletResponse jsessionid = getMockMvc().perform(validPost)
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/totp_qr_code"))
+                .andExpect(redirectedUrl("/login/mfa/register"))
                 .andReturn().getResponse();
 
-        MockHttpServletResponse getQrResponse = getMockMvc().perform(get("/uaa/totp_qr_code")
+        MockHttpServletResponse getQrResponse = getMockMvc().perform(get("/uaa/login/mfa/register")
                 .session(session)
                 .contextPath("/uaa"))
                 .andExpect(view().name("qr_code"))
@@ -129,7 +129,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
        int code = authenticator.getTotpPassword(secretKey);
 
 
-        MvcResult performTotp = getMockMvc().perform(post("/totp_qr_code.do")
+        MvcResult performTotp = getMockMvc().perform(post("/login/mfa/verify.do")
                 .param("code", Integer.toString(code))
                 .session(session)
                 .with(cookieCsrf()))
@@ -152,9 +152,13 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
             .param("password", password)
             .with(cookieCsrf()));
 
-        getMockMvc().perform(get("/uaa/totp_qr_code")
-            .session(session)
-            .contextPath("/uaa"))
+        getMockMvc().perform(get("/login/mfa/register")
+            .session(session))
+            .andExpect(view().name("redirect:/login/mfa/verify"))
+            .andReturn();
+
+        getMockMvc().perform(get("/login/mfa/verify")
+            .session(session))
             .andExpect(view().name("enter_code"))
             .andReturn();
 
@@ -179,15 +183,15 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         MockHttpServletResponse jsessionid = getMockMvc().perform(validPost)
             .andDo(print())
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/totp_qr_code")).andReturn().getResponse();
+            .andExpect(redirectedUrl("/login/mfa/register")).andReturn().getResponse();
 
-        MockHttpServletResponse getQrResponse = getMockMvc().perform(get("/uaa/totp_qr_code")
+        MockHttpServletResponse getQrResponse = getMockMvc().perform(get("/uaa/login/mfa/register")
             .session(session)
             .contextPath("/uaa"))
             .andExpect(view().name("qr_code"))
             .andReturn().getResponse();
 
-        getQrResponse = getMockMvc().perform(get("/uaa/totp_qr_code")
+        getQrResponse = getMockMvc().perform(get("/uaa/login/mfa/register")
             .session(session)
             .contextPath("/uaa"))
             .andExpect(view().name("qr_code"))

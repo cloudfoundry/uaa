@@ -25,11 +25,16 @@
 </div>
 <div class="island" layout:fragment="page-content">
     <h1>Google Authenticator Code</h1>
-    <div class="island-content">
-        <form th:action="@{/totp_qr_code.do}" method="post" novalidate="novalidate">
+    <div class="panel-body">
+        <p class="mtxl">
+            Enter the 6-digit code displayed in Google Authenticator app:
+        </p>
+        <form th:action="@{/login/mfa/verify.do}" method="post" novalidate="novalidate">
             <div th:if="${error}" th:text="${error}" class="error-message"></div>
-            <input name="code" type="text" placeholder="Code" autofocus="autofocus" class="form-control" maxlength="6"/>
-            <input type="submit" value="Submit" class="forgot-password-button"/>
+            <div class="page">
+                <input name="code" type="number" placeholder="Code" autofocus="autofocus" class="form-control mrs txt-c em-high" maxlength="6"/>
+                <button type="submit" class="btn btn-highlight mlxl">Verify</button>
+            </div>
         </form>
     </div>
 </div>

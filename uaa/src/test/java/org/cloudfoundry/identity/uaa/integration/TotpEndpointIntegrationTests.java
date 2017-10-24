@@ -71,7 +71,7 @@ public class TotpEndpointIntegrationTests {
     }
 
     @Test
-    public void testQRCodeGetsGenerated() throws Exception {
+    public void testQRCodeScreen() throws Exception {
 
         String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
@@ -90,14 +90,18 @@ public class TotpEndpointIntegrationTests {
         webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertEquals(zoneUrl + "/totp_qr_code", webDriver.getCurrentUrl());
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
         assertThat(webDriver.findElement(By.id("qr")).getAttribute("src"), Matchers.containsString("chart.googleapis"));
+
+        webDriver.findElement(By.id("Next")).findElement(By.tagName("a")).click();
+        assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
     }
 
     @Test
     public void checkAccessForTotpPage() {
         webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/totp_qr_code");
+        webDriver.get(zoneUrl + "/login/mfa/register");
 
         assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
     }

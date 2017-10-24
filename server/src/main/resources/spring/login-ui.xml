@@ -299,7 +299,7 @@
     </http>
 
     <http name="totpSecurity"
-          pattern="/totp_qr_code**"
+          pattern="/login/mfa/**"
           entry-point-ref="loginEntryPoint"
           use-expressions="false"
           xmlns="http://www.springframework.org/schema/security">

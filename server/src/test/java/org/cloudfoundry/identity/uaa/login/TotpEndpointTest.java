@@ -70,8 +70,26 @@ public class TotpEndpointTest {
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 
+        assertEquals("redirect:/login/mfa/verify", returnView);
+    }
+
+    @Test
+    public void testTotpAuthorizePageNoAuthentication() throws Exception{
+        when(uaaAuthentication.getPrincipal()).thenReturn(null);
+
+        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
+
+        assertEquals("redirect:/login", returnView);
+    }
+
+    @Test
+    public void testTotpAuthorizePage() throws Exception{
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
+
+        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
         assertEquals("enter_code", returnView);
     }
+
 
     @Test
     public void testValidOTPTakesToHomePage() throws Exception{

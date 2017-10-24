@@ -39,20 +39,15 @@ public class TotpEndpoint {
         return authenticator.createCredentials(userId);
     }
 
-    @RequestMapping(value = {"/totp_qr_code"}, method = RequestMethod.GET)
+    @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
     public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, IOException {
 
-         UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
-         UaaPrincipal uaaPrincipal;
-         if(sessionAuth != null) {
-             uaaPrincipal = sessionAuth.getPrincipal();
-         } else {
-             return "redirect:/login";
-         }
+         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
+         if(uaaPrincipal == null) return "redirect:/login";
 
          //TODO and credential is active
         if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId())) {
-            return "enter_code";
+            return "redirect:/login/mfa/verify";
         } else{
             //TODO set credential to inactive
             String url = GoogleAuthenticatorQRGenerator.getOtpAuthURL("UAA", uaaPrincipal.getName(), createCredentials(uaaPrincipal.getId()));
@@ -61,6 +56,13 @@ public class TotpEndpoint {
         }
     }
 
+    @RequestMapping(value = {"/login/mfa/verify"}, method = RequestMethod.GET)
+    public String totpAuthorize(HttpSession session, Model mock) {
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
+        if(uaaPrincipal == null) return "redirect:/login";
+
+        return "enter_code";
+    }
 
     public void setAuthenticator(GoogleAuthenticator authenticator) {
         this.authenticator = authenticator;
@@ -70,7 +72,7 @@ public class TotpEndpoint {
         this.userGoogleMfaCredentialsProvisioning = userGoogleMfaCredentialsProvisioning;
     }
 
-    @RequestMapping(value = {"/totp_qr_code.do"}, method = RequestMethod.POST)
+    @RequestMapping(value = {"/login/mfa/verify.do"}, method = RequestMethod.POST)
     public String validateCode(Model model,
                                HttpSession session,
                                @RequestParam("code") String code)
@@ -108,4 +110,15 @@ public class TotpEndpoint {
         }
         return "enter_code";
     }
+
+    private UaaPrincipal getSessionAuthPrincipal(HttpSession session) {
+        UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
+        if(sessionAuth != null) {
+            return sessionAuth.getPrincipal();
+        } else {
+            return null;
+        }
+    }
+
+
 }

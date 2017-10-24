@@ -18,10 +18,11 @@
             layout:decorator="layouts/pivotal-ui-main">
 <body>
 <div class="island" layout:fragment="page-content">
-       <h1>Setup Multifactor Authentication with Google Authenticator</h1>
-       <div class="island-content">
-           <img id="qr" th:src="${qrurl}"/>
-           <div class="help-block">
+       <h1>MFA</h1>
+       <div class="panel-body">
+           <h2 class="mtxl">Setup Multifactor Authentication with Google Authenticator</h2>
+           <p class="mtxl">You will be asked for a passcode when you sign in for security.
+           <div class="paxl">
                <ol>
                    <li>Install Google Authenticator on your mobile device from the <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605">App Store on your iPhone</a> or <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2">Google Play on your Android. </a></li>
                    <li>Open Google Authenticator on your mobile device.</li>
@@ -30,16 +31,21 @@
                    <li>Scan this barcode:</li>
                </ol>
            </div>
-           <form th:action="@{/totp_qr_code.do}" class="center-block" method="post" novalidate="novalidate">
-               <div th:if="${error}" th:text="${error}" class="error-message"></div>
-               <button id="Back"
+           <img id="qr" th:src="${qrurl}" class="center-block"/>
+           <p class="mtl">Once you have registered with Google Authenticator, click Next. </p>
+           <div class="center-block">
+               <a href="/login" th:href="@{/login}">
+                   <button id="Back"
                        type="Button"
-                       class="btn btn-lowlight"><a href="/login">Back</a></button>
-               <button id="Next"
-                       type="submit"
+                       class="btn btn-default">Back</button>
+               </a>
+               <a href="/login/mfa/verify" th:href="@{/login/mfa/verify}">
+                   <button id="Next"
+                       type="Button"
                        value="true"
-                       class="btn btn-primary">Next</button>
-           </form>
+                       class="btn btn-highlight pull-right">Next</button>
+               </a>
+           </div>
        </div>
    </div>
 </body>

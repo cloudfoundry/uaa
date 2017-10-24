@@ -258,7 +258,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .param("username", user.getUserName())
                 .param("password", user.getPassword()))
         .andExpect(status().isFound())
-        .andExpect(redirectedUrl("/totp_qr_code"));
+        .andExpect(redirectedUrl("/login/mfa/register"));
 
     }
 
