@@ -425,8 +425,8 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 clientId = change[i].getClientId();
                 clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
-                if (!change[i].getSecret().equals(change[i].getOldSecret())) {
-                    clientDetailsValidator.getClientSecretValidator().validate(change[i].getSecret());
+                clientDetailsValidator.getClientSecretValidator().validate(change[i].getSecret());
+                if (!authenticateClient(clientId, change[i].getSecret())) {
                     clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), IdentityZoneHolder.get().getId());
                     clientSecretChanges.incrementAndGet();
                 }
@@ -547,13 +547,13 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 break;
 
             default:
-                if (!change.getSecret().equals(change.getOldSecret())) {
-                    clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
+                clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
+                if (authenticateClient(client_id, change.getSecret())) {
+                    result = new ActionResult("ok", "nothing to do");
+                } else {
                     clientRegistrationService.updateClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                     result = new ActionResult("ok", "secret updated");
                     clientSecretChanges.incrementAndGet();
-                } else {
-                    result = new ActionResult("ok", "nothing to do");
                 }
         }
 

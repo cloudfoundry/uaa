@@ -629,7 +629,7 @@ public class ClientAdminEndpointsTests {
     public void testChangeSecret() throws Exception {
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
-        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(auth);
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(auth).thenThrow(new BadCredentialsException("Invalid client secret"));
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
