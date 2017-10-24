@@ -20,9 +20,10 @@ ext {
   junitVersion = '4.12'
   mariaDBClientVersion = '1.5.8'
   mockitoVersion = '2.7.19'
+  mssqlVersion = '6.1.0.jre8'
+  openSamlVersion = '2.6.6'
   passayVersion = '1.2.0'
   postgresqlVersion = '42.0.0'
-  mssqlVersion = '6.1.0.jre8'
   scimSDKVersion = '1.8.0'
   servletVersion = '3.1.0'
   slf4jVersion = '1.7.24'
@@ -41,5 +42,6 @@ ext {
   tomcatJdbcPoolVersion = '8.5.16'
   tomcatContainerId = 'tomcat8x'
   validationAPIVersion = '1.0.0.GA'
+  velocityVersion = '2.0'
   xalanVersion = '2.7.2'
 }

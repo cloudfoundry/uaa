@@ -26,12 +26,15 @@ dependencies {
   compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
     exclude(module: 'opensaml')
   }
-  compile(group: 'org.opensaml', name: 'opensaml', version: '2.6.6') {
+  compile(group: 'org.opensaml', name: 'opensaml', version: openSamlVersion) {
     exclude(module: 'bcprov-jdk15on')
     exclude(group: 'org.slf4j', module: 'log4j-over-slf4j')
     exclude(group: 'org.owasp.esapi', module: 'esapi')
     exclude(group: 'ca.juliusdavies', module: 'not-yet-commons-ssl')
+    exclude(group: "org.apache.velocity", module: 'velocity')
   }
+  compile group: 'org.apache.velocity', name: 'velocity-engine-core', version: '2.0'
+
   compile (group:'org.owasp.esapi', name:'esapi', version:parent.esapiVersion) {
     exclude(group: 'xalan', module: 'xalan')
     exclude(group: 'commons-beanutils', module: 'commons-beanutils-core')
