@@ -4,6 +4,8 @@ ext {
   bcpkixVersion  = '1.57'
   bcprovVersion  = '1.57'
   cglibVersion = '2.2.2'
+  commonsBeanUtilsVersion = '1.9.3'
+  commonsFileuploadVersion = '1.3.3'
   commonsHttpClientVersion = '4.5.3'
   commonsLoggingVersion = '1.2'
   esapiVersion = '2.1.0.1'
@@ -39,4 +41,5 @@ ext {
   tomcatJdbcPoolVersion = '8.5.16'
   tomcatContainerId = 'tomcat8x'
   validationAPIVersion = '1.0.0.GA'
+  xalanVersion = '2.7.2'
 }
