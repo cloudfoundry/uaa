@@ -218,6 +218,7 @@ public class BootstrapTests {
         assertTrue(metricsFilter.isEnabled());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
+        assertNull(limitedModeUaaFilter.getStatusFile());
         assertFalse(limitedModeUaaFilter.isEnabled());
         assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
@@ -477,7 +478,7 @@ public class BootstrapTests {
         assertFalse(metricsFilter.isEnabled());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
-        assertTrue(limitedModeUaaFilter.isEnabled());
+        assertEquals("/tmp/uaa-test-limited-mode-status-file.txt", limitedModeUaaFilter.getStatusFile().getAbsolutePath());
         assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
                        "/oauth/authorize/**",

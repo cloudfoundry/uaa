@@ -569,7 +569,7 @@
     </bean>
 
     <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
-        <property name="enabled" value="${uaa.limitedFunctionality.enabled:false}"/>
+        <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
         <property name="permittedEndpoints"
                   value="#{@config['uaa']==null ? null :
                            @config['uaa']['limitedFunctionality']==null ? null :

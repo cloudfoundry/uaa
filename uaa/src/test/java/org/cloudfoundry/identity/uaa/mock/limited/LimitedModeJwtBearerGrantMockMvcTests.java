@@ -16,22 +16,30 @@
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.JwtBearerGrantMockMvcTests;
-import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.File;
+
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
+
 public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
-    private boolean original;
+    private File existingStatusFile;
+    private File statusFile;
 
     @Before
-    public void setup () throws Exception {
-        LimitedModeUaaFilter bean = getWebApplicationContext().getBean(LimitedModeUaaFilter.class);
-        original = bean.isEnabled();
-        bean.setEnabled(true);
+    @Override
+    public void setUpContext() throws Exception {
+        super.setUpContext();
+        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
+        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
     }
 
+
     @After
-    public void teardown() throws Exception {
-        getWebApplicationContext().getBean(LimitedModeUaaFilter.class).setEnabled(original);
+    public void tearDown() throws Exception {
+        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
     }
 }

@@ -26,6 +26,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.io.File;
+
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
@@ -37,14 +42,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class LimitedModeNegativeTests extends InjectedMockContextTest {
 
-    private boolean limitedMode;
     private String adminToken;
+    private File statusFile;
+    private File existingStatusFile = null;
 
     @Before
     public void setUp() throws Exception {
-        LimitedModeUaaFilter bean = getWebApplicationContext().getBean(LimitedModeUaaFilter.class);
-        limitedMode = bean.isEnabled();
-        bean.setEnabled(true);
+        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
+        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
+
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(),
                                                                        "admin",
                                                                        "adminsecret",
@@ -56,7 +62,7 @@ public class LimitedModeNegativeTests extends InjectedMockContextTest {
 
     @After
     public void tearDown() throws Exception {
-        getWebApplicationContext().getBean(LimitedModeUaaFilter.class).setEnabled(limitedMode);
+        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
     }
 
 
