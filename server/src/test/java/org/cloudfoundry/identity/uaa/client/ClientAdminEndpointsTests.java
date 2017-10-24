@@ -646,6 +646,27 @@ public class ClientAdminEndpointsTests {
     }
 
     @Test
+    public void testChangeSecretIdentical() throws Exception {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(auth);
+
+        when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
+        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+        when(sca.getClientId()).thenReturn(detail.getClientId());
+        when(sca.isClient()).thenReturn(true);
+        setSecurityContextAccessor(sca);
+
+        SecretChangeRequest change = new SecretChangeRequest();
+        String secret = detail.getClientSecret();
+        change.setOldSecret(secret);
+        change.setSecret(secret);
+        int clientSecretChanges = endpoints.getClientSecretChanges();
+        endpoints.changeSecret(detail.getClientId(), change);
+        assertEquals(clientSecretChanges, endpoints.getClientSecretChanges());
+    }
+
+    @Test
     public void testAddSecret() {
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         when(sca.getClientId()).thenReturn("bar");
