@@ -38,6 +38,7 @@ dependencies {
   compile (group:'org.owasp.esapi', name:'esapi', version:parent.esapiVersion) {
     exclude(group: 'xalan', module: 'xalan')
     exclude(group: 'commons-beanutils', module: 'commons-beanutils-core')
+    exclude(group: 'org.owasp.antisamy', module: 'antisamy')
   }
   compile group: 'commons-fileupload', name: 'commons-fileupload', version: parent.commonsFileuploadVersion
   compile group: 'commons-beanutils', name: 'commons-beanutils', version: parent.commonsBeanUtilsVersion

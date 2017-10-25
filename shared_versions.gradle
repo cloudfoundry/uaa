@@ -1,4 +1,5 @@
 ext {
+  antisamyVersion = '1.5.7'
   apacheLdapApiVersion = '1.0.0-M22'
   aspectJVersion = '1.6.9'
   bcpkixVersion  = '1.57'
