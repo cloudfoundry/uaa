@@ -15,19 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -36,9 +23,24 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.jmx.export.notification.NotificationPublisher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.yaml.snakeyaml.Yaml;
+
+import javax.management.Notification;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @ManagedResource(
     objectName="cloudfoundry.identity:name=ServerRequests",
@@ -59,6 +61,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
     private LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
     private boolean enabled = true;
+    private NotificationPublisher notificationPublisher;
 
     public UaaMetricsFilter() throws IOException {
         perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
@@ -82,6 +85,8 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
+
+                sendRequestTime(uriGroup.getGroup(), metric.getRequestCompleteTime() - metric.getRequestStartTime());
                 for (String group : Arrays.asList(uriGroup.getGroup(), MetricsUtil.GLOBAL_GROUP)) {
                     MetricsQueue queue = getMetricsQueue(group);
                     queue.offer(metric);
@@ -173,5 +178,19 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         Yaml yaml = new Yaml();
         List<Map<String,Object>> load = (List<Map<String, Object>>) yaml.load(resource.getInputStream());
         return load.stream().map(map -> UrlGroup.from(map)).collect(Collectors.toList());
+    }
+
+    public void sendRequestTime(String urlGroup, long time) {
+        if(notificationPublisher != null) {
+            Notification note = new Notification(urlGroup, time, 0);
+            notificationPublisher.sendNotification(note);
+        } else {
+            logger.debug("notification publisher not found by UaaMetricsFilter");
+        }
+    }
+
+    @Override
+    public void setNotificationPublisher(NotificationPublisher notificationPublisher) {
+        this.notificationPublisher = notificationPublisher;
     }
 }

@@ -43,4 +43,14 @@ public class IntegrationTestUtils {
 
         return Long.valueOf(parts[1]);
     }
+
+    public static long getTimeValueFromMessage(String message) {
+        assertNotNull(message);
+
+        String[] parts = message.split("[:|]");
+        assertEquals(parts[2], "ms");
+
+        return Long.valueOf(parts[1]);
+    }
+
 }

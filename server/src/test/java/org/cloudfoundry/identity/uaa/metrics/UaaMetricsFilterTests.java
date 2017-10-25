@@ -15,23 +15,25 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import javax.servlet.FilterChain;
-
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.ArgumentCaptor;
+import org.springframework.jmx.export.notification.NotificationPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+
+import javax.management.Notification;
+import javax.servlet.FilterChain;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
@@ -44,6 +46,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class UaaMetricsFilterTests {
 
@@ -51,6 +57,7 @@ public class UaaMetricsFilterTests {
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
     private FilterChain chain;
+    private NotificationPublisher publisher;
 
     @Before
     public void setup() throws Exception {
@@ -58,7 +65,10 @@ public class UaaMetricsFilterTests {
         filter.setEnabled(true);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        chain = Mockito.mock(FilterChain.class);
+        publisher = mock(NotificationPublisher.class);
+        filter.setNotificationPublisher(publisher);
+
+        chain = mock(FilterChain.class);
     }
 
 
@@ -110,6 +120,12 @@ public class UaaMetricsFilterTests {
             }
         }
         assertNull(MetricsAccessor.getCurrent());
+        ArgumentCaptor<Notification> argumentCaptor = ArgumentCaptor.forClass(Notification.class);
+
+        verify(publisher, times(2)).sendNotification(argumentCaptor.capture());
+        List<Notification> capturedArg = argumentCaptor.getAllValues();
+        assertEquals(2, capturedArg.size());
+        assertEquals("/api.request.time" , capturedArg.get(0).getType());
     }
 
     @Test
@@ -123,8 +139,10 @@ public class UaaMetricsFilterTests {
             }
         };
         for (TimeService timeService : Arrays.asList(slowRequestTimeService, new TimeServiceImpl())) {
+            reset(publisher);
             filter = new UaaMetricsFilter();
             filter.setTimeService(timeService);
+            filter.setNotificationPublisher(publisher);
             String path = "/authenticate/test";
             setRequestData(path);
             filter.getUriGroup(request).setLimit(1000);
@@ -133,6 +151,11 @@ public class UaaMetricsFilterTests {
             RequestMetricSummary totals = metricsQueue.getTotals();
             assertEquals(1, totals.getCount());
             assertEquals(timeService == slowRequestTimeService ? 1 : 0, totals.getIntolerableCount());
+
+            ArgumentCaptor<Notification> argumentCaptor = ArgumentCaptor.forClass(Notification.class);
+            verify(publisher).sendNotification(argumentCaptor.capture());
+            Notification capturedArg = argumentCaptor.getValue();
+            assertEquals("/api" , capturedArg.getType());
         }
     }
 
@@ -142,7 +165,7 @@ public class UaaMetricsFilterTests {
         lock.writeLock().lock();
         System.out.println("LOCK[MAIN] - Lock");
         setRequestData("/oauth/token");
-        final FilterChain chain = Mockito.mock(FilterChain.class);
+        final FilterChain chain = mock(FilterChain.class);
         final UaaMetricsFilter filter = new UaaMetricsFilter();
         filter.setEnabled(true);
         doAnswer(invocation -> {

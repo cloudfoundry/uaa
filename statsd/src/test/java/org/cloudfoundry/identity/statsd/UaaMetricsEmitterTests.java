@@ -20,10 +20,13 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import javax.management.MBeanServerConnection;
+import javax.management.Notification;
+import javax.management.NotificationBroadcasterSupport;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.AdditionalMatchers.and;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.AdditionalMatchers.gt;
@@ -48,9 +51,10 @@ public class UaaMetricsEmitterTests {
     private MetricsUtils metricsUtils;
     private UaaMetrics uaaMetrics;
     private Map<String,String> urlGroupJsonMap;
+    private NotificationBroadcasterSupport emitter;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         //mocked in each method
         metricsUtils = mock(MetricsUtils.class);
 
@@ -66,6 +70,9 @@ public class UaaMetricsEmitterTests {
         when(uaaMetrics.getInflightCount()).thenReturn(3l);
 
         server = mock(MBeanServerConnection.class);
+
+        emitter = new NotificationBroadcasterSupport();
+        when(metricsUtils.getUaaMetricsSubscriber(any())).thenReturn(emitter);
 
         statsDClient = mock(ConvenienceMethodProvidingStatsDClient.class);
         uaaMetricsEmitter = new UaaMetricsEmitter(metricsUtils, statsDClient, server);
@@ -147,6 +154,20 @@ public class UaaMetricsEmitterTests {
 
         Mockito.verify(statsDClient).gauge(eq("requests.static-content.completed.count"), gt(0l));
         Mockito.verify(statsDClient).gauge(eq("requests.static-content.completed.time"), geq(23l));
+        Mockito.verify(statsDClient).time(eq("requests.static-content.completed.time"), geq(23l));
+    }
+
+    @Test
+    public void testNotifications() throws Exception {
+
+        emitter.sendNotification(new Notification("/api", 45L, 0));
+
+        assertEquals(1, uaaMetricsEmitter.getNotificationQueue().size());
+
+        uaaMetricsEmitter.emitNotificationQueue();
+
+        Mockito.verify(statsDClient).time("requests.api.latency", 45L);
+
     }
 
     @Test
