@@ -5,7 +5,11 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,6 +32,7 @@ public class TotpEndpointTest {
     private TotpEndpoint endpoint = new TotpEndpoint();
     private GoogleAuthenticator authenticator = spy(GoogleAuthenticator.class);
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
+    private MfaProviderProvisioning mfaProviderProvisioning;
     private UaaAuthentication uaaAuthentication;
     private HttpSession session;
 
@@ -39,7 +44,9 @@ public class TotpEndpointTest {
     public void setup() {
         session = mock(HttpSession.class);
         userGoogleMfaCredentialsProvisioning = mock(UserGoogleMfaCredentialsProvisioning.class);
+        mfaProviderProvisioning = mock(MfaProviderProvisioning.class);
         endpoint.setUserGoogleMfaCredentialsProvisioning(userGoogleMfaCredentialsProvisioning);
+        endpoint.setMfaProviderProvisioning(mfaProviderProvisioning);
         userId = new RandomValueStringGenerator(5).generate();
         endpoint.setAuthenticator(authenticator);
         uaaAuthentication = mock(UaaAuthentication.class);
@@ -57,6 +64,12 @@ public class TotpEndpointTest {
     public void testGenerateQrUrl() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
         when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId)).thenReturn(false);
+
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider();
+        mfaProvider.setId("provider-id");
+        mfaProvider.setConfig(new GoogleMfaProviderConfig());
+        when(mfaProviderProvisioning.retrieve("provider-id", IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 
@@ -113,7 +126,7 @@ public class TotpEndpointTest {
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
 
         endpoint.validateCode(mock(Model.class), session, Integer.toString(code));
-        verify(userGoogleMfaCredentialsProvisioning).activateUser(userId);
+        verify(userGoogleMfaCredentialsProvisioning).persistCredentials();
 
     }
 

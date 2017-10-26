@@ -36,11 +36,10 @@
             </div>
             <div th:if="${error}" th:text="${error}" class="error-color mtl"></div>
         </form>
-        <a href="/login/mfa/register" th:href="@{/login/mfa/register}">
-            <button id="Back"
-                    type="Button"
-                    class="btn btn-default mtl">Back</button>
-        </a>
+        <button id="Back"
+                type="Button"
+                onclick="window.history.back()"
+                class="btn btn-default mtl">Back</button>
     </div>
 </div>
 </body>

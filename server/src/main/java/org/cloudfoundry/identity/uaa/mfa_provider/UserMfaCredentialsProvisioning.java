@@ -5,5 +5,4 @@ public interface UserMfaCredentialsProvisioning<T extends UserGoogleMfaCredentia
     void update(T credentials);
     T retrieve(String userId);
     int delete(String userId);
-    void activateUser(String userId);
 }

@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -43,8 +42,6 @@ public class TotpEndpointIntegrationTests {
 
     private static final String USER_PASSWORD = "sec3Tas";
 
-    @Autowired
-    private TestClient testClient;
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -83,7 +80,7 @@ public class TotpEndpointIntegrationTests {
 
         assertThat(webDriver.findElement(By.id("qr")).getAttribute("src"), Matchers.containsString("chart.googleapis"));
 
-        webDriver.findElement(By.id("Next")).findElement(By.tagName("a")).click();
+        webDriver.findElement(By.id("Next")).click();
         assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
     }
 

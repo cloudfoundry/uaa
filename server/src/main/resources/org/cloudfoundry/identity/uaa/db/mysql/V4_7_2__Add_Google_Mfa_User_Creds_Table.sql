@@ -3,6 +3,5 @@ CREATE TABLE `user_google_mfa_credentials` (
    `secret_key` VARCHAR(255) NOT NULL,
    `validation_code` INTEGER NOT NULL,
    `scratch_codes` VARCHAR(255) NOT NULL,
-   `active` BOOLEAN NOT NULL,
     PRIMARY KEY (`user_id`)
 );

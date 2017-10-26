@@ -655,13 +655,30 @@
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
 
-    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning">
+    <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.JdbcUserGoogleMfaCredentialsProvisioning">
         <constructor-arg index="0" ref="jdbcTemplate"/>
+    </bean>
+
+    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning">
+        <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
     </bean>
 
     <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpEndpoint">
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
     </bean>
+
+    <bean id="googleAuthenticator" class="com.warrenstrange.googleauth.GoogleAuthenticator">
+        <constructor-arg name="config" ref="googleAuthenticatorConfig"/>
+        <property name="credentialRepository" ref="userGoogleMfaCredentialsProvisioning"/>
+    </bean>
+
+    <bean id ="googleAuthenticatorConfig" class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig"
+        factory-bean="googleAuthenticatorConfigFactory"
+        factory-method="build" />
+
+    <bean id="googleAuthenticatorConfigFactory"
+          class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder"/>
+
 
 </beans>

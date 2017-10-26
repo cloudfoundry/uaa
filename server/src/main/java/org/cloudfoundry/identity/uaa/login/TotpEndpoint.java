@@ -3,9 +3,7 @@ package org.cloudfoundry.identity.uaa.login;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
-import com.warrenstrange.googleauth.ICredentialRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -37,29 +35,20 @@ public class TotpEndpoint {
     private Log logger = LogFactory.getLog(TotpEndpoint.class);
     public static final String MFA_VALIDATE_USER = "MFA_VALIDATE_USER";
 
-    public GoogleAuthenticatorKey createCredentials(String userId) {
-        if(authenticator.getCredentialRepository() == null) {
-            authenticator.setCredentialRepository(userGoogleMfaCredentialsProvisioning);
-        }
-        return authenticator.createCredentials(userId);
-    }
-
     @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
     public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, IOException {
 
          UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
          if(uaaPrincipal == null) return "redirect:/login";
 
-         //TODO and credential is active
         if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId())) {
             return "redirect:/login/mfa/verify";
         } else{
-            //TODO set credential to inactive
-            String url = GoogleAuthenticatorQRGenerator.getOtpAuthURL("UAA", uaaPrincipal.getName(), createCredentials(uaaPrincipal.getId())); //No op save on repo
+            String url = GoogleAuthenticatorQRGenerator.getOtpAuthURL("UAA", uaaPrincipal.getName(), authenticator.createCredentials(uaaPrincipal.getId()));
             MfaProvider provider = mfaProviderProvisioning.retrieve(IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderId(), IdentityZoneHolder.get().getId());
             model.addAttribute("qrurl", url);
             model.addAttribute("mfa_provider", provider.getName());
-            session.setAttribute("QR_CODE_CREDS","creds");
+
             return "qr_code";
         }
     }
@@ -68,17 +57,9 @@ public class TotpEndpoint {
     public String totpAuthorize(HttpSession session) {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
         if(uaaPrincipal == null) return "redirect:/login";
-
         return "enter_code";
     }
 
-    public void setAuthenticator(GoogleAuthenticator authenticator) {
-        this.authenticator = authenticator;
-    }
-
-    public void setUserGoogleMfaCredentialsProvisioning(UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning) {
-        this.userGoogleMfaCredentialsProvisioning = userGoogleMfaCredentialsProvisioning;
-    }
 
     @RequestMapping(value = {"/login/mfa/verify.do"}, method = RequestMethod.POST)
     public String validateCode(Model model,
@@ -96,9 +77,7 @@ public class TotpEndpoint {
         try {
             Integer codeValue = Integer.valueOf(code);
             if(authenticator.authorizeUser(uaaPrincipal.getId(), codeValue)) {
-                //TODO must not be called every time user enters the code. This is a one time action.
-                userGoogleMfaCredentialsProvisioning.activateUser(uaaPrincipal.getId());
-
+                userGoogleMfaCredentialsProvisioning.persistCredentials();
                 session.removeAttribute(MFA_VALIDATE_USER);
                 Set<String> authMethods = new HashSet<>(sessionAuth.getAuthenticationMethods());
                 authMethods.addAll(Arrays.asList("otp", "mfa"));
@@ -128,8 +107,16 @@ public class TotpEndpoint {
         }
     }
 
+    public void setAuthenticator(GoogleAuthenticator authenticator) {
+        this.authenticator = authenticator;
+    }
+
+    public void setUserGoogleMfaCredentialsProvisioning(UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning) {
+        this.userGoogleMfaCredentialsProvisioning = userGoogleMfaCredentialsProvisioning;
+    }
 
     public void setMfaProviderProvisioning(MfaProviderProvisioning mfaProviderProvisioning) {
         this.mfaProviderProvisioning = mfaProviderProvisioning;
     }
+
 }

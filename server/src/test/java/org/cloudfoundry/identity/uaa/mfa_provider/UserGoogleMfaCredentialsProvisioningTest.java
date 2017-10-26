@@ -2,179 +2,148 @@ package org.cloudfoundry.identity.uaa.mfa_provider;
 
 import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigDoesNotExistException;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpSession;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class UserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
+public class UserGoogleMfaCredentialsProvisioningTest {
 
-    private UserGoogleMfaCredentialsProvisioning db;
+    UserGoogleMfaCredentialsProvisioning provisioner;
+    JdbcUserGoogleMfaCredentialsProvisioning jdbcProvisioner;
 
     @Before
-    public void initJdbcScimUserProvisioningTests() throws Exception {
-        db = new UserGoogleMfaCredentialsProvisioning(jdbcTemplate);
-    }
+    public void setup() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
+        provisioner = new UserGoogleMfaCredentialsProvisioning();
 
-    @After
-    public void clear() throws Exception {
-        jdbcTemplate.execute("delete from user_google_mfa_credentials");
+        jdbcProvisioner = mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
+        provisioner.setJdbcProvisioner(jdbcProvisioner);
+
+        ((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest().getSession(true);
     }
 
     @Test
-    public void testSaveUserGoogleMfaCredentials(){
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-                "very_sercret_key",
-                74718234,
-                Arrays.asList(1,22),
-                true);
+    public void testSavesCredentialsNotInDatabase() {
+        UserGoogleMfaCredentials creds = creds();
 
-        db.save(userGoogleMfaCredentials);
-        List<Map<String, Object>> credentials = jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials");
-        assertEquals(1, credentials.size());
-        Map<String, Object> record = credentials.get(0);
-        assertEquals("jabbahut", record.get("user_id"));
-        assertEquals("very_sercret_key", record.get("secret_key"));
-        assertEquals(74718234, record.get("validation_code"));
-        assertEquals("1,22", record.get("scratch_codes"));
-        assertTrue((boolean) record.get("active"));
+        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+
+        verify(jdbcProvisioner, times(0)).save(any());
+        assertEquals(creds, session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
     }
 
-    // db.save is a provisioning method and should throw error when creating duplicate
+    @Test
+    public void testSaveUserCredentials_updatesWhenUserExists() {
+        UserGoogleMfaCredentials creds = creds();
+        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+
+        UserGoogleMfaCredentials updatedCreds = new UserGoogleMfaCredentials("jabbahut",
+            "different_key",
+            45678,
+            Arrays.asList(1,22));
+
+        provisioner.saveUserCredentials(updatedCreds.getUserId(), updatedCreds.getSecretKey(), updatedCreds.getValidationCode(), updatedCreds.getScratchCodes());
+
+        verify(jdbcProvisioner, times(0)).save(any());
+
+        assertEquals(updatedCreds, session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
+
+    }
+
+    @Test
+    public void testPersist() {
+        UserGoogleMfaCredentials creds = creds();
+        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+        verify(jdbcProvisioner, times(0)).save(any());
+
+        provisioner.persistCredentials();
+
+        verify(jdbcProvisioner, times(1)).save(eq(creds));
+        assertNull(session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
+    }
+
+    @Test
+    public void testPersist_emptySession() {
+        provisioner.persistCredentials();
+        verify(jdbcProvisioner, times(0)).save(any());
+        //assume that creds are already in database if session doesn't exist
+    }
+
     @Test(expected = UserMfaConfigAlreadyExistsException.class)
-    public void testSave_whenExistsForUser() {
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-                "very_sercret_key",
-                74718234,
-                Arrays.asList(1,22));
+    public void testPersist_ErrorsIfAlreadyExists() {
+        UserGoogleMfaCredentials creds = creds();
+        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+        verify(jdbcProvisioner, times(0)).save(any());
 
-        db.save(userGoogleMfaCredentials);
-        db.save(userGoogleMfaCredentials);
+        provisioner.persistCredentials();
+
+        doThrow(UserMfaConfigAlreadyExistsException.class).when(jdbcProvisioner).save(any());
+        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+        provisioner.persistCredentials();
     }
 
-    // saveUserCredential is ICredentialRepository method and should update when saving on same userId
-    @Test
-    public void testSaveUserCredentials_updatesWhenUserExists() {
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials("jabbahut",
+    private UserGoogleMfaCredentials creds() {
+        return new UserGoogleMfaCredentials("jabbahut",
             "very_sercret_key",
             74718234,
             Arrays.asList(1,22));
-        db.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+    }
 
-        creds.setSecretKey("different_key");
-        creds.setValidationCode(45678);
+    @Test
+    public void testActiveUserCredentialExists() {
+        UserGoogleMfaCredentials creds = creds();
+        when(jdbcProvisioner.retrieve(anyString())).thenThrow(UserMfaConfigDoesNotExistException.class).thenThrow(UserMfaConfigDoesNotExistException.class).thenReturn(creds);
 
-        db.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+        assertFalse("no user in db but activeCredentialExists returned true", provisioner.activeUserCredentialExists("jabbahut"));
 
-        List<Map<String, Object>> credentials = jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials");
-        Map<String, Object> record = credentials.get(0);
-        assertEquals(1, credentials.size());
-        assertEquals("jabbahut", record.get("user_id"));
-        assertEquals("different_key", record.get("secret_key"));
-        assertEquals(45678, record.get("validation_code"));
+        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+        assertFalse("no user in db but activeCredentialExists returned true", provisioner.activeUserCredentialExists("jabbahut"));
 
-
+        provisioner.persistCredentials();
+        assertTrue("user not shown as active after persisting", provisioner.activeUserCredentialExists("jabbahut"));
 
     }
 
-    @Test(expected = UserMfaConfigDoesNotExistException.class)
-    public void testUpdateUserGoogleMfaCredentials_noUser() {
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-            "very_sercret_key",
-            74718234,
-            Arrays.asList(1,22));
-        db.update(userGoogleMfaCredentials);
+    @Test
+    public void testGetSecretKey() {
+        UserGoogleMfaCredentials creds = creds();
+        session().setAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS", creds);
+
+        String key = provisioner.getSecretKey("jabbahut");
+        assertEquals("very_sercret_key", key);
     }
 
 
     @Test
-    public void testUpdateUserGoogleMfaCredentials(){
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-            "very_sercret_key",
-            74718234,
-            Arrays.asList(1,22));
+    public void testGetSecretKey_NotExistsInSession() {
+        UserGoogleMfaCredentials creds = creds();
 
-        db.save(userGoogleMfaCredentials);
-        userGoogleMfaCredentials.setActive(true);
-        userGoogleMfaCredentials.setSecretKey("new_secret_key");
-        db.update(userGoogleMfaCredentials);
+        when(jdbcProvisioner.retrieve(anyString())).thenReturn(creds);
 
-        UserGoogleMfaCredentials updated = db.retrieve(userGoogleMfaCredentials.getUserId());
-        assertEquals("new_secret_key", updated.getSecretKey());
-        assertEquals(true, updated.isActive());
+        String key = provisioner.getSecretKey("jabbahut");
+        assertEquals("very_sercret_key", key);
     }
-
-    @Test
-    public void testActivateUser() {
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-            "very_sercret_key",
-            74718234,
-            Arrays.asList(1,22));
-
-        db.save(userGoogleMfaCredentials);
-        db.activateUser("jabbahut");
-
-        UserGoogleMfaCredentials activated = db.retrieve(userGoogleMfaCredentials.getUserId());
-        assertEquals(true, activated.isActive());
-    }
-
-    @Test(expected = UserMfaConfigDoesNotExistException.class)
-    public void testActivateUserNotFound() {
-        db.activateUser("randomUser");
-    }
-
-    @Test
-    public void testActivateAlreadyActivatedUser() {
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-            "very_sercret_key",
-            74718234,
-            Arrays.asList(1,22),
-            true);
-
-        db.save(userGoogleMfaCredentials);
-        db.activateUser("jabbahut");
-
-        UserGoogleMfaCredentials activated = db.retrieve(userGoogleMfaCredentials.getUserId());
-        assertEquals(true, activated.isActive());
-    }
-
-    @Test
-    public void testRetrieveExisting() {
-        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)));
-        UserGoogleMfaCredentials creds = db.retrieve("user1");
-        assertEquals("user1", creds.getUserId());
-        assertEquals("secret", creds.getSecretKey());
-        assertEquals(12345, creds.getValidationCode());
-        assertEquals( Collections.singletonList(123), creds.getScratchCodes());
-    }
-
-    @Test(expected = UserMfaConfigDoesNotExistException.class)
-    public void testRetrieveNotExisting() {
-        db.retrieve("user1");
-    }
-
-    @Test
-    public void testDelete() {
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)));
-        assertEquals(1, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-
-        db.delete("user1");
-        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+    private HttpSession session() {
+        return ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest().getSession(false);
     }
 }

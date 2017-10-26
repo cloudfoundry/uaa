@@ -5,20 +5,15 @@ import java.util.List;
 public class UserGoogleMfaCredentials {
     private String userId;
     private String secretKey;
-    private boolean active;
     private List<Integer> scratchCodes;
     private int validationCode;
 
-    public UserGoogleMfaCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes) {
-        this(userId, secretKey, validationCode, scratchCodes, false);
-    }
 
-    public UserGoogleMfaCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes, boolean active) {
+    public UserGoogleMfaCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes) {
         this.userId = userId;
         this.secretKey = secretKey;
         this.scratchCodes = scratchCodes;
         this.validationCode = validationCode;
-        this.active = active;
     }
 
 
@@ -54,11 +49,25 @@ public class UserGoogleMfaCredentials {
         this.validationCode = validationCode;
     }
 
-    public boolean isActive() {
-        return active;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        UserGoogleMfaCredentials that = (UserGoogleMfaCredentials) o;
+
+        if (validationCode != that.validationCode) return false;
+        if (!userId.equals(that.userId)) return false;
+        if (!secretKey.equals(that.secretKey)) return false;
+        return scratchCodes.equals(that.scratchCodes);
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
+    @Override
+    public int hashCode() {
+        int result = userId.hashCode();
+        result = 31 * result + secretKey.hashCode();
+        result = 31 * result + scratchCodes.hashCode();
+        result = 31 * result + validationCode;
+        return result;
     }
 }
