@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.AdditionalMatchers.and;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.AdditionalMatchers.gt;
@@ -158,15 +157,8 @@ public class UaaMetricsEmitterTests {
 
     @Test
     public void testNotifications() throws Exception {
-
         emitter.sendNotification(new Notification("/api", 45L, 0));
-
-        assertEquals(1, uaaMetricsEmitter.getNotificationQueue().size());
-
-        uaaMetricsEmitter.emitNotificationQueue();
-
         Mockito.verify(statsDClient).time("requests.api.latency", 45L);
-
     }
 
     @Test
