@@ -77,7 +77,7 @@ public class TotpEndpointTest {
     public void testTotpAuthorizePageNoAuthentication() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(null);
 
-        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
+        String returnView = endpoint.totpAuthorize(session);
 
         assertEquals("redirect:/login", returnView);
     }
@@ -86,7 +86,7 @@ public class TotpEndpointTest {
     public void testTotpAuthorizePage() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
 
-        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
+        String returnView = endpoint.totpAuthorize(session);
         assertEquals("enter_code", returnView);
     }
 

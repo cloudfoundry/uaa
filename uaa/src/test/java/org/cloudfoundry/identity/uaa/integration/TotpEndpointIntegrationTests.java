@@ -66,6 +66,7 @@ public class TotpEndpointIntegrationTests {
 
     @After
     public void cleanup() {
+        webDriver.get(zoneUrl + "/logout.do");
         mfaZone.getConfig().getMfaConfig().setEnabled(false).setProviderId(null);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, mfaZone.getId(), mfaZone.getSubdomain(), mfaZone.getConfig());
     }
@@ -74,22 +75,10 @@ public class TotpEndpointIntegrationTests {
     public void testQRCodeScreen() throws Exception {
 
         String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
-        ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
-        user.setPrimaryEmail(user.getUserName());
-        user.setPassword(USER_PASSWORD);
+        ScimUser user = createRandomUser(zoneAdminToken);
+        enableMfaInZone(zoneAdminToken);
 
-        user = IntegrationTestUtils.createUser(zoneAdminToken, baseUrl, user, mfaZone.getId());
-        MfaProvider provider = IntegrationTestUtils.createGoogleMfaProvider(baseUrl, zoneAdminToken, MockMvcUtils.constructGoogleMfaProvider(), mfaZone.getId());
-
-        mfaZone.getConfig().getMfaConfig().setEnabled(true).setProviderId(provider.getId());
-        mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", mfaZone.getSubdomain() , mfaZone.getConfig());
-
-        webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/login");
-
-        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        performLogin(user);
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
         assertThat(webDriver.findElement(By.id("qr")).getAttribute("src"), Matchers.containsString("chart.googleapis"));
@@ -104,6 +93,40 @@ public class TotpEndpointIntegrationTests {
         webDriver.get(zoneUrl + "/login/mfa/register");
 
         assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
+    }
+
+    @Test
+    public void testDisplayMfaIssuerOnRegisterPage() throws Exception{
+        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
+        ScimUser user = createRandomUser(zoneAdminToken);
+        MfaProvider mfaProvider = enableMfaInZone(zoneAdminToken);
+
+        performLogin(user);
+
+        assertThat(webDriver.findElement(By.id("mfa-provider")).getText(), Matchers.containsString(mfaProvider.getName()));
+    }
+
+    private void performLogin(ScimUser user) {
+        webDriver.get(zoneUrl + "/login");
+
+        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+    }
+
+    private MfaProvider enableMfaInZone(String zoneAdminToken) {
+        MfaProvider provider = IntegrationTestUtils.createGoogleMfaProvider(baseUrl, zoneAdminToken, MockMvcUtils.constructGoogleMfaProvider(), mfaZone.getId());
+        mfaZone.getConfig().getMfaConfig().setEnabled(true).setProviderId(provider.getId());
+        mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", mfaZone.getSubdomain() , mfaZone.getConfig());
+        return provider;
+    }
+
+    private ScimUser createRandomUser(String zoneAdminToken) {
+        ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
+        user.setPrimaryEmail(user.getUserName());
+        user.setPassword(USER_PASSWORD);
+
+        return IntegrationTestUtils.createUser(zoneAdminToken, baseUrl, user, mfaZone.getId());
     }
 
 }

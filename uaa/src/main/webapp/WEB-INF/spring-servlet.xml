@@ -48,7 +48,7 @@
     </bean>
 
     <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
-        <property name="mfaProviderProvisioning" ref="mfaProvideProvisioning"/>
+        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
     </bean>
 
     <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">

@@ -5,11 +5,15 @@ import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
+import com.warrenstrange.googleauth.ICredentialRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -29,6 +33,7 @@ public class TotpEndpoint {
     private GoogleAuthenticatorConfig config = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build();
     private GoogleAuthenticator authenticator = new GoogleAuthenticator(config);
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
+    private MfaProviderProvisioning mfaProviderProvisioning;
     private Log logger = LogFactory.getLog(TotpEndpoint.class);
     public static final String MFA_VALIDATE_USER = "MFA_VALIDATE_USER";
 
@@ -50,14 +55,17 @@ public class TotpEndpoint {
             return "redirect:/login/mfa/verify";
         } else{
             //TODO set credential to inactive
-            String url = GoogleAuthenticatorQRGenerator.getOtpAuthURL("UAA", uaaPrincipal.getName(), createCredentials(uaaPrincipal.getId()));
+            String url = GoogleAuthenticatorQRGenerator.getOtpAuthURL("UAA", uaaPrincipal.getName(), createCredentials(uaaPrincipal.getId())); //No op save on repo
+            MfaProvider provider = mfaProviderProvisioning.retrieve(IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderId(), IdentityZoneHolder.get().getId());
             model.addAttribute("qrurl", url);
+            model.addAttribute("mfa_provider", provider.getName());
+            session.setAttribute("QR_CODE_CREDS","creds");
             return "qr_code";
         }
     }
 
     @RequestMapping(value = {"/login/mfa/verify"}, method = RequestMethod.GET)
-    public String totpAuthorize(HttpSession session, Model mock) {
+    public String totpAuthorize(HttpSession session) {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
         if(uaaPrincipal == null) return "redirect:/login";
 
@@ -77,7 +85,6 @@ public class TotpEndpoint {
                                HttpSession session,
                                @RequestParam("code") String code)
             throws NoSuchAlgorithmException, IOException {
-        int codeValue;
         UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
         UaaPrincipal uaaPrincipal;
         if(sessionAuth != null) {
@@ -87,8 +94,9 @@ public class TotpEndpoint {
         }
 
         try {
-            codeValue = Integer.valueOf(code);
+            Integer codeValue = Integer.valueOf(code);
             if(authenticator.authorizeUser(uaaPrincipal.getId(), codeValue)) {
+                //TODO must not be called every time user enters the code. This is a one time action.
                 userGoogleMfaCredentialsProvisioning.activateUser(uaaPrincipal.getId());
 
                 session.removeAttribute(MFA_VALIDATE_USER);
@@ -121,4 +129,7 @@ public class TotpEndpoint {
     }
 
 
+    public void setMfaProviderProvisioning(MfaProviderProvisioning mfaProviderProvisioning) {
+        this.mfaProviderProvisioning = mfaProviderProvisioning;
+    }
 }

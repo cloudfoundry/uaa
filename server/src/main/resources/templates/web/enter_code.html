@@ -30,12 +30,17 @@
             Enter the 6-digit code displayed in Google Authenticator app:
         </p>
         <form th:action="@{/login/mfa/verify.do}" method="post" novalidate="novalidate">
-            <div th:if="${error}" th:text="${error}" class="error-message"></div>
             <div class="page">
                 <input name="code" type="number" placeholder="Code" autofocus="autofocus" class="form-control mrs txt-c em-high" maxlength="6"/>
                 <button type="submit" class="btn btn-highlight mlxl">Verify</button>
             </div>
+            <div th:if="${error}" th:text="${error}" class="error-color mtl"></div>
         </form>
+        <a href="/login/mfa/register" th:href="@{/login/mfa/register}">
+            <button id="Back"
+                    type="Button"
+                    class="btn btn-default mtl">Back</button>
+        </a>
     </div>
 </div>
 </body>
