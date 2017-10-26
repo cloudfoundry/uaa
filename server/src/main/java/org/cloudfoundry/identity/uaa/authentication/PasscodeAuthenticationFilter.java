@@ -14,7 +14,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -35,6 +34,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -184,7 +184,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 }
 
                 String passcode = expiringCodeAuthentication.getPasscode();
-                if (StringUtils.isBlank(passcode)) {
+                if (StringUtils.isEmpty(passcode)) {
                     throw new InsufficientAuthenticationException("Passcode information is missing.");
                 }
 
