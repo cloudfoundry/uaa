@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
 
 import javax.management.JMX;
 import javax.management.MBeanServerConnection;
+import javax.management.NotificationEmitter;
 import javax.management.ObjectName;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -28,6 +29,11 @@ public class MetricsUtils {
     public UaaMetrics getUaaMetrics(MBeanServerConnection server) throws Exception {
         ObjectName mbeanName = new ObjectName("cloudfoundry.identity:name=ServerRequests");
         return JMX.newMBeanProxy(server, mbeanName, UaaMetrics.class, false);
+    }
+
+    public NotificationEmitter getUaaMetricsSubscriber(MBeanServerConnection server) throws Exception {
+        ObjectName mbeanName = new ObjectName("cloudfoundry.identity:name=ServerRequests");
+        return (NotificationEmitter) JMX.newMBeanProxy(server, mbeanName, UaaMetrics.class, true);
     }
 
     public Map<String, ?> pullUpMap(String domain, String pattern, MBeanServerConnection server) throws Exception {
