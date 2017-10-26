@@ -17,17 +17,20 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
 import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
 import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -41,6 +44,7 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlEntryPoint;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlSessionStorageFactory;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -54,7 +58,10 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.HeaderFilter;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -88,7 +95,9 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
+import org.springframework.security.saml.context.SAMLContextProvider;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
+import org.springframework.security.saml.storage.SAMLMessageStorageFactory;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.ReflectionUtils;
@@ -104,6 +113,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EventListener;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -195,6 +205,49 @@ public class BootstrapTests {
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(2500, revocableTokenProvisioning.getMaxExpirationRuntime());
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(1800, sessionIdleTimeoutSetter.getTimeout());
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(-1, hend.getSleepTime());
+
+        UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
+        assertTrue(metricsFilter.isEnabled());
+
+        LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
+        assertNull(limitedModeUaaFilter.getStatusFile());
+        assertFalse(limitedModeUaaFilter.isEnabled());
+        assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
+                   containsInAnyOrder(
+                        "/oauth/authorize/**",
+                        "/oauth/token/**",
+                        "/check_token/**",
+                        "/login/**",
+                        "/login.do",
+                        "/logout/**",
+                        "/logout.do",
+                        "/saml/**",
+                        "/autologin/**",
+                        "/authenticate/**",
+                        "/idp_discovery/**"
+                   )
+        );
+        assertThat(limitedModeUaaFilter.getPermittedMethods(),
+                   containsInAnyOrder(
+                       "GET",
+                       "HEAD",
+                       "OPTIONS"
+                   )
+        );
+
+        SAMLContextProvider basicContextProvider = context.getBean("basicContextProvider",SAMLContextProvider.class);
+        SAMLMessageStorageFactory storageFactory = (SAMLMessageStorageFactory) ReflectionTestUtils.getField(basicContextProvider, "storageFactory");
+        assertNotNull(storageFactory);
+        assertEquals(SamlSessionStorageFactory.class, storageFactory.getClass());
+
         LoginSamlEntryPoint samlEntryPoint = context.getBean(LoginSamlEntryPoint.class);
         assertEquals("cloudfoundry-uaa-sp", samlEntryPoint.getDefaultProfileOptions().getRelayState());
 
@@ -285,6 +338,7 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertFalse(zoneConfiguration.getSamlConfig().isDisableInResponseToCheck());
 
         assertEquals(SamlConfig.LEGACY_KEY_ID, zoneConfiguration.getSamlConfig().getActiveKeyId());
         assertEquals(1, zoneConfiguration.getSamlConfig().getKeys().size());
@@ -410,6 +464,40 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(3000, revocableTokenProvisioning.getMaxExpirationRuntime());
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(300, sessionIdleTimeoutSetter.getTimeout());
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(5000, hend.getSleepTime());
+
+        UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
+        assertFalse(metricsFilter.isEnabled());
+
+        LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
+        assertEquals("/tmp/uaa-test-limited-mode-status-file.txt", limitedModeUaaFilter.getStatusFile().getAbsolutePath());
+        assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
+                   containsInAnyOrder(
+                       "/oauth/authorize/**",
+                       "/oauth/token/**",
+                       "/check_token",
+                       "/saml/**",
+                       "/login/**",
+                       "/logout/**",
+                       "/other-url/**"
+                   )
+        );
+        assertThat(limitedModeUaaFilter.getPermittedMethods(),
+                   containsInAnyOrder(
+                       "GET",
+                       "HEAD",
+                       "OPTIONS",
+                       "CONNECT"
+                   )
+        );
 
         ScimGroupExternalMembershipManager externalMembershipManager = context.getBean(ScimGroupExternalMembershipManager.class);
         List<ScimGroupExternalMember> externalGroupMappings = externalMembershipManager.getExternalGroupMappings(IdentityZone.getUaa().getId());
@@ -561,6 +649,7 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertTrue(zoneConfiguration.getSamlConfig().isDisableInResponseToCheck());
 
         assertEquals("key1", zoneConfiguration.getSamlConfig().getActiveKeyId());
         assertEquals(2, zoneConfiguration.getSamlConfig().getKeys().size());
@@ -577,9 +666,10 @@ public class BootstrapTests {
         assertSame(context.getBean("globalLinks", Links.class), context.getBean(HomeController.class).getGlobalLinks());
 
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
+        assertEquals(false, zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
-        assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
+        assertFalse(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
 
         assertTrue(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
@@ -594,6 +684,16 @@ public class BootstrapTests {
             ),
             zoneConfiguration.getPrompts()
         );
+        ClientSecretPolicy expectedSecretPolicy = new ClientSecretPolicy();
+        expectedSecretPolicy.setMinLength(8);
+        expectedSecretPolicy.setMaxLength(128);
+        expectedSecretPolicy.setRequireUpperCaseCharacter(1);
+        expectedSecretPolicy.setRequireLowerCaseCharacter(3);
+        expectedSecretPolicy.setRequireDigit(2);
+        expectedSecretPolicy.setRequireSpecialCharacter(0);
+        expectedSecretPolicy.setExpireSecretInMonths(-1);
+
+        assertEquals(expectedSecretPolicy, zoneConfiguration.getClientSecretPolicy());
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
@@ -995,6 +1095,11 @@ public class BootstrapTests {
             @Override
             public String getVirtualServerName() {
                 return "localhost";
+            }
+
+            @Override
+            public <Type extends EventListener> void addListener(Type t) {
+                //no op
             }
         };
         context.setServletContext(servletContext);

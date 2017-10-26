@@ -221,13 +221,13 @@ public class IdentityProviderBootstrap implements InitializingBean {
             }
             provider.setIdentityZoneId(zoneId);
             if (existing==null) {
-                provisioning.create(provider);
+                provisioning.create(provider, zoneId);
             } else {
                 provider.setId(existing.getId());
                 provider.setCreated(existing.getCreated());
                 provider.setVersion(existing.getVersion());
                 provider.setLastModified(new Date(System.currentTimeMillis()));
-                provisioning.update(provider);
+                provisioning.update(provider, zoneId);
             }
         }
         updateDefaultZoneUaaIDP();
@@ -238,19 +238,20 @@ public class IdentityProviderBootstrap implements InitializingBean {
             if (!OriginKeys.UAA.equals(provider.getType())) {
                 if (!isAmongProviders(provider.getOriginKey(), provider.getType())) {
                     provider.setActive(false);
-                    provisioning.update(provider);
+                    provisioning.update(provider, zoneId);
                 }
             }
         }
     }
 
     protected void updateDefaultZoneUaaIDP() throws JSONException {
+        String zoneId = IdentityZone.getUaa().getId();
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
         internalIDP.setConfig(identityProviderDefinition);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
         internalIDP.setActive(!getBooleanValue(disableInternalAuth, false));
-        provisioning.update(internalIDP);
+        provisioning.update(internalIDP, zoneId);
     }
 
     protected boolean getBooleanValue(String s, boolean defaultValue) {

@@ -102,7 +102,7 @@ public class ClientBasicAuthenticationFilterTests {
     }
 
     @Test
-    public void doesNotContinueWithFilterChain_IfClientSecretExpired() throws IOException, ServletException, ParseException {
+    public void doesContinueWithFilterChain_EvenIfClientSecretExpired() throws IOException, ServletException, ParseException {
         BaseClientDetails clientDetails = new BaseClientDetails("client-1", "none", "uaa.none", "client_credentials",
                                "http://localhost:5000/uaadb" );
 
@@ -120,8 +120,7 @@ public class ClientBasicAuthenticationFilterTests {
 
         filter.doFilter(request, response, chain);
 
-        verify(authenticationEntryPoint).commence(any(request.getClass()), any(response.getClass()), any(BadCredentialsException.class));
-        verifyNoMoreInteractions(chain);
+        verify(clientAuthenticationManager).authenticate(any(Authentication.class));
     }
 
     private Map<String, Object> createTestAdditionalInformation(Calendar calendar) throws ParseException{

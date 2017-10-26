@@ -13,20 +13,23 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -35,12 +38,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -207,7 +209,7 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
                 serverRunning.getBaseUrl() + "/oauth/clients", HttpMethod.POST,
                 new HttpEntity<BaseClientDetails>(client, xZoneHeaders), UaaException.class);
-        
+
         Assert.assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
         //Negative Test
@@ -221,6 +223,26 @@ public class ClientAdminEndpointsIntegrationTests {
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
 
         //cleanup
+        config.setClientSecretPolicy(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
+    }
+
+    @Test
+    public void testClientSecretExpiryCannotBeSet() {
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String testZoneId = "testzone1";
+
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
+        RestTemplate identityClient = IntegrationTestUtils
+            .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        //min length 5, max length 12, requires 1 uppercase lowercase digit and specialChar, expries 6 months.
+        config.setClientSecretPolicy(new ClientSecretPolicy(5,12,1,1,1,1,6));
+        IdentityZone createdZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
+        assertEquals(-1, createdZone.getConfig().getClientSecretPolicy().getExpireSecretInMonths());
         config.setClientSecretPolicy(new ClientSecretPolicy(0,255,0,0,0,0,6));
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
     }

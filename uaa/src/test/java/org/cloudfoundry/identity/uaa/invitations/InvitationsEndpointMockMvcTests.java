@@ -86,7 +86,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
             uaaProvider.setConfig(new UaaIdentityProviderDefinition(null,null));
         }
         uaaProvider.getConfig().setEmailDomain(Arrays.asList(domain, "example.com"));
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
         codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
     }
 
@@ -94,7 +94,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
     public void cleanUpDomainList() throws Exception {
         IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         uaaProvider.getConfig().setEmailDomain(null);
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
     }
 
     @Test

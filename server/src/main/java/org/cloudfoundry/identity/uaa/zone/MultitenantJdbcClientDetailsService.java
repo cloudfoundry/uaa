@@ -242,11 +242,6 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
     }
 
     @Override
-    public int deleteByOrigin(String origin, String zoneId) {
-        return 0;
-    }
-
-    @Override
     public int deleteByClient(String clientId, String zoneId) {
         int count = jdbcTemplate.update(DEFAULT_DELETE_STATEMENT, clientId, zoneId);
         if (count == 0) {
@@ -254,13 +249,6 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
         }
         return count;
     }
-
-    @Override
-    public int deleteByUser(String userId, String zoneId) {
-        //no op
-        return 0;
-    }
-
 
     @Override
     public Log getLogger() {

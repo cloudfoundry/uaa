@@ -169,13 +169,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
             String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
             String username;
-            String preferredUsername = "preferred_username";
             if (StringUtils.hasText(userNameAttributePrefix)) {
                 username = (String) claims.get(userNameAttributePrefix);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", userNameAttributePrefix, username));
-            } else if (claims.get(preferredUsername)!=null) {
-                username = (String) claims.get(preferredUsername);
-                logger.debug(String.format("Extracted username for claim: %s and username is: %s", preferredUsername, username));
             } else {
                 username = (String) claims.get(SUB);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", SUB, username));
@@ -186,7 +182,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
             authenticationData.setUsername(username);
             Collection<String> groupWhiteList = config.getExternalGroupsWhitelist();
-            authenticationData.setAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims, groupWhiteList));
+
+            List<? extends GrantedAuthority> authorities = extractXOAuthUserAuthorities(attributeMappings, claims, groupWhiteList);
+            authorities = mapAuthorities(codeToken.getOrigin(), authorities);
+            authenticationData.setAuthorities(authorities);
             ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
         }
@@ -301,7 +300,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                     .withAuthorities(authenticationData.getAuthorities())
                     .withCreated(new Date())
                     .withOrigin(getOrigin())
-                    .withExternalId(null)
+                    .withExternalId((String) authenticationData.getClaims().get(SUB))
                     .withVerified(true)
                     .withZoneId(IdentityZoneHolder.get().getId())
                     .withSalt(null)
@@ -368,6 +367,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 userModified = true;
             }
         }
+
         ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
         publish(event);
         return getUserDatabase().retrieveUserById(userFromDb.getId());

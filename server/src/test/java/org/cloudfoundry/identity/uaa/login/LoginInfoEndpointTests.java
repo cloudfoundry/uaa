@@ -377,7 +377,7 @@ public class LoginInfoEndpointTests {
         MockHttpSession session = new MockHttpSession();
         endpoint.discoverIdentityProvider("testuser@fake.com", "true", model, session, request);
 
-        assertEquals(model.get("providedUsername"), "testuser@fake.com");
+        assertEquals(model.get("email"), "testuser@fake.com");
     }
 
     @Test

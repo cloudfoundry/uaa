@@ -15,10 +15,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -26,7 +24,6 @@ import javax.servlet.http.Cookie;
 import java.net.URLEncoder;
 import java.util.Date;
 
-import static org.mockito.Matchers.contains;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -92,7 +89,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
         PasswordPolicy passwordPolicy = new PasswordPolicy(15,20,0,0,0,0,0);
         identityProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
         try {
-            identityProviderProvisioning.update(identityProvider);
+            identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
 
             MockHttpServletRequestBuilder invalidPost = post("/login.do")
                 .param("username", user.getUserName())
@@ -115,7 +112,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
                 .andExpect(model().attribute("email", user.getPrimaryEmail()));
         } finally {
             identityProvider.setConfig(currentConfig);
-            identityProviderProvisioning.update(identityProvider);
+            identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
         }
     }
 
@@ -128,7 +125,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
         identityProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
 
         try {
-            identityProviderProvisioning.update(identityProvider);
+            identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
             MockHttpSession session = new MockHttpSession();
             Cookie cookie = new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1");
 
@@ -155,7 +152,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
 
         } finally {
             identityProvider.setConfig(currentConfig);
-            identityProviderProvisioning.update(identityProvider);
+            identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
         }
     }
 

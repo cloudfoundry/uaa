@@ -65,8 +65,12 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static java.util.Optional.ofNullable;
 
 
 public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSsoProfile {
@@ -82,6 +86,30 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         buildResponse(authentication, context, options);
 
         sendMessage(context, false);
+    }
+
+    public AuthnRequest buildIdpInitiatedAuthnRequest(String nameIDFormat,
+                                                      String spEntityID,
+                                                      String assertionUrl) {
+        @SuppressWarnings("unchecked")
+        SAMLObjectBuilder<AuthnRequest> builder = (SAMLObjectBuilder<AuthnRequest>) builderFactory
+            .getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
+        AuthnRequest request = builder.buildObject();
+        request.setVersion(SAMLVersion.VERSION_20);
+        request.setID(generateID());
+        request.setIssuer(getIssuer(spEntityID));
+        request.setVersion(SAMLVersion.VERSION_20);
+        request.setIssueInstant(new DateTime());
+        request.setID(null);
+        request.setAssertionConsumerServiceURL(assertionUrl);
+        if (null != nameIDFormat) {
+            NameID nameID = ((SAMLObjectBuilder<NameID>) builderFactory.getBuilder(NameID.DEFAULT_ELEMENT_NAME)).buildObject();
+            nameID.setFormat(nameIDFormat);
+            Subject subject = ((SAMLObjectBuilder<Subject>) builderFactory.getBuilder(Subject.DEFAULT_ELEMENT_NAME)).buildObject();
+            subject.setNameID(nameID);
+            request.setSubject(subject);
+        }
+        return request;
     }
 
     @SuppressWarnings("unchecked")
@@ -174,7 +202,9 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         SAMLObjectBuilder<AuthnContextClassRef> authnContextClassRefBuilder = (SAMLObjectBuilder<AuthnContextClassRef>) builderFactory
                 .getBuilder(AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
         AuthnContextClassRef authnContextClassRef = authnContextClassRefBuilder.buildObject();
+        //TODO - BEGIN we don't know this, should read value from authentication object
         authnContextClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX);
+        //TODO - END
         authnContext.setAuthnContextClassRef(authnContextClassRef);
         authnStatement.setAuthnContext(authnContext);
         assertion.getAuthnStatements().add(authnStatement);
@@ -246,6 +276,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         SubjectConfirmation subjectConfirmation = subjectConfirmationBuilder.buildObject();
         subjectConfirmation.setMethod(SubjectConfirmation.METHOD_BEARER);
 
+
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<SubjectConfirmationData> subjectConfirmationDataBuilder = (SAMLObjectBuilder<SubjectConfirmationData>) builderFactory
                 .getBuilder(SubjectConfirmationData.DEFAULT_ELEMENT_NAME);
@@ -284,7 +315,28 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         Attribute zoneAttribute = buildStringAttribute("zoneId", Collections.singletonList(principal.getZoneId()));
         attributeStatement.getAttributes().add(zoneAttribute);
 
-        Map<String, Object> attributeMappings = samlServiceProviderProvisioning.retrieveByEntityId(providerEntityId, IdentityZoneHolder.get().getId()).getConfig().getAttributeMappings();
+        SamlServiceProviderDefinition config = samlServiceProviderProvisioning.retrieveByEntityId(providerEntityId, IdentityZoneHolder.get().getId()).getConfig();
+
+        //static attributes
+        for (Map.Entry<String,Object> staticAttribute : (ofNullable(config.getStaticCustomAttributes()).orElse(Collections.emptyMap())).entrySet()) {
+            String name = staticAttribute.getKey();
+            Object value = staticAttribute.getValue();
+            if (value==null) {
+                continue;
+            }
+
+            List values = new LinkedList<>();
+            if (value instanceof List) {
+                values = (List) value;
+            } else {
+                values.add(value);
+            }
+
+            List<String> stringValues = (List) values.stream().map(s -> s==null ? "null" : s.toString()).collect(Collectors.toList());
+            attributeStatement.getAttributes().add(buildStringAttribute(name, stringValues));
+        }
+
+        Map<String, Object> attributeMappings = config.getAttributeMappings();
 
         if (attributeMappings.size() > 0) {
             ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());

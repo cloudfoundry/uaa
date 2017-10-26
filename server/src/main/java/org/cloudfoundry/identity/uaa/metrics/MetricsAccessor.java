@@ -15,10 +15,10 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-public class MetricsAccessor  {
+class MetricsAccessor  {
     private static ThreadLocal<RequestMetric> current = ThreadLocal.withInitial(() -> null);
 
-    public static RequestMetric getCurrent() {
+    protected static RequestMetric getCurrent() {
         return current.get();
     }
 
@@ -26,7 +26,7 @@ public class MetricsAccessor  {
         current.set(metric);
     }
 
-    public static void clear() {
+    protected static void clear() {
         current.remove();
     }
 }

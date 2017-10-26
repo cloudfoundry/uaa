@@ -18,6 +18,7 @@ import org.opensaml.saml2.core.SubjectConfirmationData;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.ConfigurationException;
+import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.schema.XSString;
 import org.opensaml.xml.security.SecurityException;
@@ -25,6 +26,7 @@ import org.opensaml.xml.signature.SignatureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml.context.SAMLMessageContext;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,8 +34,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -67,12 +71,11 @@ public class IdpWebSsoProfileImplTest {
     }
 
     @Test
-    public void testBuildResponseForSamlRequestWithPersistentNameID() throws MessageEncodingException, SAMLException,
-            MetadataProviderException, SecurityException, MarshallingException, SignatureException {
+    public void testBuildResponseForSamlRequestWithPersistentNameID() throws Exception {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
-        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
-                samlTestUtils.mockAuthnRequest(NameIDType.PERSISTENT));
+        SAMLMessageContext context =
+            samlTestUtils.mockSamlMessageContext(samlTestUtils.mockAuthnRequest(NameIDType.PERSISTENT));
 
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
         options.setAssertionsSigned(false);
@@ -176,6 +179,10 @@ public class IdpWebSsoProfileImplTest {
         String phone = "123";
         user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber(phone)));
         when(scimUserProvisioning.extractPhoneNumber(any(ScimUser.class))).thenReturn(phone);
+        Map<String, Object> staticAttributes = new HashMap<>();
+        staticAttributes.put("organization-id","12345");
+        staticAttributes.put("organization-dba", Arrays.asList("The Org", "Acme Inc"));
+        samlServiceProvider.getConfig().setStaticCustomAttributes(staticAttributes);
 
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "first_name");
@@ -199,6 +206,8 @@ public class IdpWebSsoProfileImplTest {
         assertAttributeValue(attributes, "first_name", user.getGivenName());
         assertAttributeValue(attributes, "last_name", user.getFamilyName());
         assertAttributeValue(attributes, "cell_phone", user.getPhoneNumbers().get(0).getValue());
+        assertAttributeValue(attributes, "organization-dba", "The Org", "Acme Inc");
+        assertAttributeValue(attributes, "organization-id", "12345");
     }
 
     @Test
@@ -247,14 +256,15 @@ public class IdpWebSsoProfileImplTest {
     }
 
     private void assertAttributeValue(List<Attribute> attributeList, String name, String expectedValue) {
+        assertAttributeValue(attributeList, name, new String[] {expectedValue});
+    }
+
+    private void assertAttributeValue(List<Attribute> attributeList, String name, String... expectedValue) {
         for (Attribute attribute : attributeList) {
             if (attribute.getName().equals(name)) {
-                if (1 != attribute.getAttributeValues().size()) {
-                    Assert.fail(String.format("More than one attribute value with name of '%s'.", name));
-                }
-                XSString xsString = (XSString) attribute.getAttributeValues().get(0);
-                Assert.assertEquals(String.format("Attribute mismatch for '%s'.", name), expectedValue,
-                        xsString.getValue());
+                List<XMLObject> xsString = attribute.getAttributeValues();
+                List<String> attributeValues = xsString.stream().map(xs -> ((XSString)xs).getValue()).collect(Collectors.toList());
+                assertThat(String.format("Attribute mismatch for '%s'.", name), attributeValues, containsInAnyOrder(expectedValue));
                 return;
             }
         }

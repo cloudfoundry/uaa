@@ -56,6 +56,15 @@
 
     </bean>
 
+    <bean id="idpInitiatedLogin"
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpInitiatedLoginController">
+        <property name="idpWebSsoProfile" ref="idpWebSsoProfileImpl"/>
+        <property name="metadataManager" ref="idpMetadataManager"/>
+        <property name="configurator" ref="spMetaDataProviders"/>
+        <property name="contextProvider" ref="idpContextProvider"/>
+        <property name="idpSamlAuthenticationSuccessHandler" ref="samlIdpSuccessHandler"/>
+    </bean>
+
     <bean id="idpWebSsoProfileImpl"
         class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpWebSsoProfileImpl">
         <property name="metadata" ref="idpMetadataManager" />

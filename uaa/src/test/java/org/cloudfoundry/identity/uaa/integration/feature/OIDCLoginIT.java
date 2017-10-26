@@ -25,6 +25,8 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -59,9 +61,12 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -112,6 +117,7 @@ public class OIDCLoginIT {
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private String clientCredentialsToken;
     private BaseClientDetails zoneClient;
+    private ScimGroup createdGroup;
 
     @Before
     public void setUp() throws Exception {
@@ -133,6 +139,9 @@ public class OIDCLoginIT {
         String zoneHost = zone.getSubdomain() + ".localhost";
         zoneUrl = "http://" + zoneHost + ":8080/uaa";
 
+        String createdGroupName = new RandomValueStringGenerator(10).generate() + ".created.scope";
+
+
         String urlBase = "http://localhost:8080/uaa";
         identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
@@ -142,7 +151,11 @@ public class OIDCLoginIT {
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.addAttributeMapping("given_name", "user_name");
         config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
+        config.addAttributeMapping("external_groups", "scope");
+
         config.setStoreCustomAttributes(true);
+
+        config.addWhiteListedGroup("*");
 
         config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
         config.setTokenUrl(new URL(urlBase + "/oauth/token"));
@@ -164,6 +177,12 @@ public class OIDCLoginIT {
         identityProvider.setIdentityZoneId(zone.getId());
         clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         updateProvider();
+
+        createdGroup = IntegrationTestUtils.createOrUpdateGroup(adminToken, subdomain, baseUrl, new ScimGroup(createdGroupName));
+        ScimGroupExternalMember createdGroupExternalMapping = new ScimGroupExternalMember(createdGroup.getId(), "openid");
+        createdGroupExternalMapping.setOrigin(identityProvider.getOriginKey());
+        IntegrationTestUtils.mapExternalGroup(adminToken, subdomain, baseUrl, createdGroupExternalMapping);
+
 
         zoneClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         zoneClient.setClientSecret("secret");
@@ -234,9 +253,25 @@ public class OIDCLoginIT {
         validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        String origUserId = IntegrationTestUtils.getUserId(adminToken, baseUrl, "uaa", testAccounts.getUserName());
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+        assertEquals(origUserId, user.getExternalId());
         assertEquals(user.getGivenName(), user.getUserName());
+    }
+
+
+    @Test
+    public void successfulLoginWithOIDCProviderWithExternalGroups() throws Exception {
+
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        ScimUser user = IntegrationTestUtils.getUserByZone(adminToken, baseUrl, subdomain, testAccounts.getUserName());
+        assertEquals(user.getGivenName(), user.getUserName());
+
+        //TODO the tostring of user authorities when creating shadow user seems to be broken, check out ScimUserBootstrap.createNewUser()
+        ScimGroup updatedCreatedGroup = IntegrationTestUtils.getGroup(adminToken, subdomain, baseUrl, createdGroup.getDisplayName());
+        assertTrue(isMember(user.getId(), updatedCreatedGroup));
     }
 
     @Test
@@ -282,6 +317,57 @@ public class OIDCLoginIT {
     }
 
     @Test
+    public void testShadowUserNameDefaultsToOIDCSubjectClaim() throws Exception {
+        Map<String, Object> attributeMappings = new HashMap<>(identityProvider.getConfig().getAttributeMappings());
+        attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
+        identityProvider.getConfig().setAttributeMappings(attributeMappings);
+        updateProvider();
+
+        webDriver.get(zoneUrl);
+        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        webDriver.get(baseUrl);
+        Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+
+        ServerRunning serverRunning = ServerRunning.isRunning();
+        serverRunning.setHostName("localhost");
+
+        String clientId = "client" + new RandomValueStringGenerator(5).generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, null, "openid", "authorization_code", "openid", baseUrl);
+        client.setClientSecret("clientsecret");
+        client.setAutoApproveScopes(Collections.singletonList("true"));
+        IntegrationTestUtils.createClient(adminToken, baseUrl, client);
+
+        Map<String,String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
+            UaaTestAccounts.standard(serverRunning),
+            clientId,
+            "clientsecret",
+            null,
+            null,
+            "token id_token",
+            cookie.getValue(),
+            baseUrl,
+            false);
+
+        //validate that we have an ID token, and that it contains costCenter and manager values
+        String idToken = authCodeTokenResponse.get("id_token");
+        assertNotNull(idToken);
+
+        Jwt idTokenClaims = JwtHelper.decode(idToken);
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        String expectedUsername = (String) claims.get(SUB);
+
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret());
+        ScimUser shadowUser = IntegrationTestUtils.getUser(adminToken, zoneUrl, identityProvider.getOriginKey(), expectedUsername);
+        assertEquals(expectedUsername, shadowUser.getUserName());
+    }
+
+    @Test
     public void successfulLoginWithOIDC_and_SAML_Provider() throws Exception {
         SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA);
         saml.setLinkText("SAML Login");
@@ -311,11 +397,10 @@ public class OIDCLoginIT {
             webDriver.findElement(By.name("password")).sendKeys("saml6");
             webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-            Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
+            assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
             Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
-            System.out.println("cookie = " + String.format("%s=%s",cookie.getName(), cookie.getValue()));
 
             ServerRunning serverRunning = ServerRunning.isRunning();
             serverRunning.setHostName(zone.getSubdomain()+".localhost");

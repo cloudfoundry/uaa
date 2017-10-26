@@ -22,6 +22,10 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
 
+    <bean id="sessionIdleTimeoutSetter" class="org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter">
+        <property name="timeout" value="${servlet.idle-timeout:1800}"/>
+    </bean>
+
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="expiringTimeMillis" value="600000"/>
         <constructor-arg name="maxEntries" value="10000"/>
@@ -35,7 +39,17 @@
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
-    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator" />
+    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
+        <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
+    </bean>
+
+    <bean id ="identityZoneConfigValidator" class ="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
+        <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
+    </bean>
+
+    <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
+        <property name="mfaProviderProvisioning" ref="mfaProvideProvisioning"/>
+    </bean>
 
     <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
         <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>
@@ -230,11 +244,13 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}" />
                 <entry value-ref="corsFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}" />
+                <entry value-ref="limitedModeUaaFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}" />
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -259,7 +275,9 @@
         <constructor-arg value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
 
-    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter"/>
+    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
+        <property name="enabled" value="${metrics.enabled:true}"/>
+    </bean>
 
     <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
@@ -316,23 +334,23 @@
 
 
     <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
-        <constructor-arg name="minLength" value="${client.secret.policy.global.minLength:0}"/>
-        <constructor-arg name="maxLength"  value="${client.secret.policy.global.maxLength:255}"/>
-        <constructor-arg name="requireUpperCaseCharacter" value="${client.secret.policy.global.requireUpperCaseCharacter:0}"/>
-        <constructor-arg name="requireLowerCaseCharacter" value="${client.secret.policy.global.requireLowerCaseCharacter:0}"/>
-        <constructor-arg name="requireDigit" value="${client.secret.policy.global.requireDigit:0}"/>
-        <constructor-arg name="requireSpecialCharacter" value="${client.secret.policy.global.requireSpecialCharacter:0}"/>
-        <constructor-arg name="expireSecretInMonths" value="${client.secret.policy.global.expireSecretInMonths:0}"/>
+        <constructor-arg name="minLength" value="${oauth.client.secret.policy.global.minLength:0}"/>
+        <constructor-arg name="maxLength"  value="${oauth.client.secret.policy.global.maxLength:255}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${oauth.client.secret.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.global.requireDigit:0}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.global.requireSpecialCharacter:0}"/>
+        <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
     <bean id="defaultUaaClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
-        <constructor-arg name="minLength" value="${client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
-        <constructor-arg name="maxLength" value="${client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
-        <constructor-arg name="requireUpperCaseCharacter" value="${client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
-        <constructor-arg name="requireLowerCaseCharacter" value="${client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
-        <constructor-arg name="requireDigit" value="${client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
-        <constructor-arg name="requireSpecialCharacter" value="${client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
-        <constructor-arg name="expireSecretInMonths" value="${client.secret.policy.expireSecretInMonths:#{globalClientSecretPolicy.getExpireSecretInMonths()}}"/>
+        <constructor-arg name="minLength" value="${oauth.client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
+        <constructor-arg name="maxLength" value="${oauth.client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${oauth.client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
 
@@ -475,7 +493,9 @@
         <property name="globalLinks" ref="globalLinks"/>
     </bean>
 
-    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
+    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint">
+        <constructor-arg name="sleepTime" value="${uaa.shutdown.sleep:-1}"/>
+    </bean>
 
     <context:annotation-config />
 
@@ -528,6 +548,7 @@
                   value="#{@config['login']==null ? null :
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
+        <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
     </bean>
 
@@ -547,5 +568,18 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
+    <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
+        <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
+        <property name="permittedEndpoints"
+                  value="#{@config['uaa']==null ? null :
+                           @config['uaa']['limitedFunctionality']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']['endpoints']}"/>
+        <property name="permittedMethods"
+                  value="#{@config['uaa']==null ? null :
+                           @config['uaa']['limitedFunctionality']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']['methods']}"/>
+    </bean>
 
 </beans>

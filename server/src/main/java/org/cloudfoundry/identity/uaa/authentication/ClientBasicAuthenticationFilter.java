@@ -64,17 +64,6 @@ public class ClientBasicAuthenticationFilter extends BasicAuthenticationFilter {
 
             //Validate against client secret expiration in the zone configured client secret policy
             Timestamp lastModified = (Timestamp) clientDetailsService.loadClientByClientId(clientId).getAdditionalInformation().get(ClientConstants.LAST_MODIFIED);
-
-            int expiringPassword = IdentityZoneHolder.get().getConfig().
-                        getClientSecretPolicy().getExpireSecretInMonths();
-            if (expiringPassword>0) {
-                Calendar cal = Calendar.getInstance();
-                cal.setTimeInMillis(lastModified.getTime());
-                cal.add(Calendar.MONTH, expiringPassword);
-                if (cal.getTimeInMillis() < System.currentTimeMillis()) {
-                    throw new ClientSecretExpiredException("Your current client secret has expired. Please reset your client secret.");
-                }
-            }
         } catch(BadCredentialsException e) {
             super.getAuthenticationEntryPoint().commence(request, response, e);
             return;

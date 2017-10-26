@@ -51,6 +51,7 @@ database:
   #password:
 
 delete:
+  expirationRunTime: 3000
   clients:
     - client-should-not-exist-1
     - client-should-not-exist-2
@@ -406,6 +407,7 @@ login:
         skipSslValidation: true
     signatureAlgorithm: SHA256
     wantAssertionSigned: false
+    disableInResponseToCheck: true
     signRequest: false
   selfServiceLinksEnabled: false
   url: https://login.some.test.domain.com:555/uaa
@@ -423,6 +425,16 @@ oauth:
   client:
     encoder_cache: false
     encoder_expiry: 600
+    secret:
+      policy:
+        minLength: 8
+        maxLength: 128
+        requireUpperCaseCharacter: 1
+        requireLowerCaseCharacter: 3
+        requireDigit: 2
+        requireSpecialCharacter: 0
+        expireSecretInMonths: 7
+
   clients:
     cc-service-dashboards:
       authorities: clients.read,clients.write,clients.admin
@@ -546,6 +558,7 @@ servlet:
     name: cookiemonster
     path: /the/path/to/the/jar
     secure: true
+  idle-timeout: 300
 smtp:
   auth: true
   from_address: test@example.com
@@ -554,6 +567,24 @@ smtp:
   starttls: true
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
+  shutdown:
+    sleep: 5000
+  limitedFunctionality:
+    statusFile: /tmp/uaa-test-limited-mode-status-file.txt
+    whitelist:
+      endpoints:
+        - /other-url/**
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token
+        - /login/**
+        - /logout/**
+        - /saml/**
+      methods:
+        - CONNECT
+        - GET
+        - HEAD
+        - OPTIONS
 zones:
   internal:
     hostnames:
@@ -561,3 +592,5 @@ zones:
     - host2
     - test3.localhost
     - test4.localhost
+metrics:
+  enabled: false

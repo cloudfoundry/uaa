@@ -198,7 +198,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.CREATE);
         } catch (InvalidIdentityZoneDetailsException ex) {
-            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
+            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         }
 
         if (!StringUtils.hasText(body.getId())) {
@@ -218,7 +219,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition();
             idpDefinition.setPasswordPolicy(null);
             defaultIdp.setConfig(idpDefinition);
-            idpDao.create(defaultIdp);
+            idpDao.create(defaultIdp, created.getId());
             logger.debug("Created default IDP in zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             createUserGroups(created);
             return new ResponseEntity<>(removeKeys(created), CREATED);
@@ -271,7 +272,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
         } catch (InvalidIdentityZoneDetailsException ex) {
-            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
+            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         }
 
         IdentityZone previous = IdentityZoneHolder.get();

@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cloudfoundry.identity.uaa.authentication.GenericPasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 
@@ -38,6 +39,7 @@ public class ClientSecretPolicy extends GenericPasswordPolicy<ClientSecretPolicy
 
     public static final String CLIENT_SECRET_POLICY_FIELD = "clientSecretPolicy";
 
+    @JsonIgnore
     private int expireSecretInMonths;
 
     public ClientSecretPolicy() {

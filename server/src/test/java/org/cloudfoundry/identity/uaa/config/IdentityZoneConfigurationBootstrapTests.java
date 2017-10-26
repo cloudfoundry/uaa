@@ -74,7 +74,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireLowerCaseCharacter());
         assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireDigit());
         assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireSpecialCharacter());
-        assertEquals(6, uaa.getConfig().getClientSecretPolicy().getExpireSecretInMonths());
+        assertEquals(-1, uaa.getConfig().getClientSecretPolicy().getExpireSecretInMonths());
     }
 
     @Test
@@ -115,6 +115,22 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, uaa.getConfig().getSamlConfig().getPrivateKey());
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, uaa.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, uaa.getConfig().getSamlConfig().getCertificate());
+    }
+
+    @Test
+    public void enable_in_response_to() throws Exception {
+        bootstrap.setDisableSamlInResponseToCheck(false);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertFalse(uaa.getConfig().getSamlConfig().isDisableInResponseToCheck());
+    }
+
+    @Test
+    public void saml_disable_in_response_to() throws Exception {
+        bootstrap.setDisableSamlInResponseToCheck(true);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertTrue(uaa.getConfig().getSamlConfig().isDisableInResponseToCheck());
     }
 
     @Test

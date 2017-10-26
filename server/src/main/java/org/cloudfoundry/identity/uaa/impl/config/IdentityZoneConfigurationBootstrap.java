@@ -52,6 +52,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpPrivateKey;
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
+    private boolean disableSamlInResponseToCheck = false;
 
     private Map<String, Map<String, String>> samlKeys;
     private String activeKeyId;
@@ -83,6 +84,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setCertificate(samlSpCertificate);
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
+        definition.getSamlConfig().setDisableInResponseToCheck(disableSamlInResponseToCheck);
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
 
@@ -223,5 +225,13 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setDefaultUserGroups(Collection<String> defaultUserGroups) {
         this.defaultUserGroups = defaultUserGroups;
+    }
+
+    public boolean isDisableSamlInResponseToCheck() {
+        return disableSamlInResponseToCheck;
+    }
+
+    public void setDisableSamlInResponseToCheck(boolean disableSamlInResponseToCheck) {
+        this.disableSamlInResponseToCheck = disableSamlInResponseToCheck;
     }
 }

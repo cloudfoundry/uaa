@@ -387,7 +387,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         passwordPolicy.setMinLength(3);
         passwordPolicy.setMaxLength(20);
         uaaProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
 
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
@@ -406,7 +406,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         uaaProvider.setConfig(currentDefinition);
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
     }
 
     private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF) throws Exception {

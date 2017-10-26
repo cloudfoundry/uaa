@@ -16,6 +16,8 @@
 package org.cloudfoundry.identity.uaa.audit.event;
 
 import org.apache.commons.logging.Log;
+import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -32,6 +34,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
@@ -143,6 +146,18 @@ public class SystemDeletableTest {
                 verify(deletable, times(1)).deleteByUser(uaaUser.getId(), uaaUser.getZoneId());
             }
         }
+    }
+
+    @Test
+    public void mfa_event_received() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider<GoogleMfaProviderConfig>().setId("provider1");
+        EntityDeletedEvent<MfaProvider> event = new EntityDeletedEvent<>(mfaProvider, authentication);
+        deletable.onApplicationEvent(event);
+        verify(deletable, never()).deleteByIdentityZone(any());
+        verify(deletable, never()).deleteByOrigin(any(), any());
+        verify(deletable, never()).deleteByClient(any(), any());
+        verify(deletable, never()).deleteByUser(any(), any());
+        verify(deletable, times(1)).deleteByMfaProvider(eq("provider1"), any());
     }
 
     public void resetDeletable() {

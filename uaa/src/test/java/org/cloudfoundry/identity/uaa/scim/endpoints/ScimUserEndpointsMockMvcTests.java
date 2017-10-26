@@ -1059,7 +1059,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         oidcProvider.setIdentityZoneId(IdentityZoneHolder.getUaaZone().getId());
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
 
-        identityProviderProvisioning.create(oidcProvider);
+        identityProviderProvisioning.create(oidcProvider, oidcProvider.getIdentityZoneId());
         try {
             MockHttpServletRequestBuilder post = post("/Users")
                 .header("Authorization", "Bearer " + scimCreateToken)

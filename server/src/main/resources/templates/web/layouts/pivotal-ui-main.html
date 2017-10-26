@@ -26,7 +26,7 @@
 </head>
 
 <body class="bg-neutral-10 login">
-    <div th:if="${banner != null}" class="login-header"
+    <div th:if="${banner != null && (T(org.springframework.util.StringUtils).hasText(banner.getText()) || T(org.springframework.util.StringUtils).hasText(banner.getLogo()))}" class="login-header"
             th:with="backgroundColor=${banner.getBackgroundColor() != null ? 'background-color :'+banner.getBackgroundColor()+';' : ''},
                     textColor=${banner.getTextColor() != null ? 'color :'+banner.getTextColor()+';' : ''}"
             th:style="${backgroundColor}+${textColor}">
@@ -42,7 +42,7 @@
      <div class="login-email panel panel-basic bg-neutral-11 mvxl paxl">
         <div class="panel-body">
             <div class="txt-c paxl">
-                <img class="img-responsive logo" th:if="${isUaa}" th:with="logo=${branding.getProductLogo()},defaultLogo=@{${assetBaseUrl+'/images/product-logo.png'}}" th:src="${isUaa} ? ${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}" src="/resources/oss/images/product-logo.png"/>
+                <img class="img-responsive logo" th:with="logo=${branding.getProductLogo()},defaultLogo=@{${assetBaseUrl+'/images/product-logo.png'}}" th:src="${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}" src="/resources/oss/images/product-logo.png"/>
                 <h1 class="img-responsive" th:if="!${isUaa}" th:text="${zone_name}">Cloud Foundry</h1>
             </div>
             <div layout:fragment="page-content"></div>

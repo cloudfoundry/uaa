@@ -269,7 +269,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.setMetaDataLocation(String.format(IDP_META_DATA, OriginKeys.SAML));
         providerDefinition.setIdpEntityAlias(OriginKeys.SAML);
         provider.setConfig(providerDefinition);
-        provider = providerProvisioning.create(provider);
+        provider = providerProvisioning.create(provider, IdentityZoneHolder.get().getId());
     }
 
     private SAMLCredential getUserCredential(String username, String firstName, String lastName, String emailAddress, String phoneNumber) {
@@ -368,7 +368,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public void test_multiple_group_attributes() throws Exception {
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups", "groups"));
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Four authorities should have been granted!", 4, authentication.getAuthorities().size());
         assertThat(authentication.getAuthorities(),
@@ -392,7 +392,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.setGroupMappingMode(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES);
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups", "groups"));
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
         UaaAuthentication authentication = getAuthentication();
         assertThat(authentication.getAuthorities(),
                 containsInAnyOrder(
@@ -409,7 +409,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public void test_group_mapping() throws Exception {
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Three authorities should have been granted!", 3, authentication.getAuthorities().size());
         assertThat(authentication.getAuthorities(),
@@ -432,7 +432,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSBase64Binary", "XSBase64Binary");
 
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
         UaaAuthentication authentication = getAuthentication();
         assertEquals("http://localhost:8080/someuri", authentication.getUserAttributes().getFirst("XSURI"));
         assertEquals("XSAnyValue", authentication.getUserAttributes().getFirst("XSAny"));
@@ -451,7 +451,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
             externalManager.unmapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML, IdentityZoneHolder.get().getId());
             providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
             provider.setConfig(providerDefinition);
-            providerProvisioning.update(provider);
+            providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
             UaaAuthentication authentication = getAuthentication();
             assertEquals("Three authorities should have been granted!", 1, authentication.getAuthorities().size());
             assertThat(authentication.getAuthorities(),
@@ -477,7 +477,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public void dontAdd_external_groups_to_authentication_without_whitelist() throws Exception {
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         UaaAuthentication authentication = getAuthentication();
         assertEquals(Collections.EMPTY_SET, authentication.getExternalGroups());
@@ -488,7 +488,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
         providerDefinition.addWhiteListedGroup(SAML_ADMIN);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         UaaAuthentication authentication = getAuthentication();
         assertEquals(Collections.singleton(SAML_ADMIN), authentication.getExternalGroups());
@@ -499,7 +499,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
         providerDefinition.addWhiteListedGroup("saml*");
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
         UaaAuthentication authentication = getAuthentication();
         assertThat(authentication.getExternalGroups(), containsInAnyOrder(SAML_USER, SAML_ADMIN, SAML_NOT_MAPPED));
     }
@@ -526,7 +526,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         ScimUser scimUser = getInvitedUser();
 
@@ -567,7 +567,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         SAMLCredential credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null);
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
@@ -598,7 +598,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("phone_number", "phone");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         getAuthentication();
         UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
@@ -619,7 +619,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.setAttributeMappings(attributeMappings);
         providerDefinition.setStoreCustomAttributes(false);
         provider.setConfig(providerDefinition);
-        provider = providerProvisioning.update(provider);
+        provider = providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         UaaAuthentication authentication = getAuthentication();
         UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
@@ -636,7 +636,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.addWhiteListedGroup(SAML_ADMIN);
         providerDefinition.setStoreCustomAttributes(true);
         provider.setConfig(providerDefinition);
-        provider = providerProvisioning.update(provider);
+        provider = providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
         authentication = getAuthentication();
         assertEquals("marissa.bloggs@test.com", authentication.getUserAttributes().getFirst("secondary_email"));
         userInfo = userDatabase.getUserInfo(user.getId());
@@ -651,7 +651,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public void authnContext_isvalidated_fail() throws Exception {
         providerDefinition.setAuthnContext(Arrays.asList("some-context", "another-context"));
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         try {
             getAuthentication();
@@ -665,7 +665,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public void authnContext_isvalidated_good() throws Exception {
         providerDefinition.setAuthnContext(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX));
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         try {
             getAuthentication();
@@ -684,7 +684,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.setAttributeMappings(attributeMappings);
         providerDefinition.setAddShadowUserOnLogin(false);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         try {
             getAuthentication();
@@ -707,7 +707,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         ScimUser createdUser = createSamlUser("marissa.bloggs@test.com", "marissa.bloggs@test.com", "Marissa", "Bloggs");
 
@@ -724,7 +724,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         createSamlUser("marissa.bloggs@test.com", "marissa.bloggs@test.com", "Marissa", "Bloggs");
         createSamlUser("marissa.bloggs", "marissa.bloggs@test.com", "Marissa", "Bloggs");
@@ -746,7 +746,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         UaaAuthentication authentication = getAuthentication();
         UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
@@ -768,7 +768,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
-        providerProvisioning.update(provider);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         UaaAuthentication authentication = getAuthentication();
 

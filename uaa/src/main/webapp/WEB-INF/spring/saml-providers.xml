@@ -154,6 +154,9 @@
         <bean id="basicContextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" primary="true">
             <property name="metadataResolver" ref="nonCachingSPMetadataCredentialsResolver"/>
             <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
+            <property name="storageFactory">
+                <bean class="org.cloudfoundry.identity.uaa.provider.saml.SamlSessionStorageFactory"/>
+            </property>
         </bean>
 
         <!-- Processing filter for WebSSO profile messages -->
@@ -285,7 +288,7 @@
         <bean class="org.springframework.security.saml.SAMLBootstrap" />
 
         <!-- Initialization of the velocity engine -->
-        <bean id="velocityEngine" class="org.springframework.security.saml.util.VelocityFactory" factory-method="getEngine" />
+        <bean id="velocityEngine" class="org.cloudfoundry.identity.uaa.util.velocity.VelocityFactory" factory-method="getEngine" />
 
         <!-- XML parser pool needed for OpenSAML parsing -->
         <bean id="parserPool" class="org.opensaml.xml.parse.BasicParserPool" scope="singleton" />
