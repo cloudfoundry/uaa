@@ -154,7 +154,6 @@ public class UaaMetricsEmitterTests {
 
         Mockito.verify(statsDClient).gauge(eq("requests.static-content.completed.count"), gt(0l));
         Mockito.verify(statsDClient).gauge(eq("requests.static-content.completed.time"), geq(23l));
-        Mockito.verify(statsDClient).time(eq("requests.static-content.completed.time"), geq(23l));
     }
 
     @Test
