@@ -125,7 +125,7 @@ public class UaaMetricsFilterTests {
         verify(publisher, times(2)).sendNotification(argumentCaptor.capture());
         List<Notification> capturedArg = argumentCaptor.getAllValues();
         assertEquals(2, capturedArg.size());
-        assertEquals("/api.request.time" , capturedArg.get(0).getType());
+        assertEquals("/api" , capturedArg.get(0).getType());
     }
 
     @Test
