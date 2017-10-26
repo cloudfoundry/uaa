@@ -86,10 +86,18 @@
 
     <bean id="mfaProvideProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.JdbcMfaProviderProvisioning">
         <constructor-arg type="org.springframework.jdbc.core.JdbcTemplate" ref="jdbcTemplate"/>
+        <constructor-arg type="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderValidator" ref="mfaProviderValidator"/>
+    </bean>
+
+    <bean id="googleMfaProviderConfigValidator" class="org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfigValidator"/>
+
+    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa_provider.GeneralMfaProviderValidator">
+        <property name="configValidator" ref="googleMfaProviderConfigValidator"/>
     </bean>
 
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderEndpoints">
         <property name="mfaProviderProvisioning" ref="mfaProvideProvisioning"/>
+        <property name="mfaProviderValidator" ref="mfaProviderValidator"/>
     </bean>
 
     <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"
@@ -99,11 +107,25 @@
         <intercept-url pattern="/mfa-providers"
                        access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="POST"/>
+        <intercept-url pattern="/mfa-providers"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/mfa-providers/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PUT"/>
+        <intercept-url pattern="/mfa-providers/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/mfa-providers/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
         <intercept-url pattern="/**" access="denyAll"/>
         <csrf disabled="true"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
     </http>
+
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"

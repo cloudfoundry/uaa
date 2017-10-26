@@ -22,6 +22,10 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
 
+    <bean id="sessionIdleTimeoutSetter" class="org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter">
+        <property name="timeout" value="${servlet.idle-timeout:1800}"/>
+    </bean>
+
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="expiringTimeMillis" value="600000"/>
         <constructor-arg name="maxEntries" value="10000"/>
@@ -35,7 +39,17 @@
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
-    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator" />
+    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
+        <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
+    </bean>
+
+    <bean id ="identityZoneConfigValidator" class ="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
+        <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
+    </bean>
+
+    <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
+        <property name="mfaProviderProvisioning" ref="mfaProvideProvisioning"/>
+    </bean>
 
     <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
         <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>
@@ -479,7 +493,9 @@
         <property name="globalLinks" ref="globalLinks"/>
     </bean>
 
-    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
+    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint">
+        <constructor-arg name="sleepTime" value="${uaa.shutdown.sleep:-1}"/>
+    </bean>
 
     <context:annotation-config />
 
@@ -553,7 +569,7 @@
     </bean>
 
     <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
-        <property name="enabled" value="${uaa.limitedFunctionality.enabled:false}"/>
+        <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
         <property name="permittedEndpoints"
                   value="#{@config['uaa']==null ? null :
                            @config['uaa']['limitedFunctionality']==null ? null :

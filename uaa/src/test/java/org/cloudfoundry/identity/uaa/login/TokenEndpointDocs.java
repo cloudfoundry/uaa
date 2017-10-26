@@ -120,8 +120,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     );
 
 
-    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
-    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
     private static final HeaderDescriptor CLIENT_BASIC_AUTH_HEADER = headerWithName(HttpHeaders.AUTHORIZATION).optional().description("Client ID and secret may be passed as a basic authorization header, per <a href=\"https://tools.ietf.org/html/rfc6749#section-2.3.1\">RFC 6749</a> or as request parameters.");
 
     private ScimUser user;
@@ -666,11 +666,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName("Authorization").description("Bearer token with uaa.admin or tokens.revoke scope. Any token with the matching user_id may also be used for self revocation."),
+            headerWithName("Authorization").description("Bearer token with `uaa.admin` or `tokens.revoke` scope. Any token with the matching user_id may also be used for self revocation."),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
-        Snippet pathParameters = pathParameters(parameterWithName("userId").description("The identifier for the user to revoke all tokens for"));
+        Snippet pathParameters = pathParameters(parameterWithName("userId").description("The id of the user"));
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/user/{userId}", user.getId());
 
 
@@ -684,6 +684,72 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                         .header("Authorization", "Bearer "+userInfoToken))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+    }
+
+
+    @Test
+    public void revokeAllTokens_forAUserClientCombination() throws Exception {
+        String adminToken =  getClientCredentialsOAuthAccessToken(
+            getMockMvc(),
+            "admin",
+            "adminsecret",
+            "",
+            null
+        );
+        BaseClientDetails client = createClient(adminToken, "openid", "password", "");
+        BaseClientDetails client2 = createClient(adminToken, "openid", "password", "");
+
+        createUser();
+        String userInfoTokenToRevoke = getUserOAuthAccessToken(
+            getMockMvc(),
+            client.getClientId(),
+            client.getClientSecret(),
+            user.getUserName(),
+            user.getPassword(),
+            "", null, true
+        );
+        String userInfoTokenToRemainValid = getUserOAuthAccessToken(
+            getMockMvc(),
+            client2.getClientId(),
+            client2.getClientSecret(),
+            user.getUserName(),
+            user.getPassword(),
+            "", null, true
+        );
+
+        Snippet requestHeaders = requestHeaders(
+            headerWithName("Authorization").description("Bearer token with uaa.admin or tokens.revoke scope. Any token with the matching user_id and client_id may also be used for self revocation."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
+        Snippet pathParameters = pathParameters(
+            parameterWithName("userId").description("The id of the user"),
+            parameterWithName("clientId").description("The id of the client")
+        );
+
+        getMockMvc().perform(
+            get("/userinfo")
+                .header("Authorization", "Bearer " + userInfoTokenToRevoke))
+            .andExpect(status().isOk());
+
+
+        MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/user/{userId}/client/{clientId}", user.getId(), client.getClientId());
+
+        getMockMvc().perform(get
+            .header("Authorization", "Bearer "+adminToken))
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters));
+
+        getMockMvc().perform(
+            get("/userinfo")
+                .header("Authorization", "Bearer " + userInfoTokenToRevoke))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+
+        getMockMvc().perform(
+            get("/userinfo")
+                .header("Authorization", "Bearer "+ userInfoTokenToRemainValid))
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -707,11 +773,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                         true
                 );
         Snippet requestHeaders = requestHeaders(
-            headerWithName("Authorization").description("Bearer token with uaa.admin or tokens.revoke scope. Any token with the matching client_id may also be used for self revocation."),
+            headerWithName("Authorization").description("Bearer token with `uaa.admin` or `tokens.revoke` scope."),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
-        Snippet pathParameters = pathParameters(parameterWithName("clientId").description("The identifier for the client to revoke all tokens for"));
+        Snippet pathParameters = pathParameters(parameterWithName("clientId").description("The id of the client"));
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/client/{clientId}", client.getClientId());
         getMockMvc().perform(get
                 .header("Authorization", "Bearer "+ adminToken))
@@ -751,7 +817,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with uaa.admin or tokens.revoke scope. You can use any token with matching token ID to revoke itself."),
+            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with `uaa.admin` or `tokens.revoke` scope. You can use any token with matching token ID to revoke itself."),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );

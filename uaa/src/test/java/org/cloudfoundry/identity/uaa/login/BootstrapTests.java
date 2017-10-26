@@ -12,27 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.servlet.RequestDispatcher;
-
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
 import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
@@ -45,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -73,6 +59,7 @@ import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.HeaderFilter;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
@@ -117,6 +104,23 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
+
+import javax.servlet.RequestDispatcher;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EventListener;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -201,10 +205,20 @@ public class BootstrapTests {
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(2500, revocableTokenProvisioning.getMaxExpirationRuntime());
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(1800, sessionIdleTimeoutSetter.getTimeout());
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(-1, hend.getSleepTime());
+
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertTrue(metricsFilter.isEnabled());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
+        assertNull(limitedModeUaaFilter.getStatusFile());
         assertFalse(limitedModeUaaFilter.isEnabled());
         assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
@@ -451,11 +465,20 @@ public class BootstrapTests {
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(3000, revocableTokenProvisioning.getMaxExpirationRuntime());
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(300, sessionIdleTimeoutSetter.getTimeout());
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(5000, hend.getSleepTime());
+
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertFalse(metricsFilter.isEnabled());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
-        assertTrue(limitedModeUaaFilter.isEnabled());
+        assertEquals("/tmp/uaa-test-limited-mode-status-file.txt", limitedModeUaaFilter.getStatusFile().getAbsolutePath());
         assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
                        "/oauth/authorize/**",
@@ -643,6 +666,7 @@ public class BootstrapTests {
         assertSame(context.getBean("globalLinks", Links.class), context.getBean(HomeController.class).getGlobalLinks());
 
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
+        assertEquals(false, zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
         assertFalse(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
@@ -1071,6 +1095,11 @@ public class BootstrapTests {
             @Override
             public String getVirtualServerName() {
                 return "localhost";
+            }
+
+            @Override
+            public <Type extends EventListener> void addListener(Type t) {
+                //no op
             }
         };
         context.setServletContext(servletContext);

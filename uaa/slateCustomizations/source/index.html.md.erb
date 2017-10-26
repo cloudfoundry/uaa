@@ -396,6 +396,20 @@ _Request Header_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAClient/request-headers.md")).result(binding) %>
 
+### Revoke all tokens for a user and client combination
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/path-parameters.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/request-headers.md")).result(binding) %>
+
 ### Revoke a single token
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/curl-request.md")).result(binding) %>
@@ -1276,29 +1290,149 @@ _Error Codes_
 
 # MFA Providers
 
-The MFA provider
-
 ## Create
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/http-response.md")).result(binding) %>
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/http-response.md")).result(binding) %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/request-headers.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/request-fields.md")).result(binding) %>
+
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEdpointsDocs/testCreateGoogleMfaProvider/response-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/response-fields.md")).result(binding) %>
 
 _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - JSON body was malformed or missing fields                                                |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (uaa.admin or zones.<zoneid>.admin is required to create a MFA provider)|
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 422        | Unprocessable Entity - Some values in the MFA configuration are invalid                                |
+
+
+## Update
+
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - JSON body was malformed or missing fields                                                |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 422        | Unprocessable Entity - Some values in the MFA configuration are invalid                                |
+| 404        | Not Found - Provider id not found                                                                      |
+
+
+## Get
+
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 404        | Not Found - Provider id not found                                                                      |
+
+
+## Delete
+
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 404        | Not Found - Provider id not found                                                                      |
+
+## List
+
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
 
 # Users
 
@@ -1322,10 +1456,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.read is required to retrieve a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.read` is required to retrieve a user)                            |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to get users:
 
@@ -1363,9 +1497,9 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.read is required to search users)                                 |
+| 403        | Forbidden - Insufficient scope (`scim.read` is required to search users)                               |
 
 >Example using uaac to view users:
 
@@ -1422,10 +1556,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
-| 409        | Username already exists                                                                                |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)                             |
+| 409        | Conflict - Username already exists                                                                     |
 
 >Example using uaac to view users:
 
@@ -1459,10 +1593,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to update a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to view users:
 
@@ -1496,10 +1630,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to update a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to patch users:
 
@@ -1529,10 +1663,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to delete a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to delete users:
 
@@ -1564,9 +1698,9 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (openid is required to get the user info)                               |
+| 403        | Forbidden - Insufficient scope (`openid` is required to get the user info)                             |
 
 >Example using uaac to view user info:
 
@@ -1601,10 +1735,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                                |
 |------------|------------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                        |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                        |
 | 401        | Unauthorized - Invalid token                                                                               |
-| 403        | Forbidden - Insufficient scope (scim.write or a token containing the user id is required to create a user) |
-| 404        | User id not found                                                                                          |
+| 403        | Forbidden - Insufficient scope (`scim.write` or a token containing the user id is required)                |
+| 404        | Not Found - User id not found                                                                              |
 
 >Example using uaac to view users:
 
@@ -1683,8 +1817,8 @@ _Error Codes_
 |------------|------------------------------------------------------------------------------------------------------------|
 | 400        | Bad Request - invalid JSON format or illegal value                                                         |
 | 401        | Unauthorized - Invalid token                                                                               |
-| 403        | Forbidden - Insufficient scope (scim.write or uaa.account_status.write)                                    |
-| 404        | User id not found
+| 403        | Forbidden - Insufficient scope (`scim.write` or `uaa.account_status.write` required)                       |
+| 404        | Not Found - User id not found                                                                              |
 
 ## Get user verification link
 

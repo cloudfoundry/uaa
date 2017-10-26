@@ -34,7 +34,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class SamlMockMvcTests extends InjectedMockContextTest {
+public class SamlInitializationMockMvcTests extends InjectedMockContextTest {
 
     private NonSnarlMetadataManager spManager;
     private NonSnarlIdpMetadataManager idpManager;

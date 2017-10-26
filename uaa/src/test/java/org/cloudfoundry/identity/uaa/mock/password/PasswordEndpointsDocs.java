@@ -69,8 +69,8 @@ public class PasswordEndpointsDocs extends InjectedMockContextTest {
 
         Snippet requestHeaders = requestHeaders(
             headerWithName("Authorization").required().description("Bearer token with the scope `oauth.login` present."),
-            headerWithName(IdentityZoneSwitchingFilter.HEADER).optional(null).description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id."),
-            headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional(null).description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.")
+            headerWithName(IdentityZoneSwitchingFilter.HEADER).optional(null).description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id."),
+            headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional(null).description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.")
         );
 
 

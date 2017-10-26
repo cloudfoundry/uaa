@@ -51,6 +51,7 @@ database:
   #password:
 
 delete:
+  expirationRunTime: 3000
   clients:
     - client-should-not-exist-1
     - client-should-not-exist-2
@@ -557,6 +558,7 @@ servlet:
     name: cookiemonster
     path: /the/path/to/the/jar
     secure: true
+  idle-timeout: 300
 smtp:
   auth: true
   from_address: test@example.com
@@ -565,8 +567,10 @@ smtp:
   starttls: true
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
+  shutdown:
+    sleep: 5000
   limitedFunctionality:
-    enabled: true
+    statusFile: /tmp/uaa-test-limited-mode-status-file.txt
     whitelist:
       endpoints:
         - /other-url/**

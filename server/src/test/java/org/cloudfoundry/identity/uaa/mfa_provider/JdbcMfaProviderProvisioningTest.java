@@ -3,25 +3,30 @@ package org.cloudfoundry.identity.uaa.mfa_provider;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.junit.rules.ExpectedException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.sql.PreparedStatement;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
     JdbcMfaProviderProvisioning mfaProviderProvisioning;
+    private MfaProviderValidator mfaProviderValidator;
+
+    @Rule
+    public ExpectedException expection = ExpectedException.none();
 
     @Before
     public void setup() {
-        mfaProviderProvisioning = new JdbcMfaProviderProvisioning(jdbcTemplate);
+        mfaProviderValidator = mock(GeneralMfaProviderValidator.class);
+        mfaProviderProvisioning = new JdbcMfaProviderProvisioning(jdbcTemplate, mfaProviderValidator);
     }
 
     @Test
@@ -29,6 +34,7 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         MfaProvider mfaProvider = constructGoogleProvider();
         String zoneId = IdentityZoneHolder.get().getId();
         assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
+        doNothing().when(mfaProviderValidator);
 
         MfaProvider created = mfaProviderProvisioning.create(mfaProvider, zoneId);
         assertNotNull(created);
@@ -40,11 +46,77 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test
+    public void testCreateAndUpdate() {
+        MfaProvider mfaProvider = constructGoogleProvider();
+        String zoneId = IdentityZoneHolder.get().getId();
+        assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
+
+        MfaProvider created = mfaProviderProvisioning.create(mfaProvider, zoneId);
+        assertNotNull(created);
+        assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and id=?", new Object[]{zoneId, created.getId()}, Integer.class));
+
+        mfaProvider = created;
+        mfaProvider.setName("UpdatedName");
+        mfaProvider.getConfig().setIssuer("new issuer");
+
+        MfaProvider updated = mfaProviderProvisioning.update(created, zoneId);
+        assertNotNull(updated);
+
+        MfaProvider retrieved = mfaProviderProvisioning.retrieve(created.getId(), zoneId);
+        assertEquals(mfaProvider.getName(), retrieved.getName());
+        assertEquals(mfaProvider.getConfig().getIssuer(), retrieved.getConfig().getIssuer());
+    }
+
+    @Test
+    public void testRetrieveAll() {
+        String zoneId = IdentityZoneHolder.get().getId();
+        List<MfaProvider> providers = mfaProviderProvisioning.retrieveAll(zoneId);
+        doNothing().when(mfaProviderValidator);
+        int beforeCount = providers.size();
+
+        MfaProvider mfaProvider = constructGoogleProvider();
+        mfaProviderProvisioning.create(mfaProvider, zoneId);
+
+        providers = mfaProviderProvisioning.retrieveAll(zoneId);
+        int afterCount = providers.size();
+        assertEquals(1, afterCount-beforeCount);
+    }
+
+    @Test
     public void testRetrieve() {
         MfaProvider mfaProvider = constructGoogleProvider();
         mfaProvider.setActive(false);
+        doNothing().when(mfaProviderValidator);
         String zoneId = IdentityZoneHolder.get().getId();
         MfaProvider created = mfaProviderProvisioning.create(mfaProvider, zoneId);
+        assertEquals(mfaProvider.getName(), created.getName());
+        assertNotNull(created.getId());
+    }
+
+    @Test
+    public void testDelete() {
+        String zoneId = IdentityZoneHolder.get().getId();
+        doNothing().when(mfaProviderValidator);
+        MfaProvider mfaProvider = mfaProviderProvisioning.create(constructGoogleProvider(), zoneId);
+        assertNotNull(mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId));
+
+        mfaProviderProvisioning.deleteByMfaProvider(mfaProvider.getId(), zoneId);
+
+        expection.expect(EmptyResultDataAccessException.class);
+        mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId);
+    }
+
+    @Test
+    public void testDeleteByIdentityZone() {
+        String zoneId = IdentityZoneHolder.get().getId();
+        doNothing().when(mfaProviderValidator);
+        MfaProvider mfaProvider = mfaProviderProvisioning.create(constructGoogleProvider(), zoneId);
+        assertNotNull(mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId));
+
+        mfaProviderProvisioning.deleteByIdentityZone(zoneId);
+
+        expection.expect(EmptyResultDataAccessException.class);
+        mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId);
     }
 
     private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {

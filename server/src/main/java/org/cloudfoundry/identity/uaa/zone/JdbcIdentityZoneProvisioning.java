@@ -145,23 +145,6 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     }
 
     @Override
-    public int deleteByOrigin(String origin, String zoneId) {
-        return 0;
-    }
-
-    @Override
-    public int deleteByClient(String clientId, String zoneId) {
-        //no op - nothing to do here
-        return 0;
-    }
-
-    @Override
-    public int deleteByUser(String userId, String zoneId) {
-        //no op - nothing to do here
-        return 0;
-    }
-
-    @Override
     public Log getLogger() {
         return logger;
     }

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsBoolean;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsDate;
@@ -101,6 +102,10 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
 
             return null; // or fail
         }
+
+        public static Set<String> getStringValues() {
+            return namesMap.keySet();
+        }
     }
 
     public T getConfig() {
@@ -146,25 +151,6 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     public MfaProvider<T> setType(MfaProviderType type) {
         this.type = type;
         return this;
-    }
-
-    public void validate() {
-        if(StringUtils.isEmpty(name)) {
-            throw new IllegalArgumentException("Provider name must be set");
-        }
-        if(name.length() > 255 || !name.matches("^[a-zA-Z0-9]*$")){
-            throw new IllegalArgumentException("Provider name invalid");
-        }
-        if(type == null) {
-            throw new IllegalArgumentException("Provider type must be set");
-        }
-        if(config == null) {
-            throw new IllegalArgumentException("Provider config must be set");
-        }
-        if(!StringUtils.hasText(identityZoneId)){
-            throw new IllegalArgumentException("Provider must belong to a zone");
-        }
-        config.validate();
     }
 
     public static class MfaProviderDeserializer extends JsonDeserializer<MfaProvider> {
