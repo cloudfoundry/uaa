@@ -28,7 +28,6 @@ import org.springframework.util.ReflectionUtils;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
-import javax.management.Notification;
 import javax.management.NotificationEmitter;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -39,9 +38,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
@@ -54,17 +51,19 @@ public class UaaMetricsEmitter {
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     private final MetricsUtils metricsUtils;
-    private Queue<Notification> notificationQueue;
 
     public UaaMetricsEmitter(MetricsUtils metricsUtils, StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
         this.server = server;
         this.metricsUtils = metricsUtils;
-        this.notificationQueue = new LinkedList();
 
         try {
             NotificationEmitter emitter = metricsUtils.getUaaMetricsSubscriber(server);
-            emitter.addNotificationListener((notification, handback) -> notificationQueue.add(notification), null, null);
+            emitter.addNotificationListener((notification, handback) -> {
+                String key = notification.getType();
+                String prefix = key.startsWith("/") ? key.substring(1) : key;
+                statsDClient.time(String.format("requests.%s.latency", prefix),  (Long) notification.getSource());
+            }, null, null);
         } catch(Exception e) {
             logger.debug("Unable to create server request metric bean", e);
         }
@@ -182,17 +181,6 @@ public class UaaMetricsEmitter {
 
     }
 
-    @Scheduled(fixedRate = 1000, initialDelay = 1000)
-    public void emitNotificationQueue() {
-        while(!notificationQueue.isEmpty()) {
-            Notification notification = notificationQueue.remove();
-            String key = notification.getType();
-            String prefix = key.startsWith("/") ? key.substring(1) : key;
-
-            statsDClient.time(String.format("requests.%s.latency", prefix),  (Long) notification.getSource());
-        }
-    }
-
     public void invokeIfPresent(String metric, Object mbean, String getter) {
         invokeIfPresent(metric, mbean, getter, v -> (Long)v);
     }
@@ -236,10 +224,6 @@ public class UaaMetricsEmitter {
     public Object getValueFromMap(Map<String, ?> map, String path) throws Exception {
         MapWrapper wrapper = new MapWrapper(map);
         return wrapper.get(path);
-    }
-
-    public Queue<Notification> getNotificationQueue() {
-        return notificationQueue;
     }
 
     class MapWrapper {

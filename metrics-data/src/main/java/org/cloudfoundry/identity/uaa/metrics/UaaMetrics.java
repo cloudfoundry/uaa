@@ -15,11 +15,9 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import org.springframework.jmx.export.notification.NotificationPublisherAware;
-
 import java.util.Map;
 
-public interface UaaMetrics extends NotificationPublisherAware {
+public interface UaaMetrics {
 
     long getInflightCount();
 
