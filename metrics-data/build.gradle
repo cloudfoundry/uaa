@@ -17,7 +17,6 @@ description = 'CloudFoundry Identity Metrics Data Jar'
 
 dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
-  compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion
   testCompile group: 'junit', name: 'junit', version: parent.junitVersion
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
 

@@ -24,6 +24,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.export.notification.NotificationPublisher;
+import org.springframework.jmx.export.notification.NotificationPublisherAware;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.yaml.snakeyaml.Yaml;
@@ -46,7 +47,7 @@ import java.util.stream.Collectors;
     objectName="cloudfoundry.identity:name=ServerRequests",
     description = "UAA Performance Metrics"
 )
-public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics {
+public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics, NotificationPublisherAware {
     public static final int MAX_TIME = 3000;
     public static final UrlGroup FALLBACK = new UrlGroup()
         .setCategory("Unknown")
