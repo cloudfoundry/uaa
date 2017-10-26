@@ -30,7 +30,6 @@ import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
-import javax.management.NotificationListener;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
@@ -57,20 +56,18 @@ public class UaaMetricsEmitter {
     private final MetricsUtils metricsUtils;
     private Queue<Notification> notificationQueue;
 
-    public UaaMetricsEmitter(MetricsUtils metricsUtils, StatsDClient statsDClient, MBeanServerConnection server) throws Exception{
+    public UaaMetricsEmitter(MetricsUtils metricsUtils, StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
         this.server = server;
         this.metricsUtils = metricsUtils;
         this.notificationQueue = new LinkedList();
 
-        NotificationEmitter emitter = metricsUtils.getUaaMetricsSubscriber(server);
-        emitter.addNotificationListener(new NotificationListener() {
-            @Override
-            public void handleNotification(Notification notification, Object handback) {
-                notificationQueue.add(notification);
-            }
-        }, null, null);
-
+        try {
+            NotificationEmitter emitter = metricsUtils.getUaaMetricsSubscriber(server);
+            emitter.addNotificationListener((notification, handback) -> notificationQueue.add(notification), null, null);
+        } catch(Exception e) {
+            logger.debug("Unable to create server request metric bean", e);
+        }
     }
 
     @Scheduled(fixedRate = 5000, initialDelay = 0)

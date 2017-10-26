@@ -37,7 +37,7 @@ public class Application extends SpringBootServletInitializer {
     }
 
     @Bean
-    public UaaMetricsEmitter statsDClientWrapper(MetricsUtils utils, StatsDClient client) throws Exception {
+    public UaaMetricsEmitter statsDClientWrapper(MetricsUtils utils, StatsDClient client) {
         return new UaaMetricsEmitter(utils, client, ManagementFactory.getPlatformMBeanServer());
     }
 
