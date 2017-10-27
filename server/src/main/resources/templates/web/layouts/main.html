@@ -18,10 +18,11 @@
     <meta name='robots' content='all' />
     <meta name='Description' content=""/>
     <meta name='keywords' content=""/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
     <link th:href="@{${assetBaseUrl}+'/stylesheets/predix-styles.css'}" rel="stylesheet"/>
+
     <style th:with="logo=${branding.getProductLogo()}" th:text="'.header {' + (|background-image: url(@{${logo != null and !logo.isEmpty() ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : assetBaseUrl+'/images/predix-word.svg' }});|) + '}'">
         .header-image {
             background-image: url(/resources/oss/images/product-logo.png);
@@ -36,6 +37,7 @@
       </div>
     </div>
     <div class="predix-uaa__content" layout:fragment="page-content"></div>
+    <div class="footer-spacer"></div>
   </div>
   <div class="footer">
     <div class="copyright" th:with="links=${branding.getFooterLinks()}"

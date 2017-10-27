@@ -2878,19 +2878,14 @@ ol.linenums {
 }
 
 .top-header {
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
+
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
     transition: -webkit-transform .2s linear;
     -webkit-transition: -webkit-transform .2s linear;
     transition: transform .2s linear;
     transition: transform .2s linear, -webkit-transform .2s linear;
-    border-bottom: 1px solid #d8d8d8;
     background-color: #eaeaea;
-    box-shadow: 0 1px 0 0 #fff;
     z-index: 7
 }
 
