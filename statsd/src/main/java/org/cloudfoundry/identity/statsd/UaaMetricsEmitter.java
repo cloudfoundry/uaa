@@ -51,22 +51,14 @@ public class UaaMetricsEmitter {
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     private final MetricsUtils metricsUtils;
+    private NotificationEmitter emitter;
+    private boolean notificationsEnabled;
 
     public UaaMetricsEmitter(MetricsUtils metricsUtils, StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
         this.server = server;
         this.metricsUtils = metricsUtils;
-
-        try {
-            NotificationEmitter emitter = metricsUtils.getUaaMetricsSubscriber(server);
-            emitter.addNotificationListener((notification, handback) -> {
-                String key = notification.getType();
-                String prefix = key.startsWith("/") ? key.substring(1) : key;
-                statsDClient.time(String.format("requests.%s.latency", prefix),  (Long) notification.getSource());
-            }, null, null);
-        } catch(Exception e) {
-            logger.debug("Unable to create server request metric bean", e);
-        }
+        this.notificationsEnabled = false;
     }
 
     @Scheduled(fixedRate = 5000, initialDelay = 0)
@@ -224,6 +216,29 @@ public class UaaMetricsEmitter {
     public Object getValueFromMap(Map<String, ?> map, String path) throws Exception {
         MapWrapper wrapper = new MapWrapper(map);
         return wrapper.get(path);
+    }
+
+    public void enableNotification() {
+        try {
+            logger.debug("Trying to enable notification");
+            emitter = metricsUtils.getUaaMetricsSubscriber(server);
+            emitter.addNotificationListener((notification, handback) -> {
+                String key = notification.getType();
+                String prefix = key.startsWith("/") ? key.substring(1) : key;
+                statsDClient.time(String.format("requests.%s.latency", prefix),  (Long) notification.getSource());
+            }, null, null);
+            notificationsEnabled = true;
+        } catch(Exception instanceNotFound) {
+            try {
+                throwIfOtherThanNotFound(instanceNotFound);
+            } catch (Exception e) {
+                logger.info("Unable to create server request metric bean", e);
+            }
+        }
+    }
+
+    public boolean isNotificationEnabled() {
+        return notificationsEnabled;
     }
 
     class MapWrapper {
