@@ -23,7 +23,6 @@ import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,15 +48,9 @@ public class TotpEndpointTest {
         endpoint.setMfaProviderProvisioning(mfaProviderProvisioning);
         userId = new RandomValueStringGenerator(5).generate();
         endpoint.setAuthenticator(authenticator);
+        authenticator.setCredentialRepository(userGoogleMfaCredentialsProvisioning);
         uaaAuthentication = mock(UaaAuthentication.class);
         when(session.getAttribute(MFA_VALIDATE_USER)).thenReturn(uaaAuthentication);
-    }
-
-    @Test
-    public void testCreateCredentials() {
-        endpoint.createCredentials(userId);
-
-        verify(authenticator, times(1)).createCredentials(userId);
     }
 
     @Test
@@ -89,8 +82,7 @@ public class TotpEndpointTest {
     @Test
     public void testTotpAuthorizePageNoAuthentication() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(null);
-
-        String returnView = endpoint.totpAuthorize(session);
+        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
 
         assertEquals("redirect:/login", returnView);
     }
@@ -99,7 +91,7 @@ public class TotpEndpointTest {
     public void testTotpAuthorizePage() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
 
-        String returnView = endpoint.totpAuthorize(session);
+        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
         assertEquals("enter_code", returnView);
     }
 

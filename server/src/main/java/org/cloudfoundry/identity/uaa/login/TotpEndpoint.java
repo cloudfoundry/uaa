@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 import org.apache.commons.logging.Log;
@@ -28,12 +27,12 @@ import java.util.Set;
 
 @Controller
 public class TotpEndpoint {
-    private GoogleAuthenticatorConfig config = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build();
-    private GoogleAuthenticator authenticator = new GoogleAuthenticator(config);
+    private GoogleAuthenticator authenticator;
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private Log logger = LogFactory.getLog(TotpEndpoint.class);
     public static final String MFA_VALIDATE_USER = "MFA_VALIDATE_USER";
+
 
     @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
     public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, IOException {
@@ -54,9 +53,10 @@ public class TotpEndpoint {
     }
 
     @RequestMapping(value = {"/login/mfa/verify"}, method = RequestMethod.GET)
-    public String totpAuthorize(HttpSession session) {
+    public String totpAuthorize(HttpSession session, Model model) {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
         if(uaaPrincipal == null) return "redirect:/login";
+        model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
         return "enter_code";
     }
 
@@ -83,7 +83,6 @@ public class TotpEndpoint {
                 authMethods.addAll(Arrays.asList("otp", "mfa"));
                 sessionAuth.setAuthenticationMethods(authMethods);
                 SecurityContextHolder.getContext().setAuthentication(sessionAuth);
-
                 return "home";
             }
             logger.debug("Code authorization failed for user: " + uaaPrincipal.getId());
@@ -95,17 +94,10 @@ public class TotpEndpoint {
             logger.debug("Error validating the code for user: " + uaaPrincipal.getId() + ". Error: " + e.getMessage());
             model.addAttribute("error", "Invalid QR code");
         }
+        model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
         return "enter_code";
     }
 
-    private UaaPrincipal getSessionAuthPrincipal(HttpSession session) {
-        UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
-        if(sessionAuth != null) {
-            return sessionAuth.getPrincipal();
-        } else {
-            return null;
-        }
-    }
 
     public void setAuthenticator(GoogleAuthenticator authenticator) {
         this.authenticator = authenticator;
@@ -119,4 +111,12 @@ public class TotpEndpoint {
         this.mfaProviderProvisioning = mfaProviderProvisioning;
     }
 
+    private UaaPrincipal getSessionAuthPrincipal(HttpSession session) {
+        UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
+        if(sessionAuth != null) {
+            return sessionAuth.getPrincipal();
+        } else {
+            return null;
+        }
+    }
 }

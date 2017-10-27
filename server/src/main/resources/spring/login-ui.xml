@@ -666,6 +666,7 @@
     <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpEndpoint">
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
+        <property name="authenticator" ref="googleAuthenticator"/>
     </bean>
 
     <bean id="googleAuthenticator" class="com.warrenstrange.googleauth.GoogleAuthenticator">
@@ -679,6 +680,5 @@
 
     <bean id="googleAuthenticatorConfigFactory"
           class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder"/>
-
 
 </beans>

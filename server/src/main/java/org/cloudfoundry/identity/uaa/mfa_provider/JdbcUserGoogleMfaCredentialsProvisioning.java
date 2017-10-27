@@ -20,15 +20,11 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
     public static final String TABLE_NAME = "user_google_mfa_credentials";
 
     private static final String CREATE_USER_MFA_CONFIG_SQL =
-            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes, active) VALUES (?,?,?,?,?)";
+            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes) VALUES (?,?,?,?)";
 
     private static final String UPDATE_USER_MFA_CONFIG_SQL =
-        "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=?, active=? WHERE user_id=?";
+        "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=? WHERE user_id=?";
 
-    private static final String ACTIVATE_USER_MFA_CONFIG_SQL =
-        "UPDATE " + TABLE_NAME + " SET active=true WHERE user_id=?";
-
-    private static final String QUERY_USER_MFA_CONFIG_ACTIVE_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=? AND active=true";
     private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=?";
 
     private static final String DELETE_USER_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE user_id=?";
@@ -71,14 +67,6 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
     public UserGoogleMfaCredentials retrieve(String userId) {
         try{
             return jdbcTemplate.queryForObject(QUERY_USER_MFA_CONFIG_ALL_SQL, mapper, userId);
-        } catch(EmptyResultDataAccessException e) {
-            throw new UserMfaConfigDoesNotExistException("No Creds for user " +userId);
-        }
-    }
-
-    public UserGoogleMfaCredentials retrieveActive(String userId) {
-        try{
-            return jdbcTemplate.queryForObject(QUERY_USER_MFA_CONFIG_ACTIVE_SQL, mapper, userId);
         } catch(EmptyResultDataAccessException e) {
             throw new UserMfaConfigDoesNotExistException("No Creds for user " +userId);
         }

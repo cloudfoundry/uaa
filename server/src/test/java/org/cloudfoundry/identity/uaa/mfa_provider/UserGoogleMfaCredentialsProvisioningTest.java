@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mfa_provider;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigDoesNotExistException;
 import org.junit.Before;
@@ -102,13 +103,6 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         provisioner.persistCredentials();
     }
 
-    private UserGoogleMfaCredentials creds() {
-        return new UserGoogleMfaCredentials("jabbahut",
-            "very_sercret_key",
-            74718234,
-            Arrays.asList(1,22));
-    }
-
     @Test
     public void testActiveUserCredentialExists() {
         UserGoogleMfaCredentials creds = creds();
@@ -143,6 +137,33 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         String key = provisioner.getSecretKey("jabbahut");
         assertEquals("very_sercret_key", key);
     }
+
+    @Test
+    public void isFirstTimeMFAUser() {
+        UaaPrincipal uaaPrincipal = mock(UaaPrincipal.class);
+        session().setAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS", creds());
+
+        assertTrue(provisioner.isFirstTimeMFAUser(uaaPrincipal));
+    }
+
+    @Test
+    public void isFirstTimeMFAUser_CredsAreNotInSession() {
+        UaaPrincipal uaaPrincipal = mock(UaaPrincipal.class);
+        assertFalse(provisioner.isFirstTimeMFAUser(uaaPrincipal));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void isFirstTimeMFAUser_failsIfNotParitallyLoggedIn() {
+        provisioner.isFirstTimeMFAUser(null);
+    }
+
+    private UserGoogleMfaCredentials creds() {
+        return new UserGoogleMfaCredentials("jabbahut",
+            "very_sercret_key",
+            74718234,
+            Arrays.asList(1,22));
+    }
+
     private HttpSession session() {
         return ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest().getSession(false);
     }

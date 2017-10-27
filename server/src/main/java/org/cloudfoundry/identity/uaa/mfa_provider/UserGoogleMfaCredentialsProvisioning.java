@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mfa_provider;
 
 
 import com.warrenstrange.googleauth.ICredentialRepository;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mfa_provider.exception.UserMfaConfigDoesNotExistException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -11,7 +12,7 @@ import java.util.List;
 
 public class UserGoogleMfaCredentialsProvisioning implements ICredentialRepository {
 
-    public static final String SESSION_CREDENTIAL_ATTR_NAME = "SESSION_USER_GOOGLE_MFA_CREDENTIALS";
+    private static final String SESSION_CREDENTIAL_ATTR_NAME = "SESSION_USER_GOOGLE_MFA_CREDENTIALS";
 
     UserMfaCredentialsProvisioning<UserGoogleMfaCredentials> jdbcProvisioner;
 
@@ -52,6 +53,11 @@ public class UserGoogleMfaCredentialsProvisioning implements ICredentialReposito
         }
         jdbcProvisioner.save(creds);
         session.removeAttribute(SESSION_CREDENTIAL_ATTR_NAME);
+    }
+
+    public boolean isFirstTimeMFAUser(UaaPrincipal uaaPrincipal) {
+        if(uaaPrincipal == null) throw new RuntimeException("User information is not present in session.");
+        return session().getAttribute(SESSION_CREDENTIAL_ATTR_NAME) != null;
     }
 
     public UserMfaCredentialsProvisioning<UserGoogleMfaCredentials> getJdbcProvisioner() {

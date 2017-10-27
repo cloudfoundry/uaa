@@ -36,10 +36,12 @@
             </div>
             <div th:if="${error}" th:text="${error}" class="error-color mtl"></div>
         </form>
-        <button id="Back"
+        <a th:href="${is_first_time_user} ? @{/login/mfa/register} : @{/logout.do}" >
+            <button id="Back"
                 type="Button"
                 onclick="window.history.back()"
                 class="btn btn-default mtl">Back</button>
+        </a>
     </div>
 </div>
 </body>
