@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -102,6 +103,10 @@ public class AuthzAuthenticationManagerTests {
         mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(OriginKeys.UAA);
+    }
+
+    @After
+    public void cleanUp() throws Exception {
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
     }
 

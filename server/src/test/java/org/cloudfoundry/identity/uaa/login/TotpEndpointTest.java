@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mfa_provider.GoogleAuthenticatorAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,6 +55,11 @@ public class TotpEndpointTest {
         endpoint.setGoogleAuthenticatorService(mock(GoogleAuthenticatorAdapter.class));
 
         when(session.getAttribute(MFA_VALIDATE_USER)).thenReturn(uaaAuthentication);
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
     }
 
     @Test

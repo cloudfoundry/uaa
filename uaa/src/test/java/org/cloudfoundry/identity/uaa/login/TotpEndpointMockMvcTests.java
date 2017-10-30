@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -64,7 +65,12 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+    }
 
+    @After
+    public void cleanup () throws Exception {
+        uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderId(null);
+        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
     }
 
     @Test
