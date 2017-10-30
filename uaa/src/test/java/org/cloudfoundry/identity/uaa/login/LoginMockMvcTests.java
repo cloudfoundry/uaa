@@ -171,6 +171,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
     private Links globalLinks;
+    private IdentityZone identityZone;
 
 
     @Before
@@ -187,6 +188,25 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         originalConfiguration = getWebApplicationContext().getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
         identityZoneConfiguration = getWebApplicationContext().getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
+        bootstrapMfaProvider();
+    }
+
+    private void bootstrapMfaProvider() throws Exception {
+        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
+        identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext(), false);
+
+        MfaProvider mfaProvider = constructGoogleMfaProvider();
+        mfaProvider = JsonUtils.readValue(getMockMvc().perform(
+            post("/mfa-providers")
+                .header("X-Identity-Zone-Id", identityZone.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider)))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
+
+        identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
+        MockMvcUtils.updateIdentityZone(identityZone, getWebApplicationContext());
     }
 
     @After
@@ -232,28 +252,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLoginMfaRedirect() throws Exception {
-        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
-        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext(), false);
         MockHttpSession session = new MockHttpSession();
 
-        ScimUser user = createUser(zone.getId());
-
-        MfaProvider mfaProvider = constructGoogleMfaProvider();
-        mfaProvider = JsonUtils.readValue(getMockMvc().perform(
-                post("/mfa-providers")
-                        .header("X-Identity-Zone-Id", zone.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
-
-        zone.getConfig().getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
-        MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+        ScimUser user = createUser(identityZone.getId());
 
         getMockMvc().perform(post("/login.do")
                 .with(cookieCsrf())
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
                 .session(session)
                 .param("username", user.getUserName())
                 .param("password", user.getPassword()))
