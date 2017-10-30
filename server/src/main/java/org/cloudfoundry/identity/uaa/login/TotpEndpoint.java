@@ -1,8 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
-import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
+import com.warrenstrange.googleauth.IGoogleAuthenticator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -10,6 +9,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa_provider.GoogleAuthenticatorAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -27,12 +27,14 @@ import java.util.Set;
 
 @Controller
 public class TotpEndpoint {
-    private GoogleAuthenticator authenticator;
+    public static final String MFA_VALIDATE_USER = "MFA_VALIDATE_USER";
+
+    private IGoogleAuthenticator authenticator;
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private Log logger = LogFactory.getLog(TotpEndpoint.class);
-    public static final String MFA_VALIDATE_USER = "MFA_VALIDATE_USER";
 
+    private GoogleAuthenticatorAdapter googleAuthenticatorService = new GoogleAuthenticatorAdapter();
 
     @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
     public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, IOException {
@@ -43,7 +45,7 @@ public class TotpEndpoint {
         if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId())) {
             return "redirect:/login/mfa/verify";
         } else{
-            String url = GoogleAuthenticatorQRGenerator.getOtpAuthURL("UAA", uaaPrincipal.getName(), authenticator.createCredentials(uaaPrincipal.getId()));
+            String url = googleAuthenticatorService.getOtpAuthURL(authenticator, uaaPrincipal);
             MfaProvider provider = mfaProviderProvisioning.retrieve(IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderId(), IdentityZoneHolder.get().getId());
             model.addAttribute("qrurl", url);
             model.addAttribute("mfa_provider", provider.getName());
@@ -99,7 +101,7 @@ public class TotpEndpoint {
     }
 
 
-    public void setAuthenticator(GoogleAuthenticator authenticator) {
+    public void setAuthenticator(IGoogleAuthenticator authenticator) {
         this.authenticator = authenticator;
     }
 
@@ -109,6 +111,10 @@ public class TotpEndpoint {
 
     public void setMfaProviderProvisioning(MfaProviderProvisioning mfaProviderProvisioning) {
         this.mfaProviderProvisioning = mfaProviderProvisioning;
+    }
+
+    public void setGoogleAuthenticatorService(GoogleAuthenticatorAdapter googleAuthenticatorService) {
+        this.googleAuthenticatorService = googleAuthenticatorService;
     }
 
     private UaaPrincipal getSessionAuthPrincipal(HttpSession session) {

@@ -1,14 +1,15 @@
 package org.cloudfoundry.identity.uaa.login;
 
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
+import com.warrenstrange.googleauth.IGoogleAuthenticator;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa_provider.GoogleAuthenticatorAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -22,19 +23,17 @@ import javax.servlet.http.HttpSession;
 import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TotpEndpointTest {
     private String userId;
     private TotpEndpoint endpoint = new TotpEndpoint();
-    private GoogleAuthenticator authenticator = spy(GoogleAuthenticator.class);
+    private IGoogleAuthenticator authenticator = mock(IGoogleAuthenticator.class);
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private UaaAuthentication uaaAuthentication;
     private HttpSession session;
-
 
     @Rule
     public ExpectedException expection = ExpectedException.none();
@@ -42,14 +41,18 @@ public class TotpEndpointTest {
     @Before
     public void setup() {
         session = mock(HttpSession.class);
+        userId = new RandomValueStringGenerator(5).generate();
+        authenticator.setCredentialRepository(userGoogleMfaCredentialsProvisioning);
+
         userGoogleMfaCredentialsProvisioning = mock(UserGoogleMfaCredentialsProvisioning.class);
         mfaProviderProvisioning = mock(MfaProviderProvisioning.class);
+        uaaAuthentication = mock(UaaAuthentication.class);
+
         endpoint.setUserGoogleMfaCredentialsProvisioning(userGoogleMfaCredentialsProvisioning);
         endpoint.setMfaProviderProvisioning(mfaProviderProvisioning);
-        userId = new RandomValueStringGenerator(5).generate();
         endpoint.setAuthenticator(authenticator);
-        authenticator.setCredentialRepository(userGoogleMfaCredentialsProvisioning);
-        uaaAuthentication = mock(UaaAuthentication.class);
+        endpoint.setGoogleAuthenticatorService(mock(GoogleAuthenticatorAdapter.class));
+
         when(session.getAttribute(MFA_VALIDATE_USER)).thenReturn(uaaAuthentication);
     }
 
@@ -98,8 +101,6 @@ public class TotpEndpointTest {
 
     @Test
     public void testValidOTPTakesToHomePage() throws Exception{
-        authenticator = mock(GoogleAuthenticator.class);
-        endpoint.setAuthenticator(authenticator);
         int code = 1234;
         when(authenticator.authorizeUser(userId, code)).thenReturn(true);
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
@@ -111,8 +112,6 @@ public class TotpEndpointTest {
 
     @Test
     public void testValidOTPActivatesUser() throws Exception {
-        authenticator = mock(GoogleAuthenticator.class);
-        endpoint.setAuthenticator(authenticator);
         int code = 1234;
         when(authenticator.authorizeUser(userId, code)).thenReturn(true);
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
@@ -126,8 +125,6 @@ public class TotpEndpointTest {
 
     @Test
     public void testInvalidOTPReturnsError() throws Exception{
-        authenticator = mock(GoogleAuthenticator.class);
-        endpoint.setAuthenticator(authenticator);
         int code = 1234;
         when(authenticator.authorizeUser(userId, code)).thenReturn(false);
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
@@ -138,8 +135,6 @@ public class TotpEndpointTest {
 
     @Test
     public void testValidateCodeThrowsException() throws Exception{
-        authenticator = mock(GoogleAuthenticator.class);
-        endpoint.setAuthenticator(authenticator);
         int code = 1234;
         when(authenticator.authorizeUser(userId, code)).thenThrow(new GoogleAuthenticatorException("Thou shall not pass"));
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
