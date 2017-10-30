@@ -102,6 +102,7 @@ public class AuthzAuthenticationManagerTests {
         mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(OriginKeys.UAA);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
     }
 
     private UaaUserPrototype getPrototype() {
@@ -343,8 +344,6 @@ public class AuthzAuthenticationManagerTests {
 
         exception.expect(MfaAuthenticationRequiredException.class);
         Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
-
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
     }
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();

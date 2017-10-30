@@ -45,7 +45,6 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         assertEquals("very_sercret_key", record.get("secret_key"));
         assertEquals(74718234, record.get("validation_code"));
         assertEquals("1,22", record.get("scratch_codes"));
-        assertTrue((boolean) record.get("active"));
     }
 
     // db.save is a jdbcProvisioner method and should throw error when creating duplicate
