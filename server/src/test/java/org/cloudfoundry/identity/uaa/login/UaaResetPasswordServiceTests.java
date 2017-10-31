@@ -192,7 +192,7 @@ public class UaaResetPasswordServiceTests {
 
         BaseClientDetails client = new BaseClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("redirect.example.com/*"));
-        when(clientDetailsService.loadClientByClientId("example")).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId("example", "uaa")).thenReturn(client);
 
         ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
 
@@ -250,7 +250,7 @@ public class UaaResetPasswordServiceTests {
     @Test
     public void resetPassword_WithInvalidClientId() {
         ExpiringCode code = setupResetPassword("invalid_client", "redirect.example.com");
-        doThrow(new NoSuchClientException("no such client")).when(clientDetailsService).loadClientByClientId("invalid_client");
+        doThrow(new NoSuchClientException("no such client")).when(clientDetailsService).loadClientByClientId("invalid_client", "uaa");
         ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
         assertEquals("home", response.getRedirectUri());
     }
@@ -267,7 +267,7 @@ public class UaaResetPasswordServiceTests {
         ExpiringCode code = setupResetPassword("example", "redirect.example.com");
         BaseClientDetails client = new BaseClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("doesnotmatch.example.com/*"));
-        when(clientDetailsService.loadClientByClientId("example")).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId("example", "uaa")).thenReturn(client);
 
         ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
         assertEquals("home", response.getRedirectUri());

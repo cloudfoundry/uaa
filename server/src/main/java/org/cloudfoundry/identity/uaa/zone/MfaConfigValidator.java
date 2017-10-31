@@ -19,10 +19,10 @@ public class MfaConfigValidator {
         this.mfaProviderProvisioning = mfaProviderProvisioning;
     }
 
-    public void validate(MfaConfig config) throws InvalidIdentityZoneConfigurationException {
+    public void validate(MfaConfig config, String zoneId) throws InvalidIdentityZoneConfigurationException {
         if(config.isEnabled() || StringUtils.hasText(config.getProviderId())) {
             try {
-                MfaProvider existingProvider = mfaProviderProvisioning.retrieve(config.getProviderId(), IdentityZoneHolder.get().getId());
+                MfaProvider existingProvider = mfaProviderProvisioning.retrieve(config.getProviderId(), zoneId);
                 if(!existingProvider.isActive()) {
                     logger.debug(String.format("Provider with id %s is not active.", config.getProviderId()));
                     throw new InvalidIdentityZoneConfigurationException("Active MFA Provider not found for id: " + config.getProviderId());

@@ -1892,41 +1892,22 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void createZoneWithMfaConfig() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider();
+    public void createZoneWithMfaConfigIsNotSupported() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(null);
         String zoneId = new RandomValueStringGenerator(5).generate();
         String zoneContent = "{\"id\" : \""+zoneId+"\", \"name\" : \""+zoneId+"\", \"subdomain\" : \""+zoneId+"\", \"config\" : { \"mfaConfig\" : {\"enabled\" : true, \"providerId\" : \""+mfaProvider.getId()+"\"}}}";
         MockHttpServletResponse response = getMockMvc().perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
                 .content(zoneContent))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse();
-
-        IdentityZone zoneCreated = JsonUtils.readValue(response.getContentAsString(), IdentityZone.class);
-        assertEquals(mfaProvider.getId(), zoneCreated.getConfig().getMfaConfig().getProviderId());
-        assertTrue(zoneCreated.getConfig().getMfaConfig().isEnabled());
-    }
-
-    @Test
-    public void createZoneWithInvalidMfaConfig() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider();
-        String zoneId = new RandomValueStringGenerator(5).generate();
-        String zoneContent = "{\"id\" : \""+zoneId+"\", \"name\" : \""+zoneId+"\", \"subdomain\" : \""+zoneId+"\", \"config\" : { \"mfaConfig\" : {\"enabled\" : true, \"providerId\" : \"INVALID_ID\"}}}";
-        MockHttpServletResponse response = getMockMvc().perform(post("/identity-zones")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(zoneContent))
                 .andExpect(status().isUnprocessableEntity())
                 .andReturn().getResponse();
-
-        assertThat(response.getContentAsString(), containsString("Active MFA Provider not found for id: INVALID_ID"));
     }
 
     @Test
     public void updateZoneWithValidMfaConfig() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider();
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId());
         identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderId(mfaProvider.getId()));
 
         IdentityZone updatedZone = updateZone(identityZone, HttpStatus.OK, adminToken);
@@ -1943,12 +1924,16 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         updateZone(identityZone, HttpStatus.UNPROCESSABLE_ENTITY, adminToken);
     }
 
-    private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider() throws Exception {
+    private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
-        MockHttpServletResponse mfaProviderResponse = getMockMvc().perform(post("/mfa-providers")
+        MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn().getResponse();
+                .content(JsonUtils.writeValueAsString(mfaProvider));
+        if(hasText(zoneId)){
+            createMfaRequest.header("X-Identity-Zone-Id", zoneId);
+        }
+        MockHttpServletResponse mfaProviderResponse = getMockMvc().perform(createMfaRequest).andReturn().getResponse();
         mfaProvider = JsonUtils.readValue(mfaProviderResponse.getContentAsString(), MfaProvider.class);
         return mfaProvider;
     }

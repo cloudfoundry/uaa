@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mfa_provider;
 
+import org.cloudfoundry.identity.uaa.mfa_provider.exception.InvalidMfaProviderException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Rule;
@@ -12,7 +13,6 @@ import javax.xml.bind.ValidationException;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class GeneralMfaProviderValidatorTest {
 

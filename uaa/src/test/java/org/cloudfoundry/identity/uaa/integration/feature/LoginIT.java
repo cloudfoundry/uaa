@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
@@ -49,9 +48,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
@@ -448,20 +445,7 @@ public class LoginIT {
     }
 
     private String createAnotherUser(String url) {
-        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
-
-        webDriver.get(url + "/create_account");
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
-        webDriver.findElement(By.name("password_confirmation")).sendKeys(USER_PASSWORD);
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
-
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        receivedEmail.remove();
-        webDriver.get(testClient.extractLink(message.getBody()));
-
-        return userEmail;
+        return IntegrationTestUtils.createAnotherUser(webDriver, USER_PASSWORD, simpleSmtpServer, url, testClient);
     }
 
     private String createDiscoveryZone() {

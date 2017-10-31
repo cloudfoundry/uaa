@@ -25,7 +25,8 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
     private MfaConfigValidator mfaConfigValidator;
 
     @Override
-    public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    public IdentityZoneConfiguration validate(IdentityZone zone, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+        IdentityZoneConfiguration config = zone.getConfig();
         if (mode == IdentityZoneValidator.Mode.CREATE || mode == IdentityZoneValidator.Mode.MODIFY) {
             String currentKeyId = null;
             try {
@@ -74,7 +75,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         }
 
         if(config.getMfaConfig() != null) {
-            mfaConfigValidator.validate(config.getMfaConfig());
+            mfaConfigValidator.validate(config.getMfaConfig(), zone.getId());
         }
 
         return config;

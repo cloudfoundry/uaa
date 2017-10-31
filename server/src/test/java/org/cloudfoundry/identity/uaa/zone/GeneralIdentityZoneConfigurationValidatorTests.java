@@ -192,7 +192,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         "iQpMzNWb7zZWlCfDL4dJZHYoNfg=\n" +
         "-----END CERTIFICATE-----";
 
-    SamlConfig config;
+    SamlConfig samlConfig;
 
 
     @BeforeClass
@@ -207,20 +207,24 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
 
     GeneralIdentityZoneConfigurationValidator validator;
+    IdentityZone zone;
 
     @Before
     public void setUp() throws Exception {
         IdentityZoneHolder.clear();
-        config = new SamlConfig();
-        config.setPrivateKey(legacyKey);
-        config.setCertificate(legacyCertificate);
-        config.setPrivateKeyPassword(legacyPassphrase);
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+        samlConfig = new SamlConfig();
+        samlConfig.setPrivateKey(legacyKey);
+        samlConfig.setCertificate(legacyCertificate);
+        samlConfig.setPrivateKeyPassword(legacyPassphrase);
+        samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
+        samlConfig.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
         validator = new GeneralIdentityZoneConfigurationValidator();
         validator.setMfaConfigValidator(mock(MfaConfigValidator.class));
         zoneConfiguration = new IdentityZoneConfiguration();
-        zoneConfiguration.setSamlConfig(config);
+        zoneConfiguration.setSamlConfig(samlConfig);
+
+        zone = new IdentityZone();
+        zone.setConfig(zoneConfiguration);
         IdentityZoneHolder.clear();
     }
 
@@ -231,52 +235,52 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
     @Test
     public void validate_with_legacy_key_active() throws InvalidIdentityZoneConfigurationException {
-        validator.validate(zoneConfiguration, mode);
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_with_invalid_active_key_id() throws InvalidIdentityZoneConfigurationException {
-        config.setActiveKeyId("wrong");
+        samlConfig.setActiveKeyId("wrong");
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid SAML active key ID: 'wrong'. Couldn't find any matching keys.");
-        validator.validate(zoneConfiguration, mode);
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_without_legacy_key() throws InvalidIdentityZoneConfigurationException {
-        config.setKeys(EMPTY_MAP);
-        assertNull(config.getActiveKeyId());
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addAndActivateKey("key-2", new SamlKey(key2, passphrase2, certificate2));
-        validator.validate(zoneConfiguration, mode);
+        samlConfig.setKeys(EMPTY_MAP);
+        assertNull(samlConfig.getActiveKeyId());
+        samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
+        samlConfig.addAndActivateKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_without_legacy_key_and_null_active_key() throws InvalidIdentityZoneConfigurationException {
-        config.setKeys(EMPTY_MAP);
-        assertNull(config.getActiveKeyId());
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+        samlConfig.setKeys(EMPTY_MAP);
+        assertNull(samlConfig.getActiveKeyId());
+        samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
+        samlConfig.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid SAML active key ID: 'null'. Couldn't find any matching keys.");
-        validator.validate(zoneConfiguration, mode);
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_no_keys() throws Exception {
-        config.setKeys(EMPTY_MAP);
-        assertNull(config.getActiveKeyId());
-        validator.validate(zoneConfiguration, mode);
+        samlConfig.setKeys(EMPTY_MAP);
+        assertNull(samlConfig.getActiveKeyId());
+        validator.validate(zone, mode);
     }
 
     @Test
     public void mfa_validation_exception_gets_thrown_back() throws Exception{
         MfaConfigValidator mfaConfigValidator = mock(MfaConfigValidator.class);
         validator.setMfaConfigValidator(mfaConfigValidator);
-        doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mfaConfigValidator).validate(any());
+        doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mfaConfigValidator).validate(any(), any());
 
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid MFA Config");
-        validator.validate(zoneConfiguration, mode);
+        validator.validate(zone, mode);
     }
 }

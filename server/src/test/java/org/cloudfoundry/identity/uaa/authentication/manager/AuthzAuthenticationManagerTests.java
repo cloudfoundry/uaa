@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -34,6 +35,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -101,6 +103,11 @@ public class AuthzAuthenticationManagerTests {
         mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(OriginKeys.UAA);
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
     }
 
     private UaaUserPrototype getPrototype() {
@@ -335,6 +342,14 @@ public class AuthzAuthenticationManagerTests {
         verify(publisher).publishEvent(isA(AuthenticationFailureLockedEvent.class));
     }
 
+    @Test
+    public void testExceptionThrownWhenMfaRequired() {
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
+
+        exception.expect(MfaAuthenticationRequiredException.class);
+        Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
+    }
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();
         userdata.put("username", username);
