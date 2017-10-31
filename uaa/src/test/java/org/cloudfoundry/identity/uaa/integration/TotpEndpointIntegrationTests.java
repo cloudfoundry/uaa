@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.integration;
 
+import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
+import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -40,6 +42,12 @@ public class TotpEndpointIntegrationTests {
     @Autowired
     TestAccounts testAccounts;
 
+    @Autowired
+    SimpleSmtpServer simpleSmtpServer;
+
+    @Autowired
+    TestClient testClient;
+
     private static final String USER_PASSWORD = "sec3Tas";
 
 
@@ -48,9 +56,11 @@ public class TotpEndpointIntegrationTests {
     private IdentityZone mfaZone;
     private RestTemplate adminClient;
     private String zoneUrl;
+    private String username;
+    private MfaProvider mfaProvider;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         ClientCredentialsResourceDetails adminResource = IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret");
         adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 adminResource);
@@ -59,6 +69,11 @@ public class TotpEndpointIntegrationTests {
         mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1");
 
         zoneUrl = baseUrl.replace("localhost", mfaZone.getSubdomain() + ".localhost");
+
+        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
+        username = createRandomUser();
+        mfaProvider = enableMfaInZone(zoneAdminToken);
+        webDriver.get(zoneUrl + "/logout.do");
     }
 
     @After
@@ -69,13 +84,10 @@ public class TotpEndpointIntegrationTests {
     }
 
     @Test
-    public void testQRCodeScreen() throws Exception {
+    public void testQRCodeScreen() {
 
-        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
-        ScimUser user = createRandomUser(zoneAdminToken);
-        enableMfaInZone(zoneAdminToken);
 
-        performLogin(user);
+        performLogin(username);
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
         assertThat(webDriver.findElement(By.id("qr")).getAttribute("src"), Matchers.containsString("chart.googleapis"));
@@ -93,21 +105,17 @@ public class TotpEndpointIntegrationTests {
     }
 
     @Test
-    public void testDisplayMfaIssuerOnRegisterPage() throws Exception{
-        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
-        ScimUser user = createRandomUser(zoneAdminToken);
-        MfaProvider mfaProvider = enableMfaInZone(zoneAdminToken);
-
-        performLogin(user);
+    public void testDisplayMfaIssuerOnRegisterPage() {
+        performLogin(username);
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
         assertThat(webDriver.findElement(By.id("mfa-provider")).getText(), Matchers.containsString(mfaProvider.getName()));
     }
 
-    private void performLogin(ScimUser user) {
+    private void performLogin(String username) {
         webDriver.get(zoneUrl + "/login");
 
-        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
+        webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
     }
@@ -119,12 +127,12 @@ public class TotpEndpointIntegrationTests {
         return provider;
     }
 
-    private ScimUser createRandomUser(String zoneAdminToken) {
+    private String createRandomUser() {
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword(USER_PASSWORD);
 
-        return IntegrationTestUtils.createUser(zoneAdminToken, baseUrl, user, mfaZone.getId());
+        return IntegrationTestUtils.createAnotherUser(webDriver, USER_PASSWORD, simpleSmtpServer, zoneUrl, testClient);
     }
 
 }

@@ -10,8 +10,10 @@ import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvis
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -158,7 +160,8 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         password = "sec3Tas";
         user.setPrimaryEmail(user.getUserName());
         user.setPassword(password);
-        return MockMvcUtils.createUser(getMockMvc(), adminToken, user);
+        user = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, user.getPassword(), IdentityZoneHolder.getUaaZone().getId());
+        return user;
     }
 
     private ResultActions performLoginWithSession(String userName, String password, MockHttpSession session) throws Exception {
