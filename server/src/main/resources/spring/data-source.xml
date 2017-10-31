@@ -18,9 +18,15 @@
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
                         http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
 
+    <bean id="databaseUrlModifier" class="org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier">
+        <constructor-arg name="databaseType" value="#{@platform}"/>
+        <constructor-arg name="url" value="${database.url}"/>
+        <property name="connectTimeoutSeconds" value="${database.connecttimeout:10}"/>
+    </bean>
+
     <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
         <property name="driverClassName" value="${database.driverClassName}" />
-        <property name="url" value="${database.url}" />
+        <property name="url" value="#{@databaseUrlModifier.getUrl()}" />
         <property name="username" value="${database.username}" />
         <property name="password" value="${database.password}" />
         <property name="validationInterval" value="5000" />
@@ -29,6 +35,8 @@
         <property name="minIdle" value="${database.minidle:0}"/>
         <property name="maxActive" value="${database.maxactive:100}"/>
         <property name="maxIdle" value="${database.maxidle:10}"/>
+        <property name="initialSize" value="${database.initialsize:10}"/>
+        <property name="validationQueryTimeout" value="${database.validationquerytimeout:10}"/>
         <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
         <property name="logAbandoned" value="${database.logabandoned:true}"/>
         <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
