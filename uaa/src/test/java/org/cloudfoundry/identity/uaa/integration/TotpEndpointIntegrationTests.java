@@ -85,8 +85,6 @@ public class TotpEndpointIntegrationTests {
 
     @Test
     public void testQRCodeScreen() {
-
-
         performLogin(username);
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
