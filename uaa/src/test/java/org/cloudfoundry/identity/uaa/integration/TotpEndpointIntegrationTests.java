@@ -99,6 +99,7 @@ public class TotpEndpointIntegrationTests {
         MfaProvider mfaProvider = enableMfaInZone(zoneAdminToken);
 
         performLogin(user);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
         assertThat(webDriver.findElement(By.id("mfa-provider")).getText(), Matchers.containsString(mfaProvider.getName()));
     }

@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -11,17 +10,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class GoogleAuthUserConfigTable extends JdbcTestBase{
+public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
     public String tableName = "user_google_mfa_credentials";
 
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
-            new TestColumn("user_id", "varchar",  36),
-            new TestColumn("secret_key","varchar", 255),
-            new TestColumn("validation_code", "integer", -1),
-            new TestColumn("scratch_codes", "varchar", 255));
+            new TestColumn("user_id", "nvarchar/varchar",  36),
+            new TestColumn("secret_key","nvarchar/varchar", 255),
+            new TestColumn("validation_code", "integer/int4/int", -1),
+            new TestColumn("scratch_codes", "nvarchar/varchar", 255));
 
     @Test
     public void validate_table() throws Exception {
@@ -54,7 +52,7 @@ public class GoogleAuthUserConfigTable extends JdbcTestBase{
     public void testColumn(List<TestColumn> columns, String name, String actualType, int size) {
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
-                assertThat("Error for column: " + c.name, actualType.toLowerCase(), Matchers.containsString(c.type.toLowerCase()));
+                assertTrue("Error for column: " + c.name + " was type " + actualType.toLowerCase(), c.type.toLowerCase().contains(actualType.toLowerCase()));
                 if(c.size > 0) {
                     assertEquals("Error for column: " + c.name, c.size, size);
                 }
