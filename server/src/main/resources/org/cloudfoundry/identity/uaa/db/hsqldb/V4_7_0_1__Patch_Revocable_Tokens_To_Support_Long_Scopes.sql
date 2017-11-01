@@ -1,0 +1,1 @@
+ALTER TABLE revocable_tokens ALTER COLUMN scope CLOB;
