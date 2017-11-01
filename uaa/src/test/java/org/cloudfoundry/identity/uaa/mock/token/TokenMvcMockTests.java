@@ -1447,6 +1447,44 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
         bean.setRestrictRefreshGrant(false);
     }
+    
+    @Test
+    public void refreshAccessToken_Opaque_With_Over_4000_Chars_In_Scope() throws Exception {
+        UaaTokenServices bean = getWebApplicationContext().getBean(UaaTokenServices.class);
+        String clientId = "testclient"+ generator.generate();
+        String scopes = getManyScopes("openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN, 600);
+        setUpClients(clientId, "", scopes, "password,refresh_token", true);
+
+        String username = "testuser"+ generator.generate();
+        String userScopes = scopes;
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .param("username", username)
+            .param("password", SECRET)
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password");
+        MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeAccessToken.class).getRefreshToken();
+
+        MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(GRANT_TYPE, REFRESH_TOKEN)
+            .param(REFRESH_TOKEN, refreshToken.getValue());
+        //ask for non opaque token
+        getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
+        //ask for opaque token
+        getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
+    }
+
+    private String getManyScopes(String string, int multiplier) {
+        String largeScopes = string;
+        for(int i = 0; i <= multiplier; i++) {
+            largeScopes = largeScopes + "," + generator.generate();
+        }
+        return largeScopes;
+    }
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrant_When_IdToken_Disabled() throws Exception {
