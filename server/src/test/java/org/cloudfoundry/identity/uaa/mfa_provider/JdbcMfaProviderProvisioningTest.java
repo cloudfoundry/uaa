@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mfa_provider;
 
-import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.mfa_provider.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
@@ -52,7 +52,7 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         String zoneId = IdentityZoneHolder.get().getId();
         assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
         doNothing().when(mfaProviderValidator);
-        expection.expect(IdpAlreadyExistsException.class);
+        expection.expect(MfaAlreadyExistsException.class);
         expection.expectMessage("An MFA Provider with that name already exists.");
         mfaProviderProvisioning.create(mfaProvider, zoneId);
         mfaProviderProvisioning.create(mfaProvider, zoneId);
@@ -76,7 +76,7 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
 
         secondProvider.setName(firstProvider.getName());
 
-        expection.expect(IdpAlreadyExistsException.class);
+        expection.expect(MfaAlreadyExistsException.class);
         expection.expectMessage("An MFA Provider with that name already exists.");
         mfaProviderProvisioning.update(secondProvider, IdentityZoneHolder.get().getId());
     }
