@@ -10,7 +10,7 @@ import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig<GoogleMfaProviderConfig> {
+public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig {
 
     public enum Algorithm {
         SHA256,

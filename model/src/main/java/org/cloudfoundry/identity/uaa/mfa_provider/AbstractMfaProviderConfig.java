@@ -5,15 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public abstract class AbstractMfaProviderConfig<T extends AbstractMfaProviderConfig<T>> {
+public abstract class AbstractMfaProviderConfig {
     private String issuer;
-
-    public static Class<? extends AbstractMfaProviderConfig> concreteMfaProviderConfigClass(MfaProvider.MfaProviderType type) {
-        if(type == MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR) {
-            return GoogleMfaProviderConfig.class;
-        }
-        throw new  IllegalArgumentException("Unknown MfaProvider.MfaProviderType: " + type);
-    }
 
     public abstract void validate();
 
@@ -21,9 +14,9 @@ public abstract class AbstractMfaProviderConfig<T extends AbstractMfaProviderCon
         return issuer;
     }
 
-    public T setIssuer(String issuer) {
+    public AbstractMfaProviderConfig setIssuer(String issuer) {
         this.issuer = issuer;
-        return (T) this;
+        return this;
     }
 
     @Override
@@ -31,7 +24,7 @@ public abstract class AbstractMfaProviderConfig<T extends AbstractMfaProviderCon
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        AbstractMfaProviderConfig<?> that = (AbstractMfaProviderConfig<?>) o;
+        AbstractMfaProviderConfig that = (AbstractMfaProviderConfig) o;
 
         return issuer != null ? issuer.equals(that.issuer) : that.issuer == null;
     }

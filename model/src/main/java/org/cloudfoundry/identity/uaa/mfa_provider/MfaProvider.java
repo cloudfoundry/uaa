@@ -35,8 +35,6 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     public static final String FIELD_LAST_MODIFIED = "last_modified";
     public static final String FIELD_ID = "id";
 
-
-
     private String id;
     private String name;
     private String identityZoneId;
@@ -47,7 +45,6 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     private Date created;
     @JsonProperty("last_modified")
     private Date lastModified;
-
 
     public Date getCreated() {
         return created;
@@ -139,6 +136,35 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     public MfaProvider<T> setType(MfaProviderType type) {
         this.type = type;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MfaProvider<?> that = (MfaProvider<?>) o;
+
+        if (id != null ? !id.equals(that.id) : that.id != null) return false;
+        if (name != null ? !name.equals(that.name) : that.name != null) return false;
+        if (identityZoneId != null ? !identityZoneId.equals(that.identityZoneId) : that.identityZoneId != null)
+            return false;
+        if (config != null ? !config.equals(that.config) : that.config != null) return false;
+        if (type != that.type) return false;
+        if (created != null ? !created.equals(that.created) : that.created != null) return false;
+        return lastModified != null ? lastModified.equals(that.lastModified) : that.lastModified == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id != null ? id.hashCode() : 0;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (identityZoneId != null ? identityZoneId.hashCode() : 0);
+        result = 31 * result + (config != null ? config.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (created != null ? created.hashCode() : 0);
+        result = 31 * result + (lastModified != null ? lastModified.hashCode() : 0);
+        return result;
     }
 
     public static class MfaProviderDeserializer extends JsonDeserializer<MfaProvider> {

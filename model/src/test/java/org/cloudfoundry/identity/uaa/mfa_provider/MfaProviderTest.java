@@ -99,11 +99,11 @@ public class MfaProviderTest {
     }
 
     private GoogleMfaProviderConfig createValidGoogleMfaConfig() {
-        return new GoogleMfaProviderConfig()
+        return (GoogleMfaProviderConfig) new GoogleMfaProviderConfig()
                 .setProviderDescription("config description")
-                .setIssuer("current-zone")
                 .setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256)
                 .setDigits(42)
-                .setDuration(13);
+                .setDuration(13)
+                .setIssuer("current-zone");
     }
 }
