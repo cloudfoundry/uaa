@@ -63,7 +63,11 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
                 }
             });
         } catch (DuplicateKeyException e) {
-            throw new MfaAlreadyExistsException(e.getMostSpecificCause().getMessage());
+            String message = e.getMostSpecificCause().getMessage();
+            if (message.toUpperCase().contains("IDX_MFA_UNIQUE_NAME")) {
+                message = "An MFA Provider with that name already exists.";
+            }
+            throw new MfaAlreadyExistsException(message);
         }
         return retrieve(id, zoneId);
     }
