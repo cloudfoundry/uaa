@@ -105,19 +105,19 @@
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/mfa-providers"
-                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
                        method="POST"/>
         <intercept-url pattern="/mfa-providers"
-                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
                        method="GET"/>
         <intercept-url pattern="/mfa-providers/*"
-                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
                        method="PUT"/>
         <intercept-url pattern="/mfa-providers/*"
-                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
                        method="GET"/>
         <intercept-url pattern="/mfa-providers/*"
-                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
                        method="DELETE"/>
         <intercept-url pattern="/**" access="denyAll"/>
         <csrf disabled="true"/>
