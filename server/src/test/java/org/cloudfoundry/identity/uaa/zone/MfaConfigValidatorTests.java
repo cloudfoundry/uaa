@@ -32,39 +32,39 @@ public class MfaConfigValidatorTests {
 
     @Test
     public void validate_successful() throws InvalidIdentityZoneConfigurationException {
-        when(provisioning.retrieve(matches("some-provider"), anyString())).thenReturn(new MfaProvider());
+        when(provisioning.retrieveByName(matches("some-provider"), anyString())).thenReturn(new MfaProvider());
 
-        MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderId("some-provider");
+        MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderName("some-provider");
         validator.validate(configuration, "some-zone");
     }
 
     @Test
     public void validate_disabled_no_provider_id() throws InvalidIdentityZoneConfigurationException {
-        when(provisioning.retrieve(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
-        MfaConfig configuration = new MfaConfig().setEnabled(false).setProviderId("");
+        when(provisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+        MfaConfig configuration = new MfaConfig().setEnabled(false).setProviderName("");
 
         validator.validate(configuration, "some-zone");
     }
 
     @Test
     public void validate_disabled_invalid_provider() throws InvalidIdentityZoneConfigurationException {
-        when(provisioning.retrieve(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
-        MfaConfig configuration  = new MfaConfig().setEnabled(false).setProviderId("some-provider");
+        when(provisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+        MfaConfig configuration  = new MfaConfig().setEnabled(false).setProviderName("some-provider");
 
         expection.expect(InvalidIdentityZoneConfigurationException.class);
-        expection.expectMessage("Active MFA Provider not found for id: some-provider");
+        expection.expectMessage("Active MFA Provider not found with name: some-provider");
         validator.validate(configuration, "some-zone");
     }
 
     @Test
     public void validate_no_available_providers() throws Exception {
-        when(provisioning.retrieve(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
-        String providerId = "some-provider";
+        when(provisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+        String providerName = "some-provider";
 
         expection.expect(InvalidIdentityZoneConfigurationException.class);
-        expection.expectMessage("Active MFA Provider not found for id: " + providerId);
+        expection.expectMessage("Active MFA Provider not found with name: " + providerName);
 
-        MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderId(providerId);
+        MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderName(providerName);
         validator.validate(configuration, "some-zone");
     }
 }

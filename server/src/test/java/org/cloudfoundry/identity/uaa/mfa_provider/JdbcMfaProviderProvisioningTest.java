@@ -127,6 +127,14 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         assertEquals(mfaProvider.getName(), created.getName());
         assertNotNull(created.getId());
     }
+    @Test
+    public void testRetrieveByName() {
+        MfaProvider createdProvider = mfaProviderProvisioning.create(constructGoogleProvider(), IdentityZoneHolder.get().getId());
+        assertEquals(
+            createdProvider.getId(),
+            mfaProviderProvisioning.retrieveByName(createdProvider.getName(), createdProvider.getIdentityZoneId()).getId()
+        );
+    }
 
     @Test
     public void testDelete() {

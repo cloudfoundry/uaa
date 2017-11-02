@@ -151,7 +151,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     public static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
     private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
-    private static final String MFA_CONFIG_PROVIDER_ID_DESC = "The `id` of the MFA provider to use for this zone.";
+    private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
 
     @Before
     public void setUp() throws Exception {
@@ -278,7 +278,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.mfaConfig.providerId").description(MFA_CONFIG_PROVIDER_ID_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -435,7 +435,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("[].config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("[].config.mfaConfig.providerId").description(MFA_CONFIG_PROVIDER_ID_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("[].config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
 
                 fieldWithPath("[].created").ignored(),
             fieldWithPath("[].last_modified").ignored()
@@ -568,7 +568,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.mfaConfig.providerId").description(MFA_CONFIG_PROVIDER_ID_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -734,7 +734,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC),
 
             fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC),
-            fieldWithPath("config.mfaConfig.providerId").description(MFA_CONFIG_PROVIDER_ID_DESC).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).optional().type(STRING),
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
         );

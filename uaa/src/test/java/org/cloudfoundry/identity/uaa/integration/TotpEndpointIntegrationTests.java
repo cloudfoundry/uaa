@@ -79,7 +79,7 @@ public class TotpEndpointIntegrationTests {
     @After
     public void cleanup() {
         webDriver.get(zoneUrl + "/logout.do");
-        mfaZone.getConfig().getMfaConfig().setEnabled(false).setProviderId(null);
+        mfaZone.getConfig().getMfaConfig().setEnabled(false).setProviderName(null);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, mfaZone.getId(), mfaZone.getSubdomain(), mfaZone.getConfig());
     }
 
@@ -120,7 +120,7 @@ public class TotpEndpointIntegrationTests {
 
     private MfaProvider enableMfaInZone(String zoneAdminToken) {
         MfaProvider provider = IntegrationTestUtils.createGoogleMfaProvider(baseUrl, zoneAdminToken, MockMvcUtils.constructGoogleMfaProvider(), mfaZone.getId());
-        mfaZone.getConfig().getMfaConfig().setEnabled(true).setProviderId(provider.getId());
+        mfaZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(provider.getName());
         mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", mfaZone.getSubdomain() , mfaZone.getConfig());
         return provider;
     }

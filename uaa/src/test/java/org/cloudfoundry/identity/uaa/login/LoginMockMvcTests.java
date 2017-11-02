@@ -205,7 +205,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
 
-        identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
+        identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.updateIdentityZone(identityZone, getWebApplicationContext());
     }
 

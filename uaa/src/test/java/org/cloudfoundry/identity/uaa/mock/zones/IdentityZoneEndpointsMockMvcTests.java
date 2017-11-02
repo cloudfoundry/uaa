@@ -1895,7 +1895,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void createZoneWithMfaConfigIsNotSupported() throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(null);
         String zoneId = new RandomValueStringGenerator(5).generate();
-        String zoneContent = "{\"id\" : \""+zoneId+"\", \"name\" : \""+zoneId+"\", \"subdomain\" : \""+zoneId+"\", \"config\" : { \"mfaConfig\" : {\"enabled\" : true, \"providerId\" : \""+mfaProvider.getId()+"\"}}}";
+        String zoneContent = "{\"id\" : \""+zoneId+"\", \"name\" : \""+zoneId+"\", \"subdomain\" : \""+zoneId+"\", \"config\" : { \"mfaConfig\" : {\"enabled\" : true, \"providerName\" : \""+mfaProvider.getName()+"\"}}}";
         MockHttpServletResponse response = getMockMvc().perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
@@ -1908,18 +1908,18 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void updateZoneWithValidMfaConfig() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId());
-        identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderId(mfaProvider.getId()));
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderName(mfaProvider.getName()));
 
         IdentityZone updatedZone = updateZone(identityZone, HttpStatus.OK, adminToken);
 
-        assertEquals(mfaProvider.getId(), updatedZone.getConfig().getMfaConfig().getProviderId());
+        assertEquals(mfaProvider.getName(), updatedZone.getConfig().getMfaConfig().getProviderName());
         assertFalse(updatedZone.getConfig().getMfaConfig().isEnabled());
     }
 
     @Test
     public void updateZoneWithInvalidMfaConfig() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
-        identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderId("INVALID_ID"));
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderName("INVALID_NAME"));
 
         updateZone(identityZone, HttpStatus.UNPROCESSABLE_ENTITY, adminToken);
     }
