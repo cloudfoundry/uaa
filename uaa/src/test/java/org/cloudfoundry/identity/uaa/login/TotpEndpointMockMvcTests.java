@@ -51,7 +51,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
 
         mfaProvider = new MfaProvider();
-        mfaProvider.setName("Google Authenticator");
+        mfaProvider.setName(new RandomValueStringGenerator(5).generate());
         mfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         mfaProvider.setIdentityZoneId("uaa");
         mfaProvider.setConfig(new GoogleMfaProviderConfig());
