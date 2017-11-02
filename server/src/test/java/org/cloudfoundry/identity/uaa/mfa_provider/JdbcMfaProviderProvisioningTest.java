@@ -69,6 +69,17 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         mfaProviderProvisioning.create(mfaProvider, zoneId+"-other-zone");
 
     }
+    @Test
+    public void testUpdateDuplicate() {
+        MfaProvider firstProvider = mfaProviderProvisioning.create(constructGoogleProvider(), IdentityZoneHolder.get().getId());
+        MfaProvider secondProvider = mfaProviderProvisioning.create(constructGoogleProvider(), IdentityZoneHolder.get().getId());
+
+        secondProvider.setName(firstProvider.getName());
+
+        expection.expect(IdpAlreadyExistsException.class);
+        expection.expectMessage("An MFA Provider with that name already exists.");
+        mfaProviderProvisioning.update(secondProvider, IdentityZoneHolder.get().getId());
+    }
 
     @Test
     public void testCreateAndUpdate() {
@@ -81,7 +92,7 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and id=?", new Object[]{zoneId, created.getId()}, Integer.class));
 
         mfaProvider = created;
-        mfaProvider.setName("UpdatedName");
+        mfaProvider.setName(new RandomValueStringGenerator(5).generate());
         mfaProvider.getConfig().setIssuer("new issuer");
 
         MfaProvider updated = mfaProviderProvisioning.update(created, zoneId);

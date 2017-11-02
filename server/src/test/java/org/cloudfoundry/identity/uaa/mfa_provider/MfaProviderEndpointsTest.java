@@ -56,11 +56,12 @@ public class MfaProviderEndpointsTest {
 
         mfaProvider = endpoint.createMfaProvider(mfaProvider).getBody();
         mfaProvider.setId("providerId");
-        mfaProvider.setName("UpdatedName");
+        String updatedName = new RandomValueStringGenerator(5).generate();
+        mfaProvider.setName(updatedName);
 
         MfaProvider<GoogleMfaProviderConfig> updatedMfaProvider = endpoint.updateMfaProvider(mfaProvider.getId(), mfaProvider).getBody();
 
-        assertEquals("UpdatedName", updatedMfaProvider.getName());
+        assertEquals(updatedName, updatedMfaProvider.getName());
         assertEquals(mfaProvider.getId(), updatedMfaProvider.getId());
     }
 
