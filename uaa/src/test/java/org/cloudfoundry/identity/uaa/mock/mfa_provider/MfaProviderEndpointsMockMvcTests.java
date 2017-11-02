@@ -21,6 +21,7 @@ import org.junit.rules.ExpectedException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -371,5 +372,17 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
         expection.expect(EmptyResultDataAccessException.class);
         providerProvisioning.retrieve(mfaProvider.getId(), identityZone.getId());
 
+    }
+
+    private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {
+        return new MfaProvider<GoogleMfaProviderConfig>()
+            .setName(new RandomValueStringGenerator(10).generate())
+            .setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR)
+            .setIdentityZoneId(IdentityZoneHolder.get().getId())
+            .setConfig(constructGoogleProviderConfiguration());
+    }
+
+    private GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
+        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
     }
 }
