@@ -67,16 +67,4 @@ public class MfaConfigValidatorTests {
         MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderId(providerId);
         validator.validate(configuration, "some-zone");
     }
-
-    @Test
-    public void validate_inactive_providers() throws Exception {
-        when(provisioning.retrieve(anyString(), anyString())).thenReturn(new MfaProvider().setActive(false));
-        String providerId = "some-provider";
-
-        expection.expect(InvalidIdentityZoneConfigurationException.class);
-        expection.expectMessage("Active MFA Provider not found for id: " + providerId);
-
-        MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderId(providerId);
-        validator.validate(configuration, "some-zone");
-    }
 }

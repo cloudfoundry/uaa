@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsBoolean;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsDate;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsString;
 
@@ -32,7 +31,6 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     public static final String FIELD_IDENTITY_ZONE_ID = "identityZoneId";
     public static final String FIELD_TYPE = "type";
     public static final String FIELD_NAME = "name";
-    public static final String FIELD_ACTIVE = "active";
     public static final String FIELD_CREATED = "created";
     public static final String FIELD_LAST_MODIFIED = "last_modified";
     public static final String FIELD_ID = "id";
@@ -42,7 +40,6 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     private String id;
     private String name;
     private String identityZoneId;
-    private boolean active = true;
 
     private AbstractMfaProviderConfig config;
 
@@ -126,15 +123,6 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
         return this;
     }
 
-    public Boolean isActive() {
-        return active;
-    }
-
-    public MfaProvider setActive(boolean active) {
-        this.active = active;
-        return this;
-    }
-
     public String getName() {
         return name;
     }
@@ -184,7 +172,6 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
             result.setType(type);
             result.setName(getNodeAsString(node, FIELD_NAME, null));
             result.setId(getNodeAsString(node, FIELD_ID, null));
-            result.setActive(getNodeAsBoolean(node, FIELD_ACTIVE, true));
             result.setIdentityZoneId(getNodeAsString(node, FIELD_IDENTITY_ZONE_ID, null));
             result.setCreated(getNodeAsDate(node, FIELD_CREATED));
             result.setLastModified(getNodeAsDate(node, FIELD_LAST_MODIFIED));
