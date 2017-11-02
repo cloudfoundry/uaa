@@ -66,10 +66,10 @@ public class TotpEndpointTest {
         when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId)).thenReturn(false);
 
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider();
-        mfaProvider.setId("provider-id");
+        mfaProvider.setName("provider-name");
         mfaProvider.setConfig(new GoogleMfaProviderConfig());
-        when(mfaProviderProvisioning.retrieve("provider-id", IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
+        when(mfaProviderProvisioning.retrieveByName("provider-name", IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 

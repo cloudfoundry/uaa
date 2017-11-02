@@ -16,6 +16,7 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;
@@ -148,7 +149,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
 
     private MfaProvider<GoogleMfaProviderConfig> getGoogleMfaProvider() {
         return (MfaProvider<GoogleMfaProviderConfig>) new MfaProvider<GoogleMfaProviderConfig>()
-                    .setName("sampleGoogleAuthenticatorMfaProvider")
+                    .setName("sampleGoogleMfaProvider"+new RandomValueStringGenerator(6).generate())
                     .setType(GOOGLE_AUTHENTICATOR)
                     .setConfig(new GoogleMfaProviderConfig().setProviderDescription("Google MFA for default zone"));
     }

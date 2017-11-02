@@ -51,7 +51,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
 
         mfaProvider = new MfaProvider();
-        mfaProvider.setName("Google Authenticator");
+        mfaProvider.setName(new RandomValueStringGenerator(5).generate());
         mfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         mfaProvider.setIdentityZoneId("uaa");
         mfaProvider.setConfig(new GoogleMfaProviderConfig());
@@ -65,13 +65,13 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
             .getResponse().getContentAsByteArray(), MfaProvider.class);
 
         uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
-        uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderId(mfaProvider.getId());
+        uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
     }
 
     @After
     public void cleanup () throws Exception {
-        uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderId(null);
+        uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
     }
 

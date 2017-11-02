@@ -19,12 +19,12 @@ public class MfaConfigValidator {
     }
 
     public void validate(MfaConfig config, String zoneId) throws InvalidIdentityZoneConfigurationException {
-        if(config.isEnabled() || StringUtils.hasText(config.getProviderId())) {
+        if(config.isEnabled() || StringUtils.hasText(config.getProviderName())) {
             try {
-                mfaProviderProvisioning.retrieve(config.getProviderId(), zoneId);
+                mfaProviderProvisioning.retrieveByName(config.getProviderName(), zoneId);
             } catch(EmptyResultDataAccessException e){
-                logger.debug(String.format("Provider with id %s not found", config.getProviderId()));
-                throw new InvalidIdentityZoneConfigurationException("Active MFA Provider not found for id: " + config.getProviderId());
+                logger.debug(String.format("Provider with name %s not found", config.getProviderName()));
+                throw new InvalidIdentityZoneConfigurationException("Active MFA Provider not found with name: " + config.getProviderName());
             }
         }
     }

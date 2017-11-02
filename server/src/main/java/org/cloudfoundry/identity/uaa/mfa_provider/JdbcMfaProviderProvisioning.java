@@ -31,6 +31,7 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
 
 
     public static final String MFA_PROVIDER_BY_ID_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where id=? and identity_zone_id=?";
+    public static final String MFA_PROVIDER_BY_NAME_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where name=? and identity_zone_id=?";
     public static final String MFA_PROVIDERS_QUERY = "select " + MFA_PROVIDER_FIELDS + " from " + TABLE_NAME + " where identity_zone_id=?";
     public static final String MFA_PROVIDER_DELETE_BY_ID = "delete from " + TABLE_NAME + " where id =? and identity_zone_id=?";
     public static final String MFA_PROVIDER_DELETE_BY_ZONE_ID = "delete from " + TABLE_NAME + " where identity_zone_id=?";
@@ -63,28 +64,40 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
                 }
             });
         } catch (DuplicateKeyException e) {
-            throw new MfaAlreadyExistsException(e.getMostSpecificCause().getMessage());
+            String message = e.getMostSpecificCause().getMessage();
+            if (message.toUpperCase().contains("IDX_MFA_UNIQUE_NAME")) {
+                message = "An MFA Provider with that name already exists.";
+            }
+            throw new MfaAlreadyExistsException(message);
         }
         return retrieve(id, zoneId);
     }
 
     @Override
     public MfaProvider update(MfaProvider provider, String zoneId) {
-        jdbcTemplate.update(UPDATE_PROVIDER_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setString(pos++, provider.getName());
-                ps.setString(pos++, provider.getType().toValue());
-                ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
-                ps.setString(pos++, zoneId);
-                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+        try {
+            jdbcTemplate.update(UPDATE_PROVIDER_SQL, new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    int pos = 1;
+                    ps.setString(pos++, provider.getName());
+                    ps.setString(pos++, provider.getType().toValue());
+                    ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
+                    ps.setString(pos++, zoneId);
+                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
 
-                ps.setString(pos++, provider.getId().trim());
-                ps.setString(pos++, zoneId);
+                    ps.setString(pos++, provider.getId().trim());
+                    ps.setString(pos++, zoneId);
 
+                }
+            });
+        } catch (DuplicateKeyException e) {
+            String message = e.getMostSpecificCause().getMessage();
+            if (message.toUpperCase().contains("IDX_MFA_UNIQUE_NAME")) {
+                message = "An MFA Provider with that name already exists.";
             }
-        });
+            throw new MfaAlreadyExistsException(message);
+        }
 
         return retrieve(provider.getId(), zoneId);
     }
@@ -92,6 +105,12 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
     @Override
     public MfaProvider retrieve(String id, String zoneId) {
         MfaProvider provider = jdbcTemplate.queryForObject(MFA_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
+        return provider;
+    }
+
+    @Override
+    public MfaProvider retrieveByName(String name, String zoneId) {
+        MfaProvider provider = jdbcTemplate.queryForObject(MFA_PROVIDER_BY_NAME_QUERY, mapper, name, zoneId);
         return provider;
     }
 

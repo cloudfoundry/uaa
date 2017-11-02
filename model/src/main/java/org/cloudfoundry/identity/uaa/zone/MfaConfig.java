@@ -8,13 +8,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class MfaConfig {
 
     private boolean enabled = false;
-    private String providerId;
+    private String providerName;
 
     @Override
     public String toString() {
         return "MfaConfig: {" +
                 "enabled:" + enabled +
-                ", providerId:\"" + providerId + '\"' +
+                ", providerName:\"" + providerName + '\"' +
                 '}';
     }
 
@@ -26,13 +26,13 @@ public class MfaConfig {
         MfaConfig that = (MfaConfig) o;
 
         if (enabled != that.enabled) return false;
-        return providerId != null ? providerId.equals(that.providerId) : that.providerId == null;
+        return providerName != null ? providerName.equals(that.providerName) : that.providerName == null;
     }
 
     @Override
     public int hashCode() {
         int result = (enabled ? 1 : 0);
-        result = 31 * result + (providerId != null ? providerId.hashCode() : 0);
+        result = 31 * result + (providerName != null ? providerName.hashCode() : 0);
         return result;
     }
 
@@ -45,12 +45,12 @@ public class MfaConfig {
         return this;
     }
 
-    public String getProviderId() {
-        return providerId;
+    public String getProviderName() {
+        return providerName;
     }
 
-    public MfaConfig setProviderId(String providerId) {
-        this.providerId = providerId;
+    public MfaConfig setProviderName(String providerName) {
+        this.providerName = providerName;
         return this;
     }
 }

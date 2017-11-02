@@ -21,6 +21,7 @@ import org.junit.rules.ExpectedException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -36,6 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -141,7 +143,8 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
         mfaProvider = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
 
-        mfaProvider.setName("UpdatedName");
+        String updatedName = new RandomValueStringGenerator(5).generate();
+        mfaProvider.setName(updatedName);
         mfaProvider.getConfig().setDigits(13);
 
         MvcResult updateResponse = getMockMvc().perform(
@@ -154,7 +157,57 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
         Assert.assertEquals(HttpStatus.OK.value(), updateResponse.getResponse().getStatus());
         Assert.assertEquals(13, updatedProvider.getConfig().getDigits());
-        Assert.assertEquals("UpdatedName", updatedProvider.getName());
+        Assert.assertEquals(updatedName, updatedProvider.getName());
+
+    }
+
+    @Test
+    public void testCreateDuplicate() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
+        mfaProvider.setConfig(null);
+        getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+
+        getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider)))
+        .andDo(print())
+            .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error").value("invalid_mfa_provider"))
+        .andExpect(jsonPath("$.error_description").value("An MFA Provider with that name already exists."));
+    }
+
+    @Test
+    public void testUpdateDuplicate() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> firstMfaProvider = constructGoogleProvider();
+        firstMfaProvider.setConfig(null);
+        getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(firstMfaProvider))).andReturn().getResponse().getContentAsString();
+        MfaProvider<GoogleMfaProviderConfig> secondMfaProvider = constructGoogleProvider();
+        secondMfaProvider  = JsonUtils.readValue(getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(secondMfaProvider)))
+            .andDo(print())
+            .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), MfaProvider.class);
+
+        secondMfaProvider.setName(firstMfaProvider.getName());
+
+        getMockMvc().perform(
+            put("/mfa-providers/" + secondMfaProvider.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(secondMfaProvider)))
+            .andExpect(status().isConflict()).andReturn();
 
     }
 
@@ -212,7 +265,8 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
         mfaProvider = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
 
-        mfaProvider.setName("UpdatedName");
+        String updatedName = new RandomValueStringGenerator(5).generate();
+        mfaProvider.setName(updatedName);
         mfaProvider.getConfig().setDigits(13);
 
         MvcResult updateResponse = getMockMvc().perform(
@@ -225,7 +279,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
 
         MfaProvider<GoogleMfaProviderConfig> updatedProvider = JsonUtils.readValue(updateResponse.getResponse().getContentAsString(), MfaProvider.class);
         Assert.assertEquals(13, updatedProvider.getConfig().getDigits());
-        Assert.assertEquals("UpdatedName", updatedProvider.getName());
+        Assert.assertEquals(updatedName, updatedProvider.getName());
 
     }
 
@@ -318,5 +372,17 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
         expection.expect(EmptyResultDataAccessException.class);
         providerProvisioning.retrieve(mfaProvider.getId(), identityZone.getId());
 
+    }
+
+    private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {
+        return new MfaProvider<GoogleMfaProviderConfig>()
+            .setName(new RandomValueStringGenerator(10).generate())
+            .setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR)
+            .setIdentityZoneId(IdentityZoneHolder.get().getId())
+            .setConfig(constructGoogleProviderConfiguration());
+    }
+
+    private GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
+        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
     }
 }
