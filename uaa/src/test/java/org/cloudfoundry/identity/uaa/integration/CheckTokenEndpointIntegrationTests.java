@@ -251,6 +251,54 @@ public class CheckTokenEndpointIntegrationTests {
         assertTrue(map.containsKey("error_description"));
     }
 
+    @Test
+    public void testValidPasswordGrant() throws Exception {
+        OAuth2AccessToken accessToken = getUserToken(null);
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+        tokenHeaders.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        formData.add("token", accessToken.getValue());
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertNotNull(tokenResponse.getBody());
+        System.out.println(tokenResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = tokenResponse.getBody();
+        assertNotNull(map.get("iss"));
+        assertEquals(testAccounts.getUserName(), map.get("user_name"));
+        assertEquals(testAccounts.getEmail(), map.get("email"));
+    }
+
+    @Test
+    public void testAddidionalAttributes() throws Exception {
+        OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":\"domain\\\\group1\",\"external_id\":\"abcd1234\"}}");
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+        tokenHeaders.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        formData.add("token", accessToken.getValue());
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertNotNull(tokenResponse.getBody());
+        System.out.println(tokenResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = tokenResponse.getBody();
+        assertNotNull(map.get("iss"));
+        assertEquals(testAccounts.getUserName(), map.get("user_name"));
+        assertEquals(testAccounts.getEmail(), map.get("email"));
+    }
+
     private OAuth2AccessToken getAdminToken() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.set("client_id", testAccounts.getAdminClientId());
@@ -267,4 +315,24 @@ public class CheckTokenEndpointIntegrationTests {
         return DefaultOAuth2AccessToken.valueOf(response.getBody());
     }
 
+    private OAuth2AccessToken getUserToken(String optAdditionAttributes) {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.set("client_id", "cf");
+        formData.set("client_secret", "");
+        formData.set("username", testAccounts.getUserName());
+        formData.set("password", testAccounts.getPassword());
+        formData.set("response_type", "token");
+        formData.set("grant_type", "password");
+        formData.set("token_format", "jwt");
+        if(optAdditionAttributes != null) {
+           formData.set("authorities", optAdditionAttributes);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        return DefaultOAuth2AccessToken.valueOf(response.getBody());
+    }
 }
