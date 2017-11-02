@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -156,6 +157,27 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
         Assert.assertEquals(13, updatedProvider.getConfig().getDigits());
         Assert.assertEquals("UpdatedName", updatedProvider.getName());
 
+    }
+
+    @Test
+    public void testCreateDuplicate() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
+        mfaProvider.setConfig(null);
+        getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+
+        getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider)))
+        .andDo(print())
+            .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error").value("invalid_mfa_provider"))
+        .andExpect(jsonPath("$.error_description").value("An MFA Provider with that name already exists."));
     }
 
     @Test
