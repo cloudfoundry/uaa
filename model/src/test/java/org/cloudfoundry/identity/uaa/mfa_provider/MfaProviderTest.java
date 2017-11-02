@@ -8,13 +8,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import javax.xml.bind.ValidationException;
-
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class MfaProviderTest {
 
@@ -57,7 +54,6 @@ public class MfaProviderTest {
 
         assertEquals(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR, provider.getType());
         assertEquals("UAA Provider", provider.getName());
-        assertEquals(true, provider.isActive());
         GoogleMfaProviderConfig config = provider.getConfig();
         assertEquals(GoogleMfaProviderConfig.Algorithm.SHA256, config.getAlgorithm());
         assertEquals(8, config.getDigits());
@@ -78,22 +74,19 @@ public class MfaProviderTest {
                 "    \"digits\": 8, \n" +
                 "    \"duration\": 32 \n" +
                 "  },\n" +
-                "  \"name\" : \"UAA Provider\",  \n" +
-                "  \"active\" : true\n" +
+                "  \"name\" : \"UAA Provider\" \n" +
                 "}";
 
         MfaProvider<GoogleMfaProviderConfig> provider = JsonUtils.readValue(json, MfaProvider.class);
 
         assertEquals(null, provider.getType());
         assertEquals("UAA Provider", provider.getName());
-        assertEquals(true, provider.isActive());
         assertNull(provider.getConfig());
     }
 
     @Test
     public void validateProviderActiveSetDefaultToTrue() {
         MfaProvider provider = createValidGoogleMfaProvider();
-        assertTrue(provider.isActive());
     }
 
     private MfaProvider createValidGoogleMfaProvider() {

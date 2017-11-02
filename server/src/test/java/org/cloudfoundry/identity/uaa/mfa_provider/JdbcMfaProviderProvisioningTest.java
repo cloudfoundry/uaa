@@ -85,7 +85,6 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
     @Test
     public void testRetrieve() {
         MfaProvider mfaProvider = constructGoogleProvider();
-        mfaProvider.setActive(false);
         doNothing().when(mfaProviderValidator);
         String zoneId = IdentityZoneHolder.get().getId();
         MfaProvider created = mfaProviderProvisioning.create(mfaProvider, zoneId);

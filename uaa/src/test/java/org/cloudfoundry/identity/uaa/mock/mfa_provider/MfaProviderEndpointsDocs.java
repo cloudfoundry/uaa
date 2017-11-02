@@ -147,8 +147,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
     }
 
     private MfaProvider<GoogleMfaProviderConfig> getGoogleMfaProvider() {
-        return (MfaProvider<GoogleMfaProviderConfig>) new MfaProvider<>()
-                    .setActive(true)
+        return (MfaProvider<GoogleMfaProviderConfig>) new MfaProvider<GoogleMfaProviderConfig>()
                     .setName("sampleGoogleAuthenticatorMfaProvider")
                     .setType(GOOGLE_AUTHENTICATOR)
                     .setConfig(new GoogleMfaProviderConfig().setProviderDescription("Google MFA for default zone"));
@@ -181,7 +180,6 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
     @Test
     public void testListMfaProviders() throws Exception{
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = getGoogleMfaProvider();
-        mfaProvider.setActive(false);
         createMfaProviderHelper(mfaProvider);
 
         Snippet responseFields = responseFields((FieldDescriptor[])
