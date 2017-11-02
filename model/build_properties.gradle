@@ -32,9 +32,7 @@ task gitInfo {
     props.setProperty("git.commit.id.abbrev", commit.getId().getName().substring(0, 7))
     props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(commit.getAuthorIdent().getWhen()))
   } catch (e) {
-    logger.warn "Exception raised while reading git metadata: $e"
-    props.setProperty("git.commit.id.abbrev", "git-metadata-not-found")
-    props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new java.util.Date()))
+    throw new GradleException("Failed to fetch git commit information: $e")
   }
   props.store(new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/git.properties"), "DO NOT EDIT. This is generated file.")
 }
