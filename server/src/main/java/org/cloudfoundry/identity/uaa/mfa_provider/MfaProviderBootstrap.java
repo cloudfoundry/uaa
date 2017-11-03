@@ -38,14 +38,14 @@ public class MfaProviderBootstrap implements InitializingBean {
         return mfaProviders;
     }
 
-    public void setMfaProviders(List<Map<String, Object>> mfaProviderYaml) {
+    public void setMfaProviders(Map<String, Map<String, Object>> mfaProviderYaml) {
         mfaProviders.clear();
         if (mfaProviderYaml == null) {
             return;
         }
-        for(Map<String,Object> mfaProvider : mfaProviderYaml) {
-            String name  = (String) mfaProvider.get("name");
-            String type = (String) mfaProvider.get("type");
+        for(Map.Entry<String,Map<String, Object>> mfaProvider : mfaProviderYaml.entrySet()) {
+            String name  = mfaProvider.getKey();
+            String type = (String) mfaProvider.getValue().get("type");
 
             MfaProvider def = new MfaProvider();
             def.setType(MfaProvider.MfaProviderType.forValue(type));
@@ -53,7 +53,7 @@ public class MfaProviderBootstrap implements InitializingBean {
             def.setIdentityZoneId("uaa");
 
             if(def.getType() == MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR) {
-                Map<String, Object> config = (Map<String, Object>) mfaProvider.get("config");
+                Map<String, Object> config = (Map<String, Object>) mfaProvider.getValue().get("config");
                 String providerDescription = (String) config.get("providerDescription");
                 Integer digits = (Integer) config.get("digits");
                 Integer duration = (Integer) config.get("duration");

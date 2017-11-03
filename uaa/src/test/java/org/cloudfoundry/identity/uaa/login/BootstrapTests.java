@@ -899,7 +899,7 @@ public class BootstrapTests {
         assertNotNull(ccSvcDashboard);
 
         MfaProviderProvisioning mfaProviderProvisioning = context.getBean(JdbcMfaProviderProvisioning.class);
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider1 = mfaProviderProvisioning.retrieveByName("mfa-provider-1", IdentityZoneHolder.getUaaZone().getId());
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider1 = mfaProviderProvisioning.retrieveByName("mfaprovider1", IdentityZoneHolder.getUaaZone().getId());
         assertNotNull(mfaProvider1);
         assertEquals("all-properties-set-description", mfaProvider1.getConfig().getProviderDescription());
 

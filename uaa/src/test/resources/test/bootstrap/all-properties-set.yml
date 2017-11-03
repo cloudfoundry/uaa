@@ -190,13 +190,13 @@ login:
         type: oidc1.0
   mfa:
     providers:
-      - name: mfaprovider1
-        type : google-authenticator
-        config :
-          providerDescription" : all-properties-set-description
+      mfaprovider1:
+        type: google-authenticator
+        config:
+          providerDescription: all-properties-set-description
           digits: 6
-          duration : 30
-          algorithm : "SHA256"
+          duration: 30
+          algorithm: SHA256
 
   prompt:
     password:
