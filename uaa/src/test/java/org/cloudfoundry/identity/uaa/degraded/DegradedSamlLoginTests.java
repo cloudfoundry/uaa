@@ -52,7 +52,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
 public class DegradedSamlLoginTests {
 
     private static final String SAML_USERNAME = "samluser1";
-    private static final String SAML_PASSWORD = "samluser1";
+    private static final String SAML_PASSWORD = "SamlUser10@";
     private static final String ZONE_AUTHCODE_CLIENT_ID = "exampleClient";
     private static final String ZONE_AUTHCODE_CLIENT_SECRET = "secret";
     public static final String ZONE_ADMIN = "admin";
@@ -180,7 +180,7 @@ public class DegradedSamlLoginTests {
     public void testPasswordTokenAndCheckToken() throws Exception {
         MultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("username", "marissa");
-        postBody.add("password", "koala");
+        postBody.add("password", "KOala12@");
         postBody.add(GRANT_TYPE, "password");
         postBody.add(RESPONSE_TYPE, "token");
         postBody.add("token_format", "opaque");
@@ -215,7 +215,7 @@ public class DegradedSamlLoginTests {
         webDriver.findElement(By.xpath("//title[contains(text(), '" + zoneSubdomain + "')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("marissa");
-        webDriver.findElement(By.name("password")).sendKeys("koala");
+        webDriver.findElement(By.name("password")).sendKeys("KOala12@");
         webDriver.findElement(By.xpath("//input[@type='submit']")).click();
 
         //Ensure the browser/webdriver processes all the flows

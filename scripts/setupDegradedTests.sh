@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -v
 
 ####Set up the degraded tests...
 uaac target ${PROTOCOL}://$PUBLISHED_DOMAIN
@@ -29,11 +32,11 @@ SAML_IDP_METADATA_RAW=$(echo $SAML_IDP_RESPONSE | sed s/.*RESPONSE\ BODY://)
 SAML_IDP_METADATA=$(echo $SAML_IDP_METADATA_RAW | sed 's/"/\\"/g')
 
 #Create some saml users
-uaac user add samluser1 -p samluser1 --email samluser1@ge.com || true
+uaac user add samluser1 -p SamlUser10@ --email samluser1@ge.com || true
 
-uaac user add samluser2 -p samluser2 --email samluser2@ge.com || true
+uaac user add samluser2 -p SamlUser20@ --email samluser2@ge.com || true
 
-uaac user add 1234 -p user3 --email user3@ge.com || true
+uaac user add 1234 -p UserGE30@ --email user3@ge.com || true
 
 #Login to test-platform-zone
 uaac target ${PROTOCOL}://test-platform-zone.$PUBLISHED_DOMAIN
@@ -146,7 +149,7 @@ uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept:
   "authorities" : [ "uaa.resource" ]
 }'
 
-uaac user add marissa -p koala --email marissa@ge.com || true
+uaac user add marissa -p KOala12@ --email marissa@ge.com || true
 
 uaac group add zones.test-app-zone.admin || true
 
