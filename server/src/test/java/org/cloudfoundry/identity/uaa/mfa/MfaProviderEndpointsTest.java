@@ -1,9 +1,12 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
@@ -28,6 +31,9 @@ public class MfaProviderEndpointsTest {
     MfaProviderEndpoints endpoint = new MfaProviderEndpoints();
     MfaProviderProvisioning provisioning;
     MfaProviderValidator validator;
+
+    @Rule
+    public ExpectedException expection = ExpectedException.none();
 
     @Before
     public void setup() {
@@ -106,6 +112,20 @@ public class MfaProviderEndpointsTest {
         verify(provisioning, times(1)).retrieve(id, IdentityZoneHolder.get().getId());
         verify(publisher, times(1)).publishEvent(entityDeletedCaptor.capture());
         assertEquals(providerToDelete.getId(), ((MfaProvider)(entityDeletedCaptor.getAllValues().get(0)).getDeleted()).getId());
+    }
+
+    @Test
+    public void testDeleteActiveProviderThrowsException() {
+        MfaProvider<GoogleMfaProviderConfig> providerToDelete = constructGoogleProvider();
+        String id = new RandomValueStringGenerator(5).generate();
+        when(provisioning.retrieve(eq(id), anyString())).thenReturn(providerToDelete);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(providerToDelete.getName());
+
+        expection.expect(MfaAlreadyExistsException.class);
+        expection.expectMessage("MFA provider is currently active on zone: " + IdentityZoneHolder.get().getId() + ". Please deactivate it from the zone or set another MFA provider");
+        endpoint.deleteMfaProviderById(id);
+
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setProviderName(null);
     }
 
     private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {

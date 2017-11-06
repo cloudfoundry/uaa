@@ -30,7 +30,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -333,6 +335,29 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andReturn();
 
         assertEquals(1, eventListener.getEventCount());
+    }
+
+    @Test
+    public void testDeleteZoneActiveMfaProviderShouldFail() throws Exception{
+        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
+
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
+        mfaProvider = JsonUtils.readValue(getMockMvc().perform(post("/mfa-providers")
+            .header("Authorization", "Bearer " + adminToken)
+            .header("X-Identity-Zone-Id", identityZone.getId())
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn().getResponse().getContentAsString(), MfaProvider.class);
+
+        identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
+        MockMvcUtils.updateIdentityZone(identityZone, getWebApplicationContext());
+
+        String deleteResponse = getMockMvc().perform(delete("/mfa-providers/" + mfaProvider.getId())
+            .header("Authorization", "Bearer " + adminToken)
+            .header("X-Identity-Zone-Id", identityZone.getId()))
+            .andExpect(status().isConflict()).andReturn().getResponse().getContentAsString();
+
+        assertThat(deleteResponse, containsString("MFA provider is currently active on zone: " + identityZone.getId()));
+
     }
 
     @Test
