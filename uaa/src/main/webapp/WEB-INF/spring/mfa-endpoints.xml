@@ -6,20 +6,20 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
-    <bean id="mfaProviderProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.JdbcMfaProviderProvisioning">
+    <bean id="mfaProviderProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning">
         <constructor-arg type="org.springframework.jdbc.core.JdbcTemplate" ref="jdbcTemplate"/>
-        <constructor-arg type="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderValidator"
+        <constructor-arg type="org.cloudfoundry.identity.uaa.mfa.MfaProviderValidator"
                          ref="mfaProviderValidator"/>
     </bean>
 
     <bean id="googleMfaProviderConfigValidator"
-          class="org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfigValidator"/>
+          class="org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfigValidator"/>
 
-    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa_provider.GeneralMfaProviderValidator">
+    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator">
         <property name="configValidator" ref="googleMfaProviderConfigValidator"/>
     </bean>
 
-    <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderEndpoints">
+    <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderEndpoints">
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="mfaProviderValidator" ref="mfaProviderValidator"/>
     </bean>
@@ -50,7 +50,7 @@
         <expression-handler ref="oauthWebExpressionHandler"/>
     </http>
 
-    <bean name="mfaProviderBootstrap" class="org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderBootstrap">
+    <bean name="mfaProviderBootstrap" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderBootstrap">
         <constructor-arg name="provisioning" ref="mfaProviderProvisioning" />
         <property name="mfaProviders" value="#{@config['login']==null ? null : @config['login']['mfa']==null ? null : @config['login']['mfa']['providers']}" />
     </bean>

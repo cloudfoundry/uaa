@@ -2,10 +2,10 @@ package org.cloudfoundry.identity.uaa.mock.mfa_provider;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa_provider.JdbcMfaProviderProvisioning;
-import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;

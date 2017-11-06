@@ -2,11 +2,11 @@ package org.cloudfoundry.identity.uaa.login;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
-import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa_provider.JdbcUserGoogleMfaCredentialsProvisioning;
-import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentials;
-import org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;

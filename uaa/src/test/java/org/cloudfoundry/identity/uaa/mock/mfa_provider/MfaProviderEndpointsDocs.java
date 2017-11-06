@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.mock.mfa_provider;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.cloudfoundry.identity.uaa.mfa_provider.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa_provider.JdbcMfaProviderProvisioning;
-import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -19,7 +19,7 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.ResultActions;
 
-import static org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;
+import static org.cloudfoundry.identity.uaa.mfa.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;

@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.util.StringUtils;
 

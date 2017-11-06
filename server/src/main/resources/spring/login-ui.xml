@@ -655,11 +655,11 @@
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
 
-    <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.JdbcUserGoogleMfaCredentialsProvisioning">
+    <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
         <constructor-arg index="0" ref="jdbcTemplate"/>
     </bean>
 
-    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa_provider.UserGoogleMfaCredentialsProvisioning">
+    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
         <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
     </bean>
 
@@ -669,7 +669,7 @@
         <property name="googleAuthenticatorService" ref="googleAuthenticatorAdapter" />
     </bean>
 
-    <bean id="googleAuthenticatorAdapter" class="org.cloudfoundry.identity.uaa.mfa_provider.GoogleAuthenticatorAdapter">
+    <bean id="googleAuthenticatorAdapter" class="org.cloudfoundry.identity.uaa.mfa.GoogleAuthenticatorAdapter">
         <property name="authenticator" ref="googleAuthenticator"/>
     </bean>
 
