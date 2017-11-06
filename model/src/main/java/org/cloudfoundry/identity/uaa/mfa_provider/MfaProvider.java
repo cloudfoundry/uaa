@@ -145,14 +145,14 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
 
         MfaProvider<?> that = (MfaProvider<?>) o;
 
-        if (!getName().equals(that.getName())) return false;
-        return getIdentityZoneId().equals(that.getIdentityZoneId());
+        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) return false;
+        return getIdentityZoneId() != null ? getIdentityZoneId().equals(that.getIdentityZoneId()) : that.getIdentityZoneId() == null;
     }
 
     @Override
     public int hashCode() {
-        int result = getName().hashCode();
-        result = 31 * result + getIdentityZoneId().hashCode();
+        int result = getName() != null ? getName().hashCode() : 0;
+        result = 31 * result + (getIdentityZoneId() != null ? getIdentityZoneId().hashCode() : 0);
         return result;
     }
 
