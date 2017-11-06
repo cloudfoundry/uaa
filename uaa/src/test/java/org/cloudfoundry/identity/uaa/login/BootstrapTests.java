@@ -25,6 +25,10 @@ import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
@@ -894,6 +898,10 @@ public class BootstrapTests {
         ClientDetails ccSvcDashboard = clients.loadClientByClientId("cc-service-dashboards");
         assertNotNull(ccSvcDashboard);
 
+        MfaProviderProvisioning mfaProviderProvisioning = context.getBean(JdbcMfaProviderProvisioning.class);
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider1 = mfaProviderProvisioning.retrieveByName("mfaprovider1", IdentityZoneHolder.getUaaZone().getId());
+        assertNotNull(mfaProvider1);
+        assertEquals("all-properties-set-description", mfaProvider1.getConfig().getProviderDescription());
 
     }
 

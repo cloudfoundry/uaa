@@ -364,6 +364,7 @@
     <import resource="spring/login-server-security.xml" />
     <import resource="spring/oauth-endpoints.xml" />
     <import resource="spring/scim-endpoints.xml" />
+    <import resource="spring/mfa-endpoints.xml" />
     <import resource="spring/multitenant-endpoints.xml" />
     <import resource="spring/approvals-endpoints.xml" />
     <import resource="spring/client-admin-endpoints.xml" />

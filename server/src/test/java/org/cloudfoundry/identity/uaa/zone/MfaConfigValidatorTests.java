@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.mfa_provider.JdbcMfaProviderProvisioning;
-import org.cloudfoundry.identity.uaa.mfa_provider.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa_provider.MfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
