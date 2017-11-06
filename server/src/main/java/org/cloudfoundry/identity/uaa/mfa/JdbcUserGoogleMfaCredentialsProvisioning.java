@@ -20,10 +20,10 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
     public static final String TABLE_NAME = "user_google_mfa_credentials";
 
     private static final String CREATE_USER_MFA_CONFIG_SQL =
-            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes) VALUES (?,?,?,?)";
+            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes, mfa_provider_id) VALUES (?,?,?,?,?)";
 
     private static final String UPDATE_USER_MFA_CONFIG_SQL =
-        "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=? WHERE user_id=?";
+        "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=?, mfa_provider_id=? WHERE user_id=?";
 
     private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=?";
 
@@ -45,6 +45,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
                 ps.setString(pos++, credentials.getSecretKey());
                 ps.setInt(pos++, credentials.getValidationCode());
                 ps.setString(pos++, toCSScratchCode(credentials.getScratchCodes()));
+                ps.setString(pos++, credentials.getMfaProviderId());
             });
         } catch (DuplicateKeyException e) {
             throw new UserMfaConfigAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -58,6 +59,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
             ps.setString(pos++, credentials.getSecretKey());
             ps.setInt(pos++, credentials.getValidationCode());
             ps.setString(pos++, toCSScratchCode(credentials.getScratchCodes()));
+            ps.setString(pos++, credentials.getMfaProviderId());
             ps.setString(pos++, credentials.getUserId());
         });
         retrieve(credentials.getUserId());
@@ -84,12 +86,14 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
     private static final class UserMfaCredentialsMapper implements RowMapper<UserGoogleMfaCredentials> {
         @Override
         public UserGoogleMfaCredentials mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new UserGoogleMfaCredentials(
-                    rs.getString("user_id"),
-                    rs.getString("secret_key"),
-                    rs.getInt("validation_code"),
-                    fromSCString(rs.getString("scratch_codes"))
+            UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials(
+                rs.getString("user_id"),
+                rs.getString("secret_key"),
+                rs.getInt("validation_code"),
+                fromSCString(rs.getString("scratch_codes"))
             );
+            userGoogleMfaCredentials.setMfaProviderId(rs.getString("mfa_provider_id"));
+            return userGoogleMfaCredentials;
         }
 
         private List<Integer> fromSCString(String csString) {

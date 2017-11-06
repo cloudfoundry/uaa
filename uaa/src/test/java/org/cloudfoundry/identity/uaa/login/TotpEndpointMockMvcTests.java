@@ -23,6 +23,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -130,7 +131,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
 
         activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId());
         assertNotNull(activeCreds);
-
+        assertEquals(mfaProvider.getId(), activeCreds.getMfaProviderId());
         getMockMvc().perform(get("/logout.do")).andReturn();
 
         session = new MockHttpSession();

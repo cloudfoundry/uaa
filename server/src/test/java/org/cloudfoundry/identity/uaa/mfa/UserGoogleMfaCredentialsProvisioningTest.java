@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.mfa;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -29,6 +31,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
     UserGoogleMfaCredentialsProvisioning provisioner;
     JdbcUserGoogleMfaCredentialsProvisioning jdbcProvisioner;
+    MfaProviderProvisioning mfaProviderProvisioning;
 
     @Before
     public void setup() {
@@ -39,6 +42,11 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
         jdbcProvisioner = mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
         provisioner.setJdbcProvisioner(jdbcProvisioner);
+        mfaProviderProvisioning = mock(MfaProviderProvisioning.class);
+        provisioner.setMfaProviderProvisioning(mfaProviderProvisioning);
+        when(mfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenReturn(new MfaProvider().setName("abc").setId("abc"));
+
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setProviderName("abc"));
 
         ((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest().getSession(true);
     }
