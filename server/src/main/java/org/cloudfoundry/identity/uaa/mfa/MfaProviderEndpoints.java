@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -79,6 +80,10 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     @RequestMapping(value = "{id}", method = DELETE)
     public ResponseEntity<MfaProvider> deleteMfaProviderById(@PathVariable String id) {
         MfaProvider existing = mfaProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
+        MfaConfig currentMfaConfig = IdentityZoneHolder.get().getConfig().getMfaConfig();
+        if(currentMfaConfig.isEnabled() && currentMfaConfig.getProviderName().equals(existing.getName())) {
+            throw new MfaAlreadyExistsException("MFA provider is currently active on zone: " + IdentityZoneHolder.get().getId() + ". Please deactivate it from the zone or set another MFA provider");
+        }
         publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication()));
         return new ResponseEntity<>(existing, HttpStatus.OK);
     }

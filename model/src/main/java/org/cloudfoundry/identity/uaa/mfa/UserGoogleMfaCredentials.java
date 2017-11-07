@@ -22,6 +22,7 @@ public class UserGoogleMfaCredentials {
     private String secretKey;
     private List<Integer> scratchCodes;
     private int validationCode;
+    private String mfaProviderId;
 
 
     public UserGoogleMfaCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes) {
@@ -62,6 +63,15 @@ public class UserGoogleMfaCredentials {
 
     public void setValidationCode(int validationCode) {
         this.validationCode = validationCode;
+    }
+
+    public String getMfaProviderId() {
+        return mfaProviderId;
+    }
+
+    public UserGoogleMfaCredentials setMfaProviderId(String mfaProviderId) {
+        this.mfaProviderId = mfaProviderId;
+        return this;
     }
 
     @Override

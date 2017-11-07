@@ -19,7 +19,8 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
             new TestColumn("user_id", "nvarchar/varchar",  36),
             new TestColumn("secret_key","nvarchar/varchar", 255),
             new TestColumn("validation_code", "integer/int4/int", -1),
-            new TestColumn("scratch_codes", "nvarchar/varchar", 255));
+            new TestColumn("scratch_codes", "nvarchar/varchar", 255),
+            new TestColumn("mfa_provider_id", "char/character/bpchar", 36));
 
     @Test
     public void validate_table() throws Exception {
