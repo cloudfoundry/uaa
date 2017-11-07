@@ -1917,6 +1917,30 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void updateZoneWithValidMfaConfigWithoutIdInBody_Succeeds() throws Exception {
+        IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId());
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
+        String id = identityZone.getId();
+        identityZone.setId(null);
+
+        IdentityZone updatedZone = updateZone(id, identityZone, HttpStatus.OK, adminToken);
+
+        assertEquals(mfaProvider.getName(), updatedZone.getConfig().getMfaConfig().getProviderName());
+        assertTrue(updatedZone.getConfig().getMfaConfig().isEnabled());
+    }
+
+    @Test
+    public void updateZoneWithDifferentIdInBodyAndPath_fails() throws Exception {
+        IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
+        String id = identityZone.getId();
+        IdentityZone identityZone2 = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
+        identityZone.setId(identityZone2.getId());
+
+        updateZone(id, identityZone, HttpStatus.UNPROCESSABLE_ENTITY, adminToken);
+    }
+
+    @Test
     public void updateZoneWithInvalidMfaConfig() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
         identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderName("INVALID_NAME"));
@@ -1976,19 +2000,23 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         return null;
     }
 
-    private IdentityZone updateZone(IdentityZone identityZone, HttpStatus expect, String token) throws Exception {
+    private IdentityZone updateZone(String id, IdentityZone identityZone, HttpStatus expect, String token) throws Exception {
         MvcResult result = getMockMvc().perform(
-            put("/identity-zones/" + identityZone.getId())
-                .header("Authorization", "Bearer " + token)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(identityZone)))
-            .andExpect(status().is(expect.value()))
-            .andReturn();
+                put("/identity-zones/" + id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(identityZone)))
+                .andExpect(status().is(expect.value()))
+                .andReturn();
 
         if (expect.is2xxSuccessful()) {
             return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
         }
         return null;
+    }
+
+    private IdentityZone updateZone(IdentityZone identityZone, HttpStatus expect, String token) throws Exception {
+        return updateZone(identityZone.getId(), identityZone, expect, token);
     }
 
     private <T extends AbstractUaaEvent> void checkZoneAuditEventInUaa(int eventCount, AuditEventType eventType) {
