@@ -20,7 +20,7 @@ ext {
   javamailVersion = '1.4.7'
   jsonPathVersion = '2.4.0'
   junitVersion = '4.12'
-  mariaDBClientVersion = '1.6.5'
+  mariaDBClientVersion = '2.2.0'
   mockitoVersion = '2.7.19'
   mssqlVersion = '6.2.2.jre8'
   openSamlVersion = '2.6.6'
