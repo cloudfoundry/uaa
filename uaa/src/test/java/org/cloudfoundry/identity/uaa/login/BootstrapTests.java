@@ -902,6 +902,7 @@ public class BootstrapTests {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider1 = mfaProviderProvisioning.retrieveByName("mfaprovider1", IdentityZoneHolder.getUaaZone().getId());
         assertNotNull(mfaProvider1);
         assertEquals("all-properties-set-description", mfaProvider1.getConfig().getProviderDescription());
+        assertEquals("google.com", mfaProvider1.getConfig().getIssuer());
 
     }
 
