@@ -95,6 +95,21 @@ public class TotpEndpointIntegrationTests {
     }
 
     @Test
+    public void testQRCodeValidation() {
+        performLogin(username);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        assertThat(webDriver.findElement(By.id("qr")).getAttribute("src"), Matchers.containsString("chart.googleapis"));
+
+        webDriver.findElement(By.id("Next")).click();
+        assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
+        webDriver.findElement(By.name("code")).sendKeys("1111111111111111112222");
+
+        webDriver.findElement(By.id("verify_code_btn")).click();
+        assertEquals("Invalid QR code", webDriver.findElement(By.cssSelector("form .error-color")).getText());
+    }
+
+    @Test
     public void checkAccessForTotpPage() {
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl + "/login/mfa/register");

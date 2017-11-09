@@ -87,10 +87,7 @@ public class TotpEndpoint {
             }
             logger.debug("Code authorization failed for user: " + uaaPrincipal.getId());
             model.addAttribute("error", "Invalid QR code");
-        } catch (NumberFormatException e) {
-            logger.debug("Error validating the code for user: " + uaaPrincipal.getId() + ". Error: " + e.getMessage());
-            model.addAttribute("error", "QR code can be number only");
-        } catch (GoogleAuthenticatorException e) {
+        } catch (NumberFormatException|GoogleAuthenticatorException e) {
             logger.debug("Error validating the code for user: " + uaaPrincipal.getId() + ". Error: " + e.getMessage());
             model.addAttribute("error", "Invalid QR code");
         }
