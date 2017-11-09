@@ -31,14 +31,9 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -73,10 +68,10 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
-        Assert.assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
+        assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
         MfaProvider<GoogleMfaProviderConfig> mfaProviderCreated = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
-        Assert.assertEquals(IdentityZoneHolder.get().getName(), mfaProviderCreated.getConfig().getIssuer());
-        Assert.assertEquals(IdentityZoneHolder.get().getId(), mfaProviderCreated.getIdentityZoneId());
+        assertEquals(IdentityZoneHolder.get().getName(), mfaProviderCreated.getConfig().getIssuer());
+        assertEquals(IdentityZoneHolder.get().getId(), mfaProviderCreated.getIdentityZoneId());
 
     }
 
@@ -90,77 +85,27 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(mfaAsJSON)));
-        Assert.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), authorization.andReturn().getResponse().getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), authorization.andReturn().getResponse().getStatus());
     }
 
     @Test
-    public void testUpdateGoogleMfaProviderInvalidType() throws Exception {
+    public void testCreateMfaProvider() throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
-        mfaProvider.setConfig(null);
-        MvcResult mfaResponse = getMockMvc().perform(
-                post("/mfa-providers")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
-
-        mfaProvider = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
-
-        ObjectNode mfaAsJSON = (ObjectNode) JsonUtils.readTree(JsonUtils.writeValueAsString(mfaProvider));
-        mfaAsJSON.put("type", "not-google-authenticator");
-        ResultActions authorization = getMockMvc().perform(
-                put("/mfa-providers/" + mfaProvider.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaAsJSON)));
-        Assert.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), authorization.andReturn().getResponse().getStatus());
-    }
-
-    @Test
-    public void testUpdateNonExistent() throws Exception {
-        getMockMvc().perform(put("/mfa-providers/invalid")
-            .header("Authorization", "bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(new MfaProvider<>())))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    public void testUpdateForbiddenNonAdmin() throws Exception {
-        getMockMvc().perform(put("/mfa-providers/invalid")
-                .header("Authorization", "bearer " + nonAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(new MfaProvider<>())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    public void testCreateAndUpdateMfaProvider() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
-        mfaProvider.setConfig(null);
-        MvcResult mfaResponse = getMockMvc().perform(
-                post("/mfa-providers")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
-
-        mfaProvider = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
-
-        String updatedName = new RandomValueStringGenerator(5).generate();
-        mfaProvider.setName(updatedName);
+        String name = new RandomValueStringGenerator(5).generate();
+        mfaProvider.setName(name);
         mfaProvider.getConfig().setDigits(13);
+        MvcResult mfaResponse = getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
 
-        MvcResult updateResponse = getMockMvc().perform(
-                put("/mfa-providers/" + mfaProvider.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+        mfaProvider = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
 
-        MfaProvider<GoogleMfaProviderConfig> updatedProvider = JsonUtils.readValue(updateResponse.getResponse().getContentAsString(), MfaProvider.class);
-
-        Assert.assertEquals(HttpStatus.OK.value(), updateResponse.getResponse().getStatus());
-        Assert.assertEquals(13, updatedProvider.getConfig().getDigits());
-        Assert.assertEquals(updatedName, updatedProvider.getName());
-
+        assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
+        assertEquals(13, mfaProvider.getConfig().getDigits());
+        assertEquals(name, mfaProvider.getName());
+        assertNotNull(mfaProvider.getId());
     }
 
     @Test
@@ -168,74 +113,20 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
         mfaProvider.setConfig(null);
         getMockMvc().perform(
-            post("/mfa-providers")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+                post("/mfa-providers")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
 
         getMockMvc().perform(
-            post("/mfa-providers")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(mfaProvider)))
-        .andDo(print())
-            .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error").value("invalid_mfa_provider"))
-        .andExpect(jsonPath("$.error_description").value("An MFA Provider with that name already exists."));
-    }
-
-    @Test
-    public void testUpdateDuplicate() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> firstMfaProvider = constructGoogleProvider();
-        firstMfaProvider.setConfig(null);
-        getMockMvc().perform(
-            post("/mfa-providers")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(firstMfaProvider))).andReturn().getResponse().getContentAsString();
-        MfaProvider<GoogleMfaProviderConfig> secondMfaProvider = constructGoogleProvider();
-        secondMfaProvider  = JsonUtils.readValue(getMockMvc().perform(
-            post("/mfa-providers")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(secondMfaProvider)))
-            .andDo(print())
-            .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), MfaProvider.class);
-
-        secondMfaProvider.setName(firstMfaProvider.getName());
-
-        getMockMvc().perform(
-            put("/mfa-providers/" + secondMfaProvider.getId())
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(secondMfaProvider)))
-            .andExpect(status().isConflict()).andReturn();
-
-    }
-
-    @Test
-    public void testRetrieveMfaProviders() throws Exception {
-        int mfaProvidersCount = mfaProviderProvisioning.retrieveAll(IdentityZoneHolder.get().getId()).size();
-        MvcResult authorization = getMockMvc().perform(
-                get("/mfa-providers")
-                        .header("Authorization", "Bearer " + adminToken)).andReturn();
-
-        Assert.assertEquals(HttpStatus.OK.value(), authorization.getResponse().getStatus());
-        List<MfaProvider> mfaProviders = JsonUtils.readValue(authorization.getResponse().getContentAsString(), List.class);
-        Assert.assertEquals(mfaProvidersCount, mfaProviders.size());
-    }
-
-    @Test
-    public void testRetrieveMfaProviderById() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> createdProvider = constructGoogleMfaProvider();
-        createdProvider.setIdentityZoneId(IdentityZoneHolder.get().getId());
-        createdProvider = mfaProviderProvisioning.create(createdProvider, IdentityZoneHolder.get().getId());
-        MvcResult result = getMockMvc().perform(
-                get("/mfa-providers/" + createdProvider.getId())
-                        .header("Authorization", "Bearer " + adminToken)).andReturn();
-
-        Assert.assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
-        Assert.assertEquals(JsonUtils.writeValueAsString(createdProvider), result.getResponse().getContentAsString());
+                post("/mfa-providers")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(mfaProvider)))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("invalid_mfa_provider"))
+                .andExpect(jsonPath("$.error_description").value("An MFA Provider with that name already exists."));
     }
 
     @Test
@@ -249,42 +140,51 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
                         .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
-        Assert.assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
+        assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
     }
 
     @Test
-    public void testUpdateMfaForOtherZone() throws Exception{
-        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
-
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
-        MvcResult mfaResponse = getMockMvc().perform(
-                post("/mfa-providers")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
-        Assert.assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
-
-        mfaProvider = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
-
-        String updatedName = new RandomValueStringGenerator(5).generate();
-        mfaProvider.setName(updatedName);
-        mfaProvider.getConfig().setDigits(13);
-
-        MvcResult updateResponse = getMockMvc().perform(
-                put("/mfa-providers/" + mfaProvider.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
-        Assert.assertEquals(HttpStatus.OK.value(), updateResponse.getResponse().getStatus());
-
-        MfaProvider<GoogleMfaProviderConfig> updatedProvider = JsonUtils.readValue(updateResponse.getResponse().getContentAsString(), MfaProvider.class);
-        Assert.assertEquals(13, updatedProvider.getConfig().getDigits());
-        Assert.assertEquals(updatedName, updatedProvider.getName());
-
+    public void testUpdateIsNotAllowed() throws Exception {
+        getMockMvc().perform(put("/mfa-providers/invalid")
+            .header("Authorization", "bearer " + adminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(new MfaProvider<>())))
+            .andExpect(status().isMethodNotAllowed());
     }
 
+    @Test
+    public void testUpdateForbiddenNonAdmin() throws Exception {
+        getMockMvc().perform(put("/mfa-providers/invalid")
+            .header("Authorization", "bearer " + nonAdminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(new MfaProvider<>())))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void testRetrieveMfaProviders() throws Exception {
+        int mfaProvidersCount = mfaProviderProvisioning.retrieveAll(IdentityZoneHolder.get().getId()).size();
+        MvcResult authorization = getMockMvc().perform(
+                get("/mfa-providers")
+                        .header("Authorization", "Bearer " + adminToken)).andReturn();
+
+        assertEquals(HttpStatus.OK.value(), authorization.getResponse().getStatus());
+        List<MfaProvider> mfaProviders = JsonUtils.readValue(authorization.getResponse().getContentAsString(), List.class);
+        assertEquals(mfaProvidersCount, mfaProviders.size());
+    }
+
+    @Test
+    public void testRetrieveMfaProviderById() throws Exception {
+        MfaProvider<GoogleMfaProviderConfig> createdProvider = constructGoogleMfaProvider();
+        createdProvider.setIdentityZoneId(IdentityZoneHolder.get().getId());
+        createdProvider = mfaProviderProvisioning.create(createdProvider, IdentityZoneHolder.get().getId());
+        MvcResult result = getMockMvc().perform(
+                get("/mfa-providers/" + createdProvider.getId())
+                        .header("Authorization", "Bearer " + adminToken)).andReturn();
+
+        assertEquals(HttpStatus.OK.value(), result.getResponse().getStatus());
+        assertEquals(JsonUtils.writeValueAsString(createdProvider), result.getResponse().getContentAsString());
+    }
 
     @Test
     public void testGetMfaInOtherZone() throws Exception{
@@ -315,7 +215,7 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
                 get("/mfa-providers/abcd")
                         .header("Authorization", "Bearer " + adminToken)).andReturn();
 
-        Assert.assertEquals(HttpStatus.NOT_FOUND.value(), authorization.getResponse().getStatus());
+        assertEquals(HttpStatus.NOT_FOUND.value(), authorization.getResponse().getStatus());
     }
 
     @Test

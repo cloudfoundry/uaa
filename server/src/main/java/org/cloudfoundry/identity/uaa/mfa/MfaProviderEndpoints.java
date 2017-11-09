@@ -5,7 +5,10 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.mfa.exception.MfaProviderUpdateIsNotAllowed;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -22,10 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
-import static org.springframework.web.bind.annotation.RequestMethod.PUT;
+import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RequestMapping("/mfa-providers")
 @RestController
@@ -34,6 +34,7 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     private ApplicationEventPublisher publisher;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private MfaProviderValidator mfaProviderValidator;
+    private IdentityZoneProvisioning identityZoneProvisioning;
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
@@ -51,16 +52,10 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
         MfaProvider created = mfaProviderProvisioning.create(body,zoneId);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
-    @RequestMapping(value = "{id}", method = PUT)
-    public ResponseEntity<MfaProvider> updateMfaProvider(@PathVariable String id, @RequestBody MfaProvider body) {
-        String zoneId = IdentityZoneHolder.get().getId();
-        mfaProviderProvisioning.retrieve(id, zoneId);
-        body.setId(id);
-        body.setIdentityZoneId(zoneId);
-        mfaProviderValidator.validate(body);
 
-        MfaProvider updated = mfaProviderProvisioning.update(body, zoneId);
-        return new ResponseEntity<>(updated, HttpStatus.OK);
+    @RequestMapping(value = "{id}", method = PUT)
+    public ResponseEntity<MfaProvider> updateMfaProvider() throws MfaProviderUpdateIsNotAllowed {
+        throw new MfaProviderUpdateIsNotAllowed();
     }
 
     @RequestMapping(method = GET)
@@ -104,6 +99,11 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(MfaProviderUpdateIsNotAllowed.class)
+    public ResponseEntity<MfaProviderUpdateIsNotAllowed> handleMfaUpdatingNameOfActiveProvider(MfaProviderUpdateIsNotAllowed e) {
+        return new ResponseEntity<>(HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
     public MfaProviderProvisioning getMfaProviderProvisioning() {
         return mfaProviderProvisioning;
     }
@@ -114,5 +114,9 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
 
     public void setMfaProviderValidator(MfaProviderValidator mfaProviderValidator) {
         this.mfaProviderValidator = mfaProviderValidator;
+    }
+
+    public void setIdentityZoneProvisioning(IdentityZoneProvisioning identityZoneProvisioning) {
+        this.identityZoneProvisioning = identityZoneProvisioning;
     }
 }
