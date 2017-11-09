@@ -57,7 +57,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
 
-        verify(jdbcProvisioner, times(0)).save(any());
+        verify(jdbcProvisioner, times(0)).save(any(), anyString());
         assertEquals(creds, session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
     }
 
@@ -73,7 +73,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
         provisioner.saveUserCredentials(updatedCreds.getUserId(), updatedCreds.getSecretKey(), updatedCreds.getValidationCode(), updatedCreds.getScratchCodes());
 
-        verify(jdbcProvisioner, times(0)).save(any());
+        verify(jdbcProvisioner, times(0)).save(any(), anyString());
 
         assertEquals(updatedCreds, session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
 
@@ -83,18 +83,18 @@ public class UserGoogleMfaCredentialsProvisioningTest {
     public void testPersist() {
         UserGoogleMfaCredentials creds = creds();
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
-        verify(jdbcProvisioner, times(0)).save(any());
+        verify(jdbcProvisioner, times(0)).save(any(), anyString());
 
         provisioner.persistCredentials();
 
-        verify(jdbcProvisioner, times(1)).save(eq(creds));
+        verify(jdbcProvisioner, times(1)).save(eq(creds), IdentityZoneHolder.get().getId());
         assertNull(session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
     }
 
     @Test
     public void testPersist_emptySession() {
         provisioner.persistCredentials();
-        verify(jdbcProvisioner, times(0)).save(any());
+        verify(jdbcProvisioner, times(0)).save(any(), anyString());
         //assume that creds are already in database if session doesn't exist
     }
 
@@ -102,11 +102,11 @@ public class UserGoogleMfaCredentialsProvisioningTest {
     public void testPersist_ErrorsIfAlreadyExists() {
         UserGoogleMfaCredentials creds = creds();
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
-        verify(jdbcProvisioner, times(0)).save(any());
+        verify(jdbcProvisioner, times(0)).save(any(), anyString());
 
         provisioner.persistCredentials();
 
-        doThrow(UserMfaConfigAlreadyExistsException.class).when(jdbcProvisioner).save(any());
+        doThrow(UserMfaConfigAlreadyExistsException.class).when(jdbcProvisioner).save(any(), anyString());
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
         provisioner.persistCredentials();
     }

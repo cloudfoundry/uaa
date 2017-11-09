@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
 import org.springframework.dao.DuplicateKeyException;
@@ -14,20 +17,27 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredentialsProvisioning<UserGoogleMfaCredentials> {
+public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable, UserMfaCredentialsProvisioning<UserGoogleMfaCredentials> {
 
+    private static Log logger = LogFactory.getLog(JdbcUserGoogleMfaCredentialsProvisioning.class);
 
     public static final String TABLE_NAME = "user_google_mfa_credentials";
 
     private static final String CREATE_USER_MFA_CONFIG_SQL =
-            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes, mfa_provider_id) VALUES (?,?,?,?,?)";
+            "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, validation_code, scratch_codes, mfa_provider_id, zone_id) VALUES (?,?,?,?,?,?)";
 
     private static final String UPDATE_USER_MFA_CONFIG_SQL =
-        "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=?, mfa_provider_id=? WHERE user_id=?";
+        "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=?, mfa_provider_id=?, zone_id=? WHERE user_id=?";
 
     private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=?";
 
     private static final String DELETE_USER_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE user_id=?";
+
+    private static final String DELETE_PROVIDER_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE mfa_provider_id=?";
+
+    private static final String DELETE_ZONE_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE zone_id=?";
+
+
 
     private  JdbcTemplate jdbcTemplate;
     private UserMfaCredentialsMapper mapper = new UserMfaCredentialsMapper();
@@ -37,7 +47,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
     }
 
     @Override
-    public void save(UserGoogleMfaCredentials credentials) {
+    public void save(UserGoogleMfaCredentials credentials, String zoneId) {
         try {
             jdbcTemplate.update(CREATE_USER_MFA_CONFIG_SQL, ps -> {
                 int pos = 1;
@@ -46,6 +56,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
                 ps.setInt(pos++, credentials.getValidationCode());
                 ps.setString(pos++, toCSScratchCode(credentials.getScratchCodes()));
                 ps.setString(pos++, credentials.getMfaProviderId());
+                ps.setString(pos++, zoneId);
             });
         } catch (DuplicateKeyException e) {
             throw new UserMfaConfigAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -53,13 +64,14 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
     }
 
     @Override
-    public void update(UserGoogleMfaCredentials credentials) {
+    public void update(UserGoogleMfaCredentials credentials, String zoneId) {
         int updated = jdbcTemplate.update(UPDATE_USER_MFA_CONFIG_SQL, ps -> {
             int pos = 1;
             ps.setString(pos++, credentials.getSecretKey());
             ps.setInt(pos++, credentials.getValidationCode());
             ps.setString(pos++, toCSScratchCode(credentials.getScratchCodes()));
             ps.setString(pos++, credentials.getMfaProviderId());
+            ps.setString(pos++, zoneId);
             ps.setString(pos++, credentials.getUserId());
         });
         retrieve(credentials.getUserId());
@@ -75,8 +87,30 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
     }
 
     @Override
+    public int deleteByUser(String userId, String zoneId) {
+        return delete(userId);
+    }
+
+    @Override
+    public int deleteByMfaProvider(String mfaProviderId, String zoneId) {
+        return jdbcTemplate.update(DELETE_PROVIDER_MFA_CONFIG_SQL, mfaProviderId);
+    }
+
+    @Override
+    public int deleteByIdentityZone(String zoneId) {
+        return jdbcTemplate.update(DELETE_ZONE_MFA_CONFIG_SQL, zoneId);
+    }
+
+    @Override
     public int delete(String userId) {
         return jdbcTemplate.update(DELETE_USER_MFA_CONFIG_SQL, userId);
+    }
+
+
+
+    @Override
+    public Log getLogger() {
+        return logger;
     }
 
     private String toCSScratchCode(List<Integer> scratchCodes) {
@@ -93,6 +127,8 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements UserMfaCredenti
                 fromSCString(rs.getString("scratch_codes"))
             );
             userGoogleMfaCredentials.setMfaProviderId(rs.getString("mfa_provider_id"));
+            userGoogleMfaCredentials.setZoneId(rs.getString("zone_id"));
+
             return userGoogleMfaCredentials;
         }
 

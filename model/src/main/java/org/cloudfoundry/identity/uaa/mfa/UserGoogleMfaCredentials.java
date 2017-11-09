@@ -23,6 +23,7 @@ public class UserGoogleMfaCredentials {
     private List<Integer> scratchCodes;
     private int validationCode;
     private String mfaProviderId;
+    private String ZoneId;
 
 
     public UserGoogleMfaCredentials(String userId, String secretKey, int validationCode, List<Integer> scratchCodes) {
@@ -31,7 +32,6 @@ public class UserGoogleMfaCredentials {
         this.scratchCodes = scratchCodes;
         this.validationCode = validationCode;
     }
-
 
     public String getUserId() {
         return userId;
@@ -67,6 +67,15 @@ public class UserGoogleMfaCredentials {
 
     public String getMfaProviderId() {
         return mfaProviderId;
+    }
+
+    public String getZoneId() {
+        return ZoneId;
+    }
+
+    public UserGoogleMfaCredentials setZoneId(String zoneId) {
+        ZoneId = zoneId;
+        return this;
     }
 
     public UserGoogleMfaCredentials setMfaProviderId(String mfaProviderId) {
