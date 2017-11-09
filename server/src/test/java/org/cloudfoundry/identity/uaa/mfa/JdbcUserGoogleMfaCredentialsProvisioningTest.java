@@ -13,18 +13,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
 
     private JdbcUserGoogleMfaCredentialsProvisioning db;
 
     private final static String MFA_ID = new RandomValueStringGenerator(36).generate();
+    private String zoneId = new RandomValueStringGenerator(36).generate();
+
     @Before
     public void initJdbcScimUserProvisioningTests() throws Exception {
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate);
     }
-
 
     @After
     public void clear() throws Exception {
@@ -37,10 +38,9 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
                 "very_sercret_key",
                 74718234,
-                Arrays.asList(1,22));
-        userGoogleMfaCredentials.setMfaProviderId(MFA_ID);
+                Arrays.asList(1,22)).setMfaProviderId(MFA_ID);
 
-        db.save(userGoogleMfaCredentials);
+        db.save(userGoogleMfaCredentials, zoneId);
         List<Map<String, Object>> credentials = jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials");
         assertEquals(1, credentials.size());
         Map<String, Object> record = credentials.get(0);
@@ -49,6 +49,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         assertEquals(74718234, record.get("validation_code"));
         assertEquals("1,22", record.get("scratch_codes"));
         assertEquals(MFA_ID, record.get("mfa_provider_id"));
+        assertEquals(zoneId, record.get("zone_id"));
     }
 
     // db.save is a jdbcProvisioner method and should throw error when creating duplicate
@@ -60,8 +61,8 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
                 74718234,
                 Arrays.asList(1,22)).setMfaProviderId(MFA_ID);
 
-        db.save(userGoogleMfaCredentials);
-        db.save(userGoogleMfaCredentials);
+        db.save(userGoogleMfaCredentials, zoneId);
+        db.save(userGoogleMfaCredentials, zoneId);
     }
 
     @Test(expected = UserMfaConfigDoesNotExistException.class)
@@ -71,9 +72,8 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
             "very_sercret_key",
             74718234,
             Arrays.asList(1,22));
-        db.update(userGoogleMfaCredentials);
+        db.update(userGoogleMfaCredentials, zoneId);
     }
-
 
     @Test
     public void testUpdateUserGoogleMfaCredentials(){
@@ -84,9 +84,9 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
             Arrays.asList(1,22));
         userGoogleMfaCredentials.setMfaProviderId(MFA_ID);
 
-        db.save(userGoogleMfaCredentials);
+        db.save(userGoogleMfaCredentials, zoneId);
         userGoogleMfaCredentials.setSecretKey("new_secret_key");
-        db.update(userGoogleMfaCredentials);
+        db.update(userGoogleMfaCredentials, zoneId);
 
         UserGoogleMfaCredentials updated = db.retrieve(userGoogleMfaCredentials.getUserId());
         assertEquals("new_secret_key", updated.getSecretKey());
@@ -94,13 +94,14 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
 
     @Test
     public void testRetrieveExisting() {
-        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID));
+        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
         UserGoogleMfaCredentials creds = db.retrieve("user1");
         assertEquals("user1", creds.getUserId());
         assertEquals("secret", creds.getSecretKey());
         assertEquals(12345, creds.getValidationCode());
         assertEquals( Collections.singletonList(123), creds.getScratchCodes());
         assertEquals(MFA_ID, creds.getMfaProviderId());
+        assertEquals(zoneId, creds.getZoneId());
     }
 
     @Test(expected = UserMfaConfigDoesNotExistException.class)
@@ -111,10 +112,31 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     @Test
     public void testDelete() {
         assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
-        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID));
+        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
         assertEquals(1, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
 
         db.delete("user1");
         assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+    }
+
+    @Test
+    public void testDeleteByProvider() {
+        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
+        assertEquals(1, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+
+        db.deleteByMfaProvider(MFA_ID, zoneId);
+        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+    }
+
+    @Test
+    public void testDeleteByZone() {
+        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
+        assertEquals(1, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+
+        db.deleteByIdentityZone(zoneId);
+        assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
+
     }
 }

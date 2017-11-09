@@ -51,13 +51,14 @@ public class UserGoogleMfaCredentialsProvisioning implements ICredentialReposito
 
     public void persistCredentials() {
         HttpSession session = session();
+        String zoneId = IdentityZoneHolder.get().getId();
         UserGoogleMfaCredentials creds = (UserGoogleMfaCredentials) session.getAttribute(SESSION_CREDENTIAL_ATTR_NAME);
         if(creds == null) {
             return;
         }
-        MfaProvider mfaProvider = mfaProviderProvisioning.retrieveByName(IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName(), IdentityZoneHolder.get().getId());
+        MfaProvider mfaProvider = mfaProviderProvisioning.retrieveByName(IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName(), zoneId);
         creds.setMfaProviderId(mfaProvider.getId());
-        jdbcProvisioner.save(creds);
+        jdbcProvisioner.save(creds, zoneId);
         session.removeAttribute(SESSION_CREDENTIAL_ATTR_NAME);
     }
 
