@@ -53,7 +53,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor IDENTITY_ZONE_ID = fieldWithPath("identityZoneId").type(STRING).description(IDENTITY_ZONE_ID_DESC);
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
-    private static final HeaderDescriptor MFA_AUTHORIZATION_HEADER = headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.<zoneId>.admin`");
+    private static final HeaderDescriptor MFA_AUTHORIZATION_HEADER = headerWithName("Authorization").description("Bearer token containing `uaa.admin` or `zones.<zoneId>.admin`");
     private FieldDescriptor[] commonProviderFields = {
             NAME,
             TYPE,
