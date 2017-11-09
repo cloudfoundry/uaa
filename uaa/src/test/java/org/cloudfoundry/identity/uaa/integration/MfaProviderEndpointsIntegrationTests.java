@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class MfaProviderEndpointIntegrationTests {
+public class MfaProviderEndpointsIntegrationTests {
 
     @Autowired
     WebDriver webDriver;
