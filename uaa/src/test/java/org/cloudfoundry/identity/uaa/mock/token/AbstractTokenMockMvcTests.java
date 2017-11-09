@@ -42,6 +42,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -141,21 +142,46 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     }
 
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
-        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, null);
+        return setUpClients(id, authorities, scopes, grantTypes, Collections.singleton(autoapprove.toString()));
     }
+
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Collection<String> autoapproveCollection) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapproveCollection, null);
+    }
+
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
-        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
+        return setUpClients(id, authorities, scopes, grantTypes, Collections.singleton(autoapprove.toString()), redirectUri);
     }
+
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Collection<String> autoapproveCollection, String redirectUri) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapproveCollection, redirectUri, null);
+    }
+
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
-        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, -1);
+        return setUpClients(id, authorities, scopes, grantTypes, Collections.singleton(autoapprove.toString()), redirectUri, allowedIdps);
     }
+
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Collection<String> autoapproveCollection, String redirectUri, List<String> allowedIdps) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapproveCollection, redirectUri, allowedIdps, -1);
+    }
+
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
-        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, null);
+        return setUpClients(id, authorities, scopes, grantTypes, Collections.singleton(autoapprove.toString()), redirectUri, allowedIdps, accessTokenValidity);
     }
+
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Collection<String> autoapproveCollection, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapproveCollection, redirectUri, allowedIdps, accessTokenValidity, null);
+    }
+
     protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
-        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, zone, Collections.emptyMap());
+        return setUpClients(id, authorities, scopes, grantTypes, Collections.singleton(autoapprove.toString()), redirectUri, allowedIdps, accessTokenValidity, zone);
     }
-    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String,Object> additionalInfo) {
+
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Collection<String> autoapproveCollection, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapproveCollection, redirectUri, allowedIdps, accessTokenValidity, zone, Collections.emptyMap());
+    }
+
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Collection<String> autoapproveCollection, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String,Object> additionalInfo) {
         IdentityZone original = IdentityZoneHolder.get();
         if (zone!=null) {
             IdentityZoneHolder.set(zone);
@@ -165,7 +191,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             c.setClientSecret(SECRET);
         }
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
-        c.setAutoApproveScopes(Collections.singleton(autoapprove.toString()));
+        c.setAutoApproveScopes(autoapproveCollection);
         Map<String, Object> additional = new HashMap<>();
         if (allowedIdps!=null && !allowedIdps.isEmpty()) {
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
@@ -173,8 +199,9 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         additional.putAll(additionalInfo);
         c.setAdditionalInformation(additional);
         if (hasText(redirectUri)) {
-            c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));
+            c.setRegisteredRedirectUri(StringUtils.commaDelimitedListToSet(redirectUri));
         }
+
         if (accessTokenValidity>0) {
             c.setAccessTokenValiditySeconds(accessTokenValidity);
         }
