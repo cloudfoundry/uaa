@@ -20,7 +20,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -87,7 +86,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
         provisioner.persistCredentials();
 
-        verify(jdbcProvisioner, times(1)).save(eq(creds), IdentityZoneHolder.get().getId());
+        verify(jdbcProvisioner, times(1)).save(creds, IdentityZoneHolder.get().getId());
         assertNull(session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
     }
 
