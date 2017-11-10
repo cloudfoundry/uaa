@@ -1,6 +1,13 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.RGBLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.qrcode.QRCodeReader;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
+import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
@@ -11,6 +18,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,6 +33,11 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.net.URL;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -49,7 +62,6 @@ public class TotpEndpointIntegrationTests {
     TestClient testClient;
 
     private static final String USER_PASSWORD = "sec3Tas";
-
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -84,14 +96,38 @@ public class TotpEndpointIntegrationTests {
     }
 
     @Test
-    public void testQRCodeScreen() {
+    public void testQRCodeScreen() throws Exception {
         performLogin(username);
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
-        assertThat(webDriver.findElement(By.id("qr")).getAttribute("src"), Matchers.containsString("chart.googleapis"));
+        String imageSrc = webDriver.findElement(By.id("qr")).getAttribute("src");
+        assertThat(imageSrc, Matchers.containsString("chart.googleapis"));
+        String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
+        String secretKey = "";
+        for(String param: qparams) {
+            String[] keyVal = param.split("=");
+            if(keyVal[0].equals("secret")) {
+                secretKey = keyVal[1];
+            }
+        }
+        if(secretKey.isEmpty()) Assert.fail("secret not found");
+        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
+        int verificationCode = authenticator.getTotpPassword(secretKey);
 
         webDriver.findElement(By.id("Next")).click();
         assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
+    }
+
+    private String qrCodeText(String url) throws Exception {
+        QRCodeReader reader = new QRCodeReader();
+        File qrCodeFile = File.createTempFile("qrcode", "png");
+        FileUtils.copyURLToFile(new URL(url), qrCodeFile);
+        BufferedImage image = ImageIO.read(qrCodeFile);
+        int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+        RGBLuminanceSource source = new RGBLuminanceSource(image.getWidth(), image.getHeight(), pixels);
+        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+
+        return reader.decode(bitmap).getText();
     }
 
     @Test
