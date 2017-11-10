@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +39,7 @@ import java.io.File;
 import java.net.URL;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -102,6 +102,7 @@ public class TotpEndpointIntegrationTests {
 
         String imageSrc = webDriver.findElement(By.id("qr")).getAttribute("src");
         assertThat(imageSrc, Matchers.containsString("chart.googleapis"));
+
         String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
         String secretKey = "";
         for(String param: qparams) {
@@ -110,12 +111,19 @@ public class TotpEndpointIntegrationTests {
                 secretKey = keyVal[1];
             }
         }
-        if(secretKey.isEmpty()) Assert.fail("secret not found");
+
+        assertFalse("secret not found", secretKey.isEmpty());
+
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        int verificationCode = authenticator.getTotpPassword(secretKey);
 
         webDriver.findElement(By.id("Next")).click();
         assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
+
+        Integer verificationCode = authenticator.getTotpPassword(secretKey);
+        webDriver.findElement(By.name("code")).sendKeys(verificationCode.toString());
+        webDriver.findElement(By.cssSelector("form button")).click();
+
+        assertEquals(zoneUrl + "/", webDriver.getCurrentUrl());
     }
 
     private String qrCodeText(String url) throws Exception {

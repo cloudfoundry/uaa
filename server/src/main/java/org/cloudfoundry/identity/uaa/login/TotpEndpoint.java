@@ -86,7 +86,7 @@ public class TotpEndpoint {
                 authMethods.addAll(Arrays.asList("otp", "mfa"));
                 sessionAuth.setAuthenticationMethods(authMethods);
                 SecurityContextHolder.getContext().setAuthentication(sessionAuth);
-                return "home";
+                return "redirect:/";
             }
             logger.debug("Code authorization failed for user: " + uaaPrincipal.getId());
             model.addAttribute("error", "Invalid QR code");
