@@ -1,3 +1,4 @@
+
 ---
 analytics:
   code: some-code
@@ -197,6 +198,7 @@ login:
           digits: 6
           duration: 30
           algorithm: SHA256
+          issuer: google.com
 
   prompt:
     password:
