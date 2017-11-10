@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mfa;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.mfa.exception.MfaProviderUpdateIsNotAllowed;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -54,21 +55,9 @@ public class MfaProviderEndpointsTest {
         assertEquals(IdentityZoneHolder.get().getName(), mfaProviderResponseEntity.getBody().getConfig().getIssuer());
     }
 
-    @Test
-    public void testUpdateProvider() {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
-        Mockito.when(provisioning.create(Mockito.any(), Mockito.anyString())).thenReturn(mfaProvider);
-        Mockito.when(provisioning.update(Mockito.any(), Mockito.anyString())).thenReturn(mfaProvider);
-
-        mfaProvider = endpoint.createMfaProvider(mfaProvider).getBody();
-        mfaProvider.setId("providerId");
-        String updatedName = new RandomValueStringGenerator(5).generate();
-        mfaProvider.setName(updatedName);
-
-        MfaProvider<GoogleMfaProviderConfig> updatedMfaProvider = endpoint.updateMfaProvider(mfaProvider.getId(), mfaProvider).getBody();
-
-        assertEquals(updatedName, updatedMfaProvider.getName());
-        assertEquals(mfaProvider.getId(), updatedMfaProvider.getId());
+    @Test(expected = MfaProviderUpdateIsNotAllowed.class)
+    public void testUpdateProvider() throws MfaProviderUpdateIsNotAllowed {
+        endpoint.updateMfaProvider();
     }
 
     @Test

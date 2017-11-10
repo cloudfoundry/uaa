@@ -1328,32 +1328,18 @@ _Error Codes_
 <aside class="warning">
   MFA support is in active development and is not ready for production use.
 </aside>
+<aside class="warning">
+  Update is not supported for MFA provider.
+</aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/http-response.md")).result(binding) %>
 
-_Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/request-headers.md")).result(binding) %>
-
-_Request Fields_
-
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/request-fields.md")).result(binding) %>
-
-_Response Fields_
-
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testUpdateMfaProvider/response-fields.md")).result(binding) %>
 
 _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - JSON body was malformed or missing fields                                                |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-| 422        | Unprocessable Entity - Some values in the MFA configuration are invalid                                |
-| 404        | Not Found - Provider id not found                                                                      |
+| 405        | Method Not Allowed                                                                                     |
 
 
 ## Get

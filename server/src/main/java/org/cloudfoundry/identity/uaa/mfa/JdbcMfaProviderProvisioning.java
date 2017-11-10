@@ -76,20 +76,17 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
     @Override
     public MfaProvider update(MfaProvider provider, String zoneId) {
         try {
-            jdbcTemplate.update(UPDATE_PROVIDER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    int pos = 1;
-                    ps.setString(pos++, provider.getName());
-                    ps.setString(pos++, provider.getType().toValue());
-                    ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
-                    ps.setString(pos++, zoneId);
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+            jdbcTemplate.update(UPDATE_PROVIDER_SQL, ps -> {
+                int pos = 1;
+                ps.setString(pos++, provider.getName());
+                ps.setString(pos++, provider.getType().toValue());
+                ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
+                ps.setString(pos++, zoneId);
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
 
-                    ps.setString(pos++, provider.getId().trim());
-                    ps.setString(pos++, zoneId);
+                ps.setString(pos++, provider.getId().trim());
+                ps.setString(pos++, zoneId);
 
-                }
             });
         } catch (DuplicateKeyException e) {
             String message = e.getMostSpecificCause().getMessage();

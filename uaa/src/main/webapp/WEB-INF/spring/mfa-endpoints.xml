@@ -22,6 +22,7 @@
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderEndpoints">
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="mfaProviderValidator" ref="mfaProviderValidator"/>
+        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
     <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"
