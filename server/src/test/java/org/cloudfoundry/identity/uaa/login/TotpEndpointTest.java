@@ -37,6 +37,8 @@ public class TotpEndpointTest {
     @Rule
     public ExpectedException expection = ExpectedException.none();
     private GoogleAuthenticatorAdapter googleAuthenticatorService;
+    private MfaProvider<GoogleMfaProviderConfig> mfaProvider;
+    private MfaProvider<GoogleMfaProviderConfig> otherMfaProvider;
 
     @Before
     public void setup() {
@@ -46,6 +48,17 @@ public class TotpEndpointTest {
         userGoogleMfaCredentialsProvisioning = mock(UserGoogleMfaCredentialsProvisioning.class);
         mfaProviderProvisioning = mock(MfaProviderProvisioning.class);
         uaaAuthentication = mock(UaaAuthentication.class);
+
+        mfaProvider = new MfaProvider();
+        mfaProvider.setName("provider-name");
+        mfaProvider.setId("provider_id1");
+        mfaProvider.setConfig(new GoogleMfaProviderConfig());
+
+        otherMfaProvider = new MfaProvider();
+        otherMfaProvider.setName("other-provider-name");
+        otherMfaProvider.setId("provider_id2");
+        otherMfaProvider.setConfig(new GoogleMfaProviderConfig());
+
 
         endpoint.setUserGoogleMfaCredentialsProvisioning(userGoogleMfaCredentialsProvisioning);
         endpoint.setMfaProviderProvisioning(mfaProviderProvisioning);
@@ -63,12 +76,9 @@ public class TotpEndpointTest {
     @Test
     public void testGenerateQrUrl() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId)).thenReturn(false);
+        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId, mfaProvider.getId())).thenReturn(false);
 
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider();
-        mfaProvider.setName("provider-name");
-        mfaProvider.setConfig(new GoogleMfaProviderConfig());
-        when(mfaProviderProvisioning.retrieveByName("provider-name", IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
@@ -79,11 +89,30 @@ public class TotpEndpointTest {
     @Test
     public void testGenerateQrUrlForNewUserRegistration() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId)).thenReturn(true);
+
+        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId, mfaProvider.getId())).thenReturn(true);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 
         assertEquals("redirect:/login/mfa/verify", returnView);
+    }
+
+
+    @Test
+    public void testGenerateQrUrlAfterMfaProviderSwitch() throws Exception{
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
+
+        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId, mfaProvider.getId())).thenReturn(true);
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        when(mfaProviderProvisioning.retrieveByName(otherMfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(otherMfaProvider);
+
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(otherMfaProvider.getName());
+
+        String returnView = endpoint.generateQrUrl(session, mock(Model.class));
+
+        assertEquals("qr_code", returnView);
     }
 
     @Test

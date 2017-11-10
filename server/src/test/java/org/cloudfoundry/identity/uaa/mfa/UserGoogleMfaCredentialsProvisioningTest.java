@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -31,6 +32,8 @@ public class UserGoogleMfaCredentialsProvisioningTest {
     UserGoogleMfaCredentialsProvisioning provisioner;
     JdbcUserGoogleMfaCredentialsProvisioning jdbcProvisioner;
     MfaProviderProvisioning mfaProviderProvisioning;
+    private MfaProvider mfaProvider;
+    private MfaProvider otherMfaProvider;
 
     @Before
     public void setup() {
@@ -39,13 +42,15 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
         provisioner = new UserGoogleMfaCredentialsProvisioning();
 
+        mfaProvider = new MfaProvider().setName("abc").setId("abc");
+        otherMfaProvider = new MfaProvider().setName("abcd").setId("abcd");
         jdbcProvisioner = mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
         provisioner.setJdbcProvisioner(jdbcProvisioner);
         mfaProviderProvisioning = mock(MfaProviderProvisioning.class);
         provisioner.setMfaProviderProvisioning(mfaProviderProvisioning);
-        when(mfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenReturn(new MfaProvider().setName("abc").setId("abc"));
+        when(mfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenReturn(mfaProvider);
 
-        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setProviderName("abc"));
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
 
         ((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest().getSession(true);
     }
@@ -113,15 +118,29 @@ public class UserGoogleMfaCredentialsProvisioningTest {
     @Test
     public void testActiveUserCredentialExists() {
         UserGoogleMfaCredentials creds = creds();
-        when(jdbcProvisioner.retrieve(anyString())).thenThrow(UserMfaConfigDoesNotExistException.class).thenThrow(UserMfaConfigDoesNotExistException.class).thenReturn(creds);
-
-        assertFalse("no user in db but activeCredentialExists returned true", provisioner.activeUserCredentialExists("jabbahut"));
+        when(jdbcProvisioner.retrieve(anyString(), eq(mfaProvider.getId()))).thenReturn(creds);
+        when(jdbcProvisioner.retrieve(anyString(), eq(otherMfaProvider.getId()))).thenThrow(UserMfaConfigDoesNotExistException.class);
 
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
-        assertFalse("no user in db but activeCredentialExists returned true", provisioner.activeUserCredentialExists("jabbahut"));
 
         provisioner.persistCredentials();
-        assertTrue("user not shown as active after persisting", provisioner.activeUserCredentialExists("jabbahut"));
+
+        assertTrue("user not persisted for mfa provider", provisioner.activeUserCredentialExists("jabbahut", mfaProvider.getId()));
+        assertFalse("user persisted even though we switched mfaProvider", provisioner.activeUserCredentialExists("jabbahut", otherMfaProvider.getId()));
+    }
+
+    @Test
+    public void testActiveUserCredentialDoesNotExistAcrossProvider() {
+        UserGoogleMfaCredentials creds = creds();
+        when(jdbcProvisioner.retrieve(anyString(), anyString())).thenThrow(UserMfaConfigDoesNotExistException.class).thenThrow(UserMfaConfigDoesNotExistException.class).thenReturn(creds);
+
+        assertFalse("no user in db but activeCredentialExists returned true", provisioner.activeUserCredentialExists("jabbahut", mfaProvider.getId()));
+
+        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
+        assertFalse("no user in db but activeCredentialExists returned true", provisioner.activeUserCredentialExists("jabbahut", mfaProvider.getId()));
+
+        provisioner.persistCredentials();
+        assertTrue("user not shown as active after persisting", provisioner.activeUserCredentialExists("jabbahut", mfaProvider.getId()));
 
     }
 
@@ -139,7 +158,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
     public void testGetSecretKey_NotExistsInSession() {
         UserGoogleMfaCredentials creds = creds();
 
-        when(jdbcProvisioner.retrieve(anyString())).thenReturn(creds);
+        when(jdbcProvisioner.retrieve(anyString(), anyString())).thenReturn(creds);
 
         String key = provisioner.getSecretKey("jabbahut");
         assertEquals("very_sercret_key", key);
@@ -165,10 +184,12 @@ public class UserGoogleMfaCredentialsProvisioningTest {
     }
 
     private UserGoogleMfaCredentials creds() {
-        return new UserGoogleMfaCredentials("jabbahut",
+        UserGoogleMfaCredentials res = new UserGoogleMfaCredentials("jabbahut",
             "very_sercret_key",
             74718234,
-            Arrays.asList(1,22));
+            Arrays.asList(1, 22));
+        res.setMfaProviderId(mfaProvider.getId());
+        return res;
     }
 
     private HttpSession session() {

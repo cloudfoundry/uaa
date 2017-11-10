@@ -23,7 +23,10 @@ public class UserGoogleMfaCredentialsProvisioning implements ICredentialReposito
         HttpSession session = session();
         UserGoogleMfaCredentials creds = (UserGoogleMfaCredentials)session.getAttribute(SESSION_CREDENTIAL_ATTR_NAME);
         if(creds == null) {
-            creds = jdbcProvisioner.retrieve(userId);
+            MfaProvider provider = mfaProviderProvisioning.retrieveByName(
+                    IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName(),
+                    IdentityZoneHolder.get().getId());
+            creds = jdbcProvisioner.retrieve(userId, provider.getId());
         }
         return creds.getSecretKey();
     }
@@ -39,10 +42,10 @@ public class UserGoogleMfaCredentialsProvisioning implements ICredentialReposito
         session.setAttribute(SESSION_CREDENTIAL_ATTR_NAME, creds);
     }
 
-    public boolean activeUserCredentialExists(String userId) {
+    public boolean activeUserCredentialExists(String userId, String mfaProviderId) {
         UserGoogleMfaCredentials retrieved;
         try {
-            retrieved = jdbcProvisioner.retrieve(userId);
+            retrieved = jdbcProvisioner.retrieve(userId, mfaProviderId);
         } catch (UserMfaConfigDoesNotExistException e) {
             return false;
         }

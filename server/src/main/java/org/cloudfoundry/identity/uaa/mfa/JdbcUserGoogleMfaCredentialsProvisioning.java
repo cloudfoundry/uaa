@@ -29,7 +29,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
     private static final String UPDATE_USER_MFA_CONFIG_SQL =
         "UPDATE " + TABLE_NAME + " SET secret_key=?, validation_code=?, scratch_codes=?, mfa_provider_id=?, zone_id=? WHERE user_id=?";
 
-    private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=?";
+    private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=? AND mfa_provider_id=?";
 
     private static final String DELETE_USER_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE user_id=?";
 
@@ -74,13 +74,13 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
             ps.setString(pos++, zoneId);
             ps.setString(pos++, credentials.getUserId());
         });
-        retrieve(credentials.getUserId());
+        retrieve(credentials.getUserId(), credentials.getMfaProviderId());
     }
 
     @Override
-    public UserGoogleMfaCredentials retrieve(String userId) {
+    public UserGoogleMfaCredentials retrieve(String userId, String mfaProviderId) {
         try{
-            return jdbcTemplate.queryForObject(QUERY_USER_MFA_CONFIG_ALL_SQL, mapper, userId);
+            return jdbcTemplate.queryForObject(QUERY_USER_MFA_CONFIG_ALL_SQL, mapper, userId, mfaProviderId);
         } catch(EmptyResultDataAccessException e) {
             throw new UserMfaConfigDoesNotExistException("No Creds for user " +userId);
         }
