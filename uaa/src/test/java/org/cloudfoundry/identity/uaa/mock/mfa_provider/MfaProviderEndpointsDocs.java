@@ -97,33 +97,6 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
                 );
     }
 
-
-    @Test
-    public void testUpdateMfaProvider() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createMfaProviderHelper(getGoogleMfaProvider());
-
-        FieldDescriptor[] idempotentFields = getGoogleMfaProviderFields();
-        Snippet requestFields = requestFields(idempotentFields);
-
-        Snippet responseFields = responseFields(getMfaProviderResponseFields(idempotentFields));
-        getMockMvc().perform(RestDocumentationRequestBuilders.put("/mfa-providers/{id}", mfaProvider.getId())
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(serializeExcludingProperties(mfaProvider, "id", "created", "last_modified", "identityZoneId")))
-                .andExpect(status().isOk())
-                .andDo(document("{ClassName}/{methodName}",
-                        preprocessRequest(prettyPrint()),
-                        preprocessResponse(prettyPrint()),
-                        requestHeaders(
-                                MFA_AUTHORIZATION_HEADER,
-                                IDENTITY_ZONE_ID_HEADER
-                        ),
-                        requestFields,
-                        responseFields)
-                );
-    }
-
     private FieldDescriptor[] getGoogleMfaProviderFields() {
         return (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
                 fieldWithPath("config.algorithm").optional("SHA256").type(STRING).description("Algorithm used for the MFA provider. Google Authenticator supports SHA-256 and SHA-512."),

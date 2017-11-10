@@ -55,21 +55,9 @@ public class MfaProviderEndpointsTest {
         assertEquals(IdentityZoneHolder.get().getName(), mfaProviderResponseEntity.getBody().getConfig().getIssuer());
     }
 
-    @Test
+    @Test(expected = MfaProviderUpdateIsNotAllowed.class)
     public void testUpdateProvider() throws MfaProviderUpdateIsNotAllowed {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
-        Mockito.when(provisioning.create(Mockito.any(), Mockito.anyString())).thenReturn(mfaProvider);
-        Mockito.when(provisioning.update(Mockito.any(), Mockito.anyString())).thenReturn(mfaProvider);
-
-        mfaProvider = endpoint.createMfaProvider(mfaProvider).getBody();
-        mfaProvider.setId("providerId");
-        String updatedName = new RandomValueStringGenerator(5).generate();
-        mfaProvider.setName(updatedName);
-
-        MfaProvider<GoogleMfaProviderConfig> updatedMfaProvider = endpoint.updateMfaProvider().getBody();
-
-        assertEquals(updatedName, updatedMfaProvider.getName());
-        assertEquals(mfaProvider.getId(), updatedMfaProvider.getId());
+        endpoint.updateMfaProvider();
     }
 
     @Test
