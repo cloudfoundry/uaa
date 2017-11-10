@@ -88,14 +88,14 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         userGoogleMfaCredentials.setSecretKey("new_secret_key");
         db.update(userGoogleMfaCredentials, zoneId);
 
-        UserGoogleMfaCredentials updated = db.retrieve(userGoogleMfaCredentials.getUserId());
+        UserGoogleMfaCredentials updated = db.retrieve(userGoogleMfaCredentials.getUserId(), MFA_ID);
         assertEquals("new_secret_key", updated.getSecretKey());
     }
 
     @Test
     public void testRetrieveExisting() {
         db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
-        UserGoogleMfaCredentials creds = db.retrieve("user1");
+        UserGoogleMfaCredentials creds = db.retrieve("user1", MFA_ID);
         assertEquals("user1", creds.getUserId());
         assertEquals("secret", creds.getSecretKey());
         assertEquals(12345, creds.getValidationCode());
@@ -105,8 +105,14 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     }
 
     @Test(expected = UserMfaConfigDoesNotExistException.class)
+    public void testRetrieveExistingDifferentMfaProvider() {
+        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
+        UserGoogleMfaCredentials creds = db.retrieve("user1", "otherMfa");
+    }
+
+    @Test(expected = UserMfaConfigDoesNotExistException.class)
     public void testRetrieveNotExisting() {
-        db.retrieve("user1");
+        db.retrieve("user1", MFA_ID);
     }
 
     @Test

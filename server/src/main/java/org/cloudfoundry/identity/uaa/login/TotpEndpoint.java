@@ -37,14 +37,17 @@ public class TotpEndpoint {
     @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
     public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, IOException {
 
-         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
-         if(uaaPrincipal == null) return "redirect:/login";
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
 
-        if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId())) {
+        if(uaaPrincipal == null) return "redirect:/login";
+
+        String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
+        MfaProvider provider = mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
+
+        if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId(), provider.getId())) {
             return "redirect:/login/mfa/verify";
-        } else{
+        } else {
             String url = googleAuthenticatorService.getOtpAuthURL(uaaPrincipal.getId(), uaaPrincipal.getName());
-            MfaProvider provider = mfaProviderProvisioning.retrieveByName(IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName(), IdentityZoneHolder.get().getId());
             model.addAttribute("qrurl", url);
             model.addAttribute("mfa_provider", provider.getName());
 

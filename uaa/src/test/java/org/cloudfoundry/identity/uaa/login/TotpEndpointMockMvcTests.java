@@ -41,6 +41,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
     private JdbcUserGoogleMfaCredentialsProvisioning jdbcUserGoogleMfaCredentialsProvisioning;
     private IdentityZoneConfiguration uaaZoneConfig;
     private MfaProvider mfaProvider;
+    private MfaProvider otherMfaProvider;
     private String password;
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
 
@@ -64,6 +65,21 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse().getContentAsByteArray(), MfaProvider.class);
+
+        otherMfaProvider = new MfaProvider();
+        otherMfaProvider.setName(new RandomValueStringGenerator(5).generate());
+        otherMfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
+        otherMfaProvider.setIdentityZoneId("uaa");
+        otherMfaProvider.setConfig(new GoogleMfaProviderConfig());
+        otherMfaProvider = JsonUtils.readValue(getMockMvc().perform(
+            post("/mfa-providers")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(otherMfaProvider)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse().getContentAsByteArray(), MfaProvider.class);
+
 
         uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
@@ -96,7 +112,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         performLoginWithSession(user.getUserName(), password, session).andExpect(redirectedUrl("/login/mfa/register"));
         performGetMfaRegister(session).andExpect(view().name("qr_code"));
 
-        assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId()));
+        assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
         UserGoogleMfaCredentials retrieved = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
         String secretKey = retrieved.getSecretKey();
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
@@ -110,6 +126,13 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
                 .session(session))
                 .andExpect(status().isOk())
                 .andExpect(view().name("home"));
+
+        getMockMvc().perform(get("/logout.do")).andReturn();
+        session = new MockHttpSession();
+        performLoginWithSession(user.getUserName(), password, session);
+        performPostVerifyWithCode(session, code)
+            .andExpect(view().name("home"));
+
     }
 
     @Test
@@ -129,7 +152,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         performPostVerifyWithCode(session, code)
             .andExpect(view().name("home"));
 
-        activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId());
+        activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId(), mfaProvider.getId());
         assertNotNull(activeCreds);
         assertEquals(mfaProvider.getId(), activeCreds.getMfaProviderId());
         getMockMvc().perform(get("/logout.do")).andReturn();
@@ -138,6 +161,46 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         performLoginWithSession(user.getUserName(), password, session);
 
         performGetMfaRegister(session).andExpect(redirectedUrl("/uaa/login/mfa/verify"));
+    }
+
+    @Test
+    public void testRegisterFlowWithMfaProviderSwitch()  throws Exception {
+        ScimUser user = createUser();
+
+        MockHttpSession session = new MockHttpSession();
+        performLoginWithSession(user.getUserName(), password, session)
+            .andExpect(redirectedUrl("/login/mfa/register"));
+
+        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+
+        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
+        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
+        int code = authenticator.getTotpPassword(activeCreds.getSecretKey());
+
+        performPostVerifyWithCode(session, code)
+            .andExpect(view().name("home"));
+
+        activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId(), mfaProvider.getId());
+        assertNotNull(activeCreds);
+        assertEquals(mfaProvider.getId(), activeCreds.getMfaProviderId());
+        getMockMvc().perform(get("/logout.do")).andReturn();
+
+        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
+        uaaZoneConfig.getMfaConfig().setProviderName(otherMfaProvider.getName());
+        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+
+        session = new MockHttpSession();
+        performLoginWithSession(user.getUserName(), password, session);
+
+        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+
+        activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
+        authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
+        code = authenticator.getTotpPassword(activeCreds.getSecretKey());
+
+        performPostVerifyWithCode(session, code)
+            .andExpect(view().name("home"));
+
     }
 
     @Test
