@@ -50,11 +50,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 
-/**
- * @author Luke Taylor
- * @author Dave Syer
- *
- */
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
     private final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());

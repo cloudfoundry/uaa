@@ -20,9 +20,13 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.tomcat.jdbc.pool.FairBlockingQueue;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @ManagedResource(
     objectName="cloudfoundry.identity:name=BcryptConcurrency",
@@ -34,15 +38,33 @@ public class LowConcurrencyPasswordEncoder implements PasswordEncoder {
 
     private final PasswordEncoder delegate;
     private final int max;
-    private final FairBlockingQueue<BcrypWaitingResource> exchange = new FairBlockingQueue<>();
+    private final BlockingQueue<BcrypWaitingResource> exchange;
     private final long timeoutMs;
+    private final AtomicLong counter = new AtomicLong(0);
 
-    public LowConcurrencyPasswordEncoder(PasswordEncoder delegate, long timeoutMs) {
+    public LowConcurrencyPasswordEncoder(PasswordEncoder delegate, long timeoutMs, boolean enabled) {
+        this(delegate, timeoutMs, enabled, Runtime.getRuntime());
+    }
+
+    protected LowConcurrencyPasswordEncoder(PasswordEncoder delegate, long timeoutMs, boolean enabled, Runtime runtime) {
         this.delegate = delegate;
         this.timeoutMs = timeoutMs;
-        max = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-        for (int i=0; i<max; i++) {
-            exchange.offer(new BcrypWaitingResource(exchange,"LowConcurrency Waiter Nr:"+i));
+        int processors = runtime.availableProcessors();
+        if (enabled) {
+            switch (processors) {
+                case 1 : max = 1; break;
+                case 2 : max = 1; break;
+                case 3 : max = 2; break;
+                case 4 : max = 3; break;
+                default: max = processors-2;
+            }
+            exchange = new FairBlockingQueue<>();
+            for (int i = 0; i < max; i++) {
+                exchange.offer(new BcrypWaitingResource(exchange, "LowConcurrency Waiter Nr:" + counter.incrementAndGet()));
+            }
+        } else {
+            exchange = null;
+            max = processors;
         }
     }
 
@@ -57,7 +79,7 @@ public class LowConcurrencyPasswordEncoder implements PasswordEncoder {
     }
 
     @Override
-    public String encode(CharSequence rawPassword) {
+    public String encode(CharSequence rawPassword) throws AuthenticationException {
         try (BcrypWaitingResource waiting = waitIfWeNeedTo()) {
             logger.debug("Bcrypt proceed with "+waiting.getName());
             return delegate.encode(rawPassword);
@@ -65,25 +87,34 @@ public class LowConcurrencyPasswordEncoder implements PasswordEncoder {
     }
 
     @Override
-    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+    public boolean matches(CharSequence rawPassword, String encodedPassword) throws AuthenticationException {
         try (BcrypWaitingResource waiting = waitIfWeNeedTo()) {
             logger.debug("Bcrypt proceed with "+waiting.getName());
             return delegate.matches(rawPassword, encodedPassword);
         }
     }
 
-
-    public BcrypWaitingResource waitIfWeNeedTo() {
+    public BcrypWaitingResource waitIfWeNeedTo() throws AuthenticationServiceException {
+        long request = counter.incrementAndGet();
         try {
-            BcrypWaitingResource resource = exchange.poll(timeoutMs, TimeUnit.MILLISECONDS);
-            if (resource==null) {
-                //TODO we should throw some sort of authentication exception
-                throw new IllegalStateException("Timed out waiting for brcypt turn");
+            if (exchange!=null) {
+                BcrypWaitingResource resource = exchange.poll(timeoutMs, TimeUnit.MILLISECONDS);
+                if (resource == null) {
+                    //TODO we should throw some sort of authentication exception
+                    throw new AuthenticationServiceException("System resources busy. Try again.");
+                } else {
+                    return resource;
+                }
             } else {
-                return resource;
+                return new BcrypWaitingResource(null, "Request nr:"+request) {
+                    @Override
+                    public void close() {
+                        //no op
+                    }
+                };
             }
         } catch (InterruptedException e) {
-            throw new IllegalStateException("Bcrypt thread was interrupted", e);
+            throw new AuthenticationServiceException("Bcrypt thread was interrupted, unable to validate.", e);
         }
     }
 
@@ -91,10 +122,10 @@ public class LowConcurrencyPasswordEncoder implements PasswordEncoder {
 
     private static class BcrypWaitingResource implements AutoCloseable {
 
-        private final FairBlockingQueue<BcrypWaitingResource> exchange;
+        private final BlockingQueue<BcrypWaitingResource> exchange;
         private final String name;
 
-        private BcrypWaitingResource(FairBlockingQueue<BcrypWaitingResource> exchange, String name) {
+        private BcrypWaitingResource(BlockingQueue<BcrypWaitingResource> exchange, String name) {
             this.exchange = exchange;
             this.name= name;
         }

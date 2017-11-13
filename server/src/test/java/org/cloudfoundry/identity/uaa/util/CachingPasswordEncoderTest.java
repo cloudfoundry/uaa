@@ -37,7 +37,7 @@ public class CachingPasswordEncoderTest  {
     public static Object[][] parameters() {
         return new Object[][] {
             {new BCryptPasswordEncoder()},
-            {new LowConcurrencyPasswordEncoder(new BCryptPasswordEncoder(), 30000)}
+            {new LowConcurrencyPasswordEncoder(new BCryptPasswordEncoder(), 30000, true)}
         };
     }
 

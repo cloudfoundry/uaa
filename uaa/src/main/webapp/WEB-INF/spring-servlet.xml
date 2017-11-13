@@ -428,7 +428,8 @@
 
     <bean id="bcryptPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.LowConcurrencyPasswordEncoder">
         <constructor-arg name="delegate"  ref="passwdEncoder"/>
-        <constructor-arg name="timeoutMs" value="${scalability.timeout.bcrypt:5000}"/>
+        <constructor-arg name="timeoutMs" value="${system.bcrypt.timeout:5000}"/>
+        <constructor-arg name="enabled" value="${system.bcrypt.protected:true}"/>
     </bean>
 
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">

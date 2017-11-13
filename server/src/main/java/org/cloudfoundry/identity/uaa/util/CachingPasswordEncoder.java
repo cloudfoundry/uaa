@@ -1,6 +1,7 @@
-/*******************************************************************************
+/*
+ * ****************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -9,11 +10,13 @@
  *     separate copyright notices and license terms. Your use of these
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+ * ****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
@@ -81,13 +84,13 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     }
 
     @Override
-    public String encode(CharSequence rawPassword) {
-        //encode we always use the Bcrypt mechanism
+    public String encode(CharSequence rawPassword) throws AuthenticationException {
+        //we always use the Bcrypt mechanism, we never store repeated information
         return getPasswordEncoder().encode(rawPassword);
     }
 
     @Override
-    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+    public boolean matches(CharSequence rawPassword, String encodedPassword) throws AuthenticationException {
         if (isEnabled()) {
             String cacheKey = cacheEncode(rawPassword);
             return internalMatches(cacheKey, rawPassword, encodedPassword);
