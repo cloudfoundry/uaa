@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.util;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.springframework.security.crypto.bcrypt.BCrypt;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.security.crypto.keygen.BytesKeyGenerator;
@@ -62,7 +61,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     private volatile Cache<CharSequence, Set<String>> cache = null;
 
-    private BCryptPasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;
 
     public CachingPasswordEncoder() throws NoSuchAlgorithmException {
         messageDigest = MessageDigest.getInstance("SHA-256");
@@ -77,7 +76,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         return passwordEncoder;
     }
 
-    public void setPasswordEncoder(BCryptPasswordEncoder passwordEncoder) {
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
 

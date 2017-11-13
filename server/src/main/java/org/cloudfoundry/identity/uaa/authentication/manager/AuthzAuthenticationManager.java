@@ -43,7 +43,6 @@ import org.springframework.security.authentication.event.AuthenticationFailureLo
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Calendar;
@@ -67,10 +66,6 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     private String origin;
     private boolean allowUnverifiedUsers = true;
-
-    public AuthzAuthenticationManager(UaaUserDatabase cfusers, IdentityProviderProvisioning providerProvisioning) {
-        this(cfusers, new BCryptPasswordEncoder(), providerProvisioning);
-    }
 
     public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder, IdentityProviderProvisioning providerProvisioning) {
         this.userDatabase = userDatabase;
@@ -132,7 +127,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                         throw new PasswordChangeRequiredException(success, "User password needs to be changed");
                     }
                 }
-                
+
                 if(user.isPasswordChangeRequired()){
                     logger.info("Password change required for user: "+user.getEmail());
                     throw new PasswordChangeRequiredException(success, "User password needs to be changed");
