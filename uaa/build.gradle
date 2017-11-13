@@ -30,7 +30,6 @@ dependencies {
   }
   compile group: 'cglib', name: 'cglib', version:parent.cglibVersion
   runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
-  runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:parent.springSecurityJwtVersion
   runtime group: 'org.springframework.retry', name: 'spring-retry', version:parent.springRetryVersion
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
   runtime group: 'org.postgresql', name: 'postgresql', version:parent.postgresqlVersion
