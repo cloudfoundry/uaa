@@ -28,6 +28,7 @@
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
         <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}" />
         <property name="timeService" ref="timeService"/>
+        <property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
