@@ -62,6 +62,8 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
     private LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
     private boolean enabled = true;
+    private boolean perRequestMetrics = false;
+
     private NotificationPublisher notificationPublisher;
 
     public UaaMetricsFilter() throws IOException {
@@ -75,7 +77,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        UrlGroup uriGroup = getUriGroup(request);
+        UrlGroup uriGroup = enabled ? getUriGroup(request) : null;
         if (uriGroup != null) {
             RequestMetric metric = RequestMetric.start(request.getRequestURI(), uriGroup, timeService.getCurrentTimeMillis());
             try {
@@ -86,8 +88,9 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
-
-                sendRequestTime(uriGroup.getGroup(), metric.getRequestCompleteTime() - metric.getRequestStartTime());
+                if (isPerRequestMetrics()) {
+                    sendRequestTime(uriGroup.getGroup(), metric.getRequestCompleteTime() - metric.getRequestStartTime());
+                }
                 for (String group : Arrays.asList(uriGroup.getGroup(), MetricsUtil.GLOBAL_GROUP)) {
                     MetricsQueue queue = getMetricsQueue(group);
                     queue.offer(metric);
@@ -193,5 +196,13 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     @Override
     public void setNotificationPublisher(NotificationPublisher notificationPublisher) {
         this.notificationPublisher = notificationPublisher;
+    }
+
+    public boolean isPerRequestMetrics() {
+        return perRequestMetrics;
+    }
+
+    public void setPerRequestMetrics(boolean perRequestMetrics) {
+        this.perRequestMetrics = perRequestMetrics;
     }
 }

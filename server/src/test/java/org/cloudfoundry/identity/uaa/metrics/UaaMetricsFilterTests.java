@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.junit.Before;
@@ -30,6 +31,8 @@ import org.springframework.util.MultiValueMap;
 
 import javax.management.Notification;
 import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -44,10 +47,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -61,13 +68,12 @@ public class UaaMetricsFilterTests {
 
     @Before
     public void setup() throws Exception {
-        filter = new UaaMetricsFilter();
+        filter = spy(new UaaMetricsFilter());
         filter.setEnabled(true);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         publisher = mock(NotificationPublisher.class);
         filter.setNotificationPublisher(publisher);
-
         chain = mock(FilterChain.class);
     }
 
@@ -88,6 +94,22 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
+    public void per_request_disabled_by_default() throws Exception {
+        assertFalse(filter.isPerRequestMetrics());
+        performTwoSimpleRequests();
+        verify(filter, never()).sendRequestTime(anyString(), anyLong());
+    }
+
+    @Test
+    public void per_request_enabled() throws Exception {
+        filter.setPerRequestMetrics(true);
+        assertTrue(filter.isPerRequestMetrics());
+        performTwoSimpleRequests();
+        verify(filter, times(2)).sendRequestTime(anyString(), anyLong());
+    }
+
+
+    @Test
     public void url_groups_loaded() throws Exception {
         List<UrlGroup> urlGroups = filter.getUrlGroups();
         assertNotNull(urlGroups);
@@ -100,13 +122,28 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void happy_path() throws Exception {
+    public void disabled() throws Exception {
+        filter.setEnabled(false);
+        performTwoSimpleRequests();
+        MetricsQueue queue = JsonUtils.readValue(filter.getGlobals(), MetricsQueue.class);
+        assertNotNull(queue);
+        assertEquals(0, queue.getTotals().getCount());
+    }
+
+    public String performTwoSimpleRequests() throws ServletException, IOException {
         String path = "/authenticate/test";
         setRequestData(path);
-        for (int status : Arrays.asList(200,500)) {
+        for (int status : Arrays.asList(200, 500)) {
             response.setStatus(status);
             filter.doFilterInternal(request, response, chain);
         }
+        return path;
+    }
+
+    @Test
+    public void happy_path() throws Exception {
+        filter.setPerRequestMetrics(true);
+        String path = performTwoSimpleRequests();
         Map<String, String> summary = filter.getSummary();
         assertNotNull(summary);
         assertFalse(summary.isEmpty());
@@ -141,6 +178,7 @@ public class UaaMetricsFilterTests {
         for (TimeService timeService : Arrays.asList(slowRequestTimeService, new TimeServiceImpl())) {
             reset(publisher);
             filter = new UaaMetricsFilter();
+            filter.setPerRequestMetrics(true);
             filter.setTimeService(timeService);
             filter.setNotificationPublisher(publisher);
             String path = "/authenticate/test";

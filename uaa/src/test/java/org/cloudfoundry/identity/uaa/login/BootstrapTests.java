@@ -220,6 +220,7 @@ public class BootstrapTests {
 
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertTrue(metricsFilter.isEnabled());
+        assertFalse(metricsFilter.isPerRequestMetrics());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
         assertNull(limitedModeUaaFilter.getStatusFile());
@@ -480,6 +481,7 @@ public class BootstrapTests {
 
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertFalse(metricsFilter.isEnabled());
+        assertTrue(metricsFilter.isPerRequestMetrics());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
         assertEquals("/tmp/uaa-test-limited-mode-status-file.txt", limitedModeUaaFilter.getStatusFile().getAbsolutePath());
