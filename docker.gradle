@@ -23,7 +23,7 @@ buildscript {
   }
 
   dependencies {
-    classpath 'com.bmuschko:gradle-docker-plugin:3.0.8'
+    classpath 'com.bmuschko:gradle-docker-plugin:3.0.11'
   }
 }
 
@@ -44,18 +44,24 @@ task createDockerfile(type: Dockerfile) {
   from 'tomcat:8.5-jre8'
   maintainer 'UAA team "$MAINTAINER_EMAIL"'
   instruction 'ENV LOGIN_CONFIG_URL WEB-INF/classes/required_configuration.yml'
-  instruction 'ENV ARTIFACTORY_READER $ARTIFACTORY_READER'
-  instruction 'ENV ARTIFACTORY_READER_PW $ARTIFACTORY_READER_PW'
   instruction 'ENV CLOUD_FOUNDRY_CONFIG_PATH /uaa'
   instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/ROOT"'
   instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/host-manager"'
   instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/manager"'
   instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/examples"'
   instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/docs"'
+  instruction 'RUN bash -c "addgroup --gid 1110 docker"'
+  instruction 'RUN bash -c "adduser --uid 1100 --disabled-password --gecos \'\' dockeruser"'
+  instruction 'RUN bash -c "adduser dockeruser docker"'
   instruction 'ADD cloudfoundry-identity-uaa-' + version + '.war /usr/local/tomcat/webapps/uaa.war'
   instruction 'ADD uaa.yml /uaa/uaa.yml'
   instruction 'RUN bash -c "echo $LOGIN_CONFIG_URL"'
+  instruction 'RUN bash -c "chown -R dockeruser:docker /usr/local/tomcat"'
+  instruction 'RUN bash -c "ls -l /usr/local/tomcat"'
+  instruction 'RUN bash -c "chown -R dockeruser:docker /uaa"'
+  instruction 'RUN bash -c "ls -l /uaa"'
   instruction 'EXPOSE 8080'
+  instruction 'USER dockeruser:docker'
 }
 
 task deleteDockerfile() {
