@@ -9,9 +9,11 @@ import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -20,7 +22,13 @@ import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.junit.Assert.assertEquals;
@@ -44,6 +52,8 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
     private MfaProvider otherMfaProvider;
     private String password;
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
+    private ScimUser user;
+    private MockHttpSession session;
 
     @Before
     public void setup() throws Exception {
@@ -84,6 +94,9 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+
+        user = createUser();
+        session = new MockHttpSession();
     }
 
     @After
@@ -94,11 +107,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
 
     @Test
     public void testRedirectToMfaAfterLogin() throws Exception {
-        ScimUser user = createUser();
-
-        MockHttpSession session = new MockHttpSession();
-
-        performLoginWithSession(user.getUserName(), password, session).andExpect(redirectedUrl("/login/mfa/register"));
+        redirectToMFARegistration();
 
         MockHttpServletResponse response = getMockMvc().perform(get("/profile")
                 .session(session)).andReturn().getResponse();
@@ -107,20 +116,16 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
 
     @Test
     public void testGoogleAuthenticatorLoginFlow() throws Exception {
-        ScimUser user = createUser();
-        MockHttpSession session = new MockHttpSession();
-        performLoginWithSession(user.getUserName(), password, session).andExpect(redirectedUrl("/login/mfa/register"));
-        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+        redirectToMFARegistration();
+
+        performGetMfaRegister().andExpect(view().name("qr_code"));
 
         assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
-        UserGoogleMfaCredentials retrieved = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
-        String secretKey = retrieved.getSecretKey();
-        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        int code = authenticator.getTotpPassword(secretKey);
 
-        performPostVerifyWithCode(session, code)
-                .andExpect(view().name("home"));
+        int code = getMFACodeFromSession();
 
+        MockHttpServletResponse response = performPostVerifyWithCode(code).andReturn().getResponse();
+        assertEquals("/", response.getRedirectedUrl());
 
         getMockMvc().perform(get("/")
                 .session(session))
@@ -128,59 +133,87 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
                 .andExpect(view().name("home"));
 
         getMockMvc().perform(get("/logout.do")).andReturn();
-        session = new MockHttpSession();
-        performLoginWithSession(user.getUserName(), password, session);
-        performPostVerifyWithCode(session, code)
-            .andExpect(view().name("home"));
 
+        session = new MockHttpSession();
+        performLoginWithSession();
+        performPostVerifyWithCode(code)
+            .andExpect(view().name("home"));
+    }
+
+    @Test
+    public void testMFARegistrationHonorsRedirectUri() throws Exception {
+        ClientDetailsModification client = MockMvcUtils.utils()
+                .getClientDetailsModification("auth-client-id", "secret",
+                        Collections.emptyList(), Arrays.asList("openid"), Arrays.asList("authorization_code"), "uaa.resource",
+                            Collections.singleton("http://example.com"));
+        client.setAutoApproveScopes(Arrays.asList("openid"));
+        Map<String, String> information = new HashMap<>();
+        information.put("autoapprove", "true");
+        client.setAdditionalInformation(information);
+
+        BaseClientDetails authcodeClient = MockMvcUtils.utils().createClient(getMockMvc(),adminToken, client, IdentityZone.getUaa(), status().isCreated());
+
+        //Not using param function because params won't end up in paramsMap.
+        String oauthUrl = "/oauth/authorize?client_id=auth-client-id&client_secret=secret&redirect_uri=http://example.com";
+        getMockMvc().perform(get(oauthUrl)
+                .session(session)
+                .with(cookieCsrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+
+        performLoginWithSession().andExpect(redirectedUrl("/login/mfa/register"));
+        performGetMfaRegister();
+
+        int code = getMFACodeFromSession();
+        performPostVerifyWithCode(code)
+                .andExpect(redirectedUrl("http://localhost/oauth/authorize?client_id=auth-client-id&client_secret=secret&redirect_uri=http://example.com"));
+    }
+
+    @Test
+    public void testQRCodeCannotBeSubmittedWithoutLoggedInSession() throws Exception {
+        getMockMvc().perform(post("/login/mfa/verify.do")
+                    .param("code", "1234")
+                    .with(cookieCsrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
     public void testQRCodeRedirectIfCodeValidated()  throws Exception {
-        ScimUser user = createUser();
 
-        MockHttpSession session = new MockHttpSession();
-        performLoginWithSession(user.getUserName(), password, session)
-            .andExpect(redirectedUrl("/login/mfa/register"));
+        redirectToMFARegistration();
 
-        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("qr_code"));
 
-        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
-        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        int code = authenticator.getTotpPassword(activeCreds.getSecretKey());
+        int code = getMFACodeFromSession();
 
-        performPostVerifyWithCode(session, code)
+        performPostVerifyWithCode(code)
             .andExpect(view().name("home"));
 
-        activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId(), mfaProvider.getId());
+        UserGoogleMfaCredentials activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId(), mfaProvider.getId());
         assertNotNull(activeCreds);
         assertEquals(mfaProvider.getId(), activeCreds.getMfaProviderId());
         getMockMvc().perform(get("/logout.do")).andReturn();
 
         session = new MockHttpSession();
-        performLoginWithSession(user.getUserName(), password, session);
+        performLoginWithSession();
 
-        performGetMfaRegister(session).andExpect(redirectedUrl("/uaa/login/mfa/verify"));
+        performGetMfaRegister().andExpect(redirectedUrl("/uaa/login/mfa/verify"));
     }
 
     @Test
     public void testRegisterFlowWithMfaProviderSwitch()  throws Exception {
-        ScimUser user = createUser();
 
-        MockHttpSession session = new MockHttpSession();
-        performLoginWithSession(user.getUserName(), password, session)
-            .andExpect(redirectedUrl("/login/mfa/register"));
+        redirectToMFARegistration();
 
-        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("qr_code"));
 
-        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
-        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        int code = authenticator.getTotpPassword(activeCreds.getSecretKey());
+        int code = getMFACodeFromSession();
 
-        performPostVerifyWithCode(session, code)
+        performPostVerifyWithCode(code)
             .andExpect(view().name("home"));
 
-        activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId(), mfaProvider.getId());
+        UserGoogleMfaCredentials activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId(), mfaProvider.getId());
         assertNotNull(activeCreds);
         assertEquals(mfaProvider.getId(), activeCreds.getMfaProviderId());
         getMockMvc().perform(get("/logout.do")).andReturn();
@@ -190,32 +223,26 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
 
         session = new MockHttpSession();
-        performLoginWithSession(user.getUserName(), password, session);
+        performLoginWithSession();
 
-        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("qr_code"));
 
-        activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
-        authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        code = authenticator.getTotpPassword(activeCreds.getSecretKey());
+        code = getMFACodeFromSession();
 
-        performPostVerifyWithCode(session, code)
+        performPostVerifyWithCode(code)
             .andExpect(view().name("home"));
-
     }
 
     @Test
     public void testQRCodeRedirectIfCodeNotValidated()  throws Exception {
-        ScimUser user = createUser();
+        redirectToMFARegistration();
 
-        MockHttpSession session = new MockHttpSession();
-        performLoginWithSession(user.getUserName(), password, session).andExpect(redirectedUrl("/login/mfa/register"));
-
-        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("qr_code"));
 
         UserGoogleMfaCredentials inActiveCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
         assertNotNull(inActiveCreds);
 
-        performGetMfaRegister(session).andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("qr_code"));
     }
 
     private ScimUser createUser() throws Exception{
@@ -228,27 +255,38 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         return user;
     }
 
-    private ResultActions performLoginWithSession(String userName, String password, MockHttpSession session) throws Exception {
+    private ResultActions performLoginWithSession() throws Exception {
         return getMockMvc().perform( post("/login.do")
             .session(session)
-            .param("username", userName)
+            .param("username", user.getUserName())
             .param("password", password)
             .with(cookieCsrf()))
             .andDo(print())
             .andExpect(status().isFound());
     }
 
-    private ResultActions performPostVerifyWithCode(MockHttpSession session, int code) throws Exception {
+    private ResultActions performPostVerifyWithCode(int code) throws Exception {
         return getMockMvc().perform(post("/login/mfa/verify.do")
             .param("code", Integer.toString(code))
             .session(session)
             .with(cookieCsrf()))
-            .andExpect(status().isOk());
+            .andExpect(status().is3xxRedirection());
     }
 
-    private ResultActions performGetMfaRegister(MockHttpSession session) throws Exception {
+    private ResultActions performGetMfaRegister() throws Exception {
         return getMockMvc().perform(get("/uaa/login/mfa/register")
             .session(session)
             .contextPath("/uaa"));
+    }
+
+    private void redirectToMFARegistration() throws Exception {
+        performLoginWithSession()
+                .andExpect(redirectedUrl("/login/mfa/register"));
+    }
+
+    private int getMFACodeFromSession() {
+        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
+        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
+        return authenticator.getTotpPassword(activeCreds.getSecretKey());
     }
 }

@@ -126,6 +126,20 @@ public class TotpEndpointIntegrationTests {
         assertEquals(zoneUrl + "/", webDriver.getCurrentUrl());
     }
 
+    @Test
+    public void testMfaRegisterPageWithoutLoggingIn() {
+        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("/login/mfa/register");
+        assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
+    }
+
+    @Test
+    public void testMfaVerifyPageWithoutLoggingIn() {
+        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("/login/mfa/verify");
+        assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
+    }
+
     private String qrCodeText(String url) throws Exception {
         QRCodeReader reader = new QRCodeReader();
         File qrCodeFile = File.createTempFile("qrcode", "png");

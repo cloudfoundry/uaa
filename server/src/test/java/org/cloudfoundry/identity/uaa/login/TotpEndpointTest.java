@@ -16,8 +16,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.ui.Model;
+import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER;
@@ -39,6 +43,10 @@ public class TotpEndpointTest {
     private GoogleAuthenticatorAdapter googleAuthenticatorService;
     private MfaProvider<GoogleMfaProviderConfig> mfaProvider;
     private MfaProvider<GoogleMfaProviderConfig> otherMfaProvider;
+    private SavedRequestAwareAuthenticationSuccessHandler mockSuccessHandler;
+
+    HttpServletResponse mockResponse;
+    HttpServletRequest mockRequest;
 
     @Before
     public void setup() {
@@ -64,6 +72,12 @@ public class TotpEndpointTest {
         endpoint.setMfaProviderProvisioning(mfaProviderProvisioning);
         googleAuthenticatorService = mock(GoogleAuthenticatorAdapter.class);
         endpoint.setGoogleAuthenticatorService(googleAuthenticatorService);
+
+        mockSuccessHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
+        endpoint.setRedirectingHandler(mockSuccessHandler);
+
+        mockRequest = mock(HttpServletRequest.class);
+        mockResponse = mock(HttpServletResponse.class);
 
         when(session.getAttribute(MFA_VALIDATE_USER)).thenReturn(uaaAuthentication);
     }
@@ -138,9 +152,9 @@ public class TotpEndpointTest {
         when(googleAuthenticatorService.isValidCode(userId, code)).thenReturn(true);
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
 
-        String returnView = endpoint.validateCode(mock(Model.class), session, Integer.toString(code));
+        ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse,  Integer.toString(code));
 
-        assertEquals("home", returnView);
+        assertEquals("home", returnView.getViewName());
     }
 
     @Test
@@ -149,21 +163,19 @@ public class TotpEndpointTest {
         when(googleAuthenticatorService.isValidCode(userId, code)).thenReturn(true);
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
 
-        endpoint.validateCode(mock(Model.class), session, Integer.toString(code));
+        endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, Integer.toString(code));
         verify(userGoogleMfaCredentialsProvisioning).persistCredentials();
 
     }
-
-
 
     @Test
     public void testInvalidOTPReturnsError() throws Exception{
         int code = 1234;
         when(googleAuthenticatorService.isValidCode(userId, code)).thenReturn(false);
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        String returnView = endpoint.validateCode(mock(Model.class), session, Integer.toString(code));
+        ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, Integer.toString(code));
 
-        assertEquals("enter_code", returnView);
+        assertEquals("enter_code", returnView.getViewName());
     }
 
     @Test
@@ -171,22 +183,22 @@ public class TotpEndpointTest {
         int code = 1234;
         when(googleAuthenticatorService.isValidCode(userId, code)).thenThrow(new GoogleAuthenticatorException("Thou shall not pass"));
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        String returnView = endpoint.validateCode(mock(Model.class), session, Integer.toString(code));
+        ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, Integer.toString(code));
 
-        assertEquals("enter_code", returnView);
+        assertEquals("enter_code", returnView.getViewName());
     }
 
     @Test
     public void testEmptyOTP() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        String returnView = endpoint.validateCode(mock(Model.class), session, "");
-        assertEquals("enter_code", returnView);
+        ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, "");
+        assertEquals("enter_code", returnView.getViewName());
     }
 
     @Test
     public void testNonNumericOTP() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
-        String returnView = endpoint.validateCode(mock(Model.class), session, "asdf123");
-        assertEquals("enter_code", returnView);
+        ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, "asdf123");
+        assertEquals("enter_code", returnView.getViewName());
     }
 }
