@@ -164,7 +164,7 @@ public class TotpEndpointIntegrationTests {
         webDriver.findElement(By.name("code")).sendKeys("1111111111111111112222");
 
         webDriver.findElement(By.id("verify_code_btn")).click();
-        assertEquals("Invalid QR code", webDriver.findElement(By.cssSelector("form .error-color")).getText());
+        assertEquals("Incorrect code, please try again.", webDriver.findElement(By.cssSelector("form .error-color")).getText());
     }
 
     @Test
