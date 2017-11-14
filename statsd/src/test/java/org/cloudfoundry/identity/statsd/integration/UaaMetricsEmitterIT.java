@@ -78,10 +78,10 @@ public class UaaMetricsEmitterIT {
         "uaa.requests.global.completed.time",
         "uaa.database.global.unhealthy.time",
         "uaa.database.global.unhealthy.count",
-        "uaa.requests.ui.completed.count",
-        "uaa.requests.ui.completed.time",
+        "uaa.requests.ui.completed.count", //this fails standalone since there are no UI requests in pre batch
+        "uaa.requests.ui.completed.time",  //this fails standalone since there are no UI requests in pre batch
         "uaa.server.up.time",
-        "uaa.requests.ui.latency",
+        "uaa.requests.ui.latency",         //this fails standalone since there are no UI requests in pre batch
         "uaa.server.idle.time",
         "uaa.vitals.vm.cpu.count",
         "uaa.vitals.vm.cpu.load",
@@ -96,8 +96,6 @@ public class UaaMetricsEmitterIT {
         "uaa.vitals.jvm.heap.max",
         "uaa.vitals.jvm.non-heap.init",
         "uaa.vitals.jvm.non-heap.committed"
-//        ,"uaa.vitals.jvm.non-heap.used", //max return -1 and are not emitted
-//        "uaa.vitals.jvm.non-heap.max"    //max return -1 and are not emitted
     );
     private static Map<String, String> secondBatch;
 

@@ -277,6 +277,7 @@
 
     <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
         <property name="enabled" value="${metrics.enabled:true}"/>
+        <property name="perRequestMetrics" value="${metrics.perRequestMetrics:false}"/>
     </bean>
 
     <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
