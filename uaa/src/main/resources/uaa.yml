@@ -106,7 +106,6 @@
 #    iW6F91XDTVtAMtDTJwIDAQABMA0GCSqGSIb3DQEBBQUAA0EATFGpEIprKYcnc+JuNcSQ8v2P2J7e
 #    lQ23NhTaljASF0g8AZ7SZEItU8JFYqf/KnNJ7FPwo4LbMbr7Zg6BRKBvnQ==
 #    -----END CERTIFICATE-----'
-#    sslCertificateAlias: ldaps
 #    tls: <none | simple | external>
 #  externalGroupsWhitelist:
 #    - admin
