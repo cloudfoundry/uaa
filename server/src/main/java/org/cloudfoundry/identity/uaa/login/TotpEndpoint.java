@@ -55,7 +55,7 @@ public class TotpEndpoint {
         if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId(), provider.getId())) {
             return "redirect:/login/mfa/verify";
         } else {
-            String url = googleAuthenticatorService.getOtpAuthURL(uaaPrincipal.getId(), uaaPrincipal.getName());
+            String url = googleAuthenticatorService.getOtpAuthURL(provider.getConfig().getIssuer(), uaaPrincipal.getId(), uaaPrincipal.getName());
             model.addAttribute("qrurl", url);
             model.addAttribute("mfa_provider", provider.getName());
 

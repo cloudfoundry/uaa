@@ -7,8 +7,8 @@ public class GoogleAuthenticatorAdapter {
 
     private GoogleAuthenticator authenticator;
 
-    public String getOtpAuthURL(String userId, String userName) {
-        return GoogleAuthenticatorQRGenerator.getOtpAuthURL("UAA", userName, authenticator.createCredentials(userId));
+    public String getOtpAuthURL(String qrIssuer, String userId, String userName) {
+        return GoogleAuthenticatorQRGenerator.getOtpAuthURL(qrIssuer, userName, authenticator.createCredentials(userId));
     }
 
     public boolean isValidCode(String userId, Integer code) {
