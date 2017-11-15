@@ -68,6 +68,12 @@ public class LowConcurrencyPasswordEncoderTests {
     }
 
     @Test
+    public void waiters_returns_null() throws Exception {
+        setProcessorCount(1);
+        assertEquals(0, encoder.getWaiters());
+    }
+
+    @Test
     public void timeout_throws_auth_exception() throws Exception {
         exception.expect(AuthenticationServiceException.class);
         exception.expectMessage("System resources busy. Try again.");
