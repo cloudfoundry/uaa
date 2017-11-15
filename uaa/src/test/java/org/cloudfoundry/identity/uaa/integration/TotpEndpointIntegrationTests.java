@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.google.zxing.BinaryBitmap;
-import com.google.zxing.RGBLuminanceSource;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
-import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
@@ -35,9 +35,11 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.net.URL;
 import java.net.URLDecoder;
+import java.io.ByteArrayInputStream;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -102,7 +104,6 @@ public class TotpEndpointIntegrationTests {
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
         String imageSrc = webDriver.findElement(By.id("qr")).getAttribute("src");
-        assertThat(imageSrc, Matchers.containsString("chart.googleapis"));
 
         String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
         for(String param : qparams) {
@@ -148,24 +149,24 @@ public class TotpEndpointIntegrationTests {
         assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
     }
 
-    private String qrCodeText(String url) throws Exception {
+    private String qrCodeText(String dataUrl) throws Exception {
         QRCodeReader reader = new QRCodeReader();
-        File qrCodeFile = File.createTempFile("qrcode", "png");
-        FileUtils.copyURLToFile(new URL(url), qrCodeFile);
-        BufferedImage image = ImageIO.read(qrCodeFile);
-        int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
-        RGBLuminanceSource source = new RGBLuminanceSource(image.getWidth(), image.getHeight(), pixels);
-        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+        String[] rawSplit = dataUrl.split(",");
+        assertEquals("data:image/png;base64", rawSplit[0]);
+        byte[] decodedByte = Base64.getDecoder().decode(rawSplit[1]);
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(decodedByte));
+        BufferedImageLuminanceSource source = new BufferedImageLuminanceSource(image);
+        Map<DecodeHintType, Object> hintMap = new HashMap<>();
+        hintMap.put(DecodeHintType.PURE_BARCODE, true);
 
-        return reader.decode(bitmap).getText();
+        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+        return reader.decode(bitmap, hintMap).getText();
     }
 
     @Test
     public void testQRCodeValidation() {
         performLogin(username);
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
-
-        assertThat(webDriver.findElement(By.id("qr")).getAttribute("src"), Matchers.containsString("chart.googleapis"));
 
         webDriver.findElement(By.id("Next")).click();
         assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());

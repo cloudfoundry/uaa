@@ -46,4 +46,5 @@ ext {
   validationAPIVersion = '1.0.0.GA'
   velocityVersion = '2.0'
   xalanVersion = '2.7.2'
+  zxingVersion = '3.3.1'
 }
