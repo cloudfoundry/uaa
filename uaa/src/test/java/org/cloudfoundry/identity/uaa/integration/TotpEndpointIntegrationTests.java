@@ -184,11 +184,11 @@ public class TotpEndpointIntegrationTests {
     }
 
     @Test
-    public void testDisplayMfaIssuerOnRegisterPage() {
+    public void testDisplayIdentityZoneNameOnRegisterPage() {
         performLogin(username);
         assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
 
-        assertThat(webDriver.findElement(By.id("mfa-provider")).getText(), Matchers.containsString(mfaProvider.getName()));
+        assertEquals(webDriver.findElement(By.id("mfa-identity-zone")).getText(), "Logged into " + mfaZone.getName());
     }
 
     private void performLogin(String username) {
