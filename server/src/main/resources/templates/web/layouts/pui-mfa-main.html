@@ -22,11 +22,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" media="screen" href="/resources/oss/stylesheets/pui-3.0.0/pivotal-ui.min.css" th:href="@{/resources/oss/stylesheets/pui-3.0.0/pivotal-ui.min.css}"/>
     <link rel="stylesheet" media="screen" href="/resources/oss/stylesheets/pui-3.0.0/flexbox.css" th:href="@{/resources/oss/stylesheets/pui-3.0.0/flexbox.css}"/>
-    <link rel="stylesheet" media="screen" href="/resources/oss/stylesheets/chooser.css" th:href="@{/resources/oss/stylesheets/chooser.css}"/>
 </head>
 
-<body class="bg-neutral-10 login">
-    <div th:if="${banner != null && (T(org.springframework.util.StringUtils).hasText(banner.getText()) || T(org.springframework.util.StringUtils).hasText(banner.getLogo()))}" class="login-header"
+<body class="bg-neutral-10">
+    <div th:if="${banner != null && (T(org.springframework.util.StringUtils).hasText(banner.getText()) || T(org.springframework.util.StringUtils).hasText(banner.getLogo()))}" class="banner-header"
             th:with="backgroundColor=${banner.getBackgroundColor() != null ? 'background-color :'+banner.getBackgroundColor()+';' : ''},
                     textColor=${banner.getTextColor() != null ? 'color :'+banner.getTextColor()+';' : ''}"
             th:style="${backgroundColor}+${textColor}">
@@ -39,7 +38,7 @@
         </a>
     </div>
     <div class="page">
-     <div class="login-email panel panel-basic bg-neutral-11 mvxl paxl">
+     <div class="mfa panel panel-basic bg-neutral-11 mvxl paxl">
         <div class="panel-body">
             <div class="txt-c paxl">
                 <img class="img-responsive logo" th:with="logo=${branding.getProductLogo()},defaultLogo=@{${assetBaseUrl+'/images/product-logo.png'}}" th:src="${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}" src="/resources/oss/images/product-logo.png"/>
