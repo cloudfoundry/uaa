@@ -37,6 +37,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
+import java.net.URLDecoder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -104,11 +105,18 @@ public class TotpEndpointIntegrationTests {
         assertThat(imageSrc, Matchers.containsString("chart.googleapis"));
 
         String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
+        for(String param : qparams) {
+            if(param.contains("issuer=")) {
+                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, "UTF-8"));
+                break;
+            }
+        }
         String secretKey = "";
         for(String param: qparams) {
             String[] keyVal = param.split("=");
             if(keyVal[0].equals("secret")) {
                 secretKey = keyVal[1];
+                break;
             }
         }
 
