@@ -69,6 +69,7 @@ public class TotpEndpoint {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
         if(uaaPrincipal == null) return "redirect:/login";
         model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
+        model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
         return "mfa/enter_code";
     }
 
@@ -108,6 +109,7 @@ public class TotpEndpoint {
             model.addAttribute("error", "Can't redirect user");
         }
         model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
+        model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
         return new ModelAndView("mfa/enter_code", model.asMap());
     }
 

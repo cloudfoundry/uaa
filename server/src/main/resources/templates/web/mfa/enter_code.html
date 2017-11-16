@@ -24,14 +24,15 @@
     <th:block layout:include="nav :: nav"></th:block>
 </div>
 <div class="island" layout:fragment="page-content">
-    <h1>Google Authenticator Code</h1>
-    <div class="panel-body">
+    <h4 id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c mbxl"></h4>
+    <h1 class="plxl">Enter your Google Authentication Code</h1>
+    <div class="panel-body plxl">
         <p class="mtxl">
             Enter the 6-digit code displayed in Google Authenticator app:
         </p>
         <form th:action="@{/login/mfa/verify.do}" method="post" novalidate="novalidate">
             <div class="page">
-                <input name="code" type="number" placeholder="Code" autofocus="autofocus" class="form-control mrs txt-c em-high" maxlength="6"/>
+                <input name="code" type="number" placeholder="XXX-XXX" autofocus="autofocus" class="form-control mrs txt-c em-high" maxlength="6"/>
                 <button id= "verify_code_btn" type="submit" class="btn btn-highlight mlxl">Verify</button>
             </div>
             <div th:if="${error}" th:text="${error}" class="error-color mtl"></div>
