@@ -57,7 +57,7 @@ public class TotpEndpoint {
         } else {
             String url = googleAuthenticatorService.getOtpAuthURL(provider.getConfig().getIssuer(), uaaPrincipal.getId(), uaaPrincipal.getName());
             model.addAttribute("qrurl", url);
-            model.addAttribute("mfa_provider", provider.getName());
+            model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
 
             return "qr_code";
         }
