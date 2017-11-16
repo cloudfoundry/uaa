@@ -60,7 +60,7 @@ public class TotpEndpoint {
             model.addAttribute("qrurl", url);
             model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
 
-            return "qr_code";
+            return "mfa/qr_code";
         }
     }
 
@@ -69,7 +69,7 @@ public class TotpEndpoint {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
         if(uaaPrincipal == null) return "redirect:/login";
         model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
-        return "enter_code";
+        return "mfa/enter_code";
     }
 
     @RequestMapping(value = {"/login/mfa/verify.do"}, method = RequestMethod.POST)
@@ -108,7 +108,7 @@ public class TotpEndpoint {
             model.addAttribute("error", "Can't redirect user");
         }
         model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
-        return new ModelAndView("enter_code", model.asMap());
+        return new ModelAndView("mfa/enter_code", model.asMap());
     }
 
     public void setUserGoogleMfaCredentialsProvisioning(UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning) {

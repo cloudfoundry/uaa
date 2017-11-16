@@ -97,7 +97,7 @@ public class TotpEndpointTest {
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 
-        assertEquals("qr_code", returnView);
+        assertEquals("mfa/qr_code", returnView);
     }
 
     @Test
@@ -126,7 +126,7 @@ public class TotpEndpointTest {
 
         String returnView = endpoint.generateQrUrl(session, mock(Model.class));
 
-        assertEquals("qr_code", returnView);
+        assertEquals("mfa/qr_code", returnView);
     }
 
     @Test
@@ -142,7 +142,7 @@ public class TotpEndpointTest {
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
 
         String returnView = endpoint.totpAuthorize(session, mock(Model.class));
-        assertEquals("enter_code", returnView);
+        assertEquals("mfa/enter_code", returnView);
     }
 
 
@@ -175,7 +175,7 @@ public class TotpEndpointTest {
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
         ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, Integer.toString(code));
 
-        assertEquals("enter_code", returnView.getViewName());
+        assertEquals("mfa/enter_code", returnView.getViewName());
     }
 
     @Test
@@ -185,20 +185,20 @@ public class TotpEndpointTest {
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
         ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, Integer.toString(code));
 
-        assertEquals("enter_code", returnView.getViewName());
+        assertEquals("mfa/enter_code", returnView.getViewName());
     }
 
     @Test
     public void testEmptyOTP() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
         ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, "");
-        assertEquals("enter_code", returnView.getViewName());
+        assertEquals("mfa/enter_code", returnView.getViewName());
     }
 
     @Test
     public void testNonNumericOTP() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
         ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, "asdf123");
-        assertEquals("enter_code", returnView.getViewName());
+        assertEquals("mfa/enter_code", returnView.getViewName());
     }
 }
