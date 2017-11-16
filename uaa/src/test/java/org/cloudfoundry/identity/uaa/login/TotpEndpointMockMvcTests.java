@@ -118,7 +118,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
     public void testGoogleAuthenticatorLoginFlow() throws Exception {
         redirectToMFARegistration();
 
-        performGetMfaRegister().andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
         assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
 
@@ -183,7 +183,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
 
         redirectToMFARegistration();
 
-        performGetMfaRegister().andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
         int code = getMFACodeFromSession();
 
@@ -206,7 +206,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
 
         redirectToMFARegistration();
 
-        performGetMfaRegister().andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
         int code = getMFACodeFromSession();
 
@@ -225,7 +225,7 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         session = new MockHttpSession();
         performLoginWithSession();
 
-        performGetMfaRegister().andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
         code = getMFACodeFromSession();
 
@@ -237,12 +237,12 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
     public void testQRCodeRedirectIfCodeNotValidated()  throws Exception {
         redirectToMFARegistration();
 
-        performGetMfaRegister().andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
         UserGoogleMfaCredentials inActiveCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
         assertNotNull(inActiveCreds);
 
-        performGetMfaRegister().andExpect(view().name("qr_code"));
+        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
     }
 
     private ScimUser createUser() throws Exception{

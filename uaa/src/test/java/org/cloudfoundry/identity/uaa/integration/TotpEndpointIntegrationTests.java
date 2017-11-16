@@ -192,6 +192,18 @@ public class TotpEndpointIntegrationTests {
         assertEquals(webDriver.findElement(By.id("mfa-identity-zone")).getText(), "Logged into " + mfaZone.getName());
     }
 
+    @Test
+    public void testDisplayIdentityZoneNameOnVerifyPage() {
+        performLogin(username);
+        webDriver.findElement(By.id("Next")).click();
+        
+        assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
+        assertEquals(webDriver.findElement(By.id("mfa-identity-zone")).getText(), mfaZone.getName());
+
+        webDriver.findElement(By.id("verify_code_btn")).click();
+        assertEquals(webDriver.findElement(By.id("mfa-identity-zone")).getText(), mfaZone.getName());
+    }
+
     private void performLogin(String username) {
         webDriver.get(zoneUrl + "/login");
 
