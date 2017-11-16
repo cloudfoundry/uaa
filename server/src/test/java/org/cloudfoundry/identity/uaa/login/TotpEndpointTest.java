@@ -129,20 +129,18 @@ public class TotpEndpointTest {
         assertEquals("mfa/qr_code", returnView);
     }
 
-    @Test
+    @Test(expected = TotpEndpoint.UaaPrincipalIsNotInSession.class)
     public void testTotpAuthorizePageNoAuthentication() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(null);
-        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
-
-        assertEquals("redirect:/login", returnView);
+        endpoint.totpAuthorize(session, mock(Model.class));
     }
 
     @Test
     public void testTotpAuthorizePage() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
 
-        String returnView = endpoint.totpAuthorize(session, mock(Model.class));
-        assertEquals("mfa/enter_code", returnView);
+        ModelAndView returnView = endpoint.totpAuthorize(session, mock(Model.class));
+        assertEquals("mfa/enter_code", returnView.getViewName());
     }
 
 

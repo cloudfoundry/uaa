@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,11 +45,9 @@ public class TotpEndpoint {
     private SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
 
     @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
-    public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, WriterException, IOException {
+    public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, WriterException, IOException, UaaPrincipalIsNotInSession {
 
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
-
-        if(uaaPrincipal == null) return "redirect:/login";
 
         String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
         MfaProvider provider = mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
@@ -65,12 +64,10 @@ public class TotpEndpoint {
     }
 
     @RequestMapping(value = {"/login/mfa/verify"}, method = RequestMethod.GET)
-    public String totpAuthorize(HttpSession session, Model model) {
+    public ModelAndView totpAuthorize(HttpSession session, Model model) throws UaaPrincipalIsNotInSession {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
-        if(uaaPrincipal == null) return "redirect:/login";
-        model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
-        model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
-        return "mfa/enter_code";
+        return renderEnterCodePage(model, uaaPrincipal);
+
     }
 
     @RequestMapping(value = {"/login/mfa/verify.do"}, method = RequestMethod.POST)
@@ -78,14 +75,9 @@ public class TotpEndpoint {
                                HttpSession session,
                                HttpServletRequest request, HttpServletResponse response,
                                @RequestParam("code") String code)
-            throws NoSuchAlgorithmException, IOException {
+            throws NoSuchAlgorithmException, IOException, UaaPrincipalIsNotInSession {
         UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
-        UaaPrincipal uaaPrincipal;
-        if(sessionAuth != null) {
-            uaaPrincipal = sessionAuth.getPrincipal();
-        } else {
-            return new ModelAndView("redirect:/login", Collections.emptyMap());
-        }
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
 
         try {
             Integer codeValue = Integer.valueOf(code);
@@ -108,9 +100,7 @@ public class TotpEndpoint {
             logger.debug("Error redirecting user: " + uaaPrincipal.getId() + ". Error: " + e.getMessage());
             model.addAttribute("error", "Can't redirect user");
         }
-        model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
-        model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
-        return new ModelAndView("mfa/enter_code", model.asMap());
+        return renderEnterCodePage(model, uaaPrincipal);
     }
 
     public void setUserGoogleMfaCredentialsProvisioning(UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning) {
@@ -125,16 +115,32 @@ public class TotpEndpoint {
         this.googleAuthenticatorService = googleAuthenticatorService;
     }
 
-    private UaaPrincipal getSessionAuthPrincipal(HttpSession session) {
+    @ExceptionHandler(UaaPrincipalIsNotInSession.class)
+    public ModelAndView handleUaaPrincipalIsNotInSession() {
+        return new ModelAndView("redirect:/login", Collections.emptyMap());
+    }
+
+    private ModelAndView renderEnterCodePage(Model model, UaaPrincipal uaaPrincipal) {
+        model.addAttribute("is_first_time_user", userGoogleMfaCredentialsProvisioning.isFirstTimeMFAUser(uaaPrincipal));
+        model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
+        return new ModelAndView("mfa/enter_code", model.asMap());
+    }
+
+    private UaaPrincipal getSessionAuthPrincipal(HttpSession session) throws UaaPrincipalIsNotInSession {
         UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
         if(sessionAuth != null) {
-            return sessionAuth.getPrincipal();
-        } else {
-            return null;
+            UaaPrincipal principal = sessionAuth.getPrincipal();
+            if(principal != null) {
+                return principal;
+            }
         }
+
+        throw new UaaPrincipalIsNotInSession();
     }
 
     public void setRedirectingHandler(SavedRequestAwareAuthenticationSuccessHandler handler) {
         this.redirectingHandler = handler;
     }
+
+    public class UaaPrincipalIsNotInSession extends Exception {}
 }
