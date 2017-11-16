@@ -14,20 +14,13 @@ package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation.PasswordConfirmationException;
 import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -67,16 +60,8 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             if (expiringCode == null) {
                 throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
             }
-            ResetPasswordService.ResetPasswordResponse resetPasswordResponse = service.resetPassword(expiringCode, password);
-            ScimUser user = resetPasswordResponse.getUser();
-            UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
-            UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
-            SecurityContextHolder.getContext().setAuthentication(token);
-            service.updateLastLogonTime(user.getId());
-            if (!"home".equals(resetPasswordResponse.getRedirectUri())) {
-                request.setAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, resetPasswordResponse.getRedirectUri());
-            }
-            handler.onAuthenticationSuccess(request, response, token);
+            service.resetPassword(expiringCode, password);
+            response.sendRedirect(request.getContextPath() + "/login");
         } catch (InvalidPasswordException e) {
             refreshCode(request, expiringCode);
             entryPoint.commence(request, response, new BadCredentialsException(e.getMessagesAsOneString(), e));
