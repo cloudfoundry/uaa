@@ -11,6 +11,7 @@ dependencies {
   compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
 
   compile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
+  compile group: 'com.google.zxing', name: 'javase', version: parent.zxingVersion
 
   compile group: 'org.springframework', name: 'spring-beans', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion

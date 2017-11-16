@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import com.google.zxing.WriterException;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -43,7 +44,7 @@ public class TotpEndpoint {
     private SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
 
     @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
-    public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, IOException {
+    public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, WriterException, IOException {
 
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
 
