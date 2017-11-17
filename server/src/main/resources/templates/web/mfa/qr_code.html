@@ -18,7 +18,7 @@
             layout:decorator="layouts/pui-mfa-main">
 <body>
 <div class="island" layout:fragment="page-content">
-    <p id="mfa-identity-zone" th:text="'Logged into ' + ${identity_zone}" class="txt-c"></p>
+    <p id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c"></p>
     <div class="panel-body">
        <h1 class="mbxl">Setup Multifactor Authentication</h1>
        <ol style="padding-left:1em;">
