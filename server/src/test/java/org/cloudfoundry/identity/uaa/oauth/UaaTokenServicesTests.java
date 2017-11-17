@@ -678,10 +678,34 @@ public class UaaTokenServicesTests {
 
     protected void validateExternalAttributes(OAuth2AccessToken accessToken) {
         Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Map<String, Object> extendedContext = (Map<String, Object>) accessToken.getAdditionalInformation();
         if (tokenEnhancer!=null) {
-            Assert.assertEquals("test", extendedAttributes.get("purpose"));
+            assertEquals("test", extendedAttributes.get("purpose"));
+            assertNotNull(extendedContext);
+            assertNotNull(extendedContext.get("groups"));
+            assertNotNull(extendedContext.get("prop"));
+            assertEquals("nz", ((Map<String, String>) extendedContext.get("prop")).get("country"));
         } else {
             assertNull("External attributes should not exist", extendedAttributes);
+        }
+    }
+
+    @Test
+    public void testCreateAccessTokenExternalContext() throws InterruptedException {
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest();
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
+        Map<String, Object> extendedContext = (Map<String, Object>) refreshedAccessToken.getAdditionalInformation();
+
+        if (tokenEnhancer!=null) {
+            assertNotNull(extendedContext);
+            assertEquals("test", ((Map<String, String>)extendedContext.get("ext_attr")).get("purpose"));
+            assertNotNull(extendedContext.get("groups"));
+            assertNotNull(extendedContext.get("prop"));
+            assertEquals("nz", ((Map<String, String>) extendedContext.get("prop")).get("country"));
+        } else {
+            assertNull("External attributes should not exist", extendedContext.get("ext_attr"));
         }
     }
 

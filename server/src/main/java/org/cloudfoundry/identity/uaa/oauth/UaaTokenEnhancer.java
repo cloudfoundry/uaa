@@ -8,5 +8,6 @@ public interface UaaTokenEnhancer {
 
     Map<String,String> getExternalAttributes(OAuth2Authentication authentication);
 
+    Map<String,Object> enhance(OAuth2Authentication authentication);
 
 }
