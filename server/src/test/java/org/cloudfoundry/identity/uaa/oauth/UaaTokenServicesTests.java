@@ -670,8 +670,13 @@ public class UaaTokenServicesTests {
 
     protected void validateExternalAttributes(OAuth2AccessToken accessToken) {
         Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Map<String, Object> extendedContext = (Map<String, Object>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_CONTEXT);
         if (tokenEnhancer!=null) {
-            Assert.assertEquals("test", extendedAttributes.get("purpose"));
+            assertEquals("test", extendedAttributes.get("purpose"));
+            assertNotNull(extendedContext);
+            assertNotNull(extendedContext.get("groups"));
+            assertNotNull(extendedContext.get("prop"));
+            assertEquals("nz", ((Map<String, String>) extendedContext.get("prop")).get("country"));
         } else {
             assertNull("External attributes should not exist", extendedAttributes);
         }

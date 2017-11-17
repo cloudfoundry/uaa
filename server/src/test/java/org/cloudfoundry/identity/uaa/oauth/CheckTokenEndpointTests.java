@@ -616,6 +616,21 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
+    public void testExtContextInResult() throws Exception {
+        tokenServices.setUaaTokenEnhancer(new TestTokenEnhancer());
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        Map<String, Object> extCtx = result.getExtContext();
+        assertNotNull("external context not present", extCtx);
+        assertEquals("nz", ((Map<String, String>) extCtx.get("prop")).get("country"));
+        assertEquals(2,((ArrayList<String>) extCtx.get("groups")).size());
+        assertEquals("admin", ((ArrayList<String>) extCtx.get("groups")).get(0));
+        assertEquals("editor", ((ArrayList<String>) extCtx.get("groups")).get(1));
+        result.setExtContext(null);
+        assertNull("external context still present", result.getExtContext());
+    }
+
+    @Test
     public void testIssuerInResults() throws Exception {
         tokenServices.setIssuer("http://some.other.issuer");
         tokenServices.afterPropertiesSet();
