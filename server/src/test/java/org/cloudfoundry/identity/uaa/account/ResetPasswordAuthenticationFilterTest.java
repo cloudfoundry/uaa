@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -35,7 +34,6 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletResponse;
-
 import java.sql.Timestamp;
 
 import static junit.framework.TestCase.assertNull;
@@ -94,6 +92,7 @@ public class ResetPasswordAuthenticationFilterTest {
 
 
         response = mock(HttpServletResponse.class);
+
         chain = mock(FilterChain.class);
 
         service = mock(ResetPasswordService.class);
@@ -107,7 +106,7 @@ public class ResetPasswordAuthenticationFilterTest {
 
     @Test
     public void test_happy_day_password_reset() throws Exception {
-        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
+        happy_day_password_reset();
     }
 
     @Test
@@ -115,35 +114,19 @@ public class ResetPasswordAuthenticationFilterTest {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "http://test.com", null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
-        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
+        happy_day_password_reset();
     }
+    
 
-    @Test
-    public void test_happy_day_password_reset_with_null_redirect() throws Exception {
-        reset(service);
-        resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, null, null);
-        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
-        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
-    }
-
-    @Test
-    public void test_happy_day_password_reset_with_home_redirect() throws Exception {
-        reset(service);
-        resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "home", null);
-        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
-        happy_day_password_reset(null);
-    }
-
-
-    public void happy_day_password_reset(String redirectUri) throws Exception {
+    public void happy_day_password_reset() throws Exception {
         filter.doFilterInternal(request, response, chain);
         //do our assertion
         verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
-        verify(authenticationSuccessHandler, times(1)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
-        assertNotNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(authenticationSuccessHandler, times(0)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset");
         verify(chain, times(0)).doFilter(anyObject(), anyObject());
-        verify(service, times(1)).updateLastLogonTime(anyString());
-        assertEquals(redirectUri, request.getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE));
+
     }
 
 
