@@ -152,7 +152,7 @@ public class SamlIdentityProviderConfiguratorTests {
                 }
                 case "simplesamlphp-url" : {
                     ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
-                    assertEquals("http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php", provider.getEntityID());
+                    assertEquals("http://simplesamlphp.oms.identity.team/saml2/idp/metadata.php", provider.getEntityID());
                     break;
                 }
                 case "custom-authncontext" : {

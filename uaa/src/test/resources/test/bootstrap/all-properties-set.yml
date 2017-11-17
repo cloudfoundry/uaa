@@ -431,7 +431,7 @@ logout:
       - https://url2.domain2.com/logout-success
     url: /configured_login
 notifications:
-  url: https://notifications.uaa-acceptance.cf-app.com
+  url: https://notifications.oms.identity.team
 oauth:
   client:
     encoder_cache: false

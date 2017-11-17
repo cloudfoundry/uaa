@@ -149,7 +149,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
         "    simplesamlphp-url:\n" +
         "      storeCustomAttributes: false\n" +
         "      assertionConsumerIndex: 0\n" +
-        "      idpMetadata: http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php\n" +
+        "      idpMetadata: http://simplesamlphp.oms.identity.team/saml2/idp/metadata.php\n" +
         "      metadataTrustCheck: false\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
         "    custom-authncontext:\n" +

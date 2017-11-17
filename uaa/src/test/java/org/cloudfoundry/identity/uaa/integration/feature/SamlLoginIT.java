@@ -1465,7 +1465,7 @@ public class SamlLoginIT {
     public SamlIdentityProviderDefinition getTestURLDefinition() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId("uaa");
-        def.setMetaDataLocation("https://branding.login.uaa-acceptance.cf-app.com/saml/metadata?random="+new RandomValueStringGenerator().generate());
+        def.setMetaDataLocation("https://branding.login.oms.identity.team/saml/metadata?random="+new RandomValueStringGenerator().generate());
         //def.setMetaDataLocation("https://login.run.pivotal.io/saml/metadata");
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
         def.setAssertionConsumerIndex(0);

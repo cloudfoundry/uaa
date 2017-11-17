@@ -29,7 +29,7 @@ public class RestTemplateSSLTest {
     public void test() throws Exception {
         RestTemplate template = new RestTemplateFactory().getRestTemplate(true);
         ExpiringUrlCache cache = new ExpiringUrlCache(1, new TimeServiceImpl(), 1);
-        byte[] data = cache.getUrlContent("https://idp.login.uaa-acceptance.cf-app.com:443/saml/idp/metadata", template);
+        byte[] data = cache.getUrlContent("https://idp.login.oms.identity.team:443/saml/idp/metadata", template);
         assertNotNull(data);
         System.out.println(new String(data));
     }
