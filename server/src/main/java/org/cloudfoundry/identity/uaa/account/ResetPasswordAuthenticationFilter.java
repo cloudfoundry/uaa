@@ -61,7 +61,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
                 throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
             }
             service.resetPassword(expiringCode, password);
-            response.sendRedirect(request.getContextPath() + "/login");
+            response.sendRedirect(request.getContextPath() + "/login?success=password_reset");
         } catch (InvalidPasswordException e) {
             refreshCode(request, expiringCode);
             entryPoint.commence(request, response, new BadCredentialsException(e.getMessagesAsOneString(), e));

@@ -98,7 +98,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login"))
+            .andExpect(redirectedUrl("/login?success=password_reset"))
             .andReturn();
     }
 
@@ -114,7 +114,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login"))
+            .andExpect(redirectedUrl("/login?success=password_reset"))
             .andReturn();
 
         ScimUser userMarissa = getWebApplicationContext().getBean(ScimUserProvisioning.class).retrieve(users.get(0).getId(), IdentityZoneHolder.get().getId());
@@ -178,7 +178,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         getMockMvc().perform(createChangePasswordRequest(user, renderedCode, true, "secret1", "secret1"))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login"));
+            .andExpect(redirectedUrl("/login?success=password_reset"));
     }
 
     private String findInRenderedPage(String renderedContent, String regexPattern) {
@@ -286,7 +286,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         getMockMvc().perform(createChangePasswordRequest(user, "test" + generator.counter.get(), true, "secret1", "secret1")
                 .session(session))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login"));
+                .andExpect(redirectedUrl("/login?success=password_reset"));
 
         getMockMvc().perform(post("/login.do")
             .session(session)
@@ -339,7 +339,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         getMockMvc().perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login"));
+            .andExpect(redirectedUrl("/login?success=password_reset"));
     }
 
     @Test
