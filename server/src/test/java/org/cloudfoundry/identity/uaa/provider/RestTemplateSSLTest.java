@@ -19,7 +19,11 @@ import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.junit.Test;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -28,6 +32,10 @@ public class RestTemplateSSLTest {
     @Test
     public void test() throws Exception {
         RestTemplate template = new RestTemplateFactory().getRestTemplate(true);
+        template.setErrorHandler(new ResponseErrorHandler() {
+            @Override public boolean hasError(ClientHttpResponse response) throws IOException { return false; }
+            @Override public void handleError(ClientHttpResponse response) throws IOException {}
+        });
         ExpiringUrlCache cache = new ExpiringUrlCache(1, new TimeServiceImpl(), 1);
         byte[] data = cache.getUrlContent("https://idp.login.uaa-acceptance.cf-app.com:443/saml/idp/metadata", template);
         assertNotNull(data);
