@@ -167,6 +167,8 @@ public class InvitationsIT {
             webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
             webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
 
+            assertTrue(IntegrationTestUtils.getUser(scimToken, baseUrl, OriginKeys.UAA, email).isVerified());
+
             webDriver.findElement(By.name("username")).sendKeys(email);
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
