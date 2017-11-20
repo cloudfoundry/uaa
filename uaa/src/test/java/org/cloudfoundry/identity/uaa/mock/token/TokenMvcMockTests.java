@@ -116,6 +116,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.Collections;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -1478,12 +1479,72 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
     }
 
+    @Test
+    public void testAccessToken_With_Over_1024_Chars_AutoApprove()  throws Exception {
+          String clientId = "testclient"+ generator.generate();
+          String scopes = getManyScopes("openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN, 600);
+          List<String> autoApproveScopes = Arrays.asList(scopes.split(","));
+          setUpClients(clientId, scopes, scopes, "password,refresh_token", autoApproveScopes);
+
+          String username = "testuser"+ generator.generate();
+          String userScopes = scopes;
+          setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+          MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+                  .param("username", username)
+                  .param("password", SECRET)
+                  .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                  .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                  .param(OAuth2Utils.GRANT_TYPE, "password");
+         MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+
+         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+         assertNotNull(token.get("access_token"));
+         assertNotNull(token.get(REFRESH_TOKEN));
+    }
+
+    @Test
+    public void testAccessToken_With_Over_1024_Chars_RedirectUri()  throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        String scopes = "openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN;
+        List<String> autoApproveScopes = Arrays.asList(scopes.split(","));
+
+        setUpClients(clientId, scopes, scopes, "password,refresh_token", autoApproveScopes, createManyRedirectURIs(300));
+
+        String username = "testuser"+ generator.generate();
+        String userScopes = scopes;
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+                .param("username", username)
+                .param("password", SECRET)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, "password");
+       MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+
+       MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+       Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+       assertNotNull(token.get("access_token"));
+       assertNotNull(token.get(REFRESH_TOKEN));
+    }
+
+    private String createManyRedirectURIs(int multiplier)
+    {
+         StringBuilder builder = new StringBuilder(TEST_REDIRECT_URI);
+         for(int i = 0; i <= multiplier; i++) {
+             builder.append(",").append(TEST_REDIRECT_URI).append(multiplier);
+         }
+         return builder.toString();
+    }
+
     private String getManyScopes(String string, int multiplier) {
-        String largeScopes = string;
+        StringBuilder largeScopes = new StringBuilder(string);
         for(int i = 0; i <= multiplier; i++) {
-            largeScopes = largeScopes + "," + generator.generate();
+            largeScopes.append(",").append(generator.generate());
         }
-        return largeScopes;
+        return largeScopes.toString();
     }
 
     @Test
@@ -2697,7 +2758,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String scopes = "*.*";
         Map<String, Object> additional = new HashMap();
         additional.put(ClientConstants.REQUIRED_USER_GROUPS, Arrays.asList("non.existent"));
-        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, null, null, -1, null, additional);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, Collections.singleton("true"), null, null, -1, null, additional);
         String userId = "testuser"+ generator.generate();
         String userScopes = "scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
