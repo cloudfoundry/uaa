@@ -31,13 +31,6 @@
     max-width: 100%;
 }
 
-.panel.mfa {
-    min-width: 320px;
-    width: 50%;
-    max-width: 600px;
-    border-radius: 5px;
-}
-
 .page .panel .logo {
     max-height: 64px;
     margin: auto;
