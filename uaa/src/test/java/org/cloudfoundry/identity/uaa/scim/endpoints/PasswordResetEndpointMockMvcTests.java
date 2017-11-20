@@ -187,6 +187,16 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post)
             .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl(getWebApplicationContext().getServletContext().getContextPath() +"/login?success=password_reset&form_redirect_uri=http://localhost:8080/app/"));
+
+        post = post("/login.do")
+            .param("username", user.getUserName())
+            .param("password", "newpass")
+            .param("form_redirect_uri", "http://localhost:8080/app/")
+            .with(csrf());
+
+        getMockMvc().perform(post)
+            .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("http://localhost:8080/app/"))
             .andExpect(savedAccountCookie(user));
     }
@@ -295,6 +305,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .contentType(APPLICATION_JSON)
             .param("client_id", clientId)
             .param("redirect_uri", redirectUri)
+            .param("response_type", "code")
             .content(user.getUserName())
             .accept(APPLICATION_JSON);
 

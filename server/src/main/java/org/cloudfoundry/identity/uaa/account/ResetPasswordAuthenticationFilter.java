@@ -23,6 +23,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -60,8 +61,13 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             if (expiringCode == null) {
                 throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
             }
-            service.resetPassword(expiringCode, password);
-            response.sendRedirect(request.getContextPath() + "/login?success=password_reset");
+            ResetPasswordService.ResetPasswordResponse resetPasswordResponse = service.resetPassword(expiringCode, password);
+            String redirectUri = resetPasswordResponse.getRedirectUri();
+            if (!StringUtils.hasText(redirectUri)) {
+                response.sendRedirect(request.getContextPath() + "/login?success=password_reset");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + redirectUri);
+            }
         } catch (InvalidPasswordException e) {
             refreshCode(request, expiringCode);
             entryPoint.commence(request, response, new BadCredentialsException(e.getMessagesAsOneString(), e));

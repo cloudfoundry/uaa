@@ -154,7 +154,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
 
-        assertEquals(baseUrl + "/login", webDriver.getCurrentUrl());
+        assertEquals(baseUrl + "/login?success=password_reset&form_redirect_uri=http://example.redirect.com", webDriver.getCurrentUrl());
     }
 
     @Test
@@ -189,7 +189,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
 
-        assertEquals(baseUrl + "/login?success=password_reset", webDriver.getCurrentUrl());
+        assertEquals(baseUrl + "/login?success=password_reset&form_redirect_uri=home", webDriver.getCurrentUrl());
         assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Password reset successful"));
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys("new_password");
@@ -293,7 +293,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.getCurrentUrl(), is(baseUrl + "/login"));
+        assertThat(webDriver.getCurrentUrl(), is(baseUrl + "/login?success=password_reset&form_redirect_uri=home"));
 
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");

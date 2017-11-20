@@ -31,6 +31,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletResponse;
@@ -106,7 +107,7 @@ public class ResetPasswordAuthenticationFilterTest {
 
     @Test
     public void test_happy_day_password_reset() throws Exception {
-        happy_day_password_reset();
+        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
     }
 
     @Test
@@ -114,19 +115,37 @@ public class ResetPasswordAuthenticationFilterTest {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "http://test.com", null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
-        happy_day_password_reset();
+        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
     }
-    
 
-    public void happy_day_password_reset() throws Exception {
+    @Test
+    public void test_happy_day_password_reset_with_null_redirect() throws Exception {
+        reset(service);
+        resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, null, null);
+        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
+        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
+    }
+
+    @Test
+    public void test_happy_day_password_reset_with_home_redirect() throws Exception {
+        reset(service);
+        resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "home", null);
+        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
+        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
+    }
+
+    public void happy_day_password_reset(String redirectUri) throws Exception {
         filter.doFilterInternal(request, response, chain);
         //do our assertion
         verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
         verify(authenticationSuccessHandler, times(0)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset");
+        if (StringUtils.hasText(redirectUri)) {
+            verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri="+ redirectUri);
+        } else {
+            verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset");
+        }
         verify(chain, times(0)).doFilter(anyObject(), anyObject());
-
     }
 
 
