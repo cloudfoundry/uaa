@@ -145,7 +145,8 @@ public class InvitationsIT {
 
     public void performInviteUser(String email, boolean isVerified) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String code = createInvitation(email, email, "http://localhost:8080/app/", OriginKeys.UAA);
+        String redirectUri = baseUrl + "/profile";
+        String code = createInvitation(email, email, redirectUri, OriginKeys.UAA);
         String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, OriginKeys.UAA, "email", email);
         if (isVerified) {
             ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
@@ -165,7 +166,12 @@ public class InvitationsIT {
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
             webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-            Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Application Authorization"));
+
+            webDriver.findElement(By.name("username")).sendKeys(email);
+            webDriver.findElement(By.name("password")).sendKeys("secr3T");
+            webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+            Assert.assertEquals(redirectUri, webDriver.getCurrentUrl());
         } else {
             //redirect to the home page to login
             Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome!"));

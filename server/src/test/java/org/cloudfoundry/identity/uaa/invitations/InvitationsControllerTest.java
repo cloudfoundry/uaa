@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -117,6 +118,9 @@ public class InvitationsControllerTest {
 
     @Autowired
     DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+
+    @Autowired
+    CookieBasedCsrfTokenRepository loginCookieCsrfRepository;
 
     @Autowired
     ScimUserProvisioning scimUserProvisioning;
@@ -521,9 +525,9 @@ public class InvitationsControllerTest {
 
         when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
 
-        mockMvc.perform(post)
+        MvcResult res = mockMvc.perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/home"));
+            .andExpect(redirectedUrl("/login?success=invite_accepted")).andReturn();
 
         verify(invitationsService).acceptInvitation(anyString(), eq("passw0rd"));
     }
@@ -559,9 +563,10 @@ public class InvitationsControllerTest {
             .param("password_confirmation", "password")
             .param("code", "thecode");
 
+        //TODO verify redirect to login page with success call and redirect as queryparam or sessionparam?
         mockMvc.perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("valid.redirect.com"));
+            .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=valid.redirect.com"));
     }
 
     @Test
@@ -585,9 +590,10 @@ public class InvitationsControllerTest {
             .param("password", "password")
             .param("password_confirmation", "password");
 
+        //TODO verify return login page with redirect attribute to home
         mockMvc.perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/home"));
+            .andExpect(redirectedUrl("/login?success=invite_accepted"));
     }
 
     @Test
@@ -729,6 +735,11 @@ public class InvitationsControllerTest {
         @Bean
         DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager() {
             return mock(DynamicZoneAwareAuthenticationManager.class);
+        }
+
+        @Bean
+        CookieBasedCsrfTokenRepository loginCookieCsrfRepository() {
+            return mock(CookieBasedCsrfTokenRepository.class);
         }
 
     }
