@@ -131,7 +131,7 @@ public class ResetPasswordAuthenticationFilterTest {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "home", null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
-        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
+        happy_day_password_reset("");
     }
 
     public void happy_day_password_reset(String redirectUri) throws Exception {
