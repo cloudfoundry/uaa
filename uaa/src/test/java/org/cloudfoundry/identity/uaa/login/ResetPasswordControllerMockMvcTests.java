@@ -54,6 +54,7 @@ import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -290,7 +291,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         getMockMvc().perform(post("/login.do")
             .session(session)
-            .with(csrf())
+            .with(cookieCsrf())
             .param("username", user.getUserName())
             .param("password", "secret1"))
             .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"));

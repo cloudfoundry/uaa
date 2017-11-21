@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -193,7 +194,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .param("username", user.getUserName())
             .param("password", "newpass")
             .param("form_redirect_uri", "http://localhost:8080/app/")
-            .with(csrf());
+            .with(cookieCsrf());
 
         getMockMvc().perform(post)
             .andExpect(status().is3xxRedirection())

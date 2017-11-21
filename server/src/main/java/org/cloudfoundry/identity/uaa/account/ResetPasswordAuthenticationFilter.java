@@ -63,7 +63,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             }
             ResetPasswordService.ResetPasswordResponse resetPasswordResponse = service.resetPassword(expiringCode, password);
             String redirectUri = resetPasswordResponse.getRedirectUri();
-            if (!StringUtils.hasText(redirectUri)) {
+            if (!StringUtils.hasText(redirectUri) || redirectUri.equals("home")) {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset");
             } else {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + redirectUri);
