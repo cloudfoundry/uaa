@@ -306,7 +306,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
                 .with(csrf())
         )
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl(REDIRECT_URI))
+            .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=" + REDIRECT_URI))
             .andReturn();
 
         assertTrue("User should be verified after password reset", queryUserForField(email, "verified", Boolean.class));
@@ -317,7 +317,8 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
                 .session(session)
                 .accept(MediaType.TEXT_HTML)
         )
-            .andExpect(status().isOk());
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrlPattern("**/login"));
     }
 
     @Test

@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import com.dumbster.smtp.SimpleSmtpServer;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
@@ -20,6 +18,8 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -35,12 +35,15 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -370,6 +373,43 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
         assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
+    }
+
+    @Test
+    public void testCreateAccountGivenSavedRequest() throws Exception {
+        String redirectUrl = "http://test/redirect/oauth/authorize";
+
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest saved = new MockMvcUtils.MockSavedRequest();
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, saved);
+
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        getMockMvc().perform(post("/create_account.do")
+            .param("email", userEmail)
+            .param("password", "secr3T")
+            .param("password_confirmation", "secr3T"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MockHttpServletRequestBuilder get = get("/verify_user")
+            .param("code", "test" + generator.counter.get())
+            .session(session);
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl(redirectUrl)).andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+
+        assertThat(principal.getEmail(), equalTo(userEmail));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
+
     }
 
     @Test
