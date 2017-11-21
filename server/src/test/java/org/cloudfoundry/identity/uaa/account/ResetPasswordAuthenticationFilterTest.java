@@ -140,10 +140,10 @@ public class ResetPasswordAuthenticationFilterTest {
         verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
         verify(authenticationSuccessHandler, times(0)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        if (StringUtils.hasText(redirectUri)) {
-            verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri="+ redirectUri);
-        } else {
+        if (!StringUtils.hasText(redirectUri) || redirectUri.equals("home")) {
             verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset");
+        } else {
+            verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri="+ redirectUri);
         }
         verify(chain, times(0)).doFilter(anyObject(), anyObject());
     }
