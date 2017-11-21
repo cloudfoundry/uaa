@@ -322,13 +322,6 @@ public class UaaResetPasswordServiceTests {
         uaaResetPasswordService.resetUserPassword(userId, "new password");
     }
 
-    @Test
-    public void updateLastLogonForUser() {
-        String userId = "id1";
-        uaaResetPasswordService.updateLastLogonTime(userId);
-        verify(scimUserProvisioning, times(1)).updateLastLogonTime(userId, IdentityZoneHolder.get().getId());
-    }
-
     private ExpiringCode setupResetPassword(String clientId, String redirectUri) {
         ScimUser user = new ScimUser("usermans-id","userman","firstName","lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));

@@ -11,6 +11,10 @@
             <div th:if="${param.error}" class="alert alert-error">
                 <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
             </div>
+            <div th:if="${param.success}" class="alert alert-success">
+                <p th:text="#{'login.' + ${param.success}}">Success Message</p>
+            </div>
+
             <input th:each="prompt,iter : ${prompts}"
                    th:name="${prompt.key}"
                    th:type="${prompt.value[0]}"
