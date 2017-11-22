@@ -26,6 +26,7 @@ import javax.servlet.http.HttpSession;
 
 import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -198,5 +199,30 @@ public class TotpEndpointTest {
         when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
         ModelAndView returnView = endpoint.validateCode(mock(Model.class), session, mockRequest, mockResponse, "asdf123");
         assertEquals("mfa/enter_code", returnView.getViewName());
+    }
+
+    @Test
+    public void testManualRegistration() throws Exception {
+        when(googleAuthenticatorService.getOtpSecret(anyString())).thenReturn("ABCDEFGHIJKLMNOP");
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
+        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId, mfaProvider.getId())).thenReturn(false);
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
+
+        String returnValue = endpoint.manualRegistration(session, mock(Model.class));
+
+        assertEquals("mfa/manual_registration", returnValue);
+    }
+
+    @Test
+    public void testManualRegistrationExistingCredential() throws Exception {
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
+        when(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(userId, mfaProvider.getId())).thenReturn(true);
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
+
+        String returnValue = endpoint.manualRegistration(session, mock(Model.class));
+
+        assertEquals("redirect:/login/mfa/verify", returnValue);
     }
 }

@@ -13,6 +13,10 @@ public class GoogleAuthenticatorAdapter {
         return MfaRegisterQRGenerator.getQRCodePngDataUri(qrIssuer, userName, authenticator.createCredentials(userId));
     }
 
+    public String getOtpSecret(String userId) {
+        return authenticator.createCredentials(userId).getKey();
+    }
+
     public boolean isValidCode(String userId, Integer code) {
         return authenticator.authorizeUser(userId, code);
     }

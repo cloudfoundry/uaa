@@ -103,34 +103,10 @@ public class TotpEndpointIntegrationTests {
 
         String imageSrc = webDriver.findElement(By.id("qr")).getAttribute("src");
 
-        String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
-        for(String param : qparams) {
-            if(param.contains("issuer=")) {
-                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, "UTF-8"));
-                break;
-            }
-        }
-        String secretKey = "";
-        for(String param: qparams) {
-            String[] keyVal = param.split("=");
-            if(keyVal[0].equals("secret")) {
-                secretKey = keyVal[1];
-                break;
-            }
-        }
-
-        assertFalse("secret not found", secretKey.isEmpty());
-
-        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
+        String secretKey = getSecretFromQrImageString(imageSrc);
 
         webDriver.findElement(By.id("Next")).click();
-        assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
-
-        Integer verificationCode = authenticator.getTotpPassword(secretKey);
-        webDriver.findElement(By.name("code")).sendKeys(verificationCode.toString());
-        webDriver.findElement(By.cssSelector("form button")).click();
-
-        assertEquals(zoneUrl + "/", webDriver.getCurrentUrl());
+        verifyCodeOnRegistration(secretKey);
     }
 
     @Test
@@ -200,6 +176,122 @@ public class TotpEndpointIntegrationTests {
 
         webDriver.findElement(By.id("verify_code_btn")).click();
         assertEquals(webDriver.findElement(By.id("mfa-identity-zone")).getText(), mfaZone.getName());
+    }
+
+    @Test
+    public void testManualMfaRegistrationFlow() {
+        performLogin(username);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.linkText("manual setup instructions")).click();
+
+        assertEquals(zoneUrl + "/login/mfa/manual", webDriver.getCurrentUrl());
+
+        String key = webDriver.findElement(By.id("key")).getText();
+        String account = webDriver.findElement(By.id("account")).getText();
+        assertFalse("secret not found", key.isEmpty());
+        assertFalse("account not found", account.isEmpty());
+
+        webDriver.findElement(By.id("Next")).click();
+        assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
+
+        verifyCodeOnRegistration(key);
+    }
+
+    private void verifyCodeOnRegistration(String key) {
+        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
+        Integer verificationCode = authenticator.getTotpPassword(key);
+        webDriver.findElement(By.name("code")).sendKeys(verificationCode.toString());
+        webDriver.findElement(By.cssSelector("form button")).click();
+
+        assertEquals(zoneUrl + "/", webDriver.getCurrentUrl());
+    }
+
+    @Test
+    public void testQRCodeScreen_ClickManualAndReturn() throws Exception{
+        performLogin(username);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.linkText("manual setup instructions")).click();
+        assertEquals(zoneUrl + "/login/mfa/manual", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.id("Back")).click();
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        String imageSrc = webDriver.findElement(By.id("qr")).getAttribute("src");
+
+        String secretKey = getSecretFromQrImageString(imageSrc);
+
+        webDriver.findElement(By.id("Next")).click();
+        verifyCodeOnRegistration(secretKey);
+    }
+
+    @Test
+    public void testManualMfaRegistrationFlow_ClickBackAndManual() {
+        performLogin(username);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.linkText("manual setup instructions")).click();
+        assertEquals(zoneUrl + "/login/mfa/manual", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.id("Back")).click();
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.linkText("manual setup instructions")).click();
+        assertEquals(zoneUrl + "/login/mfa/manual", webDriver.getCurrentUrl());
+
+        String key = webDriver.findElement(By.id("key")).getText();
+        String account = webDriver.findElement(By.id("account")).getText();
+        assertFalse("secret not found", key.isEmpty());
+        assertFalse("account not found", account.isEmpty());
+
+        webDriver.findElement(By.id("Next")).click();
+        assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
+
+        verifyCodeOnRegistration(key);
+    }
+
+    @Test
+    public void testQRCodeScreen_ClickManualClickNextClickBack() throws Exception{
+        performLogin(username);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.linkText("manual setup instructions")).click();
+        assertEquals(zoneUrl + "/login/mfa/manual", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.id("Next")).click();
+        assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
+
+        webDriver.findElement(By.id("Back")).click();
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        String imageSrc = webDriver.findElement(By.id("qr")).getAttribute("src");
+
+        String secretKey = getSecretFromQrImageString(imageSrc);
+
+        assertFalse("secret not found", secretKey.isEmpty());
+
+        webDriver.findElement(By.id("Next")).click();
+        verifyCodeOnRegistration(secretKey);
+    }
+
+    private String getSecretFromQrImageString(String imageSrc) throws Exception {
+        String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
+        for(String param : qparams) {
+            if(param.contains("issuer=")) {
+                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, "UTF-8"));
+                break;
+            }
+        }
+        String secretKey = "";
+        for(String param: qparams) {
+            String[] keyVal = param.split("=");
+            if(keyVal[0].equals("secret")) {
+                secretKey = keyVal[1];
+                break;
+            }
+        }
+        return secretKey;
     }
 
     private void performLogin(String username) {

@@ -63,6 +63,24 @@ public class TotpEndpoint {
         }
     }
 
+    @RequestMapping(value = {"/login/mfa/manual"}, method = RequestMethod.GET)
+    public String manualRegistration(HttpSession session, Model model) throws UaaPrincipalIsNotInSession {
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
+        String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
+        MfaProvider provider = mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
+
+        if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId(), provider.getId())) {
+            return "redirect:/login/mfa/verify";
+        } else {
+            model.addAttribute("issuer", provider.getConfig().getIssuer());
+            model.addAttribute("username", uaaPrincipal.getName());
+            model.addAttribute("mfa_secret", googleAuthenticatorService.getOtpSecret(uaaPrincipal.getId()));
+            model.addAttribute("identity_zone", IdentityZoneHolder.get().getName());
+            return "mfa/manual_registration";
+        }
+
+    }
+
     @RequestMapping(value = {"/login/mfa/verify"}, method = RequestMethod.GET)
     public ModelAndView totpAuthorize(HttpSession session, Model model) throws UaaPrincipalIsNotInSession {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
