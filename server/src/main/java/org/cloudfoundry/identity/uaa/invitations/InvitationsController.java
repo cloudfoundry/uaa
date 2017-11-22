@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -62,6 +60,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -281,17 +280,11 @@ public class InvitationsController {
         } catch (HttpClientErrorException e) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
-        principal = new UaaPrincipal(
-            invitation.getUser().getId(),
-            invitation.getUser().getUserName(),
-            invitation.getUser().getPrimaryEmail(),
-            invitation.getUser().getOrigin(),
-            invitation.getUser().getExternalId(),
-            IdentityZoneHolder.get().getId()
-        );
-        UaaAuthentication authentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return "redirect:" + invitation.getRedirectUri();
+        String res = "redirect:/login?success=invite_accepted";
+        if (!invitation.getRedirectUri().equals("/home")) {
+            res += "&" + FORM_REDIRECT_PARAMETER + "=" + invitation.getRedirectUri();
+        }
+        return res;
     }
 
     private String processErrorReload(String code, Model model, String email, HttpServletResponse response, String errorCode, String error) {

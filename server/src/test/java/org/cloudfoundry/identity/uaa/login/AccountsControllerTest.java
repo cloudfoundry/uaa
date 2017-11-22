@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.AccountsController;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
@@ -41,7 +40,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -53,7 +51,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -217,12 +215,9 @@ public class AccountsControllerTest extends TestClassNullifier {
 
         mockMvc.perform(get)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("//example.com/callback"));
+                .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
 
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-        assertEquals("newly-created-user-id", principal.getId());
-        assertEquals("username", principal.getName());
-        assertEquals("user@example.com", principal.getEmail());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
     @Configuration

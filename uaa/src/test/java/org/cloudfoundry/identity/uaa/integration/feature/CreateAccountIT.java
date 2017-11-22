@@ -107,10 +107,7 @@ public class CreateAccountIT {
         assertFalse(contains(link, "%40"));
 
         webDriver.get(link);
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
-
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
+        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(SECRET);
@@ -148,6 +145,15 @@ public class CreateAccountIT {
 
         webDriver.get(link);
         Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
+
+        webDriver.findElement(By.name("username")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(SECRET);
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        // Authorize the app for some scopes
+        assertEquals("Application Authorization", webDriver.findElement(By.cssSelector("h1")).getText());
+        webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
+        assertEquals("Sample Home Page", webDriver.findElement(By.cssSelector("h1")).getText());
     }
 
     @Test
