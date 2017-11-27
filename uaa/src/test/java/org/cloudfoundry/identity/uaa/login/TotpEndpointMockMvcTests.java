@@ -245,6 +245,32 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
         performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
     }
 
+    @Test
+    public void testManualRegistrationFlow() throws Exception {
+        redirectToMFARegistration();
+
+        assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
+
+        performGetMfaManualRegister().andExpect((view().name("mfa/manual_registration")));
+
+        int code = getMFACodeFromSession();
+
+        MockHttpServletResponse response = performPostVerifyWithCode(code).andReturn().getResponse();
+        assertEquals("/", response.getRedirectedUrl());
+
+        getMockMvc().perform(get("/")
+            .session(session))
+            .andExpect(status().isOk())
+            .andExpect(view().name("home"));
+
+        getMockMvc().perform(get("/logout.do")).andReturn();
+
+        session = new MockHttpSession();
+        performLoginWithSession();
+        performPostVerifyWithCode(code)
+            .andExpect(view().name("home"));
+    }
+
     private ScimUser createUser() throws Exception{
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
 
@@ -275,6 +301,12 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
 
     private ResultActions performGetMfaRegister() throws Exception {
         return getMockMvc().perform(get("/uaa/login/mfa/register")
+            .session(session)
+            .contextPath("/uaa"));
+    }
+
+    private ResultActions performGetMfaManualRegister() throws Exception {
+        return getMockMvc().perform(get("/uaa/login/mfa/manual")
             .session(session)
             .contextPath("/uaa"));
     }
