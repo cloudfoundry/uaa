@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.UserMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
@@ -128,6 +129,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private ResourceMonitor<ScimUser> scimUserResourceMonitor;
 
     private ScimGroupMembershipManager membershipManager;
+
+    private UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
 
     private ApprovalStore approvalStore;
 
@@ -467,6 +470,14 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return status;
     }
 
+    @RequestMapping(value = "/Users/{userId}/mfa", method = RequestMethod.DELETE)
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteMfaRegistration(@PathVariable String userId) {
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
+
+        mfaCredentialsProvisioning.delete(user.getId());
+    }
+
     private ScimUser syncGroups(ScimUser user) {
         if (user == null) {
             return user;
@@ -582,6 +593,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     public void setPasswordValidator(PasswordValidator passwordValidator) {
         this.passwordValidator = passwordValidator;
+    }
+
+    public void setMfaCredentialsProvisioning(UserMfaCredentialsProvisioning mfaCredentialsProvisioning) {
+        this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
     }
 
     public void setCodeStore(ExpiringCodeStore codeStore) {

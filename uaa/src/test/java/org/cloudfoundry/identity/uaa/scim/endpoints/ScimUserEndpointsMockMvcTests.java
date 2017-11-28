@@ -22,6 +22,13 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationConstants;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
+import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -38,6 +45,7 @@ import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.Before;
@@ -69,9 +77,11 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
@@ -105,6 +115,8 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     private ScimUserProvisioning usersRepository;
     private JdbcIdentityProviderProvisioning identityProviderProvisioning;
     private ExpiringCodeStore codeStore;
+    private JdbcUserGoogleMfaCredentialsProvisioning mfaCredentialsProvisioning;
+    private MfaProviderProvisioning mfaProviderProvisioning;
 
     @Before
     public void setUp() throws Exception {
@@ -119,6 +131,8 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
+        mfaCredentialsProvisioning = getWebApplicationContext().getBean(JdbcUserGoogleMfaCredentialsProvisioning.class);
+        mfaProviderProvisioning = getWebApplicationContext().getBean(JdbcMfaProviderProvisioning.class);
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
     }
 
@@ -1074,6 +1088,140 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         }
     }
 
+    @Test
+    public void testDeleteMfaUserCredentials() throws Exception{
+        ScimUser user = createUser(uaaAdminToken);
+        MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        mfaCredentialsProvisioning.save(creds, IdentityZoneHolder.get().getId());
+
+        assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
+
+        MockHttpServletRequestBuilder delete = delete("/Users/" + user.getId() + "/mfa")
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .contentType(APPLICATION_JSON);
+
+        getMockMvc().perform(delete)
+            .andExpect(status().isOk());
+
+        assertMfaCredentialsNotExisting(user, provider);
+    }
+
+    @Test
+    public void testDeleteMfaUserCredentialsWithZoneSwitching() throws Exception {
+        IdentityZone identityZone = getIdentityZone();
+        String authorities = "zones." + identityZone.getId() + ".admin";
+        clientDetails = utils().createClient(this.getMockMvc(), uaaAdminToken, "switchClientId", "switchClientSecret", null, null, Collections.singletonList("client_credentials"), authorities, null, IdentityZone.getUaa());
+        String uaaAdminTokenFromOtherZone = testClient.getClientCredentialsOAuthAccessToken("switchClientId", "switchClientSecret", authorities);
+        ScimUser user = setUpScimUser(identityZone);
+        MfaProvider provider = createMfaProvider(identityZone.getId());
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        MockMvcUtils.updateIdentityZone(identityZone, getWebApplicationContext());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        mfaCredentialsProvisioning.save(creds, identityZone.getId());
+
+        assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
+
+        MockHttpServletRequestBuilder delete = delete("/Users/" + user.getId() + "/mfa")
+            .header("Authorization", "Bearer " + uaaAdminTokenFromOtherZone)
+            .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+            .contentType(APPLICATION_JSON);
+
+        getMockMvc().perform(delete)
+            .andExpect(status().isOk());
+
+        assertMfaCredentialsNotExisting(user, provider);
+    }
+
+    @Test
+    public void testDeleteMfaUserCredentialsNotAuthorized() throws Exception{
+        ScimUser user = createUser(uaaAdminToken);
+        MockHttpServletRequestBuilder delete = delete("/Users/" + user.getId() + "/mfa")
+            .header("Authorization", "Bearer " + scimCreateToken)
+            .contentType(APPLICATION_JSON);
+
+        getMockMvc().perform(delete)
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void testDeleteMfaUserCredentialsUserDoesNotExist() throws Exception {
+        MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        String userId = "invalidUserId";
+
+        MockHttpServletRequestBuilder delete = delete("/Users/" + userId + "/mfa")
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .contentType(APPLICATION_JSON);
+
+        getMockMvc().perform(delete)
+            .andExpect(status().isNotFound());
+
+        try {
+            mfaCredentialsProvisioning.retrieve(userId, provider.getId());
+            fail();
+        } catch (UserMfaConfigDoesNotExistException e) {
+            //no op
+        }
+    }
+
+    private MfaProvider createMfaProvider(String identityZoneId) {
+        String index = generator.generate();
+        String mfaProviderId = "mfaProviderId" + index;
+        String mfaProviderName = "mfaProvider" + index;
+        MfaProvider provider = new MfaProvider().setName(mfaProviderName).setId(mfaProviderId).setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR).setConfig(new GoogleMfaProviderConfig()).setIdentityZoneId(identityZoneId);
+        mfaProviderProvisioning.create(provider, identityZoneId);
+        return provider;
+    }
+
+    @Test
+    public void testDeleteMfaUserCredentialsUserNotRegistered() throws Exception{
+        ScimUser user = createUser(uaaAdminToken);
+        MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+
+        assertMfaCredentialsNotExisting(user, provider);
+
+        MockHttpServletRequestBuilder delete = delete("/Users/" + user.getId() + "/mfa")
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .contentType(APPLICATION_JSON);
+
+        getMockMvc().perform(delete)
+            .andExpect(status().isOk());
+
+        assertMfaCredentialsNotExisting(user, provider);
+    }
+
+    private void assertMfaCredentialsNotExisting(ScimUser user, MfaProvider provider) {
+        try {
+            mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId());
+            fail();
+        } catch (UserMfaConfigDoesNotExistException e) {
+            //no op
+        }
+    }
+
+
+    @Test
+    public void testDeleteMfaUserCredentialsMfaNotEnabled() throws Exception{
+        ScimUser user = createUser(uaaAdminToken);
+        MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        mfaCredentialsProvisioning.save(creds, IdentityZoneHolder.get().getId());
+
+        assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
+
+        MockHttpServletRequestBuilder delete = delete("/Users/" + user.getId() + "/mfa")
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .contentType(APPLICATION_JSON);
+
+        getMockMvc().perform(delete)
+            .andExpect(status().isOk());
+
+        assertMfaCredentialsNotExisting(user, provider);
+    }
 
     private MockHttpServletRequestBuilder setUpVerificationLinkRequest(ScimUser user, String token) {
         return MockMvcRequestBuilders.get("/Users/" + user.getId() + "/verify-link")
