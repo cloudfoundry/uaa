@@ -792,4 +792,31 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         ;
     }
 
+    @Test
+    public void deleteMfaRegistration() throws Exception {
+        String accessToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
+
+        String email = "tom.mugwort@example.com";
+        ScimUser tommy = new ScimUser(null, email, "Tom", "Mugwort");
+        tommy.setVerified(false);
+        tommy.addEmail(email);
+        tommy = userProvisioning.createUser(tommy, "pas5Word", IdentityZoneHolder.get().getId());
+
+        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Access token with `zones.<zoneId>.admin` or `uaa.admin` required."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER);
+
+        Snippet pathParameters = pathParameters(
+            RequestDocumentation.parameterWithName("userId").description("Unique user identifier.")
+        );
+
+        MockHttpServletRequestBuilder delete = RestDocumentationRequestBuilders.delete("/Users/{userId}/mfa", tommy.getId())
+            .header("Authorization", "Bearer " + accessToken);
+
+        getMockMvc().perform(delete)
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
+                pathParameters, requestHeaders))
+        ;
+    }
 }

@@ -25,6 +25,13 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
+import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -35,6 +42,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.Base64;
 import java.util.HashMap;
@@ -66,11 +74,16 @@ public class TotpEndpointIntegrationTests {
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
+
+    @Rule
+    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+
     private IdentityZone mfaZone;
     private RestTemplate adminClient;
     private String zoneUrl;
     private String username;
     private MfaProvider mfaProvider;
+    private String zoneAdminToken;
 
     @Before
     public void setup() throws Exception {
@@ -83,7 +96,7 @@ public class TotpEndpointIntegrationTests {
 
         zoneUrl = baseUrl.replace("localhost", mfaZone.getSubdomain() + ".localhost");
 
-        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
+        zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
         username = createRandomUser();
         mfaProvider = enableMfaInZone(zoneAdminToken);
         webDriver.get(zoneUrl + "/logout.do");
@@ -107,6 +120,48 @@ public class TotpEndpointIntegrationTests {
 
         webDriver.findElement(By.id("Next")).click();
         verifyCodeOnRegistration(secretKey);
+    }
+
+    @Test
+    public void testQRCodeScreenAfterRegistrationDeletion() throws Exception {
+        // register mfa for user and logout
+        testQRCodeScreen();
+        webDriver.get(zoneUrl + "/logout.do");
+
+        // retrieve user id and delete mfa registration
+        RestTemplate client = getRestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + zoneAdminToken);
+        headers.add("X-Identity-Zone-Id", mfaZone.getId());
+        headers.add("Content-Type", "application/json");
+        Map<String, String> uriParams = new HashMap<>();
+        uriParams.put("filter","userName eq \""+username+"\"");
+        ResponseEntity<Map> exchange = client.exchange(serverRunning.getUrl("/Users?attributes=id&filter={filter}"), HttpMethod.GET, new HttpEntity<Void>(
+            headers), Map.class, uriParams);
+        String userId = (String) ((Map)((java.util.List) exchange.getBody().get("resources")).get(0)).get("id");
+
+        client.exchange(serverRunning.getUrl("/Users/{userId}/mfa"), HttpMethod.DELETE, new HttpEntity<Void>(
+            headers), Map.class, userId);
+
+        // user login should end up at mfa registration page
+        performLogin(username);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+    }
+
+    private RestTemplate getRestTemplate() {
+        RestTemplate client = (RestTemplate) serverRunning.getRestTemplate();
+        client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
+            // Pass errors through in response entity for status code analysis
+            @Override
+            public boolean hasError(ClientHttpResponse response) throws IOException {
+                return false;
+            }
+
+            @Override
+            public void handleError(ClientHttpResponse response) throws IOException {
+            }
+        });
+        return client;
     }
 
     @Test
