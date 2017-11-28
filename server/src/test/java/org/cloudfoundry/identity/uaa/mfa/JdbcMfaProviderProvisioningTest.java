@@ -171,6 +171,6 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
     }
 
     private GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
-        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
+        return new GoogleMfaProviderConfig();
     }
 }

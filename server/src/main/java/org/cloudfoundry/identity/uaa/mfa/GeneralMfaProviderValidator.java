@@ -1,11 +1,9 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
-import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderConfigException;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderException;
 import org.springframework.util.StringUtils;
 
 public class GeneralMfaProviderValidator implements MfaProviderValidator{
-    private MfaProviderConfigValidator configValidator;
 
     @Override
     public void validate(MfaProvider mfaProvider) {
@@ -28,15 +26,5 @@ public class GeneralMfaProviderValidator implements MfaProviderValidator{
         if(!StringUtils.hasText(mfaProvider.getIdentityZoneId())){
             throw new InvalidMfaProviderException("Provider must belong to a zone");
         }
-        try {
-            configValidator.validate(mfaProvider.getConfig());
-        } catch (InvalidMfaProviderConfigException e) {
-            throw new InvalidMfaProviderException("Invalid Config for MFA Provider. " + e.getMessage());
-        }
-    }
-
-
-    public void setConfigValidator(MfaProviderConfigValidator configValidator) {
-        this.configValidator = configValidator;
     }
 }

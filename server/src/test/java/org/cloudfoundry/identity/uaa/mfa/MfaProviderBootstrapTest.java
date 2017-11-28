@@ -61,9 +61,6 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
         GoogleMfaProviderConfig googleMfaProviderConfig = new GoogleMfaProviderConfig();
         googleMfaProviderConfig.setIssuer("Issuer");
         googleMfaProviderConfig.setProviderDescription("mfa provider description");
-        googleMfaProviderConfig.setDigits(6);
-        googleMfaProviderConfig.setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
-        googleMfaProviderConfig.setDuration(30);
 
         MfaProvider<GoogleMfaProviderConfig> providerOne = new MfaProvider<>();
         providerOne.setName("provider-name1");

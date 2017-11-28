@@ -31,7 +31,6 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -99,11 +98,8 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
 
     private FieldDescriptor[] getGoogleMfaProviderFields() {
         return (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-                fieldWithPath("config.algorithm").optional("SHA256").type(STRING).description("Algorithm used for the MFA provider. Google Authenticator supports SHA-256 and SHA-512."),
                 fieldWithPath("config.providerDescription").optional(null).type(STRING).description("Human-readable provider description. Only for backend description purposes."),
-                fieldWithPath("config.digits").optional(6).type(NUMBER).description("Number of digits in MFA code used."),
-                fieldWithPath("config.issuer").optional(null).type(STRING).description("Human-readable tag for display purposes on MFA devices. Defaults to name of identity zone."),
-                fieldWithPath("config.duration").optional(30).type(NUMBER).description("Valid duration of MFA code.")
+                fieldWithPath("config.issuer").optional(null).type(STRING).description("Human-readable tag for display purposes on MFA devices. Defaults to name of identity zone.")
         });
     }
 
