@@ -32,14 +32,15 @@ targetCompatibility = 1.8
 dependencies {
   compile project(':cloudfoundry-identity-metrics-data')
   compile("org.springframework.boot:spring-boot-starter")
-  compile("com.timgroup:java-statsd-client:3.0.1")
-  compile "log4j:log4j:1.2.14"
-  compile "org.apache.httpcomponents:httpclient:4.5.3"
-  compile "org.springframework:spring-web:4.3.9.RELEASE"
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
-  providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
-  testCompile "org.mockito:mockito-all:1.10.19"
-  testCompile "org.springframework.boot:spring-boot-starter-test"
+  compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
+  compile group: 'log4j', name: 'log4j', version: '1.2.14'
+  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
+  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+  providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat'
+  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+  testCompile group: 'org.mockito', name: 'mockito-all', version:'1.10.19'
+  testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test'
 }
 
 test {
