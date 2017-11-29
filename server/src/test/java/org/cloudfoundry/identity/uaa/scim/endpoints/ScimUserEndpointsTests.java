@@ -590,6 +590,30 @@ public class ScimUserEndpointsTests {
         validateGroupMembers(groupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
     }
 
+
+    @Test
+    public void deleteUserInZoneUpdatesGroupMembership() {
+        IdentityZone zone = new IdentityZone();
+        zone.setId("not-uaa");
+        zone.setSubdomain("not-uaa");
+        zone.setName("not-uaa");
+        zone.setDescription("not-uaa");
+        IdentityZoneHolder.set(zone);
+
+        ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
+        exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        assertEquals(IdentityZoneHolder.get().getId(), exGuy.getZoneId());
+
+        ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
+        g.setMembers(asList(new ScimGroupMember(exGuy.getId())));
+        g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
+        validateGroupMembers(g, exGuy.getId(), true);
+
+        endpoints.deleteUser(exGuy.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
+        validateGroupMembers(groupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
+    }
+
     private void validateGroupMembers(ScimGroup g, String mId, boolean expected) {
         boolean isMember = false;
         for (ScimGroupMember m : g.getMembers()) {
