@@ -125,6 +125,6 @@ public class MfaProviderEndpointsTest {
     }
 
     private GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
-        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
+        return new GoogleMfaProviderConfig();
     }
 }

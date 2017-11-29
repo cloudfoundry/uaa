@@ -12,12 +12,7 @@
                          ref="mfaProviderValidator"/>
     </bean>
 
-    <bean id="googleMfaProviderConfigValidator"
-          class="org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfigValidator"/>
-
-    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator">
-        <property name="configValidator" ref="googleMfaProviderConfigValidator"/>
-    </bean>
+    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator" />
 
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderEndpoints">
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>

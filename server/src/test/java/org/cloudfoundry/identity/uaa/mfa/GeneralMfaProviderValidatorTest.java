@@ -11,7 +11,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import javax.xml.bind.ValidationException;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
 
 public class GeneralMfaProviderValidatorTest {
 
@@ -23,7 +22,6 @@ public class GeneralMfaProviderValidatorTest {
     @Before
     public void setup() {
         validator = new GeneralMfaProviderValidator();
-        validator.setConfigValidator(mock(MfaProviderConfigValidator.class));
     }
 
     @Test
@@ -119,9 +117,6 @@ public class GeneralMfaProviderValidatorTest {
     private GoogleMfaProviderConfig createValidGoogleMfaConfig() {
         return (GoogleMfaProviderConfig) new GoogleMfaProviderConfig()
                 .setProviderDescription("config description")
-                .setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256)
-                .setDigits(42)
-                .setDuration(13)
                 .setIssuer("current-zone");
     }
 }

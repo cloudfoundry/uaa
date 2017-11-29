@@ -28,10 +28,7 @@ public class MfaProviderTest {
         JsonNode output = JsonUtils.readTree(JsonUtils.writeValueAsString(provider));
         assertEquals(output.get("type").textValue(), MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR.toValue());
         JsonNode config = output.get("config");
-        assertEquals(config.get("algorithm").textValue(), GoogleMfaProviderConfig.Algorithm.SHA256.toString());
-        assertEquals(config.get("digits").intValue(), 42);
         assertEquals(config.get("issuer").textValue(), "current-zone");
-        assertEquals(config.get("duration").intValue(), 13);
         assertEquals(config.get("providerDescription").textValue(), "config description");
     }
 
@@ -55,9 +52,6 @@ public class MfaProviderTest {
         assertEquals(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR, provider.getType());
         assertEquals("UAA Provider", provider.getName());
         GoogleMfaProviderConfig config = provider.getConfig();
-        assertEquals(GoogleMfaProviderConfig.Algorithm.SHA256, config.getAlgorithm());
-        assertEquals(8, config.getDigits());
-        assertEquals(32, config.getDuration());
         assertEquals("issuer", config.getIssuer());
         assertEquals("ddd", config.getProviderDescription());
     }
@@ -101,9 +95,6 @@ public class MfaProviderTest {
     private GoogleMfaProviderConfig createValidGoogleMfaConfig() {
         return (GoogleMfaProviderConfig) new GoogleMfaProviderConfig()
                 .setProviderDescription("config description")
-                .setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256)
-                .setDigits(42)
-                .setDuration(13)
                 .setIssuer("current-zone");
     }
 }

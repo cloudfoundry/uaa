@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,9 +30,15 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -93,7 +98,6 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
         String name = new RandomValueStringGenerator(5).generate();
         mfaProvider.setName(name);
-        mfaProvider.getConfig().setDigits(13);
         MvcResult mfaResponse = getMockMvc().perform(
             post("/mfa-providers")
                 .header("Authorization", "Bearer " + adminToken)
@@ -103,7 +107,6 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
         mfaProvider = JsonUtils.readValue(mfaResponse.getResponse().getContentAsString(), MfaProvider.class);
 
         assertEquals(HttpStatus.CREATED.value(), mfaResponse.getResponse().getStatus());
-        assertEquals(13, mfaProvider.getConfig().getDigits());
         assertEquals(name, mfaProvider.getName());
         assertNotNull(mfaProvider.getId());
     }
@@ -308,6 +311,6 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     private GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
-        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
+        return new GoogleMfaProviderConfig();
     }
 }

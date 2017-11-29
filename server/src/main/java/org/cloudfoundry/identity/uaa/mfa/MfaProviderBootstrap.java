@@ -62,10 +62,7 @@ public class MfaProviderBootstrap implements InitializingBean {
 
                 GoogleMfaProviderConfig defGoogleConfig = new GoogleMfaProviderConfig();
                 defGoogleConfig.setIssuer(issuer);
-                defGoogleConfig.setAlgorithm(GoogleMfaProviderConfig.Algorithm.forValue(algorithm));
-                defGoogleConfig.setDigits(digits);
                 defGoogleConfig.setProviderDescription(providerDescription);
-                defGoogleConfig.setDuration(duration);
                 def.setConfig(defGoogleConfig);
             }
 
