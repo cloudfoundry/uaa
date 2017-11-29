@@ -213,31 +213,6 @@
         <constructor-arg value="/oauth/authorize**"/>
     </bean>
 
-    <bean id="uiRequestMatcher" class="org.springframework.security.web.util.matcher.OrRequestMatcher">
-        <constructor-arg>
-            <list>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/oauth/**"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login**"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login/idp_discovery"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/logout.do**"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/profile"/>
-                </bean>
-            </list>
-        </constructor-arg>
-    </bean>
-
     <bean id="samlLogoutHandlers" class="java.util.ArrayList">
         <constructor-arg>
             <util:list>
@@ -298,44 +273,12 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <http name="totpSecurity"
-          pattern="/login/mfa/**"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <csrf disabled="false"
-              token-repository-ref="loginCookieCsrfRepository"
-                />
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
-
-    <http name="uiSecurity"
-          request-matcher-ref="uiRequestMatcher"
-          use-expressions="false"
-          authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <intercept-url pattern="/login/idp_discovery" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <form-login login-page="/login"
-                    username-parameter="username"
-                    password-parameter="password"
-                    login-processing-url="/login.do"
-                    authentication-success-handler-ref="accountSavingAuthenticationSuccessHandler"
-                    authentication-failure-handler-ref="uaaAuthenticationFailureHandler"
-                    authentication-details-source-ref="authenticationDetailsSource"
-                    default-target-url="/"/>
-        <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
-        <custom-filter ref="clientRedirectStateCache" before="FORM_LOGIN_FILTER"/>
-        <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
-        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
-        <csrf disabled="false"
-              token-repository-ref="loginCookieCsrfRepository"
-              request-matcher-ref="uiCookeCsrfRequestMatcher"/>
-        <access-denied-handler error-page="/login?error=invalid_login_request"/>
-        <request-cache ref="clientRedirectStateCache"/>
-    </http>
+    <bean id="mfaRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter">
+        <constructor-arg name="urlFilter" value="/login/mfa/**"/>
+        <constructor-arg name="redirect" value="/login/mfa/register"/>
+        <constructor-arg name="cache" ref="clientRedirectStateCache"/>
+        <constructor-arg name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
+    </bean>
 
     <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"
           entry-point-ref="basicAuthenticationEntryPoint"
@@ -343,27 +286,6 @@
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
     </http>
-
-    <bean id="errorMessageAuthenticationFailureHandler"
-          class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
-        <property name="exceptionMappings">
-            <map>
-                <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException"
-                       value="/login?error=account_not_verified"/>
-                <entry key="org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException"
-                       value="/login?error=password_expired"/>
-                <entry key="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException"
-                       value="/login?error=account_locked"/>
-                <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException"
-                       value="/login?error=account_not_precreated"/>
-            </map>
-        </property>
-        <property name="defaultFailureUrl" value="/login?error=login_failure"/>
-    </bean>
-
-    <bean id="uaaAuthenticationFailureHandler" class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
-        <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
-    </bean>
 
     <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
                    entry-point-ref="loginEntryPoint" use-expressions="false">
@@ -386,44 +308,77 @@
         <security:csrf disabled="true"/>
     </security:http>
 
-    <security:http name="openIdSecurity" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
+    <bean id="catchAllFilterChainProxy" class="org.springframework.security.web.FilterChainProxy">
+        <constructor-arg>
+            <util:list>
+                <security:filter-chain pattern="/**" filters="
+                    httpsHeaderFilter,
+                    metadataGeneratorFilter,
+                    idpMetadataGeneratorFilter,
+                    samlFilter"/>
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <http name="uiSecurity"
+          use-expressions="true"
+          authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/login/mfa/**" access="isFullyAuthenticated()"/>
+        <intercept-url pattern="/login/idp_discovery" access="isAnonymous()"/>
+        <intercept-url pattern="/login**" access="isAnonymous()"/>
+        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
-        <security:custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
-        <security:custom-filter after="BASIC_AUTH_FILTER" ref="samlFilter"/>
+        <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
+        <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
         <security:custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
-        <security:custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER"/>
-        <security:logout logout-url="/logout" success-handler-ref="logoutHandler"/>
-        <security:openid-login login-page="/login" user-service-ref="openIdUserDetailsService"
-                               authentication-failure-url="/login?error=true">
-            <security:attribute-exchange identifier-match=".*myopenid.com.*">
-                <security:openid-attribute name="email" type="http://schema.openid.net/contact/email"
-                                           required="true"/>
-                <security:openid-attribute name="fullname" type="http://schema.openid.net/namePerson"
-                                           required="true"/>
-            </security:attribute-exchange>
-            <security:attribute-exchange identifier-match=".*">
-                <security:openid-attribute name="email" type="http://axschema.org/contact/email"
-                                           required="true" count="1"/>
-                <security:openid-attribute name="firstname" type="http://axschema.org/namePerson/first"
-                                           required="true"/>
-                <security:openid-attribute name="lastname" type="http://axschema.org/namePerson/last"
-                                           required="true"/>
-                <security:openid-attribute name="fullname" type="http://axschema.org/namePerson"
-                                           required="true"/>
-            </security:attribute-exchange>
-        </security:openid-login>
-        <security:anonymous enabled="false"/>
-        <security:csrf disabled="true"/>
-    </security:http>
+        <form-login login-page="/login"
+                    username-parameter="username"
+                    password-parameter="password"
+                    login-processing-url="/login.do"
+                    authentication-success-handler-ref="accountSavingAuthenticationSuccessHandler"
+                    authentication-failure-handler-ref="uaaAuthenticationFailureHandler"
+                    authentication-details-source-ref="authenticationDetailsSource"
+                    default-target-url="/"/>
+        <custom-filter ref="clientRedirectStateCache" after="CAS_FILTER"/>
+        <custom-filter ref="mfaRequiredFilter" before="FORM_LOGIN_FILTER"/>
+        <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
+        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"
+              request-matcher-ref="uiCookeCsrfRequestMatcher"/>
+        <access-denied-handler error-page="/login?error=invalid_login_request"/>
+        <request-cache ref="clientRedirectStateCache"/>
+    </http>
+
+    <bean id="errorMessageAuthenticationFailureHandler"
+          class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
+        <property name="exceptionMappings">
+            <map>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException"
+                       value="/login?error=account_not_verified"/>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException"
+                       value="/login?error=password_expired"/>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException"
+                       value="/login?error=account_locked"/>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException"
+                       value="/login?error=account_not_precreated"/>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException"
+                       value="/force_password_change"/>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException"
+                       value="/login/mfa/register"/>
+            </map>
+        </property>
+        <property name="defaultFailureUrl" value="/login?error=login_failure"/>
+    </bean>
+
+    <bean id="uaaAuthenticationFailureHandler" class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
+        <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
+    </bean>
+
 
     <bean id="httpsHeaderFilter" class="org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter"/>
-
-    <!-- this bean will be overwritten in the saml profile -->
-    <bean id="metadataGeneratorFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter"/>
-    <!-- this bean will be overwritten in the saml profile -->
-    <bean id="samlFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter"/>
 
     <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">
         <constructor-arg name="redirectCsrf" value="/invalid_request"/>
@@ -668,7 +623,11 @@
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
         <property name="googleAuthenticatorService" ref="googleAuthenticatorAdapter" />
-        <property name="redirectingHandler" ref="successRedirectHandler"/>
+        <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
+    </bean>
+
+    <bean id="mfaCompleteUrl" class="java.lang.String">
+        <constructor-arg value="/login/mfa/completed"/>
     </bean>
 
     <bean id="googleAuthenticatorAdapter" class="org.cloudfoundry.identity.uaa.mfa.GoogleAuthenticatorAdapter">

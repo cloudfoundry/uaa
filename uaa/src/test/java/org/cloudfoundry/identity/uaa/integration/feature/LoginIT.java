@@ -357,12 +357,12 @@ public class LoginIT {
         String zoneUrl = createDiscoveryZone();
 
         String userEmail = createAnotherUser(zoneUrl);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl);
 
         loginThroughDiscovery(userEmail, USER_PASSWORD);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
 
         webDriver.get(zoneUrl);
         assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
@@ -377,11 +377,11 @@ public class LoginIT {
         String zoneUrl = createDiscoveryZone();
 
         String userEmail = createAnotherUser(zoneUrl);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl);
 
         loginThroughDiscovery(userEmail, USER_PASSWORD);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
 
         webDriver.get(zoneUrl);
         assertEquals(userEmail, webDriver.findElement(By.className("email-address")).getText());

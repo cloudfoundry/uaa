@@ -29,6 +29,7 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.filter.GenericFilterBean;
 
 import javax.servlet.FilterChain;
@@ -38,6 +39,7 @@ import javax.servlet.ServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -91,7 +93,11 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testLoginUsingPasscodeWithSamlToken() throws Exception {
         ExpiringUsernameAuthenticationToken et = new ExpiringUsernameAuthenticationToken(USERNAME, null);
-        LoginSamlAuthenticationToken auth = new LoginSamlAuthenticationToken(marissa, et);
+        UaaAuthentication auth = new LoginSamlAuthenticationToken(marissa, et).getUaaAuthentication(
+            Collections.emptyList(),
+            Collections.emptySet(),
+            new LinkedMultiValueMap<>()
+        );
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
 
         SecurityContextHolder.setContext(mockSecurityContext);
@@ -239,7 +245,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .session(session);
 
         getMockMvc().perform(get)
-            .andExpect(status().isForbidden());
+            .andExpect(status().isUnauthorized());
     }
 
     @Test

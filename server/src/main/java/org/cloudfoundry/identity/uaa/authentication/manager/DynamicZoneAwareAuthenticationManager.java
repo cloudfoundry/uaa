@@ -14,16 +14,15 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
-import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager.AuthenticationManagerConfiguration;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -73,7 +72,11 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
 
         if (uaaProvider.isActive()) {
             AuthenticationManagerConfiguration uaaConfig = new AuthenticationManagerConfiguration(internalUaaAuthenticationManager, null);
-            uaaConfig.setStopIf(AccountNotVerifiedException.class, AuthenticationPolicyRejectionException.class, PasswordChangeRequiredException.class, MfaAuthenticationRequiredException.class);
+            uaaConfig.setStopIf(
+                AccountNotVerifiedException.class,
+                AuthenticationPolicyRejectionException.class,
+                PasswordChangeRequiredException.class
+            );
             delegates.add(uaaConfig);
         }
 

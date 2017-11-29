@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -73,9 +72,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * @author Luke Taylor
- */
+
 public class AuthzAuthenticationManagerTests {
     private AuthzAuthenticationManager mgr;
     private UaaUserDatabase db;
@@ -342,14 +339,6 @@ public class AuthzAuthenticationManagerTests {
         verify(publisher).publishEvent(isA(AuthenticationFailureLockedEvent.class));
     }
 
-    @Test
-    public void testExceptionThrownWhenMfaRequired() {
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
-        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
-
-        exception.expect(MfaAuthenticationRequiredException.class);
-        Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
-    }
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();
         userdata.put("username", username);

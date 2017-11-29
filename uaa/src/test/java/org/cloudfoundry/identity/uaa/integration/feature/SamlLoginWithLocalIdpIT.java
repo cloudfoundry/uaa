@@ -406,8 +406,10 @@ public class SamlLoginWithLocalIdpIT {
         assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
         webDriver.get(baseUrl + firstUrl);
+        IntegrationTestUtils.takeScreenShot(webDriver);
         assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+
         webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome!')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(username);
