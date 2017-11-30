@@ -977,8 +977,7 @@ public final class MockMvcUtils {
                         .getBytes()));
         UaaPrincipal p = new UaaPrincipal(userId, username, "test@test.org", OriginKeys.UAA, "", IdentityZoneHolder.get()
                 .getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "",
-                UaaAuthority.USER_AUTHORITIES);
+        UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, null);
         Assert.assertTrue(auth.isAuthenticated());
 
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -1003,7 +1002,7 @@ public final class MockMvcUtils {
             authRequest.param(OAuth2Utils.SCOPE, scope);
         }
 
-        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(location);
         String code = builder.build().getQueryParams().get("code").get(0);

@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.ssl.Base64;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -41,7 +42,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -472,7 +472,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(

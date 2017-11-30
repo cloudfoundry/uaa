@@ -54,6 +54,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
 import javax.servlet.http.Cookie;
@@ -72,6 +73,8 @@ import java.util.List;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -208,7 +211,7 @@ public class LoginInfoEndpointTests {
         assertEquals("ldap", savedAccount1.getOrigin());
         assertEquals("zzzz", savedAccount1.getUserId());
     }
-    
+
 
     @Test
     public void testIgnoresBadJsonSavedAccount() throws Exception {
@@ -294,7 +297,7 @@ public class LoginInfoEndpointTests {
 
         request.setCookies(cookie1);
         endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
-        
+
         assertThat(model, hasKey("savedAccounts"));
         assertThat(model.get("savedAccounts"), instanceOf(List.class));
         List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) model.get("savedAccounts");
@@ -520,7 +523,7 @@ public class LoginInfoEndpointTests {
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(),new UaaAuthenticationDetails(new MockHttpServletRequest()));
         assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
         ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa,"");
-        LoginSamlAuthenticationToken samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken);
+        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
         assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
         //token with a UaaPrincipal should always work
         assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));

@@ -61,7 +61,6 @@ import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
@@ -257,13 +256,20 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         ScimUser user = createUser(identityZone.getId());
 
         getMockMvc().perform(post("/login.do")
-                .with(cookieCsrf())
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
-                .session(session)
-                .param("username", user.getUserName())
-                .param("password", user.getPassword()))
-        .andExpect(status().isFound())
-        .andExpect(redirectedUrl("/login/mfa/register"));
+                                 .with(cookieCsrf())
+                                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                                 .session(session)
+                                 .param("username", user.getUserName())
+                                 .param("password", user.getPassword()))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+
+        getMockMvc().perform(get("/")
+                                 .with(cookieCsrf())
+                                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                                 .session(session))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login/mfa/register"));
 
     }
 
@@ -1063,7 +1069,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
 
-        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, asList(UaaAuthority.fromAuthorities("uaa.user")));
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, asList(UaaAuthority.fromAuthorities("uaa.user")), null);
         MockHttpSession session = new MockHttpSession();
         SecurityContext securityContext = new SecurityContextImpl();
         securityContext.setAuthentication(principal);

@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.mock.approvals;
 
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
@@ -26,7 +27,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -199,7 +199,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
     public MockHttpSession getAuthenticatedSession(ScimUser user) {
         List<SimpleGrantedAuthority> authorities = user.getGroups().stream().map(g -> new SimpleGrantedAuthority(g.getValue())).collect(Collectors.toList());
         UaaPrincipal p = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), OriginKeys.UAA, "", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", authorities);
+        UaaAuthentication auth = new UaaAuthentication(p, authorities, null);
         Assert.assertTrue(auth.isAuthenticated());
         SecurityContextHolder.getContext().setAuthentication(auth);
         MockHttpSession session = new MockHttpSession();

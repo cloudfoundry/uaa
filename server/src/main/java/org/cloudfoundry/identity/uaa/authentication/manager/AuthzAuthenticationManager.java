@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
-import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -126,10 +125,6 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 if(user.isPasswordChangeRequired()){
                     logger.info("Password change required for user: "+user.getEmail());
                     throw new PasswordChangeRequiredException(success, "User password needs to be changed");
-                }
-
-                if(IdentityZoneHolder.get().getConfig().getMfaConfig().isEnabled()) {
-                    throw new MfaAuthenticationRequiredException(success, "Mfa authentication required");
                 }
 
                 publish(new UserAuthenticationSuccessEvent(user, success));

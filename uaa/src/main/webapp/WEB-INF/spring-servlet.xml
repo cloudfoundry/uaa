@@ -413,9 +413,10 @@
 
     <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
-    <import resource="classpath:spring/login-ui.xml"/>
-    <import resource="spring/saml-idp.xml"/>
+
     <import resource="spring/saml-providers.xml"/>
+    <import resource="spring/saml-idp.xml"/>
+    <import resource="classpath:spring/login-ui.xml"/>
 
     <!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
     <!--<sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"-->

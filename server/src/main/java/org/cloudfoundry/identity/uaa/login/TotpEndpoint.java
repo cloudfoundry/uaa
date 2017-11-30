@@ -1,3 +1,18 @@
+/*
+ * ****************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ * ****************************************************************************
+ */
+
 package org.cloudfoundry.identity.uaa.login;
 
 import com.google.zxing.WriterException;
@@ -11,8 +26,8 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,11 +35,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.view.RedirectView;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -34,20 +46,22 @@ import java.util.Set;
 
 @Controller
 public class TotpEndpoint {
-    public static final String MFA_VALIDATE_USER = "MFA_VALIDATE_USER";
 
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private Log logger = LogFactory.getLog(TotpEndpoint.class);
 
     private GoogleAuthenticatorAdapter googleAuthenticatorService;
+    private String mfaCompleteUrl = "/login/mfa/completed";
 
-    private SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
+    public void setMfaCompleteUrl(String mfaCompleteUrl) {
+        this.mfaCompleteUrl = mfaCompleteUrl;
+    }
 
     @RequestMapping(value = {"/login/mfa/register"}, method = RequestMethod.GET)
-    public String generateQrUrl(HttpSession session, Model model) throws NoSuchAlgorithmException, WriterException, IOException, UaaPrincipalIsNotInSession {
+    public String generateQrUrl(Model model) throws NoSuchAlgorithmException, WriterException, IOException, UaaPrincipalIsNotInSession {
 
-        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
 
         String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
         MfaProvider provider = mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
@@ -64,8 +78,8 @@ public class TotpEndpoint {
     }
 
     @RequestMapping(value = {"/login/mfa/manual"}, method = RequestMethod.GET)
-    public String manualRegistration(HttpSession session, Model model) throws UaaPrincipalIsNotInSession {
-        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
+    public String manualRegistration(Model model) throws UaaPrincipalIsNotInSession {
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
         String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
         MfaProvider provider = mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
 
@@ -82,41 +96,32 @@ public class TotpEndpoint {
     }
 
     @RequestMapping(value = {"/login/mfa/verify"}, method = RequestMethod.GET)
-    public ModelAndView totpAuthorize(HttpSession session, Model model) throws UaaPrincipalIsNotInSession {
-        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
+    public ModelAndView totpAuthorize(Model model) throws UaaPrincipalIsNotInSession {
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
         return renderEnterCodePage(model, uaaPrincipal);
 
     }
 
     @RequestMapping(value = {"/login/mfa/verify.do"}, method = RequestMethod.POST)
     public ModelAndView validateCode(Model model,
-                               HttpSession session,
-                               HttpServletRequest request, HttpServletResponse response,
-                               @RequestParam("code") String code)
+                                     @RequestParam("code") String code)
             throws NoSuchAlgorithmException, IOException, UaaPrincipalIsNotInSession {
-        UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
-        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal(session);
-
+        UaaAuthentication uaaAuth = getUaaAuthentication();
+        UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
         try {
             Integer codeValue = Integer.valueOf(code);
             if(googleAuthenticatorService.isValidCode(uaaPrincipal.getId(), codeValue)) {
                 userGoogleMfaCredentialsProvisioning.persistCredentials();
-                session.removeAttribute(MFA_VALIDATE_USER);
-                Set<String> authMethods = new HashSet<>(sessionAuth.getAuthenticationMethods());
+                Set<String> authMethods = new HashSet<>(uaaAuth.getAuthenticationMethods());
                 authMethods.addAll(Arrays.asList("otp", "mfa"));
-                sessionAuth.setAuthenticationMethods(authMethods);
-                SecurityContextHolder.getContext().setAuthentication(sessionAuth);
-                redirectingHandler.onAuthenticationSuccess(request, response, sessionAuth);
-                return new ModelAndView("home", Collections.emptyMap());
+                uaaAuth.setAuthenticationMethods(authMethods);
+                return new ModelAndView(new RedirectView(mfaCompleteUrl, true));
             }
             logger.debug("Code authorization failed for user: " + uaaPrincipal.getId());
             model.addAttribute("error", "Incorrect code, please try again.");
         } catch (NumberFormatException|GoogleAuthenticatorException e) {
             logger.debug("Error validating the code for user: " + uaaPrincipal.getId() + ". Error: " + e.getMessage());
             model.addAttribute("error", "Incorrect code, please try again.");
-        } catch (ServletException e) {
-            logger.debug("Error redirecting user: " + uaaPrincipal.getId() + ". Error: " + e.getMessage());
-            model.addAttribute("error", "Can't redirect user");
         }
         return renderEnterCodePage(model, uaaPrincipal);
     }
@@ -144,20 +149,20 @@ public class TotpEndpoint {
         return new ModelAndView("mfa/enter_code", model.asMap());
     }
 
-    private UaaPrincipal getSessionAuthPrincipal(HttpSession session) throws UaaPrincipalIsNotInSession {
-        UaaAuthentication sessionAuth = session.getAttribute(MFA_VALIDATE_USER) instanceof UaaAuthentication ? (UaaAuthentication) session.getAttribute(MFA_VALIDATE_USER) : null;
-        if(sessionAuth != null) {
-            UaaPrincipal principal = sessionAuth.getPrincipal();
+    private UaaPrincipal getSessionAuthPrincipal() throws UaaPrincipalIsNotInSession {
+        UaaAuthentication uaaAuth = getUaaAuthentication();
+        if(uaaAuth != null) {
+            UaaPrincipal principal = uaaAuth.getPrincipal();
             if(principal != null) {
                 return principal;
             }
         }
-
         throw new UaaPrincipalIsNotInSession();
     }
 
-    public void setRedirectingHandler(SavedRequestAwareAuthenticationSuccessHandler handler) {
-        this.redirectingHandler = handler;
+    private UaaAuthentication getUaaAuthentication() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        return a instanceof UaaAuthentication ? (UaaAuthentication)a : null;
     }
 
     public class UaaPrincipalIsNotInSession extends Exception {}
