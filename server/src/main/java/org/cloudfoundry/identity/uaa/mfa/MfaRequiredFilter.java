@@ -66,6 +66,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
                 break;
             case NOT_AUTHENTICATED:
             case MFA_IN_PROGRESS:
+            case MFA_NOT_REQUIRED:
             case MFA_OK:
                 chain.doFilter(request, response);
                 break;
@@ -115,6 +116,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
         MFA_IN_PROGRESS,
         MFA_REQUIRED,
         MFA_OK,
+        MFA_NOT_REQUIRED,
         MFA_COMPLETED,
         INVALID_AUTH
     }
@@ -128,7 +130,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
             return MfaNextStep.INVALID_AUTH;
         }
         if (!mfaRequired()) {
-            return MfaNextStep.MFA_OK;
+            return MfaNextStep.MFA_NOT_REQUIRED;
         }
         UaaAuthentication uaaAuth = (UaaAuthentication) a;
         if (completedMatcher.matches(request) && uaaAuth.getAuthenticationMethods().contains("mfa")) {
@@ -140,7 +142,11 @@ public class MfaRequiredFilter extends GenericFilterBean {
         if (!inProgressMatcher.matches(request) && !uaaAuth.getAuthenticationMethods().contains("mfa")) {
             return MfaNextStep.MFA_REQUIRED;
         }
-        return MfaNextStep.MFA_OK;
+        if (uaaAuth.getAuthenticationMethods().contains("mfa")) {
+            return MfaNextStep.MFA_OK;
+        } else {
+            return MfaNextStep.INVALID_AUTH;
+        }
     }
 
     protected void sendRedirect(String redirectUrl, HttpServletRequest request, HttpServletResponse response) throws IOException {

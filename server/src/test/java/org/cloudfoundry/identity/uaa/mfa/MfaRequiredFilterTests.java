@@ -40,6 +40,7 @@ import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.INVALID_AUTH;
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_COMPLETED;
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_IN_PROGRESS;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_NOT_REQUIRED;
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_OK;
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_REQUIRED;
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.NOT_AUTHENTICATED;
@@ -148,7 +149,7 @@ public class MfaRequiredFilterTests {
     @Test
     public void next_step_mfa_not_needed() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(MFA_OK, filter.getNextStep(request));
+        assertSame(MFA_NOT_REQUIRED, filter.getNextStep(request));
     }
 
     @Test
