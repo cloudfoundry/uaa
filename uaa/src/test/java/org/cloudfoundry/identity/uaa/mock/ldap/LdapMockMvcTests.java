@@ -110,7 +110,6 @@ import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
@@ -301,7 +300,7 @@ public class LdapMockMvcTests  {
                                  .param("enterprise_email", "email")
                                  .param("code", code)
                                  .header(HOST, host)
-                                 .with(csrf()))
+                                 .with(cookieCsrf()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl(REDIRECT_URI))
             .andReturn();
@@ -342,7 +341,7 @@ public class LdapMockMvcTests  {
                                  .param("enterprise_email", "email")
                                  .param("code", code)
                                  .header(HOST, host)
-                                 .with(csrf()))
+                                 .with(cookieCsrf()))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(content().string(containsString("The authenticated email does not match the invited email. Please log in using a different account.")))
             .andReturn();

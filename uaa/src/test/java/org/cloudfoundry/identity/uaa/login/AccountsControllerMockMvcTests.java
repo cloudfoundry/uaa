@@ -200,6 +200,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(getMockMvc(), getWebApplicationContext(), getBaseClientDetails() ,zone);
 
         getMockMvc().perform(post("/create_account.do")
+                                 .with(cookieCsrf())
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("email", userEmail)
                 .param("password", "secr3T")
@@ -236,6 +237,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         store.setGenerator(generator);
 
         getMockMvc().perform(post("/create_account.do")
+                                 .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T"))
@@ -271,6 +273,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         store.setGenerator(generator);
 
         getMockMvc().perform(post("/create_account.do")
+                                 .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T")
@@ -313,6 +316,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         store.setGenerator(generator);
 
         getMockMvc().perform(post("/create_account.do")
+                                 .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T"))
@@ -362,6 +366,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isCreated());
 
         getMockMvc().perform(post("/create_account.do")
+                                 .with(cookieCsrf())
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param("email", userEmail)
             .param("password", USER_PASSWORD)
@@ -415,6 +420,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                                 .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T")
@@ -465,6 +471,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         store.setGenerator(generator);
 
         getMockMvc().perform(post("/create_account.do")
+            .with(cookieCsrf())
                 .session(session)
                 .param("email", "testuser@test.org")
                 .param("password", "test-password")
@@ -527,6 +534,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
 
         getMockMvc().perform(post("/create_account.do")
+                                 .with(cookieCsrf())
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
                 .param("password_confirmation", USER_PASSWORD)

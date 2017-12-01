@@ -30,11 +30,11 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor;
 import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -230,6 +230,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     public void accountsControllerSendActivationEmailNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
         getMockMvc().perform(post("/create_account.do")
+                                 .with(cookieCsrf())
             .param("client_id", "login")
             .param("email", "another@example.com")
             .param("password", "foobar")
@@ -284,10 +285,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         ResultActions result = createUser();
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
+        MockHttpSession userSession = getUserSession(createdUser.getUserName(), PASSWD);
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
         getMockMvc().perform(get("/change_email")
-            .session(getUserSession(createdUser.getUserName(), PASSWD))
-            .with(csrf())
+            .session(userSession)
+            .with(cookieCsrf())
             .accept(ACCEPT_TEXT_HTML))
             .andExpect(status().isForbidden())
             .andExpect(content()
@@ -307,7 +309,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
         getMockMvc().perform(post("/change_email.do")
             .session(getUserSession(createdUser.getUserName(), PASSWD))
-            .with(csrf())
+            .with(CookieCsrfPostProcessor.cookieCsrf())
             .accept(ACCEPT_TEXT_HTML)
             .param("newEmail", "newUser@example.com")
             .param("client_id", "login"))
@@ -371,11 +373,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
         ResultActions result = createUser();
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
-
+        MockHttpSession userSession = getUserSession(createdUser.getUserName(), PASSWD);
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
         getMockMvc().perform(post("/change_password.do")
-            .session(getUserSession(createdUser.getUserName(), PASSWD))
-            .with(csrf())
+            .session(userSession)
+            .with(CookieCsrfPostProcessor.cookieCsrf())
             .accept(ACCEPT_TEXT_HTML)
             .param("current_password", PASSWD)
             .param("new_password", "whatever")
@@ -462,8 +464,9 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("code", getExpiringCode(change).getCode())
             .param("email", createdUser.getUserName())
             .param("password", "new-password")
+
             .param("password_confirmation", "new-password")
-            .with(csrf()))
+            .with(CookieCsrfPostProcessor.cookieCsrf()))
             .andExpect(status().isForbidden())
             .andExpect(content()
                            .string(JsonObjectMatcherUtils.matchesJsonObject(
@@ -493,6 +496,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .accept(ACCEPT_TEXT_HTML)
             .param("username", username)
             .param("password", password))
+            .andDo(print())
             .andReturn().getRequest().getSession(false);
 
         assertNotNull(afterLoginSession);
