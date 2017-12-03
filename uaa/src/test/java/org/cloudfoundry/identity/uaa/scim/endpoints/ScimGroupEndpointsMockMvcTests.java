@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import net.minidev.json.JSONUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -83,7 +82,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -1090,8 +1088,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .header("Content-Type", APPLICATION_JSON_VALUE)
         )
             .andDo(print())
-            .andExpect(status().isFound()) //gets caught by the ui filter for unknown URIs
-            .andExpect(redirectedUrl("http://localhost/login"));
+            .andExpect(status().isFound()); //gets caught by the ui filter for unknown URIs but wantsJson;
     }
 
     @Test

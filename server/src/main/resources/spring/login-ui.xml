@@ -81,16 +81,6 @@
     <bean id="backwardsCompatibleScopeParameter"
           class="org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter"/>
 
-    <http name="changeEmailSecurity"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          pattern="/change_email**"
-          xmlns="http://www.springframework.org/schema/security">
-        <access-denied-handler ref="loginEntryPoint"/>
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <csrf disabled="false"/>
-    </http>
-
     <bean id="acceptInvitationSecurityContextPersistenceFilter"
           class="org.springframework.security.web.context.SecurityContextPersistenceFilter">
         <constructor-arg name="repo">
@@ -114,7 +104,8 @@
         <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/invitations/accept_enterprise.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/**" access="denyAll"/>
-        <csrf disabled="false"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"/>
         <custom-filter ref="acceptInvitationSecurityContextPersistenceFilter" before="FIRST"/>
     </http>
 
@@ -150,7 +141,8 @@
           xmlns="http://www.springframework.org/schema/security">
         <custom-filter ref="userManagementSecurityFilter" before="ANONYMOUS_FILTER"/>
         <custom-filter ref="resetPasswordAuthenticationFilter" position="LAST"/>
-        <csrf disabled="false"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
@@ -161,7 +153,8 @@
           use-expressions="false"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <csrf disabled="false"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
@@ -175,35 +168,6 @@
         <csrf disabled="true"/>
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
-
-    <http name="changePasswordSecurity"
-          pattern="/change_password**"
-          disable-url-rewriting="true"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <csrf disabled="false"/>
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
-
-    <bean id="uiCookeCsrfRequestMatcher" class="org.springframework.security.web.util.matcher.OrRequestMatcher">
-        <constructor-arg>
-            <list>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login.do"/>
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-                    <constructor-arg value="/oauth/authorize"/>
-                    <property name="method" value="POST"/>
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-                    <constructor-arg value="/profile"/>
-                    <property name="method" value="POST"/>
-                </bean>
-            </list>
-        </constructor-arg>
-    </bean>
 
     <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
         <constructor-arg value="/logout.do"/>
@@ -268,8 +232,7 @@
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
         <csrf disabled="false"
-              token-repository-ref="loginCookieCsrfRepository"
-                />
+              token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
@@ -325,7 +288,8 @@
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/login/mfa/**" access="isFullyAuthenticated()"/>
-        <intercept-url pattern="/login/idp_discovery" access="isAnonymous()"/>
+        <intercept-url pattern="/create_account*" access="isAnonymous()"/>
+        <intercept-url pattern="/login/idp_discovery/**" access="isAnonymous()"/>
         <intercept-url pattern="/login**" access="isAnonymous()"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
@@ -341,14 +305,13 @@
                     authentication-failure-handler-ref="uaaAuthenticationFailureHandler"
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
-        <custom-filter ref="clientRedirectStateCache" after="CAS_FILTER"/>
+        <custom-filter ref="clientRedirectStateCache" before="CSRF_FILTER"/>
         <custom-filter ref="mfaRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
-              token-repository-ref="loginCookieCsrfRepository"
-              request-matcher-ref="uiCookeCsrfRequestMatcher"/>
-        <access-denied-handler error-page="/login?error=invalid_login_request"/>
+              token-repository-ref="loginCookieCsrfRepository"/>
+        <access-denied-handler ref="loginEntryPoint"/>
         <request-cache ref="clientRedirectStateCache"/>
     </http>
 
@@ -382,7 +345,7 @@
 
     <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">
         <constructor-arg name="redirectCsrf" value="/invalid_request"/>
-        <constructor-arg name="redirectNotLoggedIn" value="/login"/>
+        <constructor-arg name="redirectNotLoggedIn" value="/login?error=invalid_login_request"/>
     </bean>
 
     <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutHandler">

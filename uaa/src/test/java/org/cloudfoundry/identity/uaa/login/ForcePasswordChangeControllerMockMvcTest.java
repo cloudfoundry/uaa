@@ -24,8 +24,8 @@ import javax.servlet.http.Cookie;
 import java.net.URLEncoder;
 import java.util.Date;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -71,7 +71,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
                 .param("password_confirmation", "test")
                 .session(session)
                 .cookie(cookie);
-        validPost.with(csrf());
+        validPost.with(cookieCsrf());
         getMockMvc().perform(validPost)
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(("/")))
@@ -105,7 +105,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
                 .param("password_confirmation", "test")
                 .session(session)
                 .cookie(cookie)
-                .with(csrf());
+                .with(cookieCsrf());
             getMockMvc().perform(validPost)
                 .andExpect(view().name("force_password_change"))
                 .andExpect(model().attribute("message", "Password must be at least 15 characters in length."))
@@ -143,7 +143,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
                 .param("password", "test")
                 .param("password_confirmation", "test")
                 .session(session).cookie(cookie);
-            validPost.with(csrf());
+            validPost.with(cookieCsrf());
 
             getMockMvc().perform(validPost)
                 .andExpect(status().isFound())
@@ -163,7 +163,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
         MockHttpServletRequestBuilder validPost = post("/force_password_change")
                 .param("password", "test")
                 .param("password_confirmation", "test");
-        validPost.with(csrf());
+        validPost.with(cookieCsrf());
         getMockMvc().perform(validPost)
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(("/login")));

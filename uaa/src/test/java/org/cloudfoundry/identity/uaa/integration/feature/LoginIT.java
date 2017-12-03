@@ -276,8 +276,8 @@ public class LoginIT {
             HttpMethod.POST,
             new HttpEntity<>(body, headers),
             String.class);
-        assertEquals(HttpStatus.FORBIDDEN, loginResponse.getStatusCode());
-        assertTrue("CSRF message should be shown", loginResponse.getBody().contains("Invalid login attempt, request does not meet our security standards, please try again."));
+        assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
+        assertTrue("CSRF message should be shown", loginResponse.getHeaders().getFirst("Location").contains("invalid_login_request"));
     }
 
     @Test

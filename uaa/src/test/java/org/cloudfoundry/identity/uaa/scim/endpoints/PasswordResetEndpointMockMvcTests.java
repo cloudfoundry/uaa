@@ -51,7 +51,6 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -184,7 +183,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .param("email", email)
             .param("password", "newpass")
             .param("password_confirmation", "newpass")
-            .with(csrf());
+            .with(cookieCsrf());
 
         getMockMvc().perform(post)
             .andExpect(status().is3xxRedirection())

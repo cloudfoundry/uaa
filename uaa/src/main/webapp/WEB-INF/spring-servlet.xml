@@ -104,7 +104,7 @@
     <!--<sec:http pattern="/login" security="none" />-->
     <sec:http name="secFilterOpen08" pattern="/error" security="none" />
     <sec:http name="secFilterOpen11" pattern="/email_sent" security="none" />
-    <sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />
+
     <sec:http name="secFilterOpen13" pattern="/accounts/email_sent" security="none" />
     <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none" />
     <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
@@ -113,6 +113,8 @@
     <sec:http name="secFilterOpen18" pattern="/session" security="none" />
     <sec:http name="secFilterWellKnownOpen19" pattern="/oauth/token/.well-known/openid-configuration" security="none" />
     <sec:http name="secFilterWellKnownOpen20" pattern="/.well-known/openid-configuration" security="none" />
+    <!--<sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />-->
+    <!--<sec:http name="secFilterIdpDiscovery21" pattern="/login/idp_discovery" security="none" create-session="ifRequired"/>-->
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>

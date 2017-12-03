@@ -69,8 +69,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -136,7 +134,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -453,8 +450,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(invalidPost)
             .andDo(print())
-            .andExpect(status().isForbidden())
-            .andExpect(forwardedUrl("/login?error=invalid_login_request"));
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
 
         session = new MockHttpSession();
         String csrfValue = "12345";
@@ -466,8 +463,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "other-value")
         )
             .andDo(print())
-            .andExpect(status().isForbidden())
-            .andExpect(forwardedUrl("/login?error=invalid_login_request"));
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
 
         ScimUser marissa = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class).query("username eq 'marissa'", IdentityZoneHolder.get().getId()).get(0);
 
@@ -702,7 +699,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("forgot_password"))
             .andExpect(content().string(containsString("action=\"/forgot_password.do\"")))
-            .andExpect(content().string(not(containsString("name=\"_csrf\""))));
+            .andExpect(content().string(not(containsString("name=\"X-Uaa-Csrf\""))));
     }
 
     @Test
@@ -711,7 +708,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(
             post("/forgot_password.do")
                 .param("username", "marissa")
-                .with(csrf().useInvalidToken()))
+                .with(cookieCsrf().useInvalidToken()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
     }
@@ -725,7 +722,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("change_password"))
             .andExpect(content().string(containsString("action=\"/change_password.do\"")))
-            .andExpect(content().string(containsString("name=\"_csrf\"")));
+            .andExpect(content().string(containsString("name=\"X-Uaa-Csrf\"")));
     }
 
     @Test
@@ -738,9 +735,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")
-                .with(csrf().useInvalidToken()))
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+                .with(cookieCsrf().useInvalidToken()))
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/invalid_request"));
 
         getMockMvc().perform(
             post("/change_password.do")
@@ -748,7 +745,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")
-                .with(csrf()))
+                .with(cookieCsrf()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("profile"));
     }
@@ -1720,7 +1717,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .with(securityContext(marissaContext));
         getMockMvc().perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")));
+            .andExpect(content().string(containsString("X-Uaa-Csrf")));
     }
 
     @Test
@@ -1733,19 +1730,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .with(securityContext(marissaContext));
         MockHttpSession session = (MockHttpSession) getMockMvc().perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")))
+            .andExpect(content().string(containsString("X-Uaa-Csrf")))
             .andReturn().getRequest().getSession();
-        assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
             .session(session)
+            .with(cookieCsrf().useInvalidToken())
             .with(securityContext(marissaContext))
             .param("newEmail", "test@test.org")
             .param("client_id", "");
         getMockMvc().perform(changeEmail)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/invalid_request"));
     }
 
     @Test
@@ -1758,9 +1755,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .with(securityContext(marissaContext));
         MockHttpSession session = (MockHttpSession) getMockMvc().perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")))
+            .andExpect(content().string(containsString("X-Uaa-Csrf")))
             .andReturn().getRequest().getSession();
-        assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
@@ -1768,10 +1764,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .with(securityContext(marissaContext))
             .param("newEmail", "test@test.org")
             .param("client_id", "")
-            .param("_csrf", "invalid csrf token");
+            .with(cookieCsrf().useInvalidToken());
         getMockMvc().perform(changeEmail)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/invalid_request"));
     }
 
     @Test
@@ -1782,7 +1778,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
             .with(securityContext(marissaContext))
-            .with(csrf())
+            .with(cookieCsrf())
             .param("newEmail", "test@test.org")
             .param("client_id", "");
 
@@ -1804,19 +1800,18 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         MvcResult result = getMockMvc().perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")))
+            .andExpect(content().string(containsString("X-Uaa-Csrf")))
             .andReturn();
 
         MockHttpSession session = (MockHttpSession)result.getRequest().getSession();
-        CsrfToken csrfToken = (CsrfToken)session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN"));
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
             .with(securityContext(marissaContext))
+            .with(cookieCsrf())
             .session(session)
             .param("newEmail", "test@test.org")
-            .param("client_id", "")
-            .param("_csrf", csrfToken.getToken());
+            .param("client_id", "");
         getMockMvc().perform(changeEmail)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=email_change"));
@@ -1830,25 +1825,25 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
-            .with(csrf());
+            .with(cookieCsrf());
         getMockMvc().perform(changeEmail)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost/login"));
 
         changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
-            .with(csrf().useInvalidToken());
+            .with(cookieCsrf());
         getMockMvc().perform(changeEmail)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(redirectedUrl("http://localhost/login"));
 
         changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
-            .with(csrf().useInvalidToken())
+            .with(cookieCsrf().useInvalidToken())
             .with(securityContext(marissaContext));
         getMockMvc().perform(changeEmail)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/invalid_request"));
     }
 
     @Test
@@ -1862,17 +1857,18 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")))
+            .andExpect(content().string(containsString("X-Uaa-Csrf")))
             .andReturn();
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
             .with(securityContext(marissaContext))
+            .with(cookieCsrf().useInvalidToken())
             .param("newEmail", "test@test.org")
             .param("client_id", "");
         getMockMvc().perform(changeEmail)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/invalid_request"));
     }
 
 
@@ -1896,7 +1892,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .session(inviteSession)
-            .with(csrf())
+            .with(cookieCsrf())
             .param("code",code.getCode())
             .param("client_id", "random")
             .param("password", "password")
@@ -1910,14 +1906,14 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         //logged in, invalid CSRF
         post = post("/invitations/accept.do")
             .session(inviteSession)
-            .with(csrf().useInvalidToken())
+            .with(cookieCsrf().useInvalidToken())
             .param("client_id", "random")
             .param("password", "password")
             .param("password_confirmation", "yield_unprocessable_entity");
 
         getMockMvc().perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/invalid_request"));
 
         //not logged in, no CSRF
         post = post("/invitations/accept.do")
@@ -1927,12 +1923,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
 
 
         //not logged in, valid CSRF(can't happen)
         post = post("/invitations/accept.do")
-            .with(csrf())
+            .with(cookieCsrf())
             .param("client_id", "random")
             .param("password", "password")
             .param("code", "notvalidated")
@@ -2281,10 +2277,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
 
         getMockMvc().perform(post("/login/idp_discovery")
+                                 .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .session(session)
             .param("email", "marissa@test.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
             .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + zone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + originKey + "&isPassive=true"));
     }
 
@@ -2297,10 +2295,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String originKey = createOIDCProvider(zone, "id_token code");
 
         getMockMvc().perform(post("/login/idp_discovery")
+                                 .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .servletPath("/login/idp_discovery")
             .param("email", "marissa@test.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
             .andExpect(
                 header()
                     .string(
@@ -2370,10 +2370,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
 
         getMockMvc().perform(post("/login/idp_discovery")
+                                 .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .session(session)
             .param("email", "marissa@other.domain")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40other.domain"));
     }
 
@@ -2394,10 +2396,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
 
         getMockMvc().perform(post("/login/idp_discovery")
+                                 .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .session(session)
             .param("email", "marissa@test.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40test.org"));
     }
 
@@ -2412,6 +2416,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
 
         getMockMvc().perform(post("/login/idp_discovery")
+                                 .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .session(session)
             .param("email", "marissa@other.domain")
@@ -2437,10 +2442,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
 
         getMockMvc().perform(post("/login/idp_discovery")
+                                 .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .session(session)
             .param("email", "marissa@testLdap.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40testLdap.org"));
     }
 
@@ -2448,8 +2455,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void passwordPageDisplayed_ifUaaIsFallbackIDPForEmailDomain() throws Exception {
         getMockMvc().perform(post("/login/idp_discovery")
             .header("Accept", TEXT_HTML)
+            .with(cookieCsrf())
             .param("email", "marissa@koala.com"))
-            .andExpect(status().isOk())
             .andExpect(view().name("idp_discovery/password"))
             .andExpect(xpath("//input[@name='password']").exists())
             .andExpect(xpath("//input[@name='username']/@value").string("marissa@koala.com"))
@@ -2462,6 +2469,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(post("/login/idp_discovery")
+                                 .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .param("email", "marissa@koala.org"))
             .andExpect(status().isOk())
@@ -2471,10 +2479,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void userNamePresentInPasswordPage() throws Exception {
         getMockMvc().perform(post("/login/idp_discovery")
-            .with(cookieCsrf())
+                                 .with(cookieCsrf())
             .param("email", "test@email.com"))
-            .andExpect(xpath("//input[@name='username']/@value").string("test@email.com"))
-            .andExpect(xpath("//input[@name='X-Uaa-Csrf']").exists());
+            .andExpect(xpath("//input[@name='username']/@value").string("test@email.com"));
     }
 
     @Test

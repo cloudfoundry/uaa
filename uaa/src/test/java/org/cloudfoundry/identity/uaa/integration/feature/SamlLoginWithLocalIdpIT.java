@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
@@ -315,7 +316,7 @@ public class SamlLoginWithLocalIdpIT {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
-        postBody.add("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
+        postBody.add("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER);
         postBody.add("client_id", "oauth_showcase_saml2_bearer");
         postBody.add("client_secret", "secret");
         postBody.add("assertion",
