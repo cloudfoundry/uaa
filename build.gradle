@@ -277,6 +277,7 @@ cargo {
     }
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+      property 'metrics.perRequestMetrics', System.getProperty('metrics.perRequestMetrics', 'true')
     }
 
     installer {

@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager.AuthenticationManagerConfiguration;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -72,7 +73,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
 
         if (uaaProvider.isActive()) {
             AuthenticationManagerConfiguration uaaConfig = new AuthenticationManagerConfiguration(internalUaaAuthenticationManager, null);
-            uaaConfig.setStopIf(AccountNotVerifiedException.class, AuthenticationPolicyRejectionException.class, PasswordChangeRequiredException.class);
+            uaaConfig.setStopIf(AccountNotVerifiedException.class, AuthenticationPolicyRejectionException.class, PasswordChangeRequiredException.class, MfaAuthenticationRequiredException.class);
             delegates.add(uaaConfig);
         }
 

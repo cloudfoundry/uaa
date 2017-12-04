@@ -1,0 +1,1 @@
+ALTER TABLE user_google_mfa_credentials ADD COLUMN zone_id CHAR(36) NOT NULL;

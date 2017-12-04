@@ -28,6 +28,7 @@ import org.springframework.util.ReflectionUtils;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
+import javax.management.NotificationEmitter;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
@@ -50,11 +51,14 @@ public class UaaMetricsEmitter {
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     private final MetricsUtils metricsUtils;
+    private NotificationEmitter emitter;
+    private boolean notificationsEnabled;
 
     public UaaMetricsEmitter(MetricsUtils metricsUtils, StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
         this.server = server;
         this.metricsUtils = metricsUtils;
+        this.notificationsEnabled = false;
     }
 
     @Scheduled(fixedRate = 5000, initialDelay = 0)
@@ -82,6 +86,29 @@ public class UaaMetricsEmitter {
             emitGlobalServerStats(metrics);
         } catch (Exception x) {
             throwIfOtherThanNotFound(x);
+        }
+    }
+
+
+    @Scheduled(fixedRate = 5000, initialDelay = 1000)
+    public void emitUrlGroupRequestMetrics() throws Exception {
+        try {
+            UaaMetrics metrics = metricsUtils.getUaaMetrics(server);
+            emitUrlGroupRequestMetrics(metrics);
+        } catch (Exception x) {
+            throwIfOtherThanNotFound(x);
+        }
+    }
+
+    private void emitUrlGroupRequestMetrics(UaaMetrics metrics) {
+        Map<String,String> perUrlMetrics = metrics.getSummary();
+        String prefix = "requests.%s.";
+        for(String key : perUrlMetrics.keySet()) {
+            String prefixName = key.startsWith("/") ? key.substring(1) : key;
+            MetricsQueue metric = JsonUtils.readValue(perUrlMetrics.get(key), MetricsQueue.class);
+            RequestMetricSummary metricTotals = metric.getTotals();
+            statsDClient.gauge(String.format(prefix + "completed.count", prefixName), metricTotals.getCount());
+            statsDClient.gauge(String.format(prefix + "completed.time", prefixName), (long) metricTotals.getAverageTime());
         }
     }
 
@@ -189,6 +216,29 @@ public class UaaMetricsEmitter {
     public Object getValueFromMap(Map<String, ?> map, String path) throws Exception {
         MapWrapper wrapper = new MapWrapper(map);
         return wrapper.get(path);
+    }
+
+    public void enableNotification() {
+        try {
+            logger.debug("Trying to enable notification");
+            emitter = metricsUtils.getUaaMetricsSubscriber(server);
+            emitter.addNotificationListener((notification, handback) -> {
+                String key = notification.getType();
+                String prefix = key.startsWith("/") ? key.substring(1) : key;
+                statsDClient.time(String.format("requests.%s.latency", prefix),  (Long) notification.getSource());
+            }, null, null);
+            notificationsEnabled = true;
+        } catch(Exception instanceNotFound) {
+            try {
+                throwIfOtherThanNotFound(instanceNotFound);
+            } catch (Exception e) {
+                logger.info("Unable to create server request metric bean", e);
+            }
+        }
+    }
+
+    public boolean isNotificationEnabled() {
+        return notificationsEnabled;
     }
 
     class MapWrapper {

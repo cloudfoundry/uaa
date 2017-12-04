@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.HomeController;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -107,6 +108,7 @@ import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
@@ -169,6 +171,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
     private Links globalLinks;
+    private IdentityZone identityZone;
 
 
     @Before
@@ -185,6 +188,25 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         originalConfiguration = getWebApplicationContext().getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
         identityZoneConfiguration = getWebApplicationContext().getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
+        bootstrapMfaProvider();
+    }
+
+    private void bootstrapMfaProvider() throws Exception {
+        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
+        identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext(), false);
+
+        MfaProvider mfaProvider = constructGoogleMfaProvider();
+        mfaProvider = JsonUtils.readValue(getMockMvc().perform(
+            post("/mfa-providers")
+                .header("X-Identity-Zone-Id", identityZone.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(mfaProvider)))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
+
+        identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
+        MockMvcUtils.updateIdentityZone(identityZone, getWebApplicationContext());
     }
 
     @After
@@ -226,6 +248,23 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
             .andExpect(model().attributeExists("prompts"))
             .andExpect(content().string(containsString("/create_account")));
+    }
+
+    @Test
+    public void testLoginMfaRedirect() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+
+        ScimUser user = createUser(identityZone.getId());
+
+        getMockMvc().perform(post("/login.do")
+                .with(cookieCsrf())
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                .session(session)
+                .param("username", user.getUserName())
+                .param("password", user.getPassword()))
+        .andExpect(status().isFound())
+        .andExpect(redirectedUrl("/login/mfa/register"));
+
     }
 
     public IdentityZone createZoneLinksZone() throws Exception {

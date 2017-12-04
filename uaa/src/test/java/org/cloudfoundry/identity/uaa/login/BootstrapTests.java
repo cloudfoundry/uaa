@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
 import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
@@ -24,11 +25,16 @@ import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -57,6 +63,7 @@ import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.HeaderFilter;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
+import org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
@@ -110,6 +117,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EventListener;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -201,10 +209,21 @@ public class BootstrapTests {
 
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "required_configuration.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(2500, revocableTokenProvisioning.getMaxExpirationRuntime());
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(1800, sessionIdleTimeoutSetter.getTimeout());
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(-1, hend.getSleepTime());
+
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertTrue(metricsFilter.isEnabled());
+        assertFalse(metricsFilter.isPerRequestMetrics());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
+        assertNull(limitedModeUaaFilter.getStatusFile());
         assertFalse(limitedModeUaaFilter.isEnabled());
         assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
@@ -451,11 +470,21 @@ public class BootstrapTests {
         String profiles = System.getProperty("spring.profiles.active");
         context = getServletContext(profiles, false, new String[] {"login.yml", "uaa.yml", "test/bootstrap/all-properties-set.yml"}, "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        JdbcRevocableTokenProvisioning revocableTokenProvisioning = context.getBean(JdbcRevocableTokenProvisioning.class);
+        assertEquals(3000, revocableTokenProvisioning.getMaxExpirationRuntime());
+
+        SessionIdleTimeoutSetter sessionIdleTimeoutSetter = context.getBean(SessionIdleTimeoutSetter.class);
+        assertEquals(300, sessionIdleTimeoutSetter.getTimeout());
+
+        HealthzEndpoint hend = context.getBean(HealthzEndpoint.class);
+        assertEquals(5000, hend.getSleepTime());
+
         UaaMetricsFilter metricsFilter = context.getBean(UaaMetricsFilter.class);
         assertFalse(metricsFilter.isEnabled());
+        assertTrue(metricsFilter.isPerRequestMetrics());
 
         LimitedModeUaaFilter limitedModeUaaFilter = context.getBean(LimitedModeUaaFilter.class);
-        assertTrue(limitedModeUaaFilter.isEnabled());
+        assertEquals("/tmp/uaa-test-limited-mode-status-file.txt", limitedModeUaaFilter.getStatusFile().getAbsolutePath());
         assertThat(limitedModeUaaFilter.getPermittedEndpoints(),
                    containsInAnyOrder(
                        "/oauth/authorize/**",
@@ -871,6 +900,11 @@ public class BootstrapTests {
         ClientDetails ccSvcDashboard = clients.loadClientByClientId("cc-service-dashboards");
         assertNotNull(ccSvcDashboard);
 
+        MfaProviderProvisioning mfaProviderProvisioning = context.getBean(JdbcMfaProviderProvisioning.class);
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider1 = mfaProviderProvisioning.retrieveByName("mfaprovider1", IdentityZoneHolder.getUaaZone().getId());
+        assertNotNull(mfaProvider1);
+        assertEquals("all-properties-set-description", mfaProvider1.getConfig().getProviderDescription());
+        assertEquals("google.com", mfaProvider1.getConfig().getIssuer());
 
     }
 
@@ -1072,6 +1106,11 @@ public class BootstrapTests {
             @Override
             public String getVirtualServerName() {
                 return "localhost";
+            }
+
+            @Override
+            public <Type extends EventListener> void addListener(Type t) {
+                //no op
             }
         };
         context.setServletContext(servletContext);

@@ -78,8 +78,8 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
     private String scimReadToken;
     private String scimWriteToken;
 
-    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
-    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
     FieldDescriptor[] responseFieldDescriptors = {
         fieldWithPath("id").description("The globally unique group ID"),
@@ -256,7 +256,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 requestParameters,
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
-                    headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id."),
+                    headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id."),
                     IDENTITY_ZONE_ID_HEADER,
                     IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),

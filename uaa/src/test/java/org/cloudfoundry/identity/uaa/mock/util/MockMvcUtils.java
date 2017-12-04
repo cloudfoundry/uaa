@@ -24,6 +24,8 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -47,6 +49,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -94,6 +97,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -120,6 +124,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public final class MockMvcUtils {
 
@@ -162,6 +167,20 @@ public final class MockMvcUtils {
         // this is all static now
         // TODO: replace calls to this method with static references
         return null;
+    }
+
+    public static File getLimitedModeStatusFile(ApplicationContext context) {
+        return context.getBean(LimitedModeUaaFilter.class).getStatusFile();
+    }
+
+    public static File setLimitedModeStatusFile(ApplicationContext context) throws Exception {
+        File tempFile = File.createTempFile("uaa-limited-mode-negative-test.", ".status");
+        context.getBean(LimitedModeUaaFilter.class).setStatusFile(tempFile);
+        return tempFile;
+    }
+
+    public static void resetLimitedModeStatusFile(ApplicationContext context, File file) throws Exception {
+        context.getBean(LimitedModeUaaFilter.class).setStatusFile(file);
     }
 
     public static String getSPMetadata(MockMvc mockMvc, String subdomain) throws Exception {
@@ -1069,8 +1088,10 @@ public final class MockMvcUtils {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
-                .param("recovable","true")
-                .param("scope", scope);
+                .param("recovable", "true");
+        if (!isEmpty(scope)){
+            oauthTokenPost.param("scope", scope);
+        }
         if (subdomain != null && !subdomain.equals("")) {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         }
@@ -1206,5 +1227,18 @@ public final class MockMvcUtils {
         public String generate() {
             return  "test"+counter.incrementAndGet();
         }
+    }
+
+
+    public static MfaProvider<GoogleMfaProviderConfig> constructGoogleMfaProvider() {
+        MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
+        res.setName(new RandomValueStringGenerator(5).generate());
+        res.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
+        res.setConfig(constructGoogleProviderConfiguration());
+        return res;
+    }
+
+    public static GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
+        return new GoogleMfaProviderConfig().setAlgorithm(GoogleMfaProviderConfig.Algorithm.SHA256);
     }
 }

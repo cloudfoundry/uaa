@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,24 +13,57 @@
 
 package org.cloudfoundry.identity.uaa.health;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletResponse;
+
 /**
  * Simple controller that just returns "ok" in a request body for the purposes
- * of monitoring health of the application.
- * 
- * @author Dave Syer
- * 
+ * of monitoring health of the application. It also registers a shutdown hook
+ * and returns "stopping" and a 503 when the process is shutting down.
+ *
  */
 @Controller
 public class HealthzEndpoint {
+    private static Log logger = LogFactory.getLog(HealthzEndpoint.class);
+    private volatile boolean stopping = false;
+    private final Thread shutdownhook;
+    private final long sleepTime;
+
+    public HealthzEndpoint(long sleepTime) {
+        this.sleepTime = sleepTime;
+        shutdownhook = new Thread(() -> {
+            stopping = true;
+            logger.warn("Shutdown hook received, future requests to this endpoint will return 503");
+            try {
+                if (sleepTime>0) {
+                    logger.debug("Healthz is sleeping shutdown thread for "+sleepTime+" ms.");
+                    Thread.sleep(sleepTime);
+                }
+            } catch (InterruptedException e) {
+                logger.warn("Shutdown sleep interrupted.", e);
+            }
+        });
+        Runtime.getRuntime().addShutdownHook(shutdownhook);
+    }
 
     @RequestMapping("/healthz")
     @ResponseBody
-    public String getHealthz() throws Exception {
-        return "ok\n";
+    public String getHealthz(HttpServletResponse response) throws Exception {
+        if (stopping) {
+            logger.debug("Received /healthz request during shutdown. Returning 'stopping'");
+            response.setStatus(503);
+            return "stopping\n";
+        } else {
+            return "ok\n";
+        }
     }
 
+    public long getSleepTime() {
+        return sleepTime;
+    }
 }

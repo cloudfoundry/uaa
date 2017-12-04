@@ -30,7 +30,6 @@ dependencies {
   }
   compile group: 'cglib', name: 'cglib', version:parent.cglibVersion
   runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
-  runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:parent.springSecurityJwtVersion
   runtime group: 'org.springframework.retry', name: 'spring-retry', version:parent.springRetryVersion
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
   runtime group: 'org.postgresql', name: 'postgresql', version:parent.postgresqlVersion
@@ -55,6 +54,7 @@ dependencies {
     exclude(module: 'servlet-api-2.5')
   }
   testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
+  testCompile group: 'com.google.zxing', name: 'core', version: parent.zxingVersion
   testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
   testCompile group: 'org.skyscreamer', name:'jsonassert', version: '0.9.0'
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion

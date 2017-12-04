@@ -45,6 +45,7 @@ public class SamlServiceProviderDefinition {
     private boolean skipSslValidation = false;
     private Map<String, Object> attributeMappings = new HashMap<>();
     private boolean enableIdpInitiatedSso = false;
+    private Map<String, Object> staticCustomAttributes = new HashMap<>();
 
 
     public SamlServiceProviderDefinition clone() {
@@ -183,6 +184,14 @@ public class SamlServiceProviderDefinition {
 
     public void setEnableIdpInitiatedSso(boolean enableIdpInitiatedSso) {
         this.enableIdpInitiatedSso = enableIdpInitiatedSso;
+    }
+
+    public Map<String, Object> getStaticCustomAttributes() {
+        return staticCustomAttributes;
+    }
+
+    public void setStaticCustomAttributes(Map<String, Object> staticCustomAttributes) {
+        this.staticCustomAttributes = staticCustomAttributes;
     }
 
     @Override

@@ -65,8 +65,12 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static java.util.Optional.ofNullable;
 
 
 public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSsoProfile {
@@ -311,7 +315,28 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         Attribute zoneAttribute = buildStringAttribute("zoneId", Collections.singletonList(principal.getZoneId()));
         attributeStatement.getAttributes().add(zoneAttribute);
 
-        Map<String, Object> attributeMappings = samlServiceProviderProvisioning.retrieveByEntityId(providerEntityId, IdentityZoneHolder.get().getId()).getConfig().getAttributeMappings();
+        SamlServiceProviderDefinition config = samlServiceProviderProvisioning.retrieveByEntityId(providerEntityId, IdentityZoneHolder.get().getId()).getConfig();
+
+        //static attributes
+        for (Map.Entry<String,Object> staticAttribute : (ofNullable(config.getStaticCustomAttributes()).orElse(Collections.emptyMap())).entrySet()) {
+            String name = staticAttribute.getKey();
+            Object value = staticAttribute.getValue();
+            if (value==null) {
+                continue;
+            }
+
+            List values = new LinkedList<>();
+            if (value instanceof List) {
+                values = (List) value;
+            } else {
+                values.add(value);
+            }
+
+            List<String> stringValues = (List) values.stream().map(s -> s==null ? "null" : s.toString()).collect(Collectors.toList());
+            attributeStatement.getAttributes().add(buildStringAttribute(name, stringValues));
+        }
+
+        Map<String, Object> attributeMappings = config.getAttributeMappings();
 
         if (attributeMappings.size() > 0) {
             ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());

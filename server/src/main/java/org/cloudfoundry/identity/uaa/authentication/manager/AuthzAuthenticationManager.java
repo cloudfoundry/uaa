@@ -12,10 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -44,7 +43,6 @@ import org.springframework.security.authentication.event.AuthenticationFailureLo
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Calendar;
@@ -52,11 +50,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 
-/**
- * @author Luke Taylor
- * @author Dave Syer
- *
- */
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
     private final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());
@@ -68,10 +61,6 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     private String origin;
     private boolean allowUnverifiedUsers = true;
-
-    public AuthzAuthenticationManager(UaaUserDatabase cfusers, IdentityProviderProvisioning providerProvisioning) {
-        this(cfusers, new BCryptPasswordEncoder(), providerProvisioning);
-    }
 
     public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder, IdentityProviderProvisioning providerProvisioning) {
         this.userDatabase = userDatabase;
@@ -133,11 +122,16 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                         throw new PasswordChangeRequiredException(success, "User password needs to be changed");
                     }
                 }
-                
+
                 if(user.isPasswordChangeRequired()){
                     logger.info("Password change required for user: "+user.getEmail());
                     throw new PasswordChangeRequiredException(success, "User password needs to be changed");
                 }
+
+                if(IdentityZoneHolder.get().getConfig().getMfaConfig().isEnabled()) {
+                    throw new MfaAuthenticationRequiredException(success, "Mfa authentication required");
+                }
+
                 publish(new UserAuthenticationSuccessEvent(user, success));
 
                 return success;

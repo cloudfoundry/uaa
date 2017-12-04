@@ -67,9 +67,10 @@ public class TokenRevocationEndpointTests extends JdbcTestBase {
             jdbcTemplate,
             new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter)
         );
-        JdbcRevocableTokenProvisioning provisioning = spy(new JdbcRevocableTokenProvisioning(jdbcTemplate));
+        JdbcRevocableTokenProvisioning provisioning = spy(new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter));
         endpoint = spy(new TokenRevocationEndpoint(clientService, userProvisioning, provisioning));
         publisher = mock(ApplicationEventPublisher.class);
+        endpoint.setApplicationEventPublisher(publisher);
 
         SecurityContextHolder.getContext().setAuthentication(
             new UaaOauth2Authentication(
