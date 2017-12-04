@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.web.client.ResourceAccessException;
 
@@ -36,7 +37,9 @@ import static org.junit.Assert.fail;
 
 public class HttpsIntegrationTest {
 
+    @Value("TARGET_UAA")
     public static String uaaURI = "https://login.oms.identity.team";
+
 
     private UaaContextFactory factory;
 
@@ -48,7 +51,7 @@ public class HttpsIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        redirectUri = "https://uaa.oms.identity.team";
+        redirectUri = uaaURI;
         clientId = "xxx";
         clientSecret = "xxx";
         factory =
