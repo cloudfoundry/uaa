@@ -147,18 +147,6 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <http name="resetPasswordSecurity"
-          pattern="/reset_password**"
-          disable-url-rewriting="true"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <csrf disabled="false"
-              token-repository-ref="loginCookieCsrfRepository"/>
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
-
     <http name="forgotPasswordSecurity"
           pattern="/forgot_password**"
           disable-url-rewriting="true"
@@ -291,6 +279,7 @@
           use-expressions="true"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/reset_password**" access="isAnonymous()"/>
         <intercept-url pattern="/login/mfa/**" access="isFullyAuthenticated()"/>
         <intercept-url pattern="/create_account*" access="isAnonymous()"/>
         <intercept-url pattern="/login/idp_discovery/**" access="isAnonymous()"/>
