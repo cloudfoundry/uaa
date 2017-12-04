@@ -250,26 +250,29 @@
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
     </http>
 
-    <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/verify_email" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
+    <http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/verify_email" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
 
-    <security:http name="verifyUserSecurity" pattern="/verify_user" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
+    <http name="verifyUserSecurity" pattern="/verify_user" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
 
-    <security:http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
+    <http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
 
     <bean id="catchAllFilterChainProxy" class="org.springframework.security.web.FilterChainProxy">
         <constructor-arg>
