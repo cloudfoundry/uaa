@@ -113,6 +113,7 @@
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true"
           pattern="/invite_users/**"
+          create-session="stateless"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**"
                        access="#oauth2.hasAnyScope('scim.invite') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
