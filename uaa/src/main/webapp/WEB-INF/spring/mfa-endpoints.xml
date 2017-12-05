@@ -20,6 +20,8 @@
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
+    <bean id="runtimeEnvironment" class="org.cloudfoundry.identity.uaa.util.RuntimeEnvironment" />
+
     <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"

@@ -78,14 +78,10 @@ public class LowConcurrencyPasswordEncoder implements PasswordEncoder {
     //request counter
     private final AtomicLong counter = new AtomicLong(0);
 
-    public LowConcurrencyPasswordEncoder(PasswordEncoder delegate, long timeoutMs, boolean enabled) {
-        this(delegate, timeoutMs, enabled, Runtime.getRuntime());
-    }
-
-    protected LowConcurrencyPasswordEncoder(PasswordEncoder delegate, long timeoutMs, boolean enabled, Runtime runtime) {
+    protected LowConcurrencyPasswordEncoder(PasswordEncoder delegate, long timeoutMs, boolean enabled, RuntimeEnvironment environment) {
         this.delegate = delegate;
         this.timeoutMs = timeoutMs;
-        int processors = runtime.availableProcessors();
+        int processors = environment.availableProcessors();
         if (enabled) {
             //determine how many concurrent threads can run
             //given the number of CPUs are available on the system

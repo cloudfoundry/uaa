@@ -41,6 +41,8 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         provisioner = new UserGoogleMfaCredentialsProvisioning();
+        MfaCredentialsSessionCache cache = new MfaCredentialsSessionCache();
+        provisioner.setCredCache(cache);
 
         mfaProvider = new MfaProvider().setName("abc").setId("abc");
         otherMfaProvider = new MfaProvider().setName("abcd").setId("abcd");

@@ -38,6 +38,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.Arrays;
@@ -54,6 +55,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -332,7 +334,20 @@ public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
             .andExpect(redirectedUrl("/login/mfa/completed"));
     }
 
-    private ScimUser createUser() throws Exception{
+    @Test
+    public void testQRDoesNotChangeDuringOneSession() throws Exception {
+        redirectToMFARegistration();
+        assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
+
+        MvcResult res = performGetMfaRegister().andExpect(view().name("mfa/qr_code")).andReturn();
+        String qrUrl = (String) res.getModelAndView().getModel().get("qrurl");
+
+        performGetMfaRegister()
+                .andExpect(view().name("mfa/qr_code"))
+                .andExpect(model().attribute("qrurl", qrUrl));
+    }
+
+    private ScimUser createUser() throws Exception {
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
 
         password = "sec3Tas";

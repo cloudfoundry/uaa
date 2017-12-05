@@ -573,7 +573,10 @@
     <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
         <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
+        <property name="credCache" ref="mfaCredentialsSessionCache" />
     </bean>
+
+    <bean id="mfaCredentialsSessionCache" class="org.cloudfoundry.identity.uaa.mfa.MfaCredentialsSessionCache" />
 
     <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpEndpoint">
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
@@ -588,6 +591,7 @@
 
     <bean id="googleAuthenticatorAdapter" class="org.cloudfoundry.identity.uaa.mfa.GoogleAuthenticatorAdapter">
         <property name="authenticator" ref="googleAuthenticator"/>
+        <property name="credCache" ref="mfaCredentialsSessionCache" />
     </bean>
 
     <bean id="googleAuthenticator" class="com.warrenstrange.googleauth.GoogleAuthenticator">
