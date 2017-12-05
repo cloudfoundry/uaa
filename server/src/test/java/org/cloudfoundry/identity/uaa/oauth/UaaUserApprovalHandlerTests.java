@@ -55,7 +55,7 @@ public class UaaUserApprovalHandlerTests {
     public void testNotAutoApprove() {
         BaseClientDetails client = new BaseClientDetails("client", "none", "read,write", "authorization_code",
                         "uaa.none");
-        Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
+        Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
@@ -64,7 +64,7 @@ public class UaaUserApprovalHandlerTests {
         BaseClientDetails client = new BaseClientDetails("client", "none", "read,write", "authorization_code",
                         "uaa.none");
         client.setAutoApproveScopes(singleton("true"));
-            Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
+            Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
@@ -72,7 +72,7 @@ public class UaaUserApprovalHandlerTests {
     public void testAutoApproveByScope() {
         BaseClientDetails client = new BaseClientDetails("client", "none", "read,write", "authorization_code",
                         "uaa.none");
-        Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
+        Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
         client.setAutoApproveScopes(singleton("read"));
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
         client.setAutoApproveScopes(singleton("write"));

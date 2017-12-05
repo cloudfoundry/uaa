@@ -178,7 +178,7 @@ public class EmailInvitationsServiceTests {
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
-        when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
+        when(clientDetailsService.loadClientByClientId("acmeClientId", "uaa")).thenReturn(clientDetails);
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");

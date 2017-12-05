@@ -47,7 +47,7 @@ public class ClientInfoEndpointTests {
 
     @Test
     public void testClientinfo() {
-        Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(foo);
+        Mockito.when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(foo);
         ClientDetails client = endpoint.clientinfo(new UsernamePasswordAuthenticationToken("foo", "<NONE>"));
         assertEquals("foo", client.getClientId());
         assertNull(client.getClientSecret());

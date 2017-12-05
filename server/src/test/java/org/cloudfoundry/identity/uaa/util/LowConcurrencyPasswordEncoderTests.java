@@ -42,7 +42,7 @@ public class LowConcurrencyPasswordEncoderTests {
     private PasswordEncoder delegate;
     private long timeout = 10000;
     private String password = new RandomValueStringGenerator(24).generate();
-    private Runtime runtime;
+    private RuntimeEnvironment environment = new RuntimeEnvironment();
     private LowConcurrencyPasswordEncoder encoder;
 
     @Rule
@@ -52,7 +52,7 @@ public class LowConcurrencyPasswordEncoderTests {
     @Before
     public void setup() throws Exception {
         delegate = new BCryptPasswordEncoder();
-        runtime = mock(Runtime.class);
+        environment = mock(RuntimeEnvironment.class);
         setProcessorCount(Runtime.getRuntime().availableProcessors());
     }
 
@@ -62,9 +62,9 @@ public class LowConcurrencyPasswordEncoderTests {
     }
 
     public void setProcessorCount(int availableProcessors) {
-        reset(runtime);
-        when(runtime.availableProcessors()).thenReturn(availableProcessors);
-        encoder = new LowConcurrencyPasswordEncoder(delegate, timeout, true, runtime);
+        reset(environment);
+        when(environment.availableProcessors()).thenReturn(availableProcessors);
+        encoder = new LowConcurrencyPasswordEncoder(delegate, timeout, true, environment);
     }
 
     @Test
@@ -96,7 +96,7 @@ public class LowConcurrencyPasswordEncoderTests {
 
     @Test
     public void disabled() throws Exception {
-        encoder = new LowConcurrencyPasswordEncoder(delegate, timeout, false, runtime);
+        encoder = new LowConcurrencyPasswordEncoder(delegate, timeout, false, environment);
         assertNotNull(encoder);
         assertNull(ReflectionTestUtils.getField(encoder, "exchange"));
     }

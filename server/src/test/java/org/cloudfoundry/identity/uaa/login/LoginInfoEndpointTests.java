@@ -658,7 +658,7 @@ public class LoginInfoEndpointTests {
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
 
         // mock SamlIdentityProviderConfigurator
         List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
@@ -695,7 +695,7 @@ public class LoginInfoEndpointTests {
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+        when(clientDetailsService.loadClientByClientId("client-id", "other-zone")).thenReturn(clientDetails);
 
         // mock SamlIdentityProviderConfigurator
         List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
@@ -753,7 +753,7 @@ public class LoginInfoEndpointTests {
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
 
         List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
