@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,9 +17,9 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     @Before
     public void setup() throws MalformedURLException {
         definition = new OIDCIdentityProviderDefinition();
-        definition.setAuthUrl(new URL("http://oidc10.oms.identity.team/oauth/authorize"));
-        definition.setTokenUrl(new URL("http://oidc10.oms.identity.team/oauth/token"));
-        definition.setTokenKeyUrl(new URL("http://oidc10.oms.identity.team/token_key"));
+        definition.setAuthUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/authorize").build()));
+        definition.setTokenUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/oauth/token").build()));
+        definition.setTokenKeyUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/token_key").build()));
         definition.setShowLinkText(true);
         definition.setLinkText("My OIDC Provider");
         definition.setSkipSslValidation(true);

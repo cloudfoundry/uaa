@@ -38,7 +38,7 @@ import static org.junit.Assert.fail;
 public class HttpsIntegrationTest {
 
     @Value("TARGET_UAA")
-    public static String uaaURI = "https://login.oms.identity.team";
+    public static String uaaURI;
 
 
     private UaaContextFactory factory;
