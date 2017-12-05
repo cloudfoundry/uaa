@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
@@ -152,7 +153,8 @@ public class SamlIdentityProviderConfiguratorTests {
                 }
                 case "simplesamlphp-url" : {
                     ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
-                    assertEquals("http://simplesamlphp.oms.identity.team/saml2/idp/metadata.php", provider.getEntityID());
+                    String metadataUrl = new TestUaaUrlBuilder().withSubdomain("simplesamlphp").withPath("saml2/idp/metadata.php").build();
+                    assertEquals(metadataUrl, provider.getEntityID());
                     break;
                 }
                 case "custom-authncontext" : {
