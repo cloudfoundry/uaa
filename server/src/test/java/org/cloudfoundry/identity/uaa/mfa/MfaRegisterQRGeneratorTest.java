@@ -31,7 +31,7 @@ public class MfaRegisterQRGeneratorTest {
     public void testQRCode() throws Exception {
         GoogleAuthenticator authenticator = new GoogleAuthenticator();
         GoogleAuthenticatorKey key = authenticator.createCredentials();
-        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("testIssuer", "accountName", key);
+        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("testIssuer", "accountName", key.getKey());
         String result = decodeQrPng(encodedQrCode);
 
         String[] split = result.split("\\?");
@@ -46,7 +46,7 @@ public class MfaRegisterQRGeneratorTest {
     public void testQrWithSpecialChars() throws Exception {
         GoogleAuthenticator authenticator = new GoogleAuthenticator();
         GoogleAuthenticatorKey key = authenticator.createCredentials();
-        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("test=Issuer","account?&#Name", key);
+        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("test=Issuer","account?&#Name", key.getKey());
         String result = decodeQrPng(encodedQrCode);
 
         String[] split = result.split("\\?");
@@ -61,28 +61,28 @@ public class MfaRegisterQRGeneratorTest {
     public void testQrWithColonIssuer() throws Exception {
         GoogleAuthenticator authenticator = new GoogleAuthenticator();
         GoogleAuthenticatorKey key = authenticator.createCredentials();
-        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("test:Issuer", "accountName", key);
+        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("test:Issuer", "accountName", key.getKey());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testQrWithColonAccountName() throws Exception {
         GoogleAuthenticator authenticator = new GoogleAuthenticator();
         GoogleAuthenticatorKey key = authenticator.createCredentials();
-        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("testIssuer", "accountName:", key);
+        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("testIssuer", "accountName:", key.getKey());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptyIssuer() throws Exception {
         GoogleAuthenticator authenticator = new GoogleAuthenticator();
         GoogleAuthenticatorKey key = authenticator.createCredentials();
-        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("", "accountName", key);
+        String encodedQrCode = MfaRegisterQRGenerator.getQRCode("", "accountName", key.getKey());
     }
 
     @Test
     public void testPngUrl() throws Exception {
         GoogleAuthenticator authenticator = new GoogleAuthenticator();
         GoogleAuthenticatorKey key = authenticator.createCredentials();
-        String encodedQrCode = MfaRegisterQRGenerator.getQRCodePngDataUri("testIssuer", "accountName", key);
+        String encodedQrCode = MfaRegisterQRGenerator.getQRCodePngDataUri("testIssuer", "accountName", key.getKey());
         assertTrue(encodedQrCode.startsWith("data:image/png;base64,"));
         String rawSplit = encodedQrCode.split(",")[1];
         String[] split = decodeQrPng(rawSplit).split("\\?");

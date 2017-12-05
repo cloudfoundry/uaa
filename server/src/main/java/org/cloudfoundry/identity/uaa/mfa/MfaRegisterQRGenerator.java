@@ -5,7 +5,6 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriUtils;
 
@@ -23,7 +22,7 @@ public class MfaRegisterQRGenerator {
 
     public static String getQRCode(String issuer,
                                    String accountName,
-                                   GoogleAuthenticatorKey credentials) throws WriterException, IOException {
+                                   String secretKey) throws WriterException, IOException {
         if(!StringUtils.hasText(issuer) || issuer.contains(":")) {
             throw new IllegalArgumentException("invalid issuer");
         }
@@ -36,7 +35,7 @@ public class MfaRegisterQRGenerator {
                 OTPAUTH_TOTP_URI,
                 UriUtils.encode(issuer, STRING_ENCODING),
                 UriUtils.encode(accountName, STRING_ENCODING),
-                credentials.getKey(),
+                secretKey,
                 UriUtils.encode(issuer, STRING_ENCODING)),
                 BarcodeFormat.QR_CODE, 200, 200);
         BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(qrBitMatrix);
@@ -47,7 +46,7 @@ public class MfaRegisterQRGenerator {
 
     public static String getQRCodePngDataUri(String issuer,
                                       String accountName,
-                                      GoogleAuthenticatorKey credentials) throws WriterException, IOException {
-        return "data:image/png;base64," + getQRCode(issuer, accountName, credentials);
+                                      String secretKey) throws WriterException, IOException {
+        return "data:image/png;base64," + getQRCode(issuer, accountName, secretKey);
     }
 }
