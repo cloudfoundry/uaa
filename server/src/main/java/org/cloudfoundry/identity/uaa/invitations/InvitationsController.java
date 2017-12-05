@@ -49,6 +49,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -350,9 +351,9 @@ public class InvitationsController {
                 //change username from email to username
                 user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
                 userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
-                SecurityContextHolder.getContext().setAuthentication(zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token));
+                Authentication ldapCompleteAuth = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token);
                 AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
-                return "redirect:" + accept.getRedirectUri();
+                return "redirect:" + "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(accept.getRedirectUri());
             } else {
                 return handleUnprocessableEntity(model, response, "error_message", "not authenticated", "invitations/accept_invite");
             }

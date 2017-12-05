@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.hamcrest.Matcher;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -66,6 +67,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
@@ -76,6 +78,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -293,6 +296,7 @@ public class LdapMockMvcTests  {
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        String expectRedirectToLogin = "/login?success=invite_accepted&form_redirect_uri="+ URLEncoder.encode(REDIRECT_URI);
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
                                  .session(session)
                                  .param("enterprise_username", "marissa2")
@@ -302,8 +306,35 @@ public class LdapMockMvcTests  {
                                  .header(HOST, host)
                                  .with(cookieCsrf()))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl(REDIRECT_URI))
+            .andExpect(redirectedUrl(expectRedirectToLogin))
+                .andExpect(unauthenticated())
             .andReturn();
+
+        getMockMvc().perform(
+                get(expectRedirectToLogin)
+                        .with(cookieCsrf())
+                        .session(session)
+                        .header(HOST, host)
+        )
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("form_redirect_uri")))
+            .andExpect(content().string(containsString(URLEncoder.encode(REDIRECT_URI))));
+
+
+        getMockMvc().perform(
+                post("/login.do")
+                .with(cookieCsrf())
+                .param("username", "marissa2")
+                .param("password", LDAP)
+                .session(session)
+                .header(HOST, host)
+                .param("form_redirect_uri", REDIRECT_URI)
+        )
+            .andExpect(authenticated())
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl(REDIRECT_URI));
+
+
 
         String newUserInfoId = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select id from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
         String newUserInfoOrigin = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());

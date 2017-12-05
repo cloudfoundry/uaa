@@ -302,7 +302,7 @@ public class InvitationsControllerTest {
                 .param("enterprise_password", "password")
                 .param("enterprise_email", "email")
                 .param("code", "the_secret_code"))
-                .andExpect(redirectedUrl("blah.test.com"))
+                .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=blah.test.com"))
                 .andReturn();
 
         verify(ldapActual).authenticate(anyObject());
