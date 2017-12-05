@@ -12,33 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.restdocs.headers.HeaderDescriptor;
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
-import org.springframework.restdocs.payload.FieldDescriptor;
-import org.springframework.restdocs.request.ParameterDescriptor;
-import org.springframework.restdocs.request.RequestDocumentation;
-import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-
 import java.util.Collections;
 import java.util.Date;
 
@@ -66,6 +39,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.apache.commons.lang3.ArrayUtils;
+import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.restdocs.headers.HeaderDescriptor;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
+import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.request.ParameterDescriptor;
+import org.springframework.restdocs.request.RequestDocumentation;
+import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 public class ScimUserEndpointDocs extends InjectedMockContextTest {
 
@@ -110,8 +109,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String metaLastModifiedDesc = "Object last modified date.";
     private final String metaCreatedDesc = "Object created date.";
     private final String metaAttributesDesc = "Names of attributes that shall be deleted";
-    private final String userLastLogonTimeDescription = "The unix epoch timestamp of when the user last authenticated. This field will be omitted from the response if the user has never authenticated.";
-    private final String userPreviousLogonTimeDescription = "The unix epoch timestamp of 2nd to last successful user authentication. This field will only be included in the response once the user has authenticated two or more times.";
+    private final String userLastLogonTimeDescription = "The unix epoch timestamp in milliseconds of when the user last authenticated. This field will be omitted from the response if the user has never authenticated.";
+    private final String userPreviousLogonTimeDescription = "The unix epoch timestamp in milliseconds of 2nd to last successful user authentication. This field will only be included in the response once the user has authenticated two or more times.";
 
     FieldDescriptor[] searchResponseFields = {
         fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),

@@ -1,22 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
-import org.apache.commons.lang.ArrayUtils;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.restdocs.headers.HeaderDescriptor;
-import org.springframework.restdocs.payload.FieldDescriptor;
-import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.web.servlet.ResultActions;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,12 +27,31 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
+import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.restdocs.headers.HeaderDescriptor;
+import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.ResultActions;
 
 public class ClientAdminEndpointsDocs extends AdminClientCreator {
     private String clientAdminToken;
@@ -60,7 +62,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
-    private static final FieldDescriptor lastModifiedField = fieldWithPath("lastModified").description("Epoch of the moment the client information was last altered");
+    private static final FieldDescriptor lastModifiedField = fieldWithPath("lastModified").description("Epoch (milliseconds) of the moment the client information was last altered");
     private static final String clientIdDescription = "Client identifier, unique within identity zone";
 
     private static final FieldDescriptor[] idempotentFields = new FieldDescriptor[]{

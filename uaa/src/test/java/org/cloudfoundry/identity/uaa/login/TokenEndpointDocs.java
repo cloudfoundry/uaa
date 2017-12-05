@@ -14,6 +14,45 @@
  */
 package org.cloudfoundry.identity.uaa.login;
 
+import java.net.URI;
+import java.util.Arrays;
+
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.HOST;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
+import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.STATE;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -54,46 +93,6 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URI;
-import java.util.Arrays;
-
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpHeaders.HOST;
-import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
-import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.STATE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
@@ -113,8 +112,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         fieldWithPath("[].clientId").type(STRING).description("Client ID for this token, will always match the client_id claim in the access token used for this call"),
         fieldWithPath("[].userId").optional().type(STRING).description("User ID for this token, will always match the user_id claim in the access token used for this call"),
         fieldWithPath("[].format").type(STRING).description("What format was requested, OPAQUE or JWT"),
-        fieldWithPath("[].expiresAt").type(NUMBER).description("Epoch time - token expiration date"),
-        fieldWithPath("[].issuedAt").type(NUMBER).description("Epoch time - token issue date"),
+        fieldWithPath("[].expiresAt").type(NUMBER).description("Token expiration date, as a epoch timestamp, in milliseconds between the expires time and midnight, January 1, 1970 UTC."),
+        fieldWithPath("[].issuedAt").type(NUMBER).description("Token issue date as, a epoch timestamp, in milliseconds between the issued time and midnight, January 1, 1970 UTC."),
         fieldWithPath("[].scope").type(STRING).description("Comma separated list of scopes this token holds, up to 1000 characters"),
         fieldWithPath("[].responseType").type(STRING).description("response type requested during the token request, possible values ID_TOKEN, ACCESS_TOKEN, REFRESH_TOKEN"),
         fieldWithPath("[].value").optional().type(STRING).description("Access token value will always be null")
