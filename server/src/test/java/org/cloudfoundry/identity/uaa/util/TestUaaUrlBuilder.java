@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 public class TestUaaUrlBuilder {
 
-    @Value("TARGET_CF_SYSTEM_DOMAIN")
+    @Value("${TARGET_CF_SYSTEM_DOMAIN}")
     private String systemDomain;
     private String subdomain = "";
     private String path = "";
