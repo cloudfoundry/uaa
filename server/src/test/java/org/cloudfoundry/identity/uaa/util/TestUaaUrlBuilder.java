@@ -4,11 +4,14 @@ import org.springframework.beans.factory.annotation.Value;
 
 public class TestUaaUrlBuilder {
 
-    @Value("${TARGET_CF_SYSTEM_DOMAIN}")
     private String systemDomain;
     private String subdomain = "";
     private String path = "";
     private String scheme = "https";
+
+    public TestUaaUrlBuilder() {
+        systemDomain = System.getenv().get("TARGET_CF_SYSTEM_DOMAIN");
+    }
 
     public String build() {
         if (systemDomain == null || "".equals(systemDomain)) {
@@ -42,5 +45,10 @@ public class TestUaaUrlBuilder {
     public TestUaaUrlBuilder withSubdomain(String subdomain) {
         this.subdomain = subdomain;
         return this;
+    }
+
+    public String getSystemDomain() {
+        systemDomain = systemDomain.replaceAll("/$","");
+        return systemDomain;
     }
 }
