@@ -113,6 +113,7 @@
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true"
           pattern="/invite_users/**"
+          create-session="stateless"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**"
                        access="#oauth2.hasAnyScope('scim.invite') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
@@ -141,18 +142,6 @@
           xmlns="http://www.springframework.org/schema/security">
         <custom-filter ref="userManagementSecurityFilter" before="ANONYMOUS_FILTER"/>
         <custom-filter ref="resetPasswordAuthenticationFilter" position="LAST"/>
-        <csrf disabled="false"
-              token-repository-ref="loginCookieCsrfRepository"/>
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
-
-    <http name="resetPasswordSecurity"
-          pattern="/reset_password**"
-          disable-url-rewriting="true"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
         <csrf disabled="false"
               token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
@@ -250,26 +239,29 @@
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
     </http>
 
-    <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/verify_email" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
+    <http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/verify_email" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
 
-    <security:http name="verifyUserSecurity" pattern="/verify_user" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
+    <http name="verifyUserSecurity" pattern="/verify_user" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
 
-    <security:http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
+    <http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
 
     <bean id="catchAllFilterChainProxy" class="org.springframework.security.web.FilterChainProxy">
         <constructor-arg>
@@ -287,6 +279,7 @@
           use-expressions="true"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/reset_password**" access="isAnonymous()"/>
         <intercept-url pattern="/login/mfa/**" access="isFullyAuthenticated()"/>
         <intercept-url pattern="/create_account*" access="isAnonymous()"/>
         <intercept-url pattern="/login/idp_discovery/**" access="isAnonymous()"/>
