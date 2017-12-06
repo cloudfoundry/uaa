@@ -4,8 +4,12 @@
   <h4 class="txt-c pbxxl ptxl" th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
     Choose an account
   </h4>
+
   <div th:if="${param.error}" class="alert alert-error mbxl">
     <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
+  </div>
+  <div th:if="${param.success}" class="alert alert-success mbxl">
+    <p th:text="#{'login.' + ${param.success}}">Success Message</p>
   </div>
 
   <div class="choose">
