@@ -435,6 +435,15 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         doPasswordGrant(username, SECRET, clientId, SECRET, status().isOk());
     }
 
+    @Test
+    public void password_grant() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        assertEquals(1, getWebApplicationContext().getBean(JdbcTemplate.class).update("UPDATE users SET passwd_change_required = ? WHERE ID = ?", true, user.getId()));
+        doPasswordGrant(username, SECRET, "cf", "", status().is4xxClientError());
+    }
+
 
     @Test
     public void test_logon_timestamps_with_password_grant() throws Exception {
@@ -517,7 +526,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map<String, String> error = (JsonUtils.readValue(response, new TypeReference<Map<String, String>>() {}));
         String error_description = error.get("error_description");
         assertNotNull(error_description);
-        assertEquals("User password needs to be changed", error_description);
+        assertEquals("password change required", error_description);
 
     }
 
@@ -3544,8 +3553,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
-            .andExpect(status().isForbidden())
-            .andExpect(content().string("{\"error\":\"access_denied\",\"error_description\":\"Your current password has expired. Please reset your password.\"}"));
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string("{\"error\":\"unauthorized\",\"error_description\":\"password change required\"}"));
     }
 
     @Test
