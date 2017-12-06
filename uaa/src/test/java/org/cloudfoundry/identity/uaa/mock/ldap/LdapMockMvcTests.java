@@ -16,6 +16,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.DefaultConfigurationTestSuite;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -37,8 +40,9 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
-import org.hamcrest.Matcher;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -67,7 +71,6 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
@@ -120,6 +123,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -941,6 +945,88 @@ public class LdapMockMvcTests  {
 
     }
 
+    @Test
+    public void testLdapAuthenticationWithMfa() throws Exception {
+        String zoneId = zone.getZone().getIdentityZone().getId();
+        // create mfa provider
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider();
+        mfaProvider.setName(new RandomValueStringGenerator(5).generate());
+        mfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
+        mfaProvider.setIdentityZoneId(zone.getZone().getIdentityZone().getId());
+        mfaProvider.setConfig((GoogleMfaProviderConfig) new GoogleMfaProviderConfig().setIssuer("issuer"));
+        mfaProvider = getWebApplicationContext().getBean(JdbcMfaProviderProvisioning.class).create(mfaProvider, zoneId);
+        zone.getZone().getIdentityZone().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
+        IdentityZone newZone = getWebApplicationContext().getBean(JdbcIdentityZoneProvisioning.class).update(zone.getZone().getIdentityZone());
+        assertEquals(mfaProvider.getName(), newZone.getConfig().getMfaConfig().getProviderName());
+        performMfaRegistrationInZone("marissa7", "ldap7");
+    }
+
+    private void performMfaRegistrationInZone(String username, String password) throws Exception {
+
+        //ldap login
+        MockHttpSession session = (MockHttpSession) getMockMvc().perform(
+            post("/login.do")
+                .with(cookieCsrf())
+                .header(HOST, host)
+                .accept(MediaType.TEXT_HTML)
+                .param("username", username)
+                .param("password", password)
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"))
+            .andReturn().getRequest().getSession(false);
+
+        assertTrue(getUaaAuthentication(session).isAuthenticated());
+        assertThat(getUaaAuthentication(session).getAuthenticationMethods(), containsInAnyOrder("ext", "pwd"));
+
+        //successful login, follow redirect
+        getMockMvc().perform(
+            get("/")
+                .header(HOST, host)
+                .accept(MediaType.TEXT_HTML)
+            .session(session)
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login/mfa/register"));
+
+        //follow redirect to mfa register
+        getMockMvc().perform(
+            get("/login/mfa/register")
+                .header(HOST, host)
+                .accept(MediaType.TEXT_HTML)
+                .session(session)
+        )
+            .andExpect(status().isOk())
+            .andExpect(view().name("mfa/qr_code"));
+
+        //post MFA code
+        int code = MockMvcUtils.getMFACodeFromSession(session);
+        String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session, host);
+        //follow redirect to completed
+        location = getMockMvc().perform(get(location)
+            .session(session)
+            .header(HOST, host)
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://"+host+"/"))
+            .andReturn().getResponse().getRedirectedUrl();
+
+        getMockMvc().perform(get(location)
+            .session(session)
+            .header(HOST, host)
+        )
+            .andExpect(status().isOk())
+            .andExpect(view().name("home"));
+
+        assertTrue(getUaaAuthentication(session).isAuthenticated());
+        assertThat(getUaaAuthentication(session).getAuthenticationMethods(), containsInAnyOrder("ext", "pwd", "mfa", "otp"));
+    }
+
+    private UaaAuthentication getUaaAuthentication(HttpSession session) {
+        SecurityContext context = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        return (UaaAuthentication) context.getAuthentication();
+    }
+
     protected void testSuccessfulLogin() throws Exception {
         getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
                                  .header(HOST, host)
@@ -1209,7 +1295,6 @@ public class LdapMockMvcTests  {
             .andExpect(authenticated ? authenticated() : unauthenticated())
             .andReturn();
     }
-
 
     @Test
     public void testLdapScopes() throws Exception {
