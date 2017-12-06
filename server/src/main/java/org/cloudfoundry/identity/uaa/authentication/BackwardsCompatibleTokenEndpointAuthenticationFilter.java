@@ -200,6 +200,14 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             Authentication credentials = extractCredentials(request);
             logger.debug("Authentication credentials found password grant for '" + credentials.getName() + "'");
             authResult = authenticationManager.authenticate(credentials);
+
+            if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication) {
+                UaaAuthentication uaaAuthentication = (UaaAuthentication) authResult;
+                if (uaaAuthentication.isRequiresPasswordChange()) {
+                    throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
+                }
+            }
+
             return authResult;
         } else if (GRANT_TYPE_SAML2_BEARER.equals(grantType)) {
             logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");

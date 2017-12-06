@@ -52,6 +52,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
@@ -100,6 +101,20 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
+    public void password_expired() throws Exception {
+        UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
+        when(uaaAuthentication.isAuthenticated()).thenReturn(true);
+        when(uaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        when(passwordAuthManager.authenticate(any())).thenReturn(uaaAuthentication);
+        request.addParameter(GRANT_TYPE, "password");
+        request.addParameter("username", "marissa");
+        request.addParameter("password", "koala");
+        filter.doFilter(request, response, chain);
+        verify(entryPoint, times(1)).commence(same(request), same(response), any(PasswordChangeRequiredException.class));
+
+    }
+
+    @Test
     public void attempt_password_authentication() throws Exception {
         request.addParameter(GRANT_TYPE, "password");
         request.addParameter("username", "marissa");
@@ -110,6 +125,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verifyZeroInteractions(samlAuthFilter);
         verifyZeroInteractions(xoAuthAuthenticationManager);
     }
+
 
     @Test
     public void attempt_saml_assertion_authentication() throws Exception {

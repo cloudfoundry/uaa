@@ -14,8 +14,6 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
-import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
-import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -106,25 +104,29 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 }
 
 
-                checkPasswordExpired(user.getPasswordLastModified());
+
 
                 UaaAuthentication success = new UaaAuthentication(
                         new UaaPrincipal(user),
                         user.getAuthorities(),
                         (UaaAuthenticationDetails) req.getDetails());
 
+                if (checkPasswordExpired(user.getPasswordLastModified())) {
+                    user.setPasswordChangeRequired(true);
+                }
+
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
                 Date passwordNewerThan = getPasswordNewerThan();
                 if(passwordNewerThan != null) {
                     if(user.getPasswordLastModified() == null || (passwordNewerThan.getTime() > user.getPasswordLastModified().getTime())) {
                         logger.info("Password change required for user: "+user.getEmail());
-                        throw new PasswordChangeRequiredException(success, "User password needs to be changed");
+                        success.setRequiresPasswordChange(true);
                     }
                 }
 
                 if(user.isPasswordChangeRequired()){
                     logger.info("Password change required for user: "+user.getEmail());
-                    throw new PasswordChangeRequiredException(success, "User password needs to be changed");
+                    success.setRequiresPasswordChange(true);
                 }
 
                 publish(new UserAuthenticationSuccessEvent(user, success));
@@ -206,15 +208,16 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         this.allowUnverifiedUsers = allowUnverifiedUsers;
     }
 
-    private void checkPasswordExpired(Date passwordLastModified) {
+    private boolean checkPasswordExpired(Date passwordLastModified) {
         int expiringPassword = getPasswordExpiresInMonths();
         if (expiringPassword>0) {
             Calendar cal = Calendar.getInstance();
             cal.setTimeInMillis(passwordLastModified.getTime());
             cal.add(Calendar.MONTH, expiringPassword);
             if (cal.getTimeInMillis() < System.currentTimeMillis()) {
-                throw new PasswordExpiredException("Your current password has expired. Please reset your password.");
+                return true;
             }
         }
+        return false;
     }
 }
