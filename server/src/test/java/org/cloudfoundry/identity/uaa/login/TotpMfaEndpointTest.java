@@ -43,9 +43,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class TotpEndpointTest {
+public class TotpMfaEndpointTest {
     private String userId;
-    private TotpEndpoint endpoint = new TotpEndpoint();
+    private TotpMfaEndpoint endpoint = new TotpMfaEndpoint();
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private UaaAuthentication uaaAuthentication;
@@ -134,7 +134,7 @@ public class TotpEndpointTest {
         assertEquals("mfa/qr_code", returnView);
     }
 
-    @Test(expected = TotpEndpoint.UaaPrincipalIsNotInSession.class)
+    @Test(expected = TotpMfaEndpoint.UaaPrincipalIsNotInSession.class)
     public void testTotpAuthorizePageNoAuthentication() throws Exception{
         when(uaaAuthentication.getPrincipal()).thenReturn(null);
         endpoint.totpAuthorize(mock(Model.class));

@@ -60,7 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-public class TotpEndpointMockMvcTests extends InjectedMockContextTest{
+public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
     private String adminToken;
     private JdbcUserGoogleMfaCredentialsProvisioning jdbcUserGoogleMfaCredentialsProvisioning;

@@ -45,11 +45,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Controller
-public class TotpEndpoint {
+public class TotpMfaEndpoint {
 
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
-    private Log logger = LogFactory.getLog(TotpEndpoint.class);
+    private Log logger = LogFactory.getLog(TotpMfaEndpoint.class);
 
     private GoogleAuthenticatorAdapter googleAuthenticatorService;
     private String mfaCompleteUrl = "/login/mfa/completed";

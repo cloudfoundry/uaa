@@ -53,7 +53,7 @@ import static org.junit.Assert.assertFalse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class TotpEndpointIntegrationTests {
+public class TotpMfaEndpointIntegrationTests {
 
     @Autowired
     WebDriver webDriver;
