@@ -90,7 +90,7 @@ public class ForcedPasswordChangeIT {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer "+adminAccessToken);
         testClient.createUser(adminAccessToken, userEmail, userEmail, "secr3T", true);
-        ResponseEntity<Map> response = restTemplate.exchange(baseUrl + "/Users?filter=userName eq '{user-name}'", HttpMethod.GET,
+        ResponseEntity<Map> response = restTemplate.exchange(baseUrl + "/Users?filter=userName eq  \"{user-name}\"", HttpMethod.GET,
                 new HttpEntity<>(headers), Map.class, userEmail);
         Map results = response.getBody();
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
