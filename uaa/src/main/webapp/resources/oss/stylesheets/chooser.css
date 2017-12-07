@@ -16,3 +16,7 @@
 .choose .list-group-item .account-avatar .h2 {
     opacity: 0.8
 }
+
+.alert {
+    text-align: center;
+}
