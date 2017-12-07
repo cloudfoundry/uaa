@@ -6,14 +6,14 @@
     window.addEventListener('message', handleMessage, false);
 
     function handleMessage(e) {
-      var origin = '[[${messageOrigin}]]';
+      var origin = [[${messageOrigin}]];
       var messageOrigin = e.origin === 'null' ? null : e.origin;
       if ((messageOrigin || 'file://') !== origin) return;
 
       try {
         var messageTokens = e.data.split(' ');
         var clientId = messageTokens[0];
-        var expectedClientId = '[[${clientId}]]';
+        var expectedClientId = [[${clientId}]];
 
         if (clientId !== expectedClientId) {
           throw 'Client ID mismatch';

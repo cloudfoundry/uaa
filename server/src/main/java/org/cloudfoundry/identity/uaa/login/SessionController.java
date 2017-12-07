@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,9 +23,13 @@ public class SessionController {
 
     @RequestMapping("/session")
     public String session(Model model, @RequestParam String clientId, @RequestParam String messageOrigin) {
-        model.addAttribute("clientId", clientId);
-        model.addAttribute("messageOrigin", messageOrigin);
+        model.addAttribute("clientId", escape(clientId));
+        model.addAttribute("messageOrigin", escape(messageOrigin));
         return "session";
+    }
+
+    private String escape(String s) {
+        return JsonUtils.writeValueAsString(s);
     }
 
 }
