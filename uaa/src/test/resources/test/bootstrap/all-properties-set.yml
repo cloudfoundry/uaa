@@ -195,9 +195,6 @@ login:
         type: google-authenticator
         config:
           providerDescription: all-properties-set-description
-          digits: 6
-          duration: 30
-          algorithm: SHA256
           issuer: google.com
 
   prompt:
