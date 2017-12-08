@@ -215,6 +215,10 @@ h1 {
   background: no-repeat center;
   background-size: contain; }
 
+img.img-responsive {
+  height: auto;
+  min-height: 60px; }
+
 .nav {
   display: -webkit-box;
   display: -ms-flexbox;
