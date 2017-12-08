@@ -532,7 +532,7 @@
 
     <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getOauthIdpDefinitions" />
 
-    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
+    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap" depends-on="mfaProviderBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
@@ -562,6 +562,8 @@
                            @config['login']['saml']['keys']}"/>
         <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
+        <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
+        <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
