@@ -12,15 +12,31 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator;
+import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MfaConfigValidator;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.security.Security;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +44,11 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
@@ -49,18 +69,37 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
             "wTKZHjWybPHsW2q8Z6Moz5dvE+XMd11c5NtIG2/L97I=\n" +
             "-----END RSA PRIVATE KEY-----";
 
-    public static final String PASSWORD = "password";
-
     public static final String ID = "id";
     private IdentityZoneProvisioning provisioning;
     private IdentityZoneConfigurationBootstrap bootstrap;
     private Map<String, Object> links = new HashMap<>();
-
-
+    private GeneralIdentityZoneValidator validator;
     @Before
     public void configureProvisioning() {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
+
+        GeneralMfaProviderValidator mfaProviderValidator = new GeneralMfaProviderValidator();
+        MfaProviderProvisioning mfaProvisoning = new JdbcMfaProviderProvisioning(jdbcTemplate, mfaProviderValidator);
+
+        MfaProvider<GoogleMfaProviderConfig> provider = new MfaProvider<>();
+        provider.setName("testProvider");
+        provider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
+        provider.setConfig(new GoogleMfaProviderConfig());
+        provider.setIdentityZoneId("uaa");
+        mfaProvisoning.create(provider, "uaa");
+
+        MfaConfigValidator mfaConfigValidator = new MfaConfigValidator();
+        mfaConfigValidator.setMfaProviderProvisioning(mfaProvisoning);
+
+        GeneralIdentityZoneConfigurationValidator configValidator = new GeneralIdentityZoneConfigurationValidator();
+        configValidator.setMfaConfigValidator(mfaConfigValidator);
+
+        validator = new GeneralIdentityZoneValidator(configValidator);
+        bootstrap.setValidator(validator);
+
+        //For the SamlTestUtils keys we are using.
+        Security.addProvider(new BouncyCastleProvider());
     }
 
     @Test
@@ -236,5 +275,33 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
         assertTrue(config.isIdpDiscoveryEnabled());
+    }
+
+    @Test
+    public void testMfaDisabledByDefault() throws Exception {
+        assertFalse(bootstrap.isMfaEnabled());
+    }
+
+    @Test(expected = InvalidIdentityZoneDetailsException.class)
+    public void testMfaDisabledWithInvalidName() throws Exception {
+        bootstrap.setMfaProviderName("NotExistingProvider");
+        bootstrap.afterPropertiesSet();
+    }
+
+    @Test
+    public void testMfaEnabledValidName() throws Exception {
+        bootstrap.setMfaProviderName("testProvider");
+        bootstrap.setMfaEnabled(true);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertEquals("testProvider", config.getMfaConfig().getProviderName());
+        assertTrue(bootstrap.isMfaEnabled());
+    }
+
+    @Test(expected = InvalidIdentityZoneDetailsException.class)
+    public void testMfaEnabledInvalidName() throws Exception {
+        bootstrap.setMfaProviderName("InvalidProvider");
+        bootstrap.setMfaEnabled(true);
+        bootstrap.afterPropertiesSet();
     }
 }
