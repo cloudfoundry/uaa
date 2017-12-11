@@ -98,33 +98,46 @@ public class ChangeEmailController {
         try {
             response = changeEmailService.completeVerification(code);
         } catch (UaaException e) {
-            if (SecurityContextHolder.getContext().getAuthentication() instanceof AnonymousAuthenticationToken) {
-                model.addAttribute("error_message_code", "email_change.invalid_code");
-                httpServletResponse.setStatus(422);
-                return "error";
-            }
-            else {
-                return "redirect:profile?error_message_code=email_change.invalid_code";
-            }
+            return handleExceptionConsideringAuthentication(model, httpServletResponse);
         }
 
         UaaUser user;
         try {
             user = uaaUserDatabase.retrieveUserById(response.get("userId"));
         } catch (UsernameNotFoundException e) {
-            return "redirect:profile?error_message_code=email_change.invalid_code";
+            return handleExceptionConsideringAuthentication(model, httpServletResponse);
         }
 
-        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
-        Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), details);
-        SecurityContextHolder.getContext().setAuthentication(success);
 
         String redirectLocation = response.get("redirect_url");
-        if (redirectLocation == null) {
-            redirectLocation = "profile";
-            redirectAttributes.addAttribute("success_message_code", "email_change.success");
+
+        if (SecurityContextHolder.getContext().getAuthentication() instanceof  UaaAuthentication) {
+            UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
+            Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), details);
+            SecurityContextHolder.getContext().setAuthentication(success);
+            if (redirectLocation == null) {
+                redirectLocation = "profile";
+                redirectAttributes.addAttribute("success_message_code", "email_change.success");
+            }
+            return "redirect:" + redirectLocation;
+        } else {
+            if (redirectLocation == null) {
+                return "redirect:login?success=change_email_success";
+            } else {
+                return "redirect:login?success=change_email_success&form_redirect_uri=" + redirectLocation;
+            }
         }
-        return "redirect:" + redirectLocation;
+    }
+
+    private String handleExceptionConsideringAuthentication(Model model, HttpServletResponse httpServletResponse) {
+        if (SecurityContextHolder.getContext().getAuthentication() instanceof AnonymousAuthenticationToken) {
+            model.addAttribute("error_message_code", "email_change.invalid_code");
+            httpServletResponse.setStatus(422);
+            return "error";
+        }
+        else {
+            return "redirect:profile?error_message_code=email_change.invalid_code";
+        }
     }
 
     public static class ValidEmail {
