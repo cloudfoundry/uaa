@@ -111,10 +111,13 @@ public class ChangeEmailController {
 
         String redirectLocation = response.get("redirect_url");
 
-        if (SecurityContextHolder.getContext().getAuthentication() instanceof  UaaAuthentication) {
-            UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
-            Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), details);
-            SecurityContextHolder.getContext().setAuthentication(success);
+        if (SecurityContextHolder.getContext().getAuthentication() instanceof UaaAuthentication) {
+            String authenticatedId = ((UaaAuthentication) SecurityContextHolder.getContext().getAuthentication()).getPrincipal().getId();
+            if (authenticatedId.equals(user.getId())) {
+                UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
+                Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), details);
+                SecurityContextHolder.getContext().setAuthentication(success);
+            }
             if (redirectLocation == null) {
                 redirectLocation = "profile";
                 redirectAttributes.addAttribute("success_message_code", "email_change.success");

@@ -302,6 +302,33 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
             .andExpect(redirectedUrl("profile?error_message_code=email_change.invalid_code"));
     }
 
+    @Test
+    public void testVerifyEmailWhenAutheticatedAsOtherUser() throws Exception {
+        UaaUser user = new UaaUser("user-id-002", "new2@example.com", "password", "new2@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-002", null);
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        Map<String,String> response = new HashMap<>();
+        response.put("userId", "user-id-002");
+        response.put("username", "new2@example.com");
+        response.put("email", "new2@example.com");
+        when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        setupSecurityContext();
+
+        MockHttpServletRequestBuilder get = get("/verify_email")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "the_secret_code");
+
+        mockMvc.perform(get)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
+
+        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        Assert.assertEquals("user-id-001", principal.getId());
+        Assert.assertEquals("bob", principal.getName());
+        Assert.assertEquals("user@example.com", principal.getEmail());
+    }
+
     private void setupSecurityContext() {
         Authentication authentication = new UaaAuthentication(
             new UaaPrincipal("user-id-001", "bob", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId()),
