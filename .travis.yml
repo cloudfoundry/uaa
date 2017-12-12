@@ -8,6 +8,7 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=default
@@ -16,6 +17,7 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=sqlserver,default
@@ -32,6 +34,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - mysql
@@ -42,6 +45,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - postgresql
@@ -52,6 +56,7 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=ldap,default
@@ -60,6 +65,7 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=default
@@ -68,6 +74,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - mysql
@@ -78,6 +85,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - postgresql
@@ -88,6 +96,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=ldap,default
@@ -96,6 +105,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=default
