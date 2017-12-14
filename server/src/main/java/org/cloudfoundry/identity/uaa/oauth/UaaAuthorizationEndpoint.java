@@ -447,12 +447,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
         }
 
-        UaaAuthenticationDetails details = (UaaAuthenticationDetails) authUser.getDetails();
-
-        OpenIdSessionStateCalculator openIdSessionStateCalculator = new OpenIdSessionStateCalculator(details, new SecureRandom());
-        String session_state = openIdSessionStateCalculator.calculate();
-        if (session_state != null) {
-            url.append("&session_state=").append(session_state);
+        if (authUser.getDetails() != null && authUser.getDetails() instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails details = (UaaAuthenticationDetails) authUser.getDetails();
+            OpenIdSessionStateCalculator openIdSessionStateCalculator = new OpenIdSessionStateCalculator(details, new SecureRandom());
+            String session_state = openIdSessionStateCalculator.calculate();
+            if (session_state != null) {
+                url.append("&session_state=").append(session_state);
+            }
         }
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
