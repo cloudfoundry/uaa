@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
@@ -77,6 +78,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -437,6 +439,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             if (value != null) {
                 url.append("&" + encode(key) + "=" + encode(value.toString()));
             }
+        }
+
+        UaaAuthenticationDetails details = (UaaAuthenticationDetails) authUser.getDetails();
+
+        OpenIdSessionStateCalculator openIdSessionStateCalculator = new OpenIdSessionStateCalculator(details, new SecureRandom());
+        String session_state = openIdSessionStateCalculator.calculate();
+        if (session_state != null) {
+            url.append("&session_state=").append(session_state);
         }
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);

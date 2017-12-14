@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -114,5 +115,7 @@ public class UaaAuthorizationEndpointTest {
         assertThat(result, containsString("state=California"));
         assertThat(result, containsString("expires_in="));
         assertThat(result, containsString("scope=null"));
+        assertThat(result, containsString("session_state="));
+        assertThat(result, not(containsString("session_state=null")));
     }
 }
