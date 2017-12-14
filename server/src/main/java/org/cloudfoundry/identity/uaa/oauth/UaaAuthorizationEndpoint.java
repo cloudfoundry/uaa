@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
@@ -77,6 +78,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -207,15 +209,11 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             if (authorizationRequest.isApproved()) {
                 //TODO we must get a code and a token,id_token
                 if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
-                    ModelAndView modelAndView =
-                        getImplicitGrantOrHybridResponse(
+                    return getImplicitGrantOrHybridResponse(
                             authorizationRequest,
                             (Authentication) principal,
                             grantType
                         );
-                    if (modelAndView != null) {
-                        return modelAndView;
-                    }
                 }
                 if (responseTypes.contains("code")) {
                     return new ModelAndView(getAuthorizationCodeResponse(authorizationRequest,
@@ -299,15 +297,11 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
             if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
                 //TODO we must get a code and a token,id_token
-                ModelAndView modelAndView =
-                    getImplicitGrantOrHybridResponse(
+                return getImplicitGrantOrHybridResponse(
                         authorizationRequest,
                         (Authentication) principal,
                         grantType
-                    );
-                if (modelAndView != null) {
-                    return modelAndView.getView();
-                }
+                    ).getView();
             }
 
             return getAuthorizationCodeResponse(authorizationRequest, (Authentication) principal);
@@ -350,19 +344,16 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
             return new ModelAndView(
                 new RedirectView(
-                    appendAccessToken(authorizationRequest, accessToken, authentication, true),
+                    buildRedirectURI(authorizationRequest, accessToken, authentication),
                     false,
                     true,
                     false
                 )
             );
         } catch (OAuth2Exception e) {
-            if (authorizationRequest.getResponseTypes().contains("token") || authorizationRequest.getResponseTypes().contains("id_token")) {
-                return new ModelAndView(new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, true), false,
-                        true, false));
-           }
+            return new ModelAndView(new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, true), false,
+                    true, false));
         }
-       return null;
     }
 
     private OAuth2AccessToken getAccessTokenForImplicitGrantOrHybrid(TokenRequest tokenRequest,
@@ -404,10 +395,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
     }
 
-    private String appendAccessToken(AuthorizationRequest authorizationRequest,
-                                     OAuth2AccessToken accessToken,
-                                     Authentication authUser,
-                                     boolean fragment) {
+    public String buildRedirectURI(AuthorizationRequest authorizationRequest,
+                                   OAuth2AccessToken accessToken,
+                                   Authentication authUser) {
 
         String requestedRedirect = authorizationRequest.getRedirectUri();
         if (accessToken == null) {
@@ -421,7 +411,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         //or token is part of the response type
         if (authorizationRequest.getResponseTypes().contains("token")) {
             url.append("&access_token=").append(encode(accessToken.getValue()));
-
         }
 
         if (accessToken instanceof CompositeAccessToken &&
@@ -438,15 +427,18 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         if (state != null) {
             url.append("&state=").append(encode(state));
         }
+
         Date expiration = accessToken.getExpiration();
         if (expiration != null) {
             long expires_in = (expiration.getTime() - System.currentTimeMillis()) / 1000;
             url.append("&expires_in=").append(expires_in);
         }
+
         String originalScope = authorizationRequest.getRequestParameters().get(OAuth2Utils.SCOPE);
         if (originalScope == null || !OAuth2Utils.parseParameterList(originalScope).equals(accessToken.getScope())) {
             url.append("&" + OAuth2Utils.SCOPE + "=").append(encode(OAuth2Utils.formatParameterList(accessToken.getScope())));
         }
+
         Map<String, Object> additionalInformation = accessToken.getAdditionalInformation();
         for (String key : additionalInformation.keySet()) {
             Object value = additionalInformation.get(key);
@@ -455,18 +447,23 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
         }
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
-        if (fragment) {
-            String existingFragment = builder.build(true).getFragment();
-            if (StringUtils.hasText(existingFragment)) {
-                existingFragment = existingFragment + "&" + url.toString();
-            } else {
-                existingFragment = url.toString();
+        if (authUser.getDetails() != null && authUser.getDetails() instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails details = (UaaAuthenticationDetails) authUser.getDetails();
+            OpenIdSessionStateCalculator openIdSessionStateCalculator = new OpenIdSessionStateCalculator(details, new SecureRandom());
+            String session_state = openIdSessionStateCalculator.calculate();
+            if (session_state != null) {
+                url.append("&session_state=").append(session_state);
             }
-            builder.fragment(existingFragment);
-        } else {
-            builder.query(url.toString());
         }
+
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
+        String existingFragment = builder.build(true).getFragment();
+        if (StringUtils.hasText(existingFragment)) {
+            existingFragment = existingFragment + "&" + url.toString();
+        } else {
+            existingFragment = url.toString();
+        }
+        builder.fragment(existingFragment);
         // Do not include the refresh token (even if there is one)
         return builder.build(true).toUriString();
     }
