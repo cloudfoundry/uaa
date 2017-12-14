@@ -207,15 +207,11 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             if (authorizationRequest.isApproved()) {
                 //TODO we must get a code and a token,id_token
                 if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
-                    ModelAndView modelAndView =
-                        getImplicitGrantOrHybridResponse(
+                    return getImplicitGrantOrHybridResponse(
                             authorizationRequest,
                             (Authentication) principal,
                             grantType
                         );
-                    if (modelAndView != null) {
-                        return modelAndView;
-                    }
                 }
                 if (responseTypes.contains("code")) {
                     return new ModelAndView(getAuthorizationCodeResponse(authorizationRequest,
@@ -299,15 +295,11 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
             if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
                 //TODO we must get a code and a token,id_token
-                ModelAndView modelAndView =
-                    getImplicitGrantOrHybridResponse(
+                return getImplicitGrantOrHybridResponse(
                         authorizationRequest,
                         (Authentication) principal,
                         grantType
-                    );
-                if (modelAndView != null) {
-                    return modelAndView.getView();
-                }
+                    ).getView();
             }
 
             return getAuthorizationCodeResponse(authorizationRequest, (Authentication) principal);
@@ -357,12 +349,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
                 )
             );
         } catch (OAuth2Exception e) {
-            if (authorizationRequest.getResponseTypes().contains("token") || authorizationRequest.getResponseTypes().contains("id_token")) {
-                return new ModelAndView(new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, true), false,
-                        true, false));
-           }
+            return new ModelAndView(new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, true), false,
+                    true, false));
         }
-       return null;
     }
 
     private OAuth2AccessToken getAccessTokenForImplicitGrantOrHybrid(TokenRequest tokenRequest,
