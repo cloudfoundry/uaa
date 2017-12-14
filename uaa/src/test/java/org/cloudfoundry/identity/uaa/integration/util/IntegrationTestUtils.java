@@ -121,6 +121,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class IntegrationTestUtils {
 
+    public static final String ZONE_NAME_TEMPLATE = "The Twiglet Zone[%s]";
 
     public static ScimUser createUnapprovedUser(ServerRunning serverRunning) throws Exception {
         String userName = "bob-" + new RandomValueStringGenerator().generate();
@@ -1017,7 +1018,7 @@ public class IntegrationTestUtils {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
         identityZone.setSubdomain(subdomain);
-        identityZone.setName("The Twiglet Zone[" + id + "]");
+        identityZone.setName(String.format(ZONE_NAME_TEMPLATE, id));
         identityZone.setDescription("Like the Twilight Zone but tastier[" + id + "].");
         identityZone.setConfig(config);
         return identityZone;
