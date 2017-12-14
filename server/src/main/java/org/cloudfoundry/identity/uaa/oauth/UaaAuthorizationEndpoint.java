@@ -336,7 +336,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
             return new ModelAndView(
                 new RedirectView(
-                    appendAccessToken(authorizationRequest, accessToken, authentication, true),
+                    buildRedirectURI(authorizationRequest, accessToken, authentication),
                     false,
                     true,
                     false
@@ -387,10 +387,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
     }
 
-    private String appendAccessToken(AuthorizationRequest authorizationRequest,
-                                     OAuth2AccessToken accessToken,
-                                     Authentication authUser,
-                                     boolean fragment) {
+    public String buildRedirectURI(AuthorizationRequest authorizationRequest,
+                                   OAuth2AccessToken accessToken,
+                                   Authentication authUser) {
 
         String requestedRedirect = authorizationRequest.getRedirectUri();
         if (accessToken == null) {
@@ -404,7 +403,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         //or token is part of the response type
         if (authorizationRequest.getResponseTypes().contains("token")) {
             url.append("&access_token=").append(encode(accessToken.getValue()));
-
         }
 
         if (accessToken instanceof CompositeAccessToken &&
@@ -421,15 +419,18 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         if (state != null) {
             url.append("&state=").append(encode(state));
         }
+
         Date expiration = accessToken.getExpiration();
         if (expiration != null) {
             long expires_in = (expiration.getTime() - System.currentTimeMillis()) / 1000;
             url.append("&expires_in=").append(expires_in);
         }
+
         String originalScope = authorizationRequest.getRequestParameters().get(OAuth2Utils.SCOPE);
         if (originalScope == null || !OAuth2Utils.parseParameterList(originalScope).equals(accessToken.getScope())) {
             url.append("&" + OAuth2Utils.SCOPE + "=").append(encode(OAuth2Utils.formatParameterList(accessToken.getScope())));
         }
+
         Map<String, Object> additionalInformation = accessToken.getAdditionalInformation();
         for (String key : additionalInformation.keySet()) {
             Object value = additionalInformation.get(key);
@@ -439,17 +440,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
-        if (fragment) {
-            String existingFragment = builder.build(true).getFragment();
-            if (StringUtils.hasText(existingFragment)) {
-                existingFragment = existingFragment + "&" + url.toString();
-            } else {
-                existingFragment = url.toString();
-            }
-            builder.fragment(existingFragment);
+        String existingFragment = builder.build(true).getFragment();
+        if (StringUtils.hasText(existingFragment)) {
+            existingFragment = existingFragment + "&" + url.toString();
         } else {
-            builder.query(url.toString());
+            existingFragment = url.toString();
         }
+        builder.fragment(existingFragment);
         // Do not include the refresh token (even if there is one)
         return builder.build(true).toUriString();
     }
