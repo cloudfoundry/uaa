@@ -51,7 +51,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
@@ -956,29 +955,34 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testValidAuthorities() throws Exception {
-        Map<String, String> az_attributes = new HashMap<>();
-        Map<String, Object> az_authorities = new HashMap<>();
-        az_attributes.put("external_group", "domain\\group1");
-        az_attributes.put("external_id", "abcd1234");
-        az_authorities.put("az_attr", az_attributes);
-        Claims claims = new Claims();
-        claims.setAzAttr(az_attributes);
+        Map<String, String> azAttributes = new HashMap<>();
+        azAttributes.put("external_group", "domain\\group1");
+        azAttributes.put("external_id", "abcd1234");
+        Map<String, Object> azAuthorities = new HashMap<>();
+        azAuthorities.put("az_attr", azAttributes);
+        String azAuthoritiesJson = JsonUtils.writeValueAsString(azAuthorities);
         Map<String, String> requestParameters = new HashMap<>();
-        String x = JsonUtils.writeValueAsString(az_authorities);
-        requestParameters.put("authorities", x);
+        requestParameters.put("authorities", azAuthoritiesJson);
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
             UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
-        assertEquals(result.getAzAttr(),az_attributes);
+        assertEquals(result.getAzAttr(),azAttributes);
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testInvalidAuthorities() throws Exception {
-        String az_authorities = new String("{\"az_attr\":{\"external_group\":true,\"external_id\":{\"nested_group\":true,\"nested_id\":1234}} }");
+    public void testInvalidAuthoritiesNested() throws Exception {
+        Map<String, Object> nestedAttributes = new HashMap<>();
+        nestedAttributes.put("nested_group", "true");
+        nestedAttributes.put("nested_id", "1234");
+        Map<String, Object> azAttributes = new HashMap<>();
+        azAttributes.put("external_id", nestedAttributes);
+        Map<String, Object> azAuthorities = new HashMap<>();
+        azAuthorities.put("az_attr", azAttributes);
+        String azAuthoritiesJson = JsonUtils.writeValueAsString(azAuthorities);
         Map<String, String> requestParameters = new HashMap<>();
-        requestParameters.put("authorities", az_authorities);
+        requestParameters.put("authorities", azAuthoritiesJson);
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
             UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
@@ -988,9 +992,14 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testEmptyAuthorities() throws Exception {
-        String az_authorities = new String("{\"any_attr\":{\"external_group\":\"domain\\\\group1\",\"external_id\":\"abcd1234\"}}");
+        Map<String, String> azAttributes = new HashMap<>();
+        azAttributes.put("external_group", "domain\\group1");
+        azAttributes.put("external_id", "abcd1234");
+        Map<String, Object> azAuthorities = new HashMap<>();
+        azAuthorities.put("any_attr", azAttributes);
+        String azAuthoritiesJson = JsonUtils.writeValueAsString(azAuthorities);
         Map<String, String> requestParameters = new HashMap<>();
-        requestParameters.put("authorities", az_authorities);
+        requestParameters.put("authorities", azAuthoritiesJson);
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
             UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
