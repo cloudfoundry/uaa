@@ -6,23 +6,20 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -98,23 +95,24 @@ public class UaaAuthorizationEndpointTest {
         authorizationRequest.setRedirectUri("example.com");
         authorizationRequest.setResponseTypes(new HashSet<String>() { { add("code"); add("token"); add("id_token"); } } );
         authorizationRequest.setState("California");
-
         CompositeAccessToken accessToken = new CompositeAccessToken("TOKEN_VALUE+=");
         accessToken.setIdTokenValue("idTokenValue");
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(2030,1,1);
-        accessToken.setExpiration(calendar.getTime());
-
         UaaPrincipal principal = new UaaPrincipal("userid","username","email","origin","extid","zoneid");
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(true, "clientid", "origin", "SOMESESSIONID");
         Authentication authUser = new UaaAuthentication(principal, Collections.emptyList(), details);
-
+        accessToken.setExpiration(Calendar.getInstance().getTime());
         OAuth2Request storedOAuth2Request = mock(OAuth2Request.class);
         when(oAuth2RequestFactory.createOAuth2Request(any())).thenReturn(storedOAuth2Request);
-
         when(authorizationCodeServices.createAuthorizationCode(any())).thenReturn("ABCD");
         String result = uaaAuthorizationEndpoint.buildRedirectURI(authorizationRequest, accessToken, authUser);
 
-        assertEquals("example.com#token_type=bearer&access_token=TOKEN_VALUE%2B%3D&id_token=idTokenValue&code=ABCD&state=California&expires_in=383183999&scope=null", result);
+        assertThat(result, containsString("example.com#"));
+        assertThat(result, containsString("token_type=bearer"));
+        assertThat(result, containsString("access_token=TOKEN_VALUE%2B%3D"));
+        assertThat(result, containsString("id_token=idTokenValue"));
+        assertThat(result, containsString("code=ABCD"));
+        assertThat(result, containsString("state=California"));
+        assertThat(result, containsString("expires_in="));
+        assertThat(result, containsString("scope=null"));
     }
 }
