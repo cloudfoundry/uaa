@@ -166,7 +166,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         try {
             claims = JsonUtils.readValue(tokenJwt.getClaims(), Claims.class);
         } catch (JsonUtils.JsonUtilException e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new InvalidTokenException("Cannot read token claims", e);
         }
 
         return claims;
