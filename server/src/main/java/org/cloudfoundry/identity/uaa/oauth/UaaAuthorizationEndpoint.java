@@ -232,10 +232,8 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
                 model.put("original_uri", UrlUtils.buildFullRequestUrl(request));
                 return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
             }
-
-        } catch (RuntimeException e) {
+        } finally {
             sessionStatus.setComplete();
-            throw e;
         }
 
     }
@@ -259,20 +257,16 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
     public View approveOrDeny(@RequestParam Map<String, String> approvalParameters, Map<String, ?> model,
                               SessionStatus sessionStatus, Principal principal) {
 
-        if (!(principal instanceof Authentication)) {
-            sessionStatus.setComplete();
-            throw new InsufficientAuthenticationException(
-                "User must be authenticated with Spring Security before authorizing an access token.");
-        }
-
-        AuthorizationRequest authorizationRequest = (AuthorizationRequest) model.get("authorizationRequest");
-
-        if (authorizationRequest == null) {
-            sessionStatus.setComplete();
-            throw new InvalidRequestException("Cannot approve uninitialized authorization request.");
-        }
-
         try {
+            if (!(principal instanceof Authentication)) {
+                throw new InsufficientAuthenticationException(
+                    "User must be authenticated with Spring Security before authorizing an access token.");
+            }
+
+            AuthorizationRequest authorizationRequest = (AuthorizationRequest) model.get("authorizationRequest");
+            if (authorizationRequest == null) {
+                throw new InvalidRequestException("Cannot approve uninitialized authorization request.");
+            }
             Set<String> responseTypes = authorizationRequest.getResponseTypes();
             String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
