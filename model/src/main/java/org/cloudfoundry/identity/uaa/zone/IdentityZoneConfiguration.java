@@ -39,6 +39,7 @@ public class IdentityZoneConfiguration {
     private boolean accountChooserEnabled;
     private UserConfig userConfig = new UserConfig();
     private MfaConfig mfaConfig = new MfaConfig();
+    private String issuer;
 
     public IdentityZoneConfiguration() {}
 
@@ -136,5 +137,15 @@ public class IdentityZoneConfiguration {
 
     public void setUserConfig(UserConfig userConfig) {
         this.userConfig = userConfig;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getIssuer() {
+        return issuer;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public void setIssuer(String issuer) {
+        this.issuer = issuer;
     }
 }

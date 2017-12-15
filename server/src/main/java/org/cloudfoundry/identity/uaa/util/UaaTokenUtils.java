@@ -191,20 +191,30 @@ public final class UaaTokenUtils {
     }
 
     public static String constructTokenEndpointUrl(String issuer) throws URISyntaxException {
+        URI uri;
+        if (!IdentityZoneHolder.isUaa()) {
+            String zone_issuer = IdentityZoneHolder.get().getConfig() != null ? IdentityZoneHolder.get().getConfig().getIssuer() : null;
+            if(zone_issuer != null) {
+                uri = validateIssuer(zone_issuer);
+                return UriComponentsBuilder.fromUri(uri).pathSegment("oauth/token").build().toUriString();
+            }
+        }
+        uri = validateIssuer(issuer);
+        String hostToUse = uri.getHost();
+        if (hasText(IdentityZoneHolder.get().getSubdomain())) {
+            hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
+        }
+        return UriComponentsBuilder.fromUri(uri).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+    }
+
+    private static URI validateIssuer(String issuer) throws URISyntaxException {
         try {
             new URL(issuer);
         } catch (MalformedURLException x) {
             throw new URISyntaxException(issuer, x.getMessage());
         }
-        URI uri = new URI(issuer);
-        String hostToUse = uri.getHost();
-        if (hasText(IdentityZoneHolder.get().getSubdomain())) {
-            hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
-        }
-        return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+        return new URI(issuer);
     }
-
-
 
     public static boolean hasRequiredUserAuthorities(Collection<String> requiredGroups, Collection<? extends GrantedAuthority> userGroups) {
         return hasRequiredUserGroups(requiredGroups,
