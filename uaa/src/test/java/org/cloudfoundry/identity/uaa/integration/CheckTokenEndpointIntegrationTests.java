@@ -316,12 +316,11 @@ public class CheckTokenEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
-        assertEquals(HttpStatus.BAD_REQUEST, tokenResponse.getStatusCode());
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
-        assertEquals("invalid_token", map.get("error"));
-        assertTrue(map.containsKey("error_description"));
+        assertNull(map.get("az_attr"));
     }
 
     @SuppressWarnings("unchecked")

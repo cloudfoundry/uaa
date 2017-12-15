@@ -971,7 +971,7 @@ public class CheckTokenEndpointTests {
         assertEquals(result.getAzAttr(),azAttributes);
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testInvalidAuthoritiesNested() throws Exception {
         Map<String, Object> nestedAttributes = new HashMap<>();
         nestedAttributes.put("nested_group", "true");
@@ -987,7 +987,8 @@ public class CheckTokenEndpointTests {
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
             UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
         setAccessToken(tokenServices.createAccessToken(authentication));
-        endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        assertNull(result.getAzAttr());
     }
 
     @Test

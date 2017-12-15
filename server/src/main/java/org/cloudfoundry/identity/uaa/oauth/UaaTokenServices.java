@@ -837,11 +837,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private Map<String, String> getAdditionalAuthorizationAttributes(String authoritiesJson) {
         if (StringUtils.hasLength(authoritiesJson)) {
             try {
-                @SuppressWarnings("unchecked")
                 Map<String, Object> authorities = JsonUtils.readValue(authoritiesJson, new TypeReference<Map<String, Object>>() {});
-                @SuppressWarnings("unchecked")
+                Object az_attr = authorities.get("az_attr");
+                if(az_attr == null)
+                    return null;
+                // validate az_attr content with Map<String, String>>
                 Map<String, String> additionalAuthorizationAttributes =
-                    (Map<String, String>) authorities.get("az_attr");
+                    JsonUtils.readValue(JsonUtils.writeValueAsBytes(az_attr), new TypeReference<Map<String, String>>() {});
 
                 return additionalAuthorizationAttributes;
             } catch (Throwable t) {
