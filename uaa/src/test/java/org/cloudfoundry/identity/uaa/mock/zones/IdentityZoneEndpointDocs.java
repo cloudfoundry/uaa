@@ -149,6 +149,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
     private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
     private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
+    private static final String ZONE_ISSUER_DESC = "Issuer of this zone";
 
     @Before
     public void setUp() throws Exception {
@@ -241,6 +242,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
@@ -397,6 +399,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("[].config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
             fieldWithPath("[].config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG),
+            fieldWithPath("[].config.issuer").description(ZONE_ISSUER_DESC),
 
             fieldWithPath("[].config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
@@ -531,6 +534,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
@@ -697,6 +701,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG),
+            fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC),
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC),
