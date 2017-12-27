@@ -15,16 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-import org.springframework.validation.BindingResult;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +30,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.springframework.validation.BindingResult;
 
 public class IdentityZoneEndpointsTests {
 
@@ -50,6 +50,7 @@ public class IdentityZoneEndpointsTests {
 
     @Before
     public void setup() {
+        IdentityZoneHolder.clear();
         endpoints = new IdentityZoneEndpoints(
             zoneDao,
             mock(IdentityProviderProvisioning.class),
@@ -58,6 +59,11 @@ public class IdentityZoneEndpointsTests {
         );
         endpoints.setValidator((config, mode) -> config);
         when(zoneDao.create(any())).then(invocation -> invocation.getArguments()[0]);
+    }
+
+    @After
+    public void teardown() {
+        IdentityZoneHolder.clear();
     }
 
     @Test
