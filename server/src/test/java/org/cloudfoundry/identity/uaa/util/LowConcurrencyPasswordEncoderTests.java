@@ -15,6 +15,15 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import java.util.concurrent.BlockingQueue;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,16 +34,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.concurrent.BlockingQueue;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.when;
 
 public class LowConcurrencyPasswordEncoderTests {
 
@@ -99,6 +98,8 @@ public class LowConcurrencyPasswordEncoderTests {
         encoder = new LowConcurrencyPasswordEncoder(delegate, timeout, false, environment);
         assertNotNull(encoder);
         assertNull(ReflectionTestUtils.getField(encoder, "exchange"));
+        assertEquals(0, encoder.getWaiters());
+        assertEquals(-1, encoder.getCurrent());
     }
 
     public void stillWorking() throws Exception {

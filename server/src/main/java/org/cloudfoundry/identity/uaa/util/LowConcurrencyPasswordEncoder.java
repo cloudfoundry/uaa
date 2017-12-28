@@ -15,6 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tomcat.jdbc.pool.FairBlockingQueue;
@@ -24,12 +30,6 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.ReflectionUtils;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Concurrency limiting implementation of the password encoder.
@@ -112,7 +112,11 @@ public class LowConcurrencyPasswordEncoder implements PasswordEncoder {
 
     @ManagedMetric(category = "scalability", displayName = "Current Bcrypt Executions")
     public int getCurrent() {
-        return max - exchange.size();
+        if (exchange!=null) {
+            return max - exchange.size();
+        } else {
+            return -1;
+        }
     }
 
     @ManagedMetric(
@@ -121,16 +125,20 @@ public class LowConcurrencyPasswordEncoder implements PasswordEncoder {
         description = "Approximate number of threads waiting to perform a bcrypt operation."
     )
     public int getWaiters() {
-        try {
-            Field waiters = ReflectionUtils.findField(exchange.getClass(), "waiters");
-            ReflectionUtils.makeAccessible(waiters);
-            Object actualWaiters = waiters.get(exchange);
-            Method size = ReflectionUtils.findMethod(actualWaiters.getClass(), "size");
-            return (Integer)ReflectionUtils.invokeMethod(size, actualWaiters);
-        } catch (Exception e) {
-            logger.debug("Unable to read waiter size", e);
+        if (exchange!=null) {
+            try {
+                Field waiters = ReflectionUtils.findField(exchange.getClass(), "waiters");
+                ReflectionUtils.makeAccessible(waiters);
+                Object actualWaiters = waiters.get(exchange);
+                Method size = ReflectionUtils.findMethod(actualWaiters.getClass(), "size");
+                return (Integer) ReflectionUtils.invokeMethod(size, actualWaiters);
+            } catch (Exception e) {
+                logger.debug("Unable to read waiter size", e);
+            }
+            return -1;
+        } else {
+            return 0;
         }
-        return -1;
     }
 
     @Override
