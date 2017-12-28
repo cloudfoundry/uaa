@@ -278,7 +278,7 @@
         <intercept-url pattern="/login/mfa/**" access="isFullyAuthenticated()"/>
         <intercept-url pattern="/create_account*" access="isAnonymous()"/>
         <intercept-url pattern="/login/idp_discovery/**" access="isAnonymous()"/>
-        <intercept-url pattern="/login**" access="isAnonymous()"/>
+        <intercept-url pattern="/login**" access="isAnonymous() or isFullyAuthenticated()"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
