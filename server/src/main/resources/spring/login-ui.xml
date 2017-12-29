@@ -269,6 +269,17 @@
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
     </bean>
 
+    <http name="idpSecurity"
+          use-expressions="true"
+          pattern="/saml/idp/SSO/**"
+          entry-point-ref="loginEntryPoint"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
+        <custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
+        <custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
+        <csrf disabled="true"/>
+    </http>
+
     <http name="uiSecurity"
           use-expressions="true"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
@@ -284,7 +295,6 @@
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
         <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
         <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
-        <security:custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
         <form-login login-page="/login"
                     username-parameter="username"
                     password-parameter="password"

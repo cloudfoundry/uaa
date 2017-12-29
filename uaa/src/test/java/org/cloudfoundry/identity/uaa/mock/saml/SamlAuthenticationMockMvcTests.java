@@ -15,30 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.mock.saml;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.xml.sax.InputSource;
-
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
@@ -57,6 +33,33 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.xml.sax.InputSource;
 
 public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
 
@@ -93,6 +96,47 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
         createIdp(idpProvisioning);
         createSp(spProvisioning);
         createUser();
+    }
+
+    @Test
+    public void send_authn_request_to_idp() throws Exception {
+        String spEntityId = spZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
+        String idpEntityId = idpZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
+        MvcResult mvcResult = getMockMvc().perform(
+            get("/uaa/saml/discovery")
+                .contextPath("/uaa")
+                .header(HttpHeaders.HOST, spZone.getIdentityZone().getSubdomain() + ".localhost:8080")
+                .param("returnIDParam", "idp")
+                .param("entityID", spEntityId)
+                .param("idp", idp.getOriginKey())
+                .param("isPassive", "true")
+        )
+            .andExpect(status().isFound())
+            .andReturn();
+
+        mvcResult = getMockMvc().perform(
+            get(mvcResult.getResponse().getRedirectedUrl())
+                .contextPath("/uaa")
+                .header(HttpHeaders.HOST, spZone.getIdentityZone().getSubdomain() + ".localhost:8080")
+                .session((MockHttpSession) mvcResult.getRequest().getSession())
+
+        )
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String body = mvcResult.getResponse().getContentAsString();
+        String relayState = extractRelayState(body);
+        String samlRequest = extractSamlRequest(body);
+        getMockMvc().perform(
+            post("/uaa/saml/idp/SSO/alias/"+idpEntityId)
+                .contextPath("/uaa")
+                .header(HttpHeaders.HOST, idpZone.getIdentityZone().getSubdomain() + ".localhost:8080")
+                .param("RelayState", relayState)
+                .param("SAMLRequest", samlRequest)
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://"+idpZone.getIdentityZone().getSubdomain() + ".localhost:8080/uaa/login"));
     }
 
     @Test
@@ -193,6 +237,21 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
 
     public String extractAssertion(String response, boolean decode) {
         String searchFor = "name=\"SAMLResponse\" value=\"";
+        return extractFormParameter(searchFor, response, decode);
+    }
+
+    public String extractSamlRequest(String response) {
+        String searchFor = "name=\"SAMLRequest\" value=\"";
+        return extractFormParameter(searchFor, response, false);
+    }
+
+    public String extractRelayState(String response) {
+        String searchFor = "name=\"RelayState\" value=\"";
+        return extractFormParameter(searchFor, response, false);
+    }
+
+
+    public String extractFormParameter(String searchFor, String response, boolean decode) {
         int start = response.indexOf(searchFor) + searchFor.length();
         assertThat("Must find the SAML response in output\n"+response, start, greaterThan(searchFor.length()));
         int end = response.indexOf("\"/>", start);
@@ -204,5 +263,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
             return encoded;
         }
     }
+
+
 
 }
