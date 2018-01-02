@@ -9,7 +9,7 @@ pipeline {
         }
     }
     environment {
-        COMPLIANCEENABLED = true
+            COMPLIANCEENABLED = true
     }
     options {
         skipDefaultCheckout()
@@ -75,10 +75,9 @@ pipeline {
                 }
             }
         }
-        /*
         stage('Mockmvc Tests') {
             when {
-                expression { true }
+                expression { false }
             }
             steps {
                 sh '''#!/bin/bash -ex
@@ -103,10 +102,10 @@ pipeline {
                     echo "mockmvc tests failed"
                 }
             }
-        }*/
+        }
         stage('Integration Tests') {
             when {
-                expression { false }
+                expression { true }
             }
             steps {
                 sh '''#!/bin/bash -ex
