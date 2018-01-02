@@ -411,6 +411,15 @@ login:
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
 
+#  mfa:
+#    providers:
+#      customProviderName:
+#        enabled: true
+#        type: google-authenticator
+#        config:
+#          issuer: "custom issuer"
+#          providerDescription: "Default authenticator for uaa zone"
+
   # SAML Key Configuration
   # The location and credentials of the certificate for this SP
   # See README.md for details on how to create this.
