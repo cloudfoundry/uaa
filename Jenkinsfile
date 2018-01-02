@@ -5,12 +5,11 @@ pipeline {
         docker {
             image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.3'
             label 'dind'
-            args '-v /var/lib/docker/.gradle:/root/.gradle'
+            args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
         }
     }
     environment {
         COMPLIANCEENABLED = true
-
     }
     options {
         skipDefaultCheckout()
@@ -26,13 +25,13 @@ pipeline {
                 dir('uaa') {
                     checkout scm
                 }
-                sh '''#!/bin/bash -ex 
+                sh '''#!/bin/bash -ex
                     source uaa-cf-release/config-local/set-env.sh
                     unset HTTPS_PROXY
                     unset HTTP_PROXY
                     unset http_proxy
                     unset https_proxy
-                    unset GRADLE_OPTS                    
+                    unset GRADLE_OPTS
                     pushd uaa
                         ./gradlew clean assemble
                     popd
@@ -76,18 +75,19 @@ pipeline {
                 }
             }
         }
+        /*
         stage('Mockmvc Tests') {
             when {
                 expression { true }
             }
             steps {
-                sh '''#!/bin/bash -ex 
+                sh '''#!/bin/bash -ex
             source uaa-cf-release/config-local/set-env.sh
             unset HTTPS_PROXY
             unset HTTP_PROXY
             unset http_proxy
             unset https_proxy
-            unset GRADLE_OPTS                    
+            unset GRADLE_OPTS
             pushd uaa
                 apt-get -qy install lsof
                 ./scripts/travis/install-ldap-certs.sh
@@ -103,19 +103,19 @@ pipeline {
                     echo "mockmvc tests failed"
                 }
             }
-        }
+        }*/
         stage('Integration Tests') {
             when {
                 expression { false }
             }
             steps {
-                sh '''#!/bin/bash -ex 
+                sh '''#!/bin/bash -ex
             source uaa-cf-release/config-local/set-env.sh
             unset HTTPS_PROXY
             unset HTTP_PROXY
             unset http_proxy
             unset https_proxy
-            unset GRADLE_OPTS                    
+            unset GRADLE_OPTS
             pushd uaa
                ./gradlew --continue jacocoRootReportIntegrationTest
             popd
@@ -141,7 +141,7 @@ pipeline {
                 dir('build') {
                     unstash 'uaa-war'
                 }
-                sh '''#!/bin/bash -ex 
+                sh '''#!/bin/bash -ex
                 export CF_USERNAME=$CF_CREDENTIALS_USR
                 export CF_PASSWORD=$CF_CREDENTIALS_PSW
                 export SKIP_ACCEPTANCE_TESTS=true
@@ -153,16 +153,16 @@ pipeline {
                 unset HTTP_PROXY
                 unset http_proxy
                 unset https_proxy
-                unset GRADLE_OPTS                 
-                
+                unset GRADLE_OPTS
+
                 pushd uaa-cf-release
                     source combine-inline-config.sh
                     echo "$UAA_CONFIG_YAML"
                     echo "$APP_NAME"
                     export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
-                    
+
                     ./ci_deploy.sh
-                    
+
                     # mvn deploy:deploy-file -DgroupId=org.cloudfoundry.identity \\
                     #    -DartifactId=cloudfoundry-identity-uaa \\
                     #    -Dversion=$APP_VERSION \\
