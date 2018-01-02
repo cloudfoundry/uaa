@@ -3,7 +3,7 @@
 pipeline {
     agent {
         docker {
-            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.3'
+            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
             label 'dind'
             args '-v /var/lib/docker/.gradle:/root/.gradle'
         }
