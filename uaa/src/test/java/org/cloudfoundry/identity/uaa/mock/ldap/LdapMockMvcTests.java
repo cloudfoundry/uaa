@@ -176,7 +176,7 @@ public class LdapMockMvcTests  {
     public static boolean checkOpenPorts(int port) throws Exception {
         //need to configure gradle to not swallow the output, but log it to a file
         System.out.println("Checking for processes using port:"+port);
-        ProcessBuilder builder = new ProcessBuilder(Arrays.asList("lsof", "-i", ":"+port));
+        ProcessBuilder builder = new ProcessBuilder(Arrays.asList("sudo", "lsof", "-i", ":"+port));
         builder.inheritIO().redirectOutput(ProcessBuilder.Redirect.PIPE);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(builder.start().getInputStream()))) {
             long count = reader.lines().count();

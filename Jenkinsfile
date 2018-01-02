@@ -3,7 +3,7 @@
 pipeline {
     agent {
         docker {
-            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.3'
+            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
             label 'dind'
             args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
         }
