@@ -78,7 +78,7 @@ pipeline {
         }
         stage('Mockmvc Tests') {
             when {
-                expression { false }
+                expression { true }
             }
             steps {
                 sh '''#!/bin/bash -ex 
