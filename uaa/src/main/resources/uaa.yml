@@ -412,9 +412,10 @@ login:
 #  accountChooserEnabled: true
 
 #  mfa:
+#    enabled: true
+#    providerName: customProviderName
 #    providers:
 #      customProviderName:
-#        enabled: true
 #        type: google-authenticator
 #        config:
 #          issuer: "custom issuer"
