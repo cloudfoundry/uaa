@@ -1,13 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent {
-        docker {
-            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
-            label 'dind'
-            args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
-        }
-    }
+    agent none
     environment {
             COMPLIANCEENABLED = true
     }
@@ -16,42 +10,56 @@ pipeline {
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
     stages {
-        stage ('Checkout & Build') {
-            steps {
-                echo env.BRANCH_NAME
-                dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
-                }
-                dir('uaa') {
-                    checkout scm
-                }
-                sh '''#!/bin/bash -ex
-                    source uaa-cf-release/config-local/set-env.sh
-                    unset HTTPS_PROXY
-                    unset HTTP_PROXY
-                    unset http_proxy
-                    unset https_proxy
-                    unset GRADLE_OPTS
-                    pushd uaa
-                        ./gradlew clean assemble
-                    popd
-                '''
-                dir('uaa/uaa/build/libs') {
-                    stash includes: '*.war', name: 'uaa-war'
-                }
-            }
-            post {
-                success {
-                    echo "Gradle Checkout & Build stage completed"
-                }
-                failure {
-                    echo "Gradle Checkout & Build stage failed"
-                }
-            }
-        }
-        stage('Run Tests') {
+        stage('Build and run Tests') {
             parallel {
+                stage ('Checkout & Build') {
+                    when {
+                        expression { true }
+
+                    }
+                    agent {
+                      docker {
+                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                          label 'dind'
+                          args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
+                      }
+                    }
+                    steps {
+                        echo env.BRANCH_NAME
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                        }
+                        dir('uaa') {
+                            checkout scm
+                        }
+                        sh '''#!/bin/bash -ex
+                            source uaa-cf-release/config-local/set-env.sh
+                            unset HTTPS_PROXY
+                            unset HTTP_PROXY
+                            unset http_proxy
+                            unset https_proxy
+                            unset GRADLE_OPTS
+                            pushd uaa
+                                ./gradlew clean assemble
+                            popd
+                        '''
+                        dir('uaa/uaa/build/libs') {
+                            stash includes: '*.war', name: 'uaa-war'
+                        }
+                    }
+                    post {
+                        success {
+                            echo "Gradle Checkout & Build stage completed"
+                        }
+                        failure {
+                            echo "Gradle Checkout & Build stage failed"
+                        }
+                    }
+                }
                 stage('Unit Tests') {
+                    when {
+                        expression { true }
+                    }
                     agent {
                         docker {
                             image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
@@ -59,10 +67,14 @@ pipeline {
                             args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
                         }
                     }
-                    when {
-                        expression { true }
-                    }
                     steps {
+                        echo env.BRANCH_NAME
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                        }
+                        dir('uaa') {
+                            checkout scm
+                        }
                         sh '''#!/bin/bash -ex
                                 source uaa-cf-release/config-local/set-env.sh
                                 unset HTTPS_PROXY
@@ -88,7 +100,21 @@ pipeline {
                     when {
                         expression { true }
                     }
+                    agent {
+                        docker {
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
+                            label 'dind'
+                            args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
+                        }
+                    }
                     steps {
+                        echo env.BRANCH_NAME
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                        }
+                        dir('uaa') {
+                            checkout scm
+                        }
                         sh '''#!/bin/bash -ex
                             source uaa-cf-release/config-local/set-env.sh
                             unset HTTPS_PROXY
@@ -114,16 +140,30 @@ pipeline {
                 }
                 stage('Integration Tests') {
                     when {
-                        expression { true }
+                        expression { false }
+                    }
+                    agent {
+                        docker {
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
+                            label 'dind'
+                            args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
+                        }
                     }
                     steps {
+                        echo env.BRANCH_NAME
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                        }
+                        dir('uaa') {
+                            checkout scm
+                        }
                         sh '''#!/bin/bash -ex
                             source uaa-cf-release/config-local/set-env.sh
                             unset HTTPS_PROXY
                             unset HTTP_PROXY
                             unset http_proxy
                             unset https_proxy
-                            unset GRADLE_OPTS
+                            unset GRADLE_OPTS  
                             unset DEFAULT_JVM_OPTS
                             unset JAVA_PROXY_OPTS
                             unset PROXY_PORT
@@ -144,10 +184,10 @@ pipeline {
                         failure {
                             echo "integration tests failed"
                         }
+                        always {
+                            archiveArtifacts 'uaa/uaa/build/reports/tests/**'
+                        }
                     }
-                }
-                always {
-                    archiveArtifacts 'uaa/uaa/build/reports/tests/**'
                 }
             }
         }
