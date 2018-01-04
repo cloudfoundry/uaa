@@ -15,10 +15,10 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
@@ -52,6 +52,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -133,9 +134,12 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
         assertThat(((UaaAuthentication)result).getAuthenticationMethods(), containsInAnyOrder("pwd"));
 
-        ApplicationEvent event = eventCaptor.getValue();
-        assertThat(event, instanceOf(UserAuthenticationSuccessEvent.class));
-        assertEquals("auser", ((UserAuthenticationSuccessEvent)event).getUser().getUsername());
+        List<ApplicationEvent> events = eventCaptor.getAllValues();
+        assertThat(events.get(0), instanceOf(PasswordAuthenticationSuccessEvent.class));
+        assertEquals("auser", ((PasswordAuthenticationSuccessEvent)events.get(0)).getUser().getUsername());
+        assertThat(events.get(1), instanceOf(UserAuthenticationSuccessEvent.class));
+        assertEquals("auser", ((UserAuthenticationSuccessEvent)events.get(1)).getUser().getUsername());
+
     }
 
     @Test
@@ -194,6 +198,7 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
 
+        verify(publisher).publishEvent(isA(PasswordAuthenticationSuccessEvent.class));
         verify(publisher).publishEvent(isA(UserAuthenticationSuccessEvent.class));
     }
 
