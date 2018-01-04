@@ -134,6 +134,9 @@ pipeline {
                 failure {
                     echo "integration tests failed"
                 }
+                always {
+                    archiveArtifacts 'uaa/uaa/build/reports/tests/integrationTest/**'
+                }
             }
         }
         stage('Deploy to RC') {
