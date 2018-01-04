@@ -273,6 +273,7 @@ public class SamlLoginIT {
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         webDriver.get(zoneUrl);
+        System.out.println(webDriver.getPageSource());
         webDriver.findElement(By.linkText("Login with Simple SAML PHP(simplesamlphp)")).click();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();

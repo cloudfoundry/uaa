@@ -3,7 +3,7 @@
 pipeline {
     agent {
         docker {
-            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.3'
+            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
             label 'dind'
             args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
         }
@@ -50,6 +50,7 @@ pipeline {
             }
         }
         stage('Unit Tests') {
+//            remove when integrationTests pass
             when {
                 expression { false }
             }
@@ -76,6 +77,8 @@ pipeline {
             }
         }
         stage('Mockmvc Tests') {
+            //                remove when integrationTests pass
+
             when {
                 expression { false }
             }
@@ -116,6 +119,7 @@ pipeline {
             unset https_proxy
             unset GRADLE_OPTS
             unset DEFAULT_JVM_OPTS
+            unset JAVA_PROXY_OPTS
             unset PROXY_PORT
             unset PROXY_HOST
             cat /etc/hosts
@@ -123,6 +127,7 @@ pipeline {
             curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
 
             pushd uaa
+                env
                ./gradlew --continue jacocoRootReportIntegrationTest
             popd
             '''
@@ -135,11 +140,15 @@ pipeline {
                     echo "integration tests failed"
                 }
                 always {
-                    archiveArtifacts 'uaa/uaa/build/reports/tests/integrationTest/**'
+                    archiveArtifacts 'uaa/uaa/build/reports/tests/**'
                 }
             }
         }
         stage('Deploy to RC') {
+//          remove when integrationTests pass
+            when {
+                expression { false }
+            }
             environment {
                 CF_CREDENTIALS = credentials('CF_CREDENTIALS_CF3')
                 ADMIN_CLIENT_SECRET = credentials('CF3_RELEASE_CANDIDATE_ADMIN_CLIENT_SECRET')
