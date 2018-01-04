@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedExceptio
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -55,7 +56,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
@@ -165,6 +170,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         populateAuthenticationAttributes(success, request, authenticationData);
+        publish(new PasswordAuthenticationSuccessEvent(user, success));
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
     }

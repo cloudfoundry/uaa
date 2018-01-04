@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedExceptio
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -36,7 +37,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -265,8 +265,8 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(2,userArgumentCaptor.getAllValues().size());
+        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3,userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
         assertEquals(actual, event.getUser().getEmail());
@@ -367,8 +367,8 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(3,userArgumentCaptor.getAllValues().size());
+        verify(applicationEventPublisher,times(4)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(4,userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
         assertEquals(dn, event.getUser().getExternalId());
@@ -397,8 +397,8 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(3,userArgumentCaptor.getAllValues().size());
+        verify(applicationEventPublisher,times(4)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(4,userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
         //incorrect user details - we wont be able to get the correct external ID
@@ -495,11 +495,14 @@ public class ExternalLoginAuthenticationManagerTest  {
     public void testAuthenticateUserExists() throws Exception {
         Authentication result = manager.authenticate(inputAuth);
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(1)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(1,userArgumentCaptor.getAllValues().size());
-        UserAuthenticationSuccessEvent event = (UserAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(0);
-        assertEquals(origin, event.getUser().getOrigin());
-        assertEquals(userName, event.getUser().getUsername());
+        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(2,userArgumentCaptor.getAllValues().size());
+        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(0);
+        assertEquals(origin, passwordevent.getUser().getOrigin());
+        assertEquals(userName, passwordevent.getUser().getUsername());
+        UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(1);
+        assertEquals(origin, userevent.getUser().getOrigin());
+        assertEquals(userName, userevent.getUser().getUsername());
     }
 
     @Test
@@ -519,8 +522,8 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(2,userArgumentCaptor.getAllValues().size());
+        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3,userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
     }
