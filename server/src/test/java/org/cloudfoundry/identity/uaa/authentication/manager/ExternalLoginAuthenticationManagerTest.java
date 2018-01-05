@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedExceptio
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -497,7 +497,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
         assertEquals(2,userArgumentCaptor.getAllValues().size());
-        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(0);
+        PasswordVerificationSuccessEvent passwordevent = (PasswordVerificationSuccessEvent)userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, passwordevent.getUser().getOrigin());
         assertEquals(userName, passwordevent.getUser().getUsername());
         UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(1);

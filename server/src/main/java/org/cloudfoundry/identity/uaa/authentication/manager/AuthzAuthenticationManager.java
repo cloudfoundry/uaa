@@ -17,7 +17,7 @@ import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectio
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
@@ -127,7 +127,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                     success.setRequiresPasswordChange(true);
                 }
 
-                publish(new PasswordAuthenticationSuccessEvent(user, success));
+                publish(new PasswordVerificationSuccessEvent(user, success));
                 publish(new UserAuthenticationSuccessEvent(user, success));
 
                 return success;

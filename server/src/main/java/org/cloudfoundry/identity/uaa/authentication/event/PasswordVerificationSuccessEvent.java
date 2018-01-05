@@ -6,10 +6,10 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.Assert;
 
-public class PasswordAuthenticationSuccessEvent extends AbstractUaaAuthenticationEvent {
+public class PasswordVerificationSuccessEvent extends AbstractUaaAuthenticationEvent {
     private final UaaUser user;
 
-    public PasswordAuthenticationSuccessEvent(UaaUser user, Authentication authentication) {
+    public PasswordVerificationSuccessEvent(UaaUser user, Authentication authentication) {
         super(authentication);
         this.user = user;
     }

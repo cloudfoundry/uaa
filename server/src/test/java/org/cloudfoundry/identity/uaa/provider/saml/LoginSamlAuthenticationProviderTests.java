@@ -16,6 +16,8 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -85,6 +87,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 
 import javax.servlet.ServletContext;
 import javax.xml.namespace.QName;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -103,7 +106,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -127,7 +130,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
 
     IdentityProviderProvisioning providerProvisioning;
-    ApplicationEventPublisher publisher;
+    CreateUserPublisher publisher;
     JdbcUaaUserDatabase userDatabase;
     LoginSamlAuthenticationProvider authprovider;
     WebSSOProfileConsumer consumer;
@@ -324,6 +327,14 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     @Test
     public void testAuthenticateSimple() {
         authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
+    }
+
+    @Test
+    public void testAuthenticationEvents() {
+        authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
+        assertEquals(4, publisher.events.size());
+        assertTrue(publisher.events.get(2) instanceof PasswordVerificationSuccessEvent);
+        assertTrue(publisher.events.get(3) instanceof UserAuthenticationSuccessEvent);
     }
 
     @Test
@@ -802,6 +813,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public static class CreateUserPublisher implements ApplicationEventPublisher {
 
         final ScimUserBootstrap bootstrap;
+        final List<ApplicationEvent> events = new ArrayList<>();
 
         public CreateUserPublisher(ScimUserBootstrap bootstrap) {
             this.bootstrap = bootstrap;
@@ -810,6 +822,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         @Override
         public void publishEvent(ApplicationEvent event) {
+            events.add(event);
             if (event instanceof AuthEvent) {
                 bootstrap.onApplicationEvent((AuthEvent)event);
             }
