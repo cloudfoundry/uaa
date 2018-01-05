@@ -143,14 +143,16 @@ public class ResetPasswordIT {
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
+
         assertFalse(contains(link, "@"));
         assertFalse(contains(link, "%40"));
         webDriver.get(link);
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        webDriver.manage().timeouts().implicitlyWait(50, TimeUnit.SECONDS);
-        
+        webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        webDriver.findElement(By.tagName("body"));
+
         assertEquals("https://www.google.com/", webDriver.getCurrentUrl());
     }
 
