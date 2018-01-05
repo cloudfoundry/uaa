@@ -127,7 +127,6 @@ public class ResetPasswordIT {
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        System.out.println(webDriver.getPageSource());
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
         Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());

@@ -50,7 +50,6 @@ pipeline {
             }
         }
         stage('Unit Tests') {
-//            remove when integrationTests pass
             when {
                 expression { false }
             }
@@ -77,7 +76,6 @@ pipeline {
             }
         }
         stage('Mockmvc Tests') {
-            //                remove when integrationTests pass
 
             when {
                 expression { false }
@@ -145,7 +143,6 @@ pipeline {
             }
         }
         stage('Deploy to RC') {
-//          remove when integrationTests pass
             when {
                 expression { false }
             }
