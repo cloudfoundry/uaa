@@ -19,7 +19,7 @@ pipeline {
                     }
                     agent {
                       docker {
-                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
                           label 'dind'
                           args '-v /var/lib/docker/.gradle:/root/.gradle'
                       }
@@ -58,11 +58,11 @@ pipeline {
                 }
                 stage('Unit Tests') {
                     when {
-                        expression { true }
+                        expression { false }
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
                             label 'dind'
                             args '-v /var/lib/docker/.gradle:/root/.gradle'
                         }
@@ -98,7 +98,7 @@ pipeline {
                 }
                 stage('Mockmvc Tests') {
                     when {
-                        expression { true }
+                        expression { false }
                     }
                     agent {
                         docker {
@@ -142,11 +142,11 @@ pipeline {
         }
         stage('Integration Tests') {
             when {
-                expression { true }
+                expression { false }
             }
             agent {
                 docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
                     label 'dind'
                     args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
                 }
@@ -191,10 +191,39 @@ pipeline {
                 }
             }
         }
+        stage('Upload Artifact') {
+            agent {
+                label 'dind'
+            }
+            steps{
+                dir('uaa') {
+                    checkout scm
+                }
+                script {
+                    def APP_VERSION = sh (returnStdout: true, script: '''
+                        grep 'version' uaa/gradle.properties | sed 's/version=//'
+                        ''')
+                    echo 'Publishing UAA ${APP_VERSION} Artifact to Artifactory'
+                    dir('build') {
+                        unstash 'uaa-war'
+                    }
+                    def uploadSpec = """{
+                        "files": [
+                            {
+                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+                                "target": "/MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
+                            }
+                        ]
+                    }"""
+                    def buildInfo = devcloudArtServer.upload(uploadSpec)
+                    devcloudArtServer.publishBuildInfo(buildInfo)
+                }
+            }
+        }
         stage('Deploy to RC') {
             agent{
                 docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
                     label 'dind'
                     args '-v /var/lib/docker/.gradle:/root/.gradle'
                 }
