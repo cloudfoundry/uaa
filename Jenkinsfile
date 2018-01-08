@@ -9,12 +9,18 @@ pipeline {
         skipDefaultCheckout()
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
+    parameters {
+        choice(name: 'DEPLOYMENT_TYPE', choices:'cf3-release-candidate\ncf3-staging\ncf3-sysint\ncf3-integration\nvpc\njpn\neu-central\nazr-usw\nasv-pr\nperf-vpc-sb\nperf-asv-sb\nperf-cf3\nvpc-db-mig-test\nasv-sb', description: 'This specifies which point of presence to deploy to')
+        booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
+        booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Determines whether to deploy UAA to CF3 release candidate.')
+        booleanParam(name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the acceptance test against the freshly deployed UAA.')
+    }
     stages {
         stage('Build and run Tests') {
             parallel {
                 stage ('Checkout & Build') {
                     when {
-                        expression { true }
+                        expression { params.DEPLOYMENT_TYPE == 'cf3-release-candidate' }
 
                     }
                     agent {
@@ -58,7 +64,7 @@ pipeline {
                 }
                 stage('Unit Tests') {
                     when {
-                        expression { false }
+                        expression { params.DEPLOYMENT_TYPE == 'cf3-release-candidate' }
                     }
                     agent {
                         docker {
@@ -98,7 +104,7 @@ pipeline {
                 }
                 stage('Mockmvc Tests') {
                     when {
-                        expression { false }
+                        expression { params.DEPLOYMENT_TYPE == 'cf3-release-candidate' }
                     }
                     agent {
                         docker {
@@ -142,7 +148,7 @@ pipeline {
         }
         stage('Integration Tests') {
             when {
-                expression { false }
+                expression { params.DEPLOYMENT_TYPE == 'cf3-release-candidate' }
             }
             agent {
                 docker {
@@ -191,9 +197,12 @@ pipeline {
                 }
             }
         }
-        stage('Upload Artifact') {
+        stage('Upload Build Artifact') {
             agent {
                 label 'dind'
+            }
+            when {
+                expression { params.DEPLOYMENT_TYPE == 'cf3-release-candidate' }
             }
             steps{
                 dir('uaa') {
@@ -203,15 +212,15 @@ pipeline {
                     APP_VERSION = sh (returnStdout: true, script: '''
                         grep 'version' uaa/gradle.properties | sed 's/version=//'
                         ''').trim()
-                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
+                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
                     dir('build') {
                         unstash 'uaa-war'
                     }
                     def uploadSpec = """{
                         "files": [
                             {
-                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                                "target": "MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
+                                "pattern": "build/uaa/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+                                "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
                             }
                         ]
                     }"""
@@ -220,7 +229,7 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to RC') {
+        stage('Deploy') {
             agent{
                 docker {
                     image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
@@ -229,23 +238,22 @@ pipeline {
                 }
             }
             when {
-                expression { true }
+                expression { params.DEPLOY == true }
             }
             environment {
-                CF_CREDENTIALS = credentials('CF_CREDENTIALS_CF3')
-                ADMIN_CLIENT_SECRET = credentials('CF3_RELEASE_CANDIDATE_ADMIN_CLIENT_SECRET')
-                DEPLOYMENT_TYPE = 'cf3-release-candidate'
-                MAP_ROUTES_TO_DEPLOYED_APP = 'true'
+                CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+                ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
             }
             steps {
                 script {
+                    echo "CF_CREDENTIALS $CF_CREDENTIALS_USR"
                     echo "Downloading UAA  ${APP_VERSION} Artifact Artifactory"
                     def downloadSpec = """{
                         "files": [
                             {
                                 "target": "deploy-workspace/",
                                 "flat": "true",
-                                "pattern": "MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/*.war"
+                                "pattern": "MAAXA-MVN/builds/uaa/${APP_VERSION}/*.war"
                             }
                         ]
                     }"""
@@ -277,18 +285,8 @@ pipeline {
                     export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
                     cf -v
                     ruby -v
-                    //./ci_deploy.sh
+                    ./ci_deploy.sh
 
-                    # mvn deploy:deploy-file -DgroupId=org.cloudfoundry.identity \\
-                    #    -DartifactId=cloudfoundry-identity-uaa \\
-                    #    -Dversion=$APP_VERSION \\
-                    #    -Dpackaging=war \\
-                    #    -Dfile=../build/cloudfoundry-identity-uaa-$APP_VERSION.war \\
-                    #    -DrepositoryId=artifactory.releases \\
-                    #    -Durl=https://devcloud.swcoe.ge.com/artifactory/MAAXA-MVN \\
-                    #    -Dartifactory.password=$ARTIFACTORY_PASSWORD \\
-                    #    -s mvn_settings.xml \\
-                    #    -B
                     if [ $DEPLOYMENT_TYPE != 'perf-vpc-sb' -a $DEPLOYMENT_TYPE != 'perf-asv-sb' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'perf-azr-usw' -a $DEPLOYMENT_TYPE != 'cf3-integration' -a $DEPLOYMENT_TYPE != 'asv-pr-db-mig-test' ]; then
                         ./uaa-sb-acceptance-tests.sh
                     fi
@@ -301,13 +299,45 @@ pipeline {
                 stash includes: 'uaa-release.properties', name:'uaa-release.properties'
             }
         }
+        stage('Upload Uaa Artifact') {
+            agent {
+                label 'dind'
+            }
+            when {
+                expression { params.DEPLOYMENT_TYPE == 'cf3-staging' }
+            }
+            steps{
+                dir('uaa') {
+                    checkout scm
+                }
+                script {
+                    APP_VERSION = sh (returnStdout: true, script: '''
+                        grep 'version' uaa/gradle.properties | sed 's/version=//'
+                        ''').trim()
+                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
+                    dir('build') {
+                        unstash 'uaa-war'
+                    }
+                    def uploadSpec = """{
+                        "files": [
+                            {
+                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+                                "target": "MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
+                            }
+                        ]
+                    }"""
+                    def buildInfo = devcloudArtServer.upload(uploadSpec)
+                    devcloudArtServer.publishBuildInfo(buildInfo)
+                }
+            }
+        }
     }
     post {
         success {
-            echo 'Your Gradle pipeline was successful sending notification'
+            echo 'UAA pipeline was successful. Sending notification!'
         }
         failure {
-            echo "Your Gradle pipeline failed sending notification...."
+            echo "UAA pipeline failed. Sending notification!"
         }
 
     }
