@@ -1,5 +1,10 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
+import java.net.URLEncoder;
+import java.util.Date;
+
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -14,6 +19,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpSession;
@@ -22,18 +31,9 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
-import java.net.URLEncoder;
-import java.util.Date;
-
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
-import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,6 +47,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
     private ScimUser user;
     private String token;
     private IdentityProviderProvisioning identityProviderProvisioning;
+    private IdentityZoneConfiguration uaaZoneConfig;
 
     @Before
     public void setup() throws Exception {
@@ -57,6 +58,20 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
         identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
         token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
+        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
+    }
+
+    @After
+    public void cleanup () throws Exception {
+        uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
+        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+    }
+
+    @Test
+    public void force_password_change_happy_path_when_mfa_is_enabled() throws Exception {
+        uaaZoneConfig.getMfaConfig().setEnabled(true);
+        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+        force_password_change_happy_path();
     }
 
     @Test

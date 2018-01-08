@@ -15,9 +15,26 @@
 
 package org.cloudfoundry.identity.uaa.mfa;
 
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.HashSet;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.INVALID_AUTH;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_COMPLETED;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_IN_PROGRESS;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_NOT_REQUIRED;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_OK;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_REQUIRED;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.NOT_AUTHENTICATED;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.PASSWORD_CHANGE_REQUIRED;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,22 +45,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
-
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.Arrays;
-import java.util.HashSet;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.INVALID_AUTH;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_COMPLETED;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_IN_PROGRESS;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_NOT_REQUIRED;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_OK;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_REQUIRED;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.NOT_AUTHENTICATED;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -63,23 +64,23 @@ import static org.mockito.Mockito.when;
 public class MfaRequiredFilterTests {
 
     private RequestCache requestCache;
-    private MfaRequiredFilter filter;
+    private MfaRequiredFilter spyFilter;
     private MockHttpServletRequest request;
     private UsernamePasswordAuthenticationToken usernameAuthentication;
     private AnonymousAuthenticationToken anonymous;
     private UaaAuthentication authentication;
     private HttpServletResponse response;
     private FilterChain chain;
+    private MfaRequiredFilter filter;
 
     @Before
     public void setup() throws Exception {
         requestCache = mock(RequestCache.class);
-        filter = spy(
-            new MfaRequiredFilter("/login/mfa/**",
-                                  "/login/mfa/register",
-                                  requestCache,
-                                  "/login/mfa/completed")
-        );
+        filter = new MfaRequiredFilter("/login/mfa/**",
+            "/login/mfa/register",
+            requestCache,
+            "/login/mfa/completed");
+        spyFilter = spy(filter);
         request = new MockHttpServletRequest();
         usernameAuthentication = new UsernamePasswordAuthenticationToken("fake-principal","fake-credentials");
         anonymous = new AnonymousAuthenticationToken("fake-key", "fake-principal", singletonList(new SimpleGrantedAuthority("test")));
@@ -101,55 +102,55 @@ public class MfaRequiredFilterTests {
 
     @Test
     public void mfa_not_required() throws Exception {
-        assertFalse(filter.mfaRequired());
+        assertFalse(spyFilter.mfaRequired());
     }
 
     @Test
     public void mfa_required() throws Exception {
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
-        assertTrue(filter.mfaRequired());
+        assertTrue(spyFilter.mfaRequired());
     }
 
     @Test
     public void authentication_log_info_null() throws Exception {
-        assertNull(filter.getAuthenticationLogInfo());
+        assertNull(spyFilter.getAuthenticationLogInfo());
     }
 
     @Test
     public void authentication_log_info_uaa() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertThat(filter.getAuthenticationLogInfo(), containsString("fake-id"));
-        assertThat(filter.getAuthenticationLogInfo(), containsString("fake-username"));
+        assertThat(spyFilter.getAuthenticationLogInfo(), containsString("fake-id"));
+        assertThat(spyFilter.getAuthenticationLogInfo(), containsString("fake-username"));
     }
 
     @Test
     public void authentication_log_info_unknown() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(usernameAuthentication);
-        assertThat(filter.getAuthenticationLogInfo(), containsString("Unknown Auth=org.springframework.security.authentication.UsernamePasswordAuthenticationToken"));
-        assertThat(filter.getAuthenticationLogInfo(), containsString("fake-principal"));
+        assertThat(spyFilter.getAuthenticationLogInfo(), containsString("Unknown Auth=org.springframework.security.authentication.UsernamePasswordAuthenticationToken"));
+        assertThat(spyFilter.getAuthenticationLogInfo(), containsString("fake-principal"));
     }
 
     @Test
     public void next_step_not_authenticated() throws Exception {
-        assertSame(NOT_AUTHENTICATED, filter.getNextStep(request));
+        assertSame(NOT_AUTHENTICATED, spyFilter.getNextStep(request));
     }
 
     @Test
     public void next_step_anonymous() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(anonymous);
-        assertSame(NOT_AUTHENTICATED, filter.getNextStep(request));
+        assertSame(NOT_AUTHENTICATED, spyFilter.getNextStep(request));
     }
 
     @Test
     public void next_step_unknown_authentication() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(usernameAuthentication);
-        assertSame(INVALID_AUTH, filter.getNextStep(request));
+        assertSame(INVALID_AUTH, spyFilter.getNextStep(request));
     }
 
     @Test
     public void next_step_mfa_not_needed() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(MFA_NOT_REQUIRED, filter.getNextStep(request));
+        assertSame(MFA_NOT_REQUIRED, spyFilter.getNextStep(request));
     }
 
     @Test
@@ -158,7 +159,7 @@ public class MfaRequiredFilterTests {
         request.setPathInfo("oauth/authorize");
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(MFA_REQUIRED, filter.getNextStep(request));
+        assertSame(MFA_REQUIRED, spyFilter.getNextStep(request));
     }
 
     @Test
@@ -167,7 +168,7 @@ public class MfaRequiredFilterTests {
         request.setPathInfo("login/mfa/register");
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(MFA_IN_PROGRESS, filter.getNextStep(request));
+        assertSame(MFA_IN_PROGRESS, spyFilter.getNextStep(request));
     }
 
     @Test
@@ -176,7 +177,7 @@ public class MfaRequiredFilterTests {
         request.setPathInfo("login/mfa/completed");
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(MFA_IN_PROGRESS, filter.getNextStep(request));
+        assertSame(MFA_IN_PROGRESS, spyFilter.getNextStep(request));
     }
 
     @Test
@@ -186,7 +187,7 @@ public class MfaRequiredFilterTests {
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         authentication.getAuthenticationMethods().addAll(Arrays.asList("pwd", "mfa"));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(MFA_COMPLETED, filter.getNextStep(request));
+        assertSame(MFA_COMPLETED, spyFilter.getNextStep(request));
     }
 
     @Test
@@ -196,44 +197,63 @@ public class MfaRequiredFilterTests {
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         authentication.getAuthenticationMethods().addAll(Arrays.asList("pwd", "mfa"));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(MFA_OK, filter.getNextStep(request));
+        assertSame(MFA_OK, spyFilter.getNextStep(request));
+    }
+
+    @Test
+    public void next_step_mfa_enabled_but_password_change_required() throws Exception {
+        request.setServletPath("/");
+        request.setPathInfo("oauth/authorize");
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
+        authentication.setRequiresPasswordChange(true);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        assertSame(PASSWORD_CHANGE_REQUIRED, filter.getNextStep(request));
     }
 
     @Test
     public void send_redirect() throws Exception {
         request.setServletPath("/");
         request.setContextPath("/uaa");
-        filter.sendRedirect("/login/mfa/register", request, response);
+        spyFilter.sendRedirect("/login/mfa/register", request, response);
         verify(response, times(1)).sendRedirect("/uaa/login/mfa/register");
     }
 
     @Test
     public void do_filter_invalid_auth() throws Exception {
-        when(filter.getNextStep(any(HttpServletRequest.class))).thenReturn(INVALID_AUTH);
-        filter.doFilter(request, response, chain);
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(INVALID_AUTH);
+        spyFilter.doFilter(request, response, chain);
         verify(response, times(1)).sendError(401, "Invalid authentication object for UI operations.");
     }
 
     @Test
     public void do_filter_not_authenticated() throws Exception {
-        when(filter.getNextStep(any(HttpServletRequest.class))).thenReturn(NOT_AUTHENTICATED);
-        filter.doFilter(request, response, chain);
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(NOT_AUTHENTICATED);
+        spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
         verifyZeroInteractions(requestCache);
     }
 
     @Test
     public void do_filter_mfa_in_progress() throws Exception {
-        when(filter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_IN_PROGRESS);
-        filter.doFilter(request, response, chain);
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_IN_PROGRESS);
+        spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
         verifyZeroInteractions(requestCache);
     }
 
     @Test
+    public void do_filter_password_change_required() throws Exception {
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(PASSWORD_CHANGE_REQUIRED);
+        spyFilter.doFilter(request, response, chain);
+        verify(chain, times(1)).doFilter(same(request), same(response));
+        verifyZeroInteractions(requestCache);
+    }
+
+
+    @Test
     public void do_filter_mfa_ok() throws Exception {
-        when(filter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_OK);
-        filter.doFilter(request, response, chain);
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_OK);
+        spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
         verifyZeroInteractions(requestCache);
     }
@@ -241,10 +261,10 @@ public class MfaRequiredFilterTests {
     @Test
     public void do_filter_mfa_completed_no_saved_request() throws Exception {
         request.setContextPath("/uaa");
-        when(filter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_COMPLETED);
-        filter.doFilter(request, response, chain);
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_COMPLETED);
+        spyFilter.doFilter(request, response, chain);
         verify(requestCache, times(1)).getRequest(same(request), same(response));
-        verify(filter, times(1)).sendRedirect(eq("/"), same(request), same(response));
+        verify(spyFilter, times(1)).sendRedirect(eq("/"), same(request), same(response));
     }
 
     @Test
@@ -254,20 +274,20 @@ public class MfaRequiredFilterTests {
         when(savedRequest.getRedirectUrl()).thenReturn(redirect);
         when(requestCache.getRequest(same(request), same(response))).thenReturn(savedRequest);
         request.setContextPath("/uaa");
-        when(filter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_COMPLETED);
-        filter.doFilter(request, response, chain);
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_COMPLETED);
+        spyFilter.doFilter(request, response, chain);
         verify(requestCache, times(1)).getRequest(same(request), same(response));
-        verify(filter, times(1)).sendRedirect(eq(redirect), same(request), same(response));
+        verify(spyFilter, times(1)).sendRedirect(eq(redirect), same(request), same(response));
 
     }
 
     @Test
     public void do_filter_mfa_required() throws Exception {
         request.setContextPath("/uaa");
-        when(filter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_REQUIRED);
-        filter.doFilter(request, response, chain);
+        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_REQUIRED);
+        spyFilter.doFilter(request, response, chain);
         verify(requestCache, times(1)).saveRequest(same(request), same(response));
-        verify(filter, times(1)).sendRedirect(eq("/login/mfa/register"), same(request), same(response));
+        verify(spyFilter, times(1)).sendRedirect(eq("/login/mfa/register"), same(request), same(response));
     }
 
 }
