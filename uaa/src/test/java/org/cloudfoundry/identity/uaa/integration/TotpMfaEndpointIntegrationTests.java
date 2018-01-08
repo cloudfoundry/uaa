@@ -1,13 +1,14 @@
 package org.cloudfoundry.identity.uaa.integration;
 
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.google.zxing.BinaryBitmap;
-import com.google.zxing.DecodeHintType;
-import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
-import com.google.zxing.common.HybridBinarizer;
-import com.google.zxing.qrcode.QRCodeReader;
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
@@ -16,6 +17,15 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.qrcode.QRCodeReader;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,15 +48,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.URLDecoder;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -84,6 +85,8 @@ public class TotpMfaEndpointIntegrationTests {
     private String username;
     private MfaProvider mfaProvider;
     private String zoneAdminToken;
+    private String adminAccessToken;
+    private ScimUser user;
 
     @Before
     public void setup() throws Exception {
@@ -95,9 +98,10 @@ public class TotpMfaEndpointIntegrationTests {
         mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1");
 
         zoneUrl = baseUrl.replace("localhost", mfaZone.getSubdomain() + ".localhost");
-
+        adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "uaa.admin");
         zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());
-        username = createRandomUser();
+        user = createRandomUser();
+        username = user.getUserName();
         mfaProvider = enableMfaInZone(zoneAdminToken);
         webDriver.get(zoneUrl + "/logout.do");
     }
@@ -105,6 +109,9 @@ public class TotpMfaEndpointIntegrationTests {
     @After
     public void cleanup() {
         webDriver.get(zoneUrl + "/logout.do");
+        webDriver.manage().deleteAllCookies();
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.manage().deleteAllCookies();
         mfaZone.getConfig().getMfaConfig().setEnabled(false).setProviderName(null);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, mfaZone.getId(), mfaZone.getSubdomain(), mfaZone.getConfig());
     }
@@ -119,7 +126,30 @@ public class TotpMfaEndpointIntegrationTests {
         String secretKey = getSecretFromQrImageString(imageSrc);
 
         webDriver.findElement(By.id("Next")).click();
-        verifyCodeOnRegistration(secretKey);
+        verifyCodeOnRegistration(secretKey, "/");
+    }
+
+    @Test
+    public void force_password_happens_after_MFA() throws Exception {
+        IntegrationTestUtils.updateUserToForcePasswordChange(
+            getRestTemplate(),
+            baseUrl,
+            adminAccessToken,
+            user.getId(),
+            mfaZone.getId()
+        );
+
+        performLogin(username);
+        assertEquals(zoneUrl + "/login/mfa/register", webDriver.getCurrentUrl());
+
+        String imageSrc = webDriver.findElement(By.id("qr")).getAttribute("src");
+
+        String secretKey = getSecretFromQrImageString(imageSrc);
+
+        webDriver.findElement(By.id("Next")).click();
+        verifyCodeOnRegistration(secretKey, "/force_password_change");
+
+
     }
 
     @Test
@@ -206,10 +236,10 @@ public class TotpMfaEndpointIntegrationTests {
     }
 
     @Test
-    public void checkAccessForTotpPage() {
+    public void checkAccessForTotpPage() throws Exception {
         webDriver.get(zoneUrl + "/logout.do");
+        webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl + "/login/mfa/register");
-
         assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
     }
 
@@ -225,7 +255,7 @@ public class TotpMfaEndpointIntegrationTests {
     public void testDisplayIdentityZoneNameOnVerifyPage() {
         performLogin(username);
         webDriver.findElement(By.id("Next")).click();
-        
+
         assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
         assertEquals(webDriver.findElement(By.id("mfa-identity-zone")).getText(), mfaZone.getName());
 
@@ -250,16 +280,16 @@ public class TotpMfaEndpointIntegrationTests {
         webDriver.findElement(By.id("Next")).click();
         assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
 
-        verifyCodeOnRegistration(key);
+        verifyCodeOnRegistration(key, "/");
     }
 
-    private void verifyCodeOnRegistration(String key) {
+    private void verifyCodeOnRegistration(String key, String expectedUrlPath) {
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
         Integer verificationCode = authenticator.getTotpPassword(key);
         webDriver.findElement(By.name("code")).sendKeys(verificationCode.toString());
         webDriver.findElement(By.cssSelector("form button")).click();
 
-        assertEquals(zoneUrl + "/", webDriver.getCurrentUrl());
+        assertEquals(zoneUrl + expectedUrlPath, webDriver.getCurrentUrl());
     }
 
     @Test
@@ -278,7 +308,7 @@ public class TotpMfaEndpointIntegrationTests {
         String secretKey = getSecretFromQrImageString(imageSrc);
 
         webDriver.findElement(By.id("Next")).click();
-        verifyCodeOnRegistration(secretKey);
+        verifyCodeOnRegistration(secretKey, "/");
     }
 
     @Test
@@ -303,7 +333,7 @@ public class TotpMfaEndpointIntegrationTests {
         webDriver.findElement(By.id("Next")).click();
         assertEquals(zoneUrl + "/login/mfa/verify", webDriver.getCurrentUrl());
 
-        verifyCodeOnRegistration(key);
+        verifyCodeOnRegistration(key, "/");
     }
 
     @Test
@@ -327,7 +357,7 @@ public class TotpMfaEndpointIntegrationTests {
         assertFalse("secret not found", secretKey.isEmpty());
 
         webDriver.findElement(By.id("Next")).click();
-        verifyCodeOnRegistration(secretKey);
+        verifyCodeOnRegistration(secretKey, "/");
     }
 
     private String getSecretFromQrImageString(String imageSrc) throws Exception {
@@ -350,8 +380,9 @@ public class TotpMfaEndpointIntegrationTests {
     }
 
     private void performLogin(String username) {
+        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl + "/login");
-
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
@@ -364,12 +395,17 @@ public class TotpMfaEndpointIntegrationTests {
         return provider;
     }
 
-    private String createRandomUser() {
-        ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
+    private ScimUser createRandomUser() {
+        String username = new RandomValueStringGenerator(5).generate().toLowerCase();
+        ScimUser user = new ScimUser(null, username, "first", "last");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword(USER_PASSWORD);
-
-        return IntegrationTestUtils.createAnotherUser(webDriver, USER_PASSWORD, simpleSmtpServer, zoneUrl, testClient);
+        user.setVerified(true);
+        return IntegrationTestUtils.createUser(adminAccessToken,
+            baseUrl,
+            user,
+            mfaZone.getId()
+        );
     }
 
 }

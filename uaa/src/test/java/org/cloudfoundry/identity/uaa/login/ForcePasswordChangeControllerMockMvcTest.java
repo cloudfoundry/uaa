@@ -8,6 +8,7 @@ import java.util.Date;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -20,7 +21,6 @@ import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 
 import org.junit.After;
 import org.junit.Before;
@@ -29,8 +29,12 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -48,6 +52,8 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
     private String token;
     private IdentityProviderProvisioning identityProviderProvisioning;
     private IdentityZoneConfiguration uaaZoneConfig;
+    private String adminToken;
+    private MfaProvider mfaProvider;
 
     @Before
     public void setup() throws Exception {
@@ -59,6 +65,12 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
         token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
         uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
+        adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            "admin",
+            "adminsecret",
+            "uaa.admin"
+        );
+        mfaProvider = MockMvcUtils.createMfaProvider(getMockMvc(), IdentityZone.getUaa().getId(), adminToken);
     }
 
     @After
@@ -68,10 +80,23 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
     }
 
     @Test
-    public void force_password_change_happy_path_when_mfa_is_enabled() throws Exception {
-        uaaZoneConfig.getMfaConfig().setEnabled(true);
+    public void force_password_change_when_mfa_is_enabled() throws Exception {
+        uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
-        force_password_change_happy_path();
+        forcePasswordChangeForUser();
+        //force_password_change_happy_path();
+        ResultActions actions = performMfaRegistrationInZone(
+            user.getUserName(),
+            "secret",
+            getMockMvc(),
+            "localhost",
+            new String[]{"pwd"},
+            new String[]{"pwd", "mfa", "otp"}
+        );
+        actions
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/force_password_change"));
+        completePasswordChange((MockHttpSession) actions.andReturn().getRequest().getSession(false));
     }
 
     @Test
@@ -101,6 +126,11 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
         assertTrue(getUaaAuthentication(session).isAuthenticated());
         assertTrue(getUaaAuthentication(session).isRequiresPasswordChange());
 
+        completePasswordChange(session);
+
+    }
+
+    public void completePasswordChange(MockHttpSession session) throws Exception {
         MockHttpServletRequestBuilder validPost = post("/force_password_change")
             .param("password", "test")
             .param("password_confirmation", "test")
@@ -119,7 +149,6 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
             .andExpect(redirectedUrl("http://localhost/"));
         assertTrue(getUaaAuthentication(session).isAuthenticated());
         assertFalse(getUaaAuthentication(session).isRequiresPasswordChange());
-
     }
 
     private UaaAuthentication getUaaAuthentication(HttpSession session) {
