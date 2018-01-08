@@ -1,5 +1,5 @@
 #!/usr/bin/env groovy
-
+def devcloudArtServer = Artifactory.server('devcloud')
 pipeline {
     agent none
     environment {
@@ -200,10 +200,10 @@ pipeline {
                     checkout scm
                 }
                 script {
-                    def APP_VERSION = sh (returnStdout: true, script: '''
+                    APP_VERSION = sh (returnStdout: true, script: '''
                         grep 'version' uaa/gradle.properties | sed 's/version=//'
-                        ''')
-                    echo 'Publishing UAA ${APP_VERSION} Artifact to Artifactory'
+                        ''').trim()
+                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
                     dir('build') {
                         unstash 'uaa-war'
                     }
@@ -211,7 +211,7 @@ pipeline {
                         "files": [
                             {
                                 "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                                "target": "/MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
+                                "target": "MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
                             }
                         ]
                     }"""
@@ -229,7 +229,7 @@ pipeline {
                 }
             }
             when {
-                expression { false }
+                expression { true }
             }
             environment {
                 CF_CREDENTIALS = credentials('CF_CREDENTIALS_CF3')
@@ -238,8 +238,20 @@ pipeline {
                 MAP_ROUTES_TO_DEPLOYED_APP = 'true'
             }
             steps {
-                dir('build') {
-                    unstash 'uaa-war'
+                script {
+                    echo "Downloading UAA  ${APP_VERSION} Artifact Artifactory"
+                    def downloadSpec = """{
+                        "files": [
+                            {
+                                "target": "deploy-workspace/",
+                                "flat": "true",
+                                "pattern": "MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/*.war"
+                            }
+                        ]
+                    }"""
+                    sh 'pwd && ls -ltr'
+                    devcloudArtServer.download(downloadSpec)
+                    sh "ls -ltr deploy-workspace/"
                 }
                 dir('uaa-cf-release') {
                     git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
@@ -265,7 +277,7 @@ pipeline {
                     export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
                     cf -v
                     ruby -v
-                    ./ci_deploy.sh
+                    //./ci_deploy.sh
 
                     # mvn deploy:deploy-file -DgroupId=org.cloudfoundry.identity \\
                     #    -DartifactId=cloudfoundry-identity-uaa \\
