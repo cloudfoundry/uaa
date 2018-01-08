@@ -57,7 +57,8 @@ public enum AuditEventType {
     ServiceProviderCreatedEvent(33),
     ServiceProviderModifiedEvent(34),
     UserAccountUnlockedEvent(35),
-    TokenRevocationEvent(36);
+    TokenRevocationEvent(36),
+    PasswordAuthenticationSuccess(37);
 
     private final int code;
 
