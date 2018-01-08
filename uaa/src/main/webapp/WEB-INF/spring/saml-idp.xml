@@ -53,7 +53,7 @@
         <constructor-arg name="configurator" ref="spMetaDataProviders" />
         <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:0}" />
         <property name="generator" ref="zoneAwareIdpMetadataGenerator"/>
-
+        <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
 
     <bean id="idpInitiatedLogin"
