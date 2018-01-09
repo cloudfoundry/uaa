@@ -100,7 +100,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
 
-    private RedirectResolver redirectResolver = new DefaultRedirectResolver();
+    private RedirectResolver redirectResolver;
 
     private UserApprovalHandler userApprovalHandler = new DefaultUserApprovalHandler();
 

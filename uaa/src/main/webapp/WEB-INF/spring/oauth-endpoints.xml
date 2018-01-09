@@ -153,9 +153,7 @@
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
         <property name="hybridTokenGranterForAuthCode" ref="hybridTokenGranterForAuthCodeGrant"/>
-        <property name="redirectResolver">
-            <bean class="org.cloudfoundry.identity.uaa.oauth.AntPathRedirectResolver"/>
-        </property>
+        <property name="redirectResolver" ref="antPathRedirectResolver"/>
     </bean>
 
     <bean id="hybridTokenGranterForAuthCodeGrant" class="org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode">
@@ -353,6 +351,8 @@
         </property>
     </bean>
 
+    <bean id="antPathRedirectResolver" class="org.cloudfoundry.identity.uaa.oauth.AntPathRedirectResolver"/>
+
     <bean id="promptOauthAuthorizeEntryPoint" class="org.cloudfoundry.identity.uaa.oauth.AuthorizePromptNoneEntryPoint">
         <constructor-arg name="failureHandler">
             <bean class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
@@ -362,10 +362,7 @@
             </bean>
         </constructor-arg>
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="redirectResolver">
-            <bean class="org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver"/>
-        </constructor-arg>
-
+        <constructor-arg name="redirectResolver" ref="antPathRedirectResolver"/>
     </bean>
 
     <http name="promptStatelessTokenApiSecurity"

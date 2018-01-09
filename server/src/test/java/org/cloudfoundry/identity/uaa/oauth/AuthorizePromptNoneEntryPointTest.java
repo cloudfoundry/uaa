@@ -153,5 +153,17 @@ public class AuthorizePromptNoneEntryPointTest {
     }
 
 
+    @Test
+    public void test_redirect_honors_ant_matcher() throws Exception {
+        BaseClientDetails client = new BaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
+        request.setParameter(OAuth2Utils.REDIRECT_URI, "http://example.com/some/path");
+        request.setParameter(OAuth2Utils.CLIENT_ID, client.getClientId());
+        String zoneID = IdentityZoneHolder.get().getId();
+        when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), eq(zoneID))).thenReturn(client);
+        when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
+
+        when(redirectResolver.resolveRedirect(eq("http://example.com/some/path"), same(client))).thenReturn("http://example.com/some/path");
+        entryPoint.commence(request, response, authException);
+    }
 
 }
