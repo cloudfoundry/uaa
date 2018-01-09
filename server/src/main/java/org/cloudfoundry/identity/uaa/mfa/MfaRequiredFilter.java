@@ -23,11 +23,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -67,7 +68,6 @@ public class MfaRequiredFilter extends GenericFilterBean {
             case NOT_AUTHENTICATED:
             case MFA_IN_PROGRESS:
             case MFA_NOT_REQUIRED:
-            case PASSWORD_CHANGE_REQUIRED:
             case MFA_OK:
                 chain.doFilter(request, response);
                 break;
@@ -119,8 +119,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
         MFA_OK,
         MFA_NOT_REQUIRED,
         MFA_COMPLETED,
-        INVALID_AUTH,
-        PASSWORD_CHANGE_REQUIRED
+        INVALID_AUTH
     }
 
     protected MfaNextStep getNextStep(HttpServletRequest request) {
@@ -135,9 +134,6 @@ public class MfaRequiredFilter extends GenericFilterBean {
             return MfaNextStep.MFA_NOT_REQUIRED;
         }
         UaaAuthentication uaaAuth = (UaaAuthentication) a;
-        if (uaaAuth.isRequiresPasswordChange()) {
-            return MfaNextStep.PASSWORD_CHANGE_REQUIRED;
-        }
         if (completedMatcher.matches(request) && uaaAuth.getAuthenticationMethods().contains("mfa")) {
             return MfaNextStep.MFA_COMPLETED;
         }

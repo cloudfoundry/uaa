@@ -20,20 +20,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.HashSet;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.INVALID_AUTH;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_COMPLETED;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_IN_PROGRESS;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_NOT_REQUIRED;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_OK;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_REQUIRED;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.NOT_AUTHENTICATED;
-import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.PASSWORD_CHANGE_REQUIRED;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +35,16 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.INVALID_AUTH;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_COMPLETED;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_IN_PROGRESS;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_NOT_REQUIRED;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_OK;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_REQUIRED;
+import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.NOT_AUTHENTICATED;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -201,16 +201,6 @@ public class MfaRequiredFilterTests {
     }
 
     @Test
-    public void next_step_mfa_enabled_but_password_change_required() throws Exception {
-        request.setServletPath("/");
-        request.setPathInfo("oauth/authorize");
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
-        authentication.setRequiresPasswordChange(true);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertSame(PASSWORD_CHANGE_REQUIRED, filter.getNextStep(request));
-    }
-
-    @Test
     public void send_redirect() throws Exception {
         request.setServletPath("/");
         request.setContextPath("/uaa");
@@ -240,15 +230,6 @@ public class MfaRequiredFilterTests {
         verify(chain, times(1)).doFilter(same(request), same(response));
         verifyZeroInteractions(requestCache);
     }
-
-    @Test
-    public void do_filter_password_change_required() throws Exception {
-        when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(PASSWORD_CHANGE_REQUIRED);
-        spyFilter.doFilter(request, response, chain);
-        verify(chain, times(1)).doFilter(same(request), same(response));
-        verifyZeroInteractions(requestCache);
-    }
-
 
     @Test
     public void do_filter_mfa_ok() throws Exception {

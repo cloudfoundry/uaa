@@ -1,5 +1,14 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import javax.servlet.FilterChain;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -9,15 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 public class PasswordChangeRequiredFilterTest {
@@ -42,7 +44,8 @@ public class PasswordChangeRequiredFilterTest {
         cache = mock(RequestCache.class);
         filter = new PasswordChangeRequiredFilter(
             "/force_password_change",
-            cache
+            cache,
+            "/login/mfa/**"
         );
 
         authentication = mock(UaaAuthentication.class);
@@ -58,7 +61,25 @@ public class PasswordChangeRequiredFilterTest {
     }
 
 
+    @Test
+    public void isIgnored() throws Exception {
+        for (String s : Arrays.asList("/login/mfa", "/login/mfa/register", "/login/mfa/verify.do")) {
+            request.setPathInfo(s);
+            assertTrue("Is ignored:"+s, filter.isIgnored(request, response));
+        }
+    }
 
+    @Test
+    public void request_to_mfa() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.isRequiresPasswordChange()).thenReturn(true);
+        request.setPathInfo("/login/mfa/register");
+        filter.doFilterInternal(request, response, chain);
+        verify(chain, times(1)).doFilter(same(request), same(response));
+        verifyZeroInteractions(response);
+        verifyZeroInteractions(cache);
+    }
 
     @Test
     public void not_authenticated() throws Exception {

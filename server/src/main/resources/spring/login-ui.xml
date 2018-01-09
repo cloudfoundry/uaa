@@ -267,6 +267,11 @@
     <bean id="passwordChangeRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter">
         <constructor-arg name="redirectUri" value="/force_password_change"/>
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
+        <constructor-arg name="ignoreUris">
+            <array>
+                <value>/login/mfa/**</value>
+            </array>
+        </constructor-arg>
     </bean>
 
     <http name="idpSecurity"
@@ -304,8 +309,8 @@
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
         <custom-filter ref="clientRedirectStateCache" before="CSRF_FILTER"/>
-        <custom-filter ref="passwordChangeRequiredFilter" after="CSRF_FILTER"/>
-        <custom-filter ref="mfaRequiredFilter" before="FORM_LOGIN_FILTER"/>
+        <custom-filter ref="mfaRequiredFilter" after="CSRF_FILTER"/>
+        <custom-filter ref="passwordChangeRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
