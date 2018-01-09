@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
@@ -211,6 +212,7 @@ public class AuthzAuthenticationManagerTests {
         } catch (BadCredentialsException expected) {
         }
 
+        verify(publisher).publishEvent(isA(PasswordVerificationFailureEvent.class));
         verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
         verify(db, times(0)).updateLastLogonTime(anyString());
     }

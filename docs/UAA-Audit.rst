@@ -74,6 +74,11 @@ Authentication and Password Events
     - Happens: When a user successfully authenticates for the password login
     - Data Recorded: User ID and Username
 
+* PasswordVerificationFailure
+    - Happens: When a user authentication fails for the password login, and user exists
+    - Data Recorded: User ID
+    - Notes: Followed by a UserAuthenticationFailureEvent and PrincipalAuthenticationFailureEvent
+
 Scim Administration Events
 ==============================================================
 

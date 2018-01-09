@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
@@ -293,12 +294,14 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .andExpect(header().string("Location", "/login?error=login_failure"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
 
-        UserAuthenticationFailureEvent event1 = (UserAuthenticationFailureEvent)captor.getAllValues().get(0);
-        PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
+        PasswordVerificationFailureEvent event1  = (PasswordVerificationFailureEvent)captor.getAllValues().get(0);
+        UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
+        PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
         assertEquals(testUser.getUserName(), event1.getUser().getUsername());
-        assertEquals(testUser.getUserName(), event2.getName());
+        assertEquals(testUser.getUserName(), event2.getUser().getUsername());
+        assertEquals(testUser.getUserName(), event3.getName());
     }
 
     @Test
@@ -387,12 +390,14 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string("{\"error\":\"authentication failed\"}"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
 
-        UserAuthenticationFailureEvent event1 = (UserAuthenticationFailureEvent)captor.getAllValues().get(0);
-        PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
+        PasswordVerificationFailureEvent event1  = (PasswordVerificationFailureEvent)captor.getAllValues().get(0);
+        UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
+        PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
         assertEquals(testUser.getUserName(), event1.getUser().getUsername());
-        assertEquals(testUser.getUserName(), event2.getName());
+        assertEquals(testUser.getUserName(), event2.getUser().getUsername());
+        assertEquals(testUser.getUserName(), event3.getName());
     }
 
     @Test
