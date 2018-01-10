@@ -18,7 +18,7 @@ pipeline {
         stage('Deploy') {
             agent{
                 docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.6'
                     label 'dind'
                     args '-v /var/lib/docker/.gradle:/root/.gradle'
                 }
@@ -35,7 +35,6 @@ pipeline {
                     APP_VERSION = sh (returnStdout: true, script: '''
                         grep 'version' uaa/gradle.properties | sed 's/version=//'
                         ''').trim()
-                    echo "CF_CREDENTIALS $CF_CREDENTIALS_USR"
                     echo "Downloading UAA  ${APP_VERSION} Artifact Artifactory"
                     def downloadSpec = """{
                         "files": [
