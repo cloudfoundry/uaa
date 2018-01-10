@@ -18,8 +18,8 @@ import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
@@ -136,8 +136,8 @@ public class AuthzAuthenticationManagerTests {
         assertThat(((UaaAuthentication)result).getAuthenticationMethods(), containsInAnyOrder("pwd"));
 
         List<ApplicationEvent> events = eventCaptor.getAllValues();
-        assertThat(events.get(0), instanceOf(PasswordVerificationSuccessEvent.class));
-        assertEquals("auser", ((PasswordVerificationSuccessEvent)events.get(0)).getUser().getUsername());
+        assertThat(events.get(0), instanceOf(PasswordAuthenticationSuccessEvent.class));
+        assertEquals("auser", ((PasswordAuthenticationSuccessEvent)events.get(0)).getUser().getUsername());
         assertThat(events.get(1), instanceOf(UserAuthenticationSuccessEvent.class));
         assertEquals("auser", ((UserAuthenticationSuccessEvent)events.get(1)).getUser().getUsername());
 
@@ -199,7 +199,7 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
 
-        verify(publisher).publishEvent(isA(PasswordVerificationSuccessEvent.class));
+        verify(publisher).publishEvent(isA(PasswordAuthenticationSuccessEvent.class));
         verify(publisher).publishEvent(isA(UserAuthenticationSuccessEvent.class));
     }
 
@@ -212,7 +212,7 @@ public class AuthzAuthenticationManagerTests {
         } catch (BadCredentialsException expected) {
         }
 
-        verify(publisher).publishEvent(isA(PasswordVerificationFailureEvent.class));
+        verify(publisher).publishEvent(isA(PasswordAuthenticationFailureEvent.class));
         verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
         verify(db, times(0)).updateLastLogonTime(anyString());
     }

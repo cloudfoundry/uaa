@@ -509,8 +509,8 @@ public class XOAuthAuthenticationManagerTest {
         verify(xoAuthAuthenticationManager, never()).getRestTemplate(anyObject());
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(publisher,times(4)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(4, userArgumentCaptor.getAllValues().size());
+        verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
 
         assertUserCreated(event);
@@ -526,8 +526,8 @@ public class XOAuthAuthenticationManagerTest {
         mockUaaServer.verify();
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(publisher,times(4)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(4, userArgumentCaptor.getAllValues().size());
+        verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
 
         assertUserCreated(event);
@@ -710,8 +710,8 @@ public class XOAuthAuthenticationManagerTest {
         mockUaaServer.verify();
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(3, userArgumentCaptor.getAllValues().size());
+        verify(publisher,times(2)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(2, userArgumentCaptor.getAllValues().size());
         ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent)userArgumentCaptor.getAllValues().get(0);
 
         UaaUser uaaUser = event.getUser();
@@ -736,8 +736,8 @@ public class XOAuthAuthenticationManagerTest {
         mockUaaServer.verify();
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(publisher,times(4)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(4, userArgumentCaptor.getAllValues().size());
+        verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
         assertThat(userArgumentCaptor.getAllValues().get(0), instanceOf(InvitedUserAuthenticatedEvent.class));
 
         RequestContextHolder.resetRequestAttributes();

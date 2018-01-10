@@ -113,6 +113,12 @@ public class UaaAuthenticationDetails implements Serializable {
             }
             sb.append("clientId=").append(clientId);
         }
+        if (sessionId != null) {
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            sb.append("sessionId=<SESSION>");
+        }
         return sb.toString();
     }
 

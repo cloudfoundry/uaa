@@ -6,10 +6,10 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.Assert;
 
-public class PasswordVerificationSuccessEvent extends AbstractUaaAuthenticationEvent {
+public class PasswordAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent {
     private final UaaUser user;
 
-    public PasswordVerificationSuccessEvent(UaaUser user, Authentication authentication) {
+    public PasswordAuthenticationFailureEvent(UaaUser user, Authentication authentication) {
         super(authentication);
         this.user = user;
     }
@@ -17,7 +17,7 @@ public class PasswordVerificationSuccessEvent extends AbstractUaaAuthenticationE
     @Override
     public AuditEvent getAuditEvent() {
         Assert.notNull(user, "UaaUser cannot be null");
-        return createAuditRecord(user.getId(), AuditEventType.PasswordAuthenticationSuccess,
+        return createAuditRecord(user.getId(), AuditEventType.PasswordAuthenticationFailure,
                 getOrigin(getAuthenticationDetails()), user.getUsername());
     }
 

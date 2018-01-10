@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -332,9 +331,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     @Test
     public void testAuthenticationEvents() {
         authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
-        assertEquals(4, publisher.events.size());
-        assertTrue(publisher.events.get(2) instanceof PasswordVerificationSuccessEvent);
-        assertTrue(publisher.events.get(3) instanceof UserAuthenticationSuccessEvent);
+        assertEquals(3, publisher.events.size());
+        assertTrue(publisher.events.get(2) instanceof UserAuthenticationSuccessEvent);
     }
 
     @Test

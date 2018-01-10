@@ -30,8 +30,8 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordVerificationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
@@ -64,6 +64,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -87,6 +88,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPos
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -239,8 +241,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void userLoginTest() throws Exception {
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
             .with(cookieCsrf())
+            .session(session)
             .accept(MediaType.TEXT_HTML_VALUE)
             .param("username", testUser.getUserName())
             .param("password", testPassword);
@@ -252,17 +256,21 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordVerificationSuccessEvent passwordevent = (PasswordVerificationSuccessEvent)captor.getAllValues().get(0);
+        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
         assertEquals(testUser.getUserName(), passwordevent.getUser().getUsername());
+        assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
         UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertEquals(testUser.getUserName(), userevent.getUser().getUsername());
+        assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
     public void userLoginAuthenticateEndpointTest() throws Exception {
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
             .accept(APPLICATION_JSON_VALUE)
+            .session(session)
             .param("username", testUser.getUserName())
             .param("password", testPassword);
 
@@ -273,18 +281,22 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordVerificationSuccessEvent passwordevent = (PasswordVerificationSuccessEvent)captor.getAllValues().get(0);
+        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
         assertEquals(testUser.getUserName(), passwordevent.getUser().getUsername());
+        assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
         UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertEquals(testUser.getUserName(), userevent.getUser().getUsername());
+        assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
 
     @Test
     public void invalidPasswordLoginFailedTest() throws Exception {
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
             .with(cookieCsrf())
+            .session(session)
             .accept(MediaType.TEXT_HTML_VALUE)
             .param("username", testUser.getUserName())
             .param("password", "");
@@ -296,12 +308,15 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
 
-        PasswordVerificationFailureEvent event1  = (PasswordVerificationFailureEvent)captor.getAllValues().get(0);
+        PasswordAuthenticationFailureEvent event1  = (PasswordAuthenticationFailureEvent)captor.getAllValues().get(0);
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
         PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
         assertEquals(testUser.getUserName(), event1.getUser().getUsername());
         assertEquals(testUser.getUserName(), event2.getUser().getUsername());
         assertEquals(testUser.getUserName(), event3.getName());
+        assertTrue(event1.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertTrue(event2.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertFalse(event3.getAuditEvent().getOrigin().contains("sessionId=<SESSION>")); //PrincipalAuthenticationFailureEvent does not contain sessionId at all
     }
 
     @Test
@@ -316,8 +331,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
         getWebApplicationContext().getBeansOfType(JdbcTemplate.class).values().stream().forEach(jdbc -> jdbc.execute("update users set legacy_verification_behavior = "+dbTrueString+" where origin='uaa' and username = '" + molly.getUserName() + "'"));
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(APPLICATION_JSON_VALUE)
+                .session(session)
                 .param("username", molly.getUserName())
                 .param("password", "wobblE3");
         getMockMvc().perform(loginPost)
@@ -327,6 +344,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         verify(authSuccessListener, times(1)).onApplicationEvent(captor.capture());
         UserAuthenticationSuccessEvent event = captor.getValue();
         assertEquals(molly.getUserName(), event.getUser().getUsername());
+        assertTrue(event.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
@@ -340,8 +358,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(APPLICATION_JSON_VALUE)
+                .session(session)
                 .param("username", molly.getUserName())
                 .param("password", "wobblE3");
         getMockMvc().perform(loginPost)
@@ -353,51 +373,60 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         List<AbstractUaaEvent> allValues = captor.getAllValues();
         UnverifiedUserAuthenticationEvent event = (UnverifiedUserAuthenticationEvent) allValues.get(allValues.size() - 1);
         assertEquals(molly.getUserName(), event.getUser().getUsername());
+        assertTrue(event.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
     public void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
-            String adminToken = testClient.getClientCredentialsOAuthAccessToken(
-                testAccounts.getAdminClientId(),
-                testAccounts.getAdminClientSecret(),
-                "uaa.admin,scim.write");
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,scim.write");
 
-            ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
+        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
 
-            MockHttpServletRequestBuilder loginPost = post("/authenticate")
+        MockHttpSession session = new MockHttpSession();
+        MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(APPLICATION_JSON_VALUE)
+                .session(session)
                 .param("username", molly.getUserName())
                 .param("password", "wobblE3");
-            getMockMvc().perform(loginPost)
-                .andExpect(status().isForbidden());
+        getMockMvc().perform(loginPost)
+            .andExpect(status().isForbidden());
 
-            ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-            verify(listener, atLeast(1)).onApplicationEvent(captor.capture());
+        ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(captor.capture());
 
-            List<AbstractUaaEvent> allValues = captor.getAllValues();
-            UnverifiedUserAuthenticationEvent event = (UnverifiedUserAuthenticationEvent) allValues.get(allValues.size() - 1);
-            assertEquals(molly.getUserName(), event.getUser().getUsername());
+        List<AbstractUaaEvent> allValues = captor.getAllValues();
+        UnverifiedUserAuthenticationEvent event = (UnverifiedUserAuthenticationEvent) allValues.get(allValues.size() - 1);
+        assertEquals(molly.getUserName(), event.getUser().getUsername());
+        assertTrue(event.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
     public void invalidPasswordLoginAuthenticateEndpointTest() throws Exception {
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
-            .accept(APPLICATION_JSON_VALUE)
-            .param("username", testUser.getUserName())
-            .param("password", "");
+                .accept(APPLICATION_JSON_VALUE)
+                .session(session)
+                .param("username", testUser.getUserName())
+                .param("password", "");
         getMockMvc().perform(loginPost)
-            .andExpect(status().isUnauthorized())
-            .andExpect(content().string("{\"error\":\"authentication failed\"}"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("{\"error\":\"authentication failed\"}"));
 
-        ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
 
-        PasswordVerificationFailureEvent event1  = (PasswordVerificationFailureEvent)captor.getAllValues().get(0);
+        PasswordAuthenticationFailureEvent event1 = (PasswordAuthenticationFailureEvent)captor.getAllValues().get(0);
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
         PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
         assertEquals(testUser.getUserName(), event1.getUser().getUsername());
         assertEquals(testUser.getUserName(), event2.getUser().getUsername());
         assertEquals(testUser.getUserName(), event3.getName());
+        assertTrue(event1.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertTrue(event2.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertFalse(event3.getAuditEvent().getOrigin().contains("sessionId=<SESSION>")); //PrincipalAuthenticationFailureEvent does not contain sessionId at all
     }
 
     @Test
@@ -410,8 +439,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", "password", true);
         String jacobId = jacob.getId();
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
             .accept(APPLICATION_JSON_VALUE)
+            .session(session)
             .param("username", jacob.getUserName())
             .param("password", "notvalid");
         int attempts = 8;
@@ -425,14 +456,19 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         //after we reach our max attempts, 5, the system stops logging them until the period is over
         List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis()-10000, IdentityZoneHolder.get().getId());
         assertEquals(5, events.size());
+        for (AuditEvent event : events) {
+            assertTrue(event.getOrigin().contains("sessionId=<SESSION>"));
+        }
     }
 
     @Test
     public void userNotFoundLoginFailedTest() throws Exception {
         String username = "test1234";
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
             .with(cookieCsrf())
+            .session(session)
             .accept(MediaType.TEXT_HTML_VALUE)
             .param("username", username)
             .param("password", testPassword);
@@ -444,15 +480,19 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
         UserNotFoundEvent event1 = (UserNotFoundEvent)captor.getAllValues().get(0);
+        assertTrue(event1.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
         assertEquals(username, ((Authentication)event1.getSource()).getName());
         assertEquals(username, event2.getName());
+        assertFalse(event2.getAuditEvent().getOrigin().contains("sessionId=<SESSION>")); //PrincipalAuthenticationFailureEvent does not contain sessionId at all
     }
 
     @Test
     public void userChangePasswordTest() throws Exception {
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
             .with(cookieCsrf())
+            .session(session)
             .accept(APPLICATION_JSON_VALUE)
             .param("username", testUser.getUserName())
             .param("password", testPassword);
@@ -462,10 +502,12 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .andExpect(header().string("Location", "/"));
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordVerificationSuccessEvent passwordevent = (PasswordVerificationSuccessEvent)captor.getAllValues().get(0);
+        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
         String userid = passwordevent.getUser().getId();
+        assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
         UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
+        assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", testUser.getUserName(), testPassword, "password.write");
         captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -475,6 +517,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder changePasswordPut = put("/Users/"+userid+"/password")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + marissaToken)
             .content("{\n" +
                     "  \"password\": \"Koala2\",\n" +
@@ -490,12 +533,15 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         PasswordChangeEvent pw = (PasswordChangeEvent)captor.getValue();
         assertEquals(testUser.getUserName(), pw.getUser().getUsername());
         assertEquals("Password changed", pw.getMessage());
+        assertTrue(pw.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
     public void userChangeInvalidPasswordTest() throws Exception {
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
             .with(cookieCsrf())
+            .session(session)
             .accept(APPLICATION_JSON_VALUE)
             .param("username", testUser.getUserName())
             .param("password", testPassword);
@@ -507,10 +553,12 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordVerificationSuccessEvent passwordevent = (PasswordVerificationSuccessEvent)captor.getAllValues().get(0);
+        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
         String userid = passwordevent.getUser().getId();
+        assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
         UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
+        assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", testUser.getUserName(), testPassword, "password.write");
         captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -520,6 +568,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder changePasswordPut = put("/Users/"+userid+"/password")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + marissaToken)
             .content("{\n" +
                     "  \"password\": \"Koala2\",\n" +
@@ -536,6 +585,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         PasswordChangeFailureEvent pwfe = (PasswordChangeFailureEvent)captor.getValue();
         assertEquals(testUser.getUserName(), pwfe.getUser().getUsername());
         assertEquals("Old password is incorrect", pwfe.getMessage());
+        assertTrue(pwfe.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
@@ -573,9 +623,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         LostPasswordChangeRequest pwch = new LostPasswordChangeRequest(expiringCode, "Koala2");
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder changePasswordPost = post("/password_change")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + loginToken)
             .content(JsonUtils.writeValueAsBytes(pwch));
 
@@ -587,6 +639,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         PasswordChangeEvent pce = (PasswordChangeEvent)captor.getValue();
         assertEquals(testUser.getUserName(), pce.getUser().getUsername());
         assertEquals("Password changed", pce.getMessage());
+        assertFalse(pce.getAuditEvent().getOrigin().contains("sessionId=<SESSION>")); //PasswordChangeEvent does not contain session in this case
     }
 
     @Test
@@ -653,9 +706,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             .setExpiresAt(Approval.timeFromNow(1000))
             .setStatus(Approval.ApprovalStatus.APPROVED)};
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder approvalsPut = put("/approvals")
                 .accept(APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON)
+                .session(session)
                 .header("Authorization", "Bearer " + marissaToken)
                 .content(JsonUtils.writeValueAsBytes(approvals));
 
@@ -668,6 +723,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ApprovalModifiedEvent approvalModifiedEvent = (ApprovalModifiedEvent) testListener.getLatestEvent();
         assertEquals(testUser.getUserName(), approvalModifiedEvent.getAuthentication().getName());
+        assertTrue(approvalModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
@@ -684,9 +740,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + adminToken)
             .content(JsonUtils.writeValueAsBytes(user));
 
@@ -701,6 +759,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
         assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
+        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
@@ -711,10 +770,12 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             "login",
             "loginsecret",
             "oauth.login");
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder userPost = post("/oauth/authorize")
             .with(cookieCsrf())
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
             .param(UaaAuthenticationDetails.ADD_NEW, "true")
@@ -738,7 +799,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals("login", userModifiedEvent.getAuthentication().getName());
         assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
-
+        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
 
@@ -757,9 +818,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + adminToken)
             .content(JsonUtils.writeValueAsBytes(user));
 
@@ -773,6 +836,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder userPut = put("/Users/"+user.getId())
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", user.getVersion())
             .content(JsonUtils.writeValueAsBytes(user));
@@ -785,12 +849,14 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
         assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserModifiedEvent, userModifiedEvent.getAuditEvent().getType());
+        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         //delete the user
         testListener.clearEvents();
         MockHttpServletRequestBuilder userDelete = delete("/Users/"+user.getId())
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", user.getVersion()+1);
 
@@ -802,6 +868,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
         assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserDeletedEvent, userModifiedEvent.getAuditEvent().getType());
+        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
@@ -818,9 +885,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + adminToken)
             .content(JsonUtils.writeValueAsBytes(user));
 
@@ -832,6 +901,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         MockHttpServletRequestBuilder verifyGet = get("/Users/" + user.getId() + "/verify")
             .accept(APPLICATION_JSON_VALUE)
+            .session(session)
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", user.getVersion());
 
@@ -843,6 +913,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
         assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserVerifiedEvent, userModifiedEvent.getAuditEvent().getType());
+        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
@@ -850,9 +921,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
 
         testListener.clearEvents();
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder changePasswordPost = post("/password_resets")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + loginToken)
             .content(testUser.getUserName());
 
@@ -864,6 +937,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ResetPasswordRequestEvent event = (ResetPasswordRequestEvent) testListener.getLatestEvent();
         assertEquals(testUser.getUserName(), event.getAuditEvent().getPrincipalId());
         assertEquals(testUser.getPrimaryEmail(), event.getAuditEvent().getData());
+        assertTrue(event.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
     }
 
     @Test
@@ -989,9 +1063,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         user.setPassword(password);
         user.setVerified(verified);
 
+        MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
+            .session(session)
             .header("Authorization", "Bearer " + adminToken)
             .content(JsonUtils.writeValueAsBytes(user));
 
@@ -1005,6 +1081,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
         assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
+        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         return JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
