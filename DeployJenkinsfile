@@ -86,6 +86,11 @@ pipeline {
                 '''
                 stash includes: 'uaa-release.properties', name:'uaa-release.properties'
             }
+            post{
+                always {
+                    archiveArtifacts 'uaa/uaa/build/reports/tests/acceptanceTest/**'
+                }
+            }
         }
         stage('Upload UAA Artifact upon successful deploy of staging artifact') {
             agent {
