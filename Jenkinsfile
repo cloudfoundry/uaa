@@ -1,13 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent {
-        docker {
-            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
-            label 'dind'
-            args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
-        }
-    }
+    agent none
     environment {
             COMPLIANCEENABLED = true
     }
@@ -16,7 +10,147 @@ pipeline {
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
     stages {
-        stage ('Checkout & Build') {
+        stage('Build and run Tests') {
+            parallel {
+                stage ('Checkout & Build') {
+                    when {
+                        expression { true }
+
+                    }
+                    agent {
+                      docker {
+                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                          label 'dind'
+                          args '-v /var/lib/docker/.gradle:/root/.gradle'
+                      }
+                    }
+                    steps {
+                        echo env.BRANCH_NAME
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                        }
+                        dir('uaa') {
+                            checkout scm
+                        }
+                        sh '''#!/bin/bash -ex
+                            source uaa-cf-release/config-local/set-env.sh
+                            unset HTTPS_PROXY
+                            unset HTTP_PROXY
+                            unset http_proxy
+                            unset https_proxy
+                            unset GRADLE_OPTS
+                            pushd uaa
+                                ./gradlew clean assemble
+                            popd
+                        '''
+                        dir('uaa/uaa/build/libs') {
+                            stash includes: '*.war', name: 'uaa-war'
+                        }
+                    }
+                    post {
+                        success {
+                            echo "Gradle Checkout & Build stage completed"
+                        }
+                        failure {
+                            echo "Gradle Checkout & Build stage failed"
+                        }
+                    }
+                }
+                stage('Unit Tests') {
+                    when {
+                        expression { true }
+                    }
+                    agent {
+                        docker {
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                            label 'dind'
+                            args '-v /var/lib/docker/.gradle:/root/.gradle'
+                        }
+                    }
+                    steps {
+                        echo env.BRANCH_NAME
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                        }
+                        dir('uaa') {
+                            checkout scm
+                        }
+                        sh '''#!/bin/bash -ex
+                                source uaa-cf-release/config-local/set-env.sh
+                                unset HTTPS_PROXY
+                                unset HTTP_PROXY
+                                unset http_proxy
+                                unset https_proxy
+                                unset GRADLE_OPTS
+                                pushd uaa
+                                    ./gradlew --no-daemon --continue :cloudfoundry-identity-server:test
+                                popd
+                                '''
+                    }
+                    post {
+                        success {
+                            echo "Unit tests completed"
+                        }
+                        failure {
+                            echo "Unit tests failed"
+                        }
+                    }
+                }
+                stage('Mockmvc Tests') {
+                    when {
+                        expression { true }
+                    }
+                    agent {
+                        docker {
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
+                            label 'dind'
+                            args '-v /var/lib/docker/.gradle:/root/.gradle'
+                        }
+                    }
+                    steps {
+                        echo env.BRANCH_NAME
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                        }
+                        dir('uaa') {
+                            checkout scm
+                        }
+                        sh '''#!/bin/bash -ex
+                            source uaa-cf-release/config-local/set-env.sh
+                            unset HTTPS_PROXY
+                            unset HTTP_PROXY
+                            unset http_proxy
+                            unset https_proxy
+                            unset GRADLE_OPTS
+                            pushd uaa
+                                apt-get -qy install lsof
+                                ./scripts/travis/install-ldap-certs.sh
+                                ./gradlew --no-daemon --continue :cloudfoundry-identity-uaa:test
+                            popd
+                            '''
+                    }
+                    post {
+                        success {
+                            echo "mockmvc tests completed"
+                        }
+                        failure {
+                            echo "mockmvc tests failed"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Integration Tests') {
+            when {
+                expression { true }
+            }
+            agent {
+                docker {
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                    label 'dind'
+                    args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
+                }
+            }
             steps {
                 echo env.BRANCH_NAME
                 dir('uaa-cf-release') {
@@ -32,103 +166,18 @@ pipeline {
                     unset http_proxy
                     unset https_proxy
                     unset GRADLE_OPTS
+                    unset DEFAULT_JVM_OPTS
+                    unset JAVA_PROXY_OPTS
+                    unset PROXY_PORT
+                    unset PROXY_HOST
+                    cat /etc/hosts
+                    curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
+                    curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
                     pushd uaa
-                        ./gradlew clean assemble
+                        env
+                       ./gradlew --no-daemon --continue jacocoRootReportIntegrationTest
                     popd
-                '''
-                dir('uaa/uaa/build/libs') {
-                    stash includes: '*.war', name: 'uaa-war'
-                }
-            }
-            post {
-                success {
-                    echo "Gradle Checkout & Build stage completed"
-                }
-                failure {
-                    echo "Gradle Checkout & Build stage failed"
-                }
-            }
-        }
-        stage('Unit Tests') {
-            when {
-                expression { false }
-            }
-            steps {
-                sh '''#!/bin/bash -ex
-                        source uaa-cf-release/config-local/set-env.sh
-                        unset HTTPS_PROXY
-                        unset HTTP_PROXY
-                        unset http_proxy
-                        unset https_proxy
-                        unset GRADLE_OPTS
-                        pushd uaa
-                            ./gradlew --continue :cloudfoundry-identity-server:test
-                        popd
-                        '''
-            }
-            post {
-                success {
-                    echo "Unit tests completed"
-                }
-                failure {
-                    echo "Unit tests failed"
-                }
-            }
-        }
-        stage('Mockmvc Tests') {
-
-            when {
-                expression { false }
-            }
-            steps {
-                sh '''#!/bin/bash -ex
-            source uaa-cf-release/config-local/set-env.sh
-            unset HTTPS_PROXY
-            unset HTTP_PROXY
-            unset http_proxy
-            unset https_proxy
-            unset GRADLE_OPTS
-            pushd uaa
-                apt-get -qy install lsof
-                ./scripts/travis/install-ldap-certs.sh
-                ./gradlew --continue :cloudfoundry-identity-uaa:test
-            popd
-            '''
-            }
-            post {
-                success {
-                    echo "mockmvc tests completed"
-                }
-                failure {
-                    echo "mockmvc tests failed"
-                }
-            }
-        }
-        stage('Integration Tests') {
-            when {
-                expression { true }
-            }
-            steps {
-                sh '''#!/bin/bash -ex
-            source uaa-cf-release/config-local/set-env.sh
-            unset HTTPS_PROXY
-            unset HTTP_PROXY
-            unset http_proxy
-            unset https_proxy
-            unset GRADLE_OPTS
-            unset DEFAULT_JVM_OPTS
-            unset JAVA_PROXY_OPTS
-            unset PROXY_PORT
-            unset PROXY_HOST
-            cat /etc/hosts
-            curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
-            curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
-
-            pushd uaa
-                env
-               ./gradlew --continue jacocoRootReportIntegrationTest
-            popd
-            '''
+                    '''
             }
             post {
                 success {
@@ -143,6 +192,13 @@ pipeline {
             }
         }
         stage('Deploy to RC') {
+            agent{
+                docker {
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                    label 'dind'
+                    args '-v /var/lib/docker/.gradle:/root/.gradle'
+                }
+            }
             when {
                 expression { false }
             }
@@ -155,6 +211,9 @@ pipeline {
             steps {
                 dir('build') {
                     unstash 'uaa-war'
+                }
+                dir('uaa-cf-release') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
                 }
                 sh '''#!/bin/bash -ex
                 export CF_USERNAME=$CF_CREDENTIALS_USR
@@ -175,7 +234,8 @@ pipeline {
                     echo "$UAA_CONFIG_YAML"
                     echo "$APP_NAME"
                     export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
-
+                    cf -v
+                    ruby -v
                     ./ci_deploy.sh
 
                     # mvn deploy:deploy-file -DgroupId=org.cloudfoundry.identity \\
