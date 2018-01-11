@@ -26,6 +26,17 @@
         <csrf disabled="true"/>
     </http>
 
+    <http name="introspectSecurity" pattern="/introspect" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
+          authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="hasAuthority('uaa.resource')" />
+        <anonymous enabled="false" />
+        <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
+    </http>
+
+
     <http name="tokenKeySecurity" pattern="/token_key**" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
         xmlns="http://www.springframework.org/schema/security">
@@ -50,6 +61,12 @@
         <property name="tokenServices" ref="tokenServices" />
         <property name="allowQueryString" ref="allowQueryStringForTokens"/>
     </bean>
+
+    <bean id="introspectEndpoint" class="org.cloudfoundry.identity.uaa.oauth.IntrospectEndpoint">
+        <property name="tokenServices" ref="tokenServices" />
+    </bean>
+
+    <bean id="httpMethodNotSupportedAdvice" class="org.cloudfoundry.identity.uaa.oauth.advice.HttpMethodNotSupportedAdvice"/>
 
     <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />

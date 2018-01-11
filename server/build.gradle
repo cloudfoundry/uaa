@@ -107,6 +107,9 @@ dependencies {
   testCompile (group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion){
     exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
   }
+  testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: parent.powermockVersion
+  testCompile group: 'org.powermock', name: 'powermock-api-mockito2', version: parent.powermockVersion
+
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
