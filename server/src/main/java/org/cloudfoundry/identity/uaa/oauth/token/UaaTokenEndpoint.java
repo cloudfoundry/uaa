@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.advice.HttpMethodNotSupportedAdvice;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -82,6 +83,13 @@ public class UaaTokenEndpoint extends TokenEndpoint {
     @RequestMapping(value = "**")
     public void methodsNotAllowed(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
         throw new HttpRequestMethodNotSupportedException(request.getMethod());
+    }
+
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @Override
+    public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
+        return new HttpMethodNotSupportedAdvice().handleMethodNotSupportedException(e);
     }
 
     @ExceptionHandler(Exception.class)
