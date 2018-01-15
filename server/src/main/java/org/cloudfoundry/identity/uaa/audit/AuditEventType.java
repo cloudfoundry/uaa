@@ -59,7 +59,8 @@ public enum AuditEventType {
     UserAccountUnlockedEvent(35),
     TokenRevocationEvent(36),
     PasswordAuthenticationSuccess(37),
-    PasswordAuthenticationFailure(38);
+    PasswordAuthenticationFailure(38),
+    MfaAuthenticationSuccess(39);
 
     private final int code;
 
