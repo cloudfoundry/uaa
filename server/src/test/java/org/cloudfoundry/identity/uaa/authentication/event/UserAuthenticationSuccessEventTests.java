@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.authentication.event;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
@@ -25,7 +24,6 @@ import org.springframework.security.core.Authentication;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
 public class UserAuthenticationSuccessEventTests {
@@ -43,6 +41,6 @@ public class UserAuthenticationSuccessEventTests {
 
         assertThat(origin, containsString("remoteAddress=127.10.10.10"));
         assertThat(origin, containsString("clientId=client-id"));
-        assertThat(origin, not(containsString("sessionId=")));
+        assertThat(origin, containsString("sessionId=<SESSION>"));
     }
 }
