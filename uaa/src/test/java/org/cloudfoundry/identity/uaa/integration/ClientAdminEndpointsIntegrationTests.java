@@ -61,7 +61,6 @@ import static junit.framework.Assert.assertTrue;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assume.assumeTrue;
 
 
 /**
@@ -184,7 +183,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     @Test
     public void createClientWithStrictSecretPolicyTest() throws Exception {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String testZoneId = "testzone1";
 
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -229,7 +228,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     @Test
     public void testClientSecretExpiryCannotBeSet() {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String testZoneId = "testzone1";
 
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
