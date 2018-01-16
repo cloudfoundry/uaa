@@ -41,7 +41,7 @@ public class HttpsIntegrationTest {
     private UaaContextFactory factory;
 
     @Rule
-    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(uaaURI, false);
+    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(uaaURI);
     private String clientId;
     private String clientSecret;
     private String redirectUri;

@@ -26,22 +26,22 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertTrue;
+
 public class IntegrationTestRule implements TestRule {
     private static Log logger = LogFactory.getLog(IntegrationTestRule.class);
 
-    private static Map<String,Boolean> sharedStatuses = new HashMap<>();
+    private static Map<String, Boolean> sharedStatuses = new HashMap<>();
 
     private final String baseUrl;
-    private final boolean forceIntegrationTests;
 
-    public IntegrationTestRule(String baseUrl, boolean forceIntegrationTests) {
+    public IntegrationTestRule(String baseUrl) {
         this.baseUrl = baseUrl;
-        this.forceIntegrationTests = forceIntegrationTests;
     }
 
     @Override
     public Statement apply(Statement statement, Description description) {
-        Assume.assumeTrue("Test ignored as the server cannot be reached at " + baseUrl, forceIntegrationTests || getStatus());
+        assertTrue("The UAA server cannot be reached at " + baseUrl, getStatus());
         return statement;
     }
 
