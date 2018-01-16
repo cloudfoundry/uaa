@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Assume;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
