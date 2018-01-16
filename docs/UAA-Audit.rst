@@ -79,6 +79,10 @@ Authentication and Password Events
     - Data Recorded: User ID
     - Notes: Followed by a UserAuthenticationFailureEvent and PrincipalAuthenticationFailureEvent
 
+* MfaAuthenticationSuccess
+    - Happens: When a user successfully authenticates with MFA
+    - Data Recorded: User ID, Username and MFA type (e.g. google-authenticator)
+
 Scim Administration Events
 ==============================================================
 

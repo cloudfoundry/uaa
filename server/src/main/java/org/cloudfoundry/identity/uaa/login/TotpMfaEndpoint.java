@@ -21,13 +21,20 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.mfa.GoogleAuthenticatorAdapter;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -45,7 +52,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Controller
-public class TotpMfaEndpoint {
+public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
 
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
@@ -53,6 +60,8 @@ public class TotpMfaEndpoint {
 
     private GoogleAuthenticatorAdapter googleAuthenticatorService;
     private String mfaCompleteUrl = "/login/mfa/completed";
+    private ApplicationEventPublisher eventPublisher;
+    private UaaUserDatabase userDatabase;
 
     public void setMfaCompleteUrl(String mfaCompleteUrl) {
         this.mfaCompleteUrl = mfaCompleteUrl;
@@ -63,8 +72,7 @@ public class TotpMfaEndpoint {
 
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
 
-        String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
-        MfaProvider provider = mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
+        MfaProvider provider = getMfaProvider();
 
         if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId(), provider.getId())) {
             return "redirect:/login/mfa/verify";
@@ -80,8 +88,7 @@ public class TotpMfaEndpoint {
     @RequestMapping(value = {"/login/mfa/manual"}, method = RequestMethod.GET)
     public String manualRegistration(Model model) throws UaaPrincipalIsNotInSession {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
-        String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
-        MfaProvider provider = mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
+        MfaProvider provider = getMfaProvider();
 
         if(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId(), provider.getId())) {
             return "redirect:/login/mfa/verify";
@@ -105,7 +112,7 @@ public class TotpMfaEndpoint {
     @RequestMapping(value = {"/login/mfa/verify.do"}, method = RequestMethod.POST)
     public ModelAndView validateCode(Model model,
                                      @RequestParam("code") String code)
-            throws NoSuchAlgorithmException, IOException, UaaPrincipalIsNotInSession {
+            throws UaaPrincipalIsNotInSession {
         UaaAuthentication uaaAuth = getUaaAuthentication();
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
         try {
@@ -115,6 +122,7 @@ public class TotpMfaEndpoint {
                 Set<String> authMethods = new HashSet<>(uaaAuth.getAuthenticationMethods());
                 authMethods.addAll(Arrays.asList("otp", "mfa"));
                 uaaAuth.setAuthenticationMethods(authMethods);
+                publish(new MfaAuthenticationSuccessEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue()));
                 return new ModelAndView(new RedirectView(mfaCompleteUrl, true));
             }
             logger.debug("Code authorization failed for user: " + uaaPrincipal.getId());
@@ -163,6 +171,37 @@ public class TotpMfaEndpoint {
     private UaaAuthentication getUaaAuthentication() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
         return a instanceof UaaAuthentication ? (UaaAuthentication)a : null;
+    }
+
+    public void setUserDatabase(UaaUserDatabase userDatabase) {
+        this.userDatabase = userDatabase;
+    }
+
+    private MfaProvider getMfaProvider() {
+        String providerName = IdentityZoneHolder.get().getConfig().getMfaConfig().getProviderName();
+        return mfaProviderProvisioning.retrieveByName(providerName, IdentityZoneHolder.get().getId());
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
+    }
+
+    private void publish(ApplicationEvent event) {
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(event);
+        }
+    }
+
+    private UaaUser getUaaUser(UaaPrincipal principal) {
+        try {
+            UaaUser user = userDatabase.retrieveUserByName(principal.getName(), principal.getOrigin());
+            if (user!=null) {
+                return user;
+            }
+        } catch (UsernameNotFoundException e) {
+        }
+        return null;
     }
 
     public class UaaPrincipalIsNotInSession extends Exception {}

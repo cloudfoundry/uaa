@@ -594,6 +594,7 @@
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
         <property name="googleAuthenticatorService" ref="googleAuthenticatorAdapter" />
         <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
+        <property name="userDatabase" ref="userDatabase" />
     </bean>
 
     <bean id="mfaCompleteUrl" class="java.lang.String">

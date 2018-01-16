@@ -15,11 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
@@ -29,13 +26,15 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationListener;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -43,12 +42,22 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -68,6 +77,8 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private ScimUser user;
     private MockHttpSession session;
+    private UaaUserDatabase userDb;
+    private ApplicationListener listener;
 
     @Before
     public void setup() throws Exception {
@@ -78,6 +89,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         );
         jdbcUserGoogleMfaCredentialsProvisioning = (JdbcUserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("jdbcUserGoogleMfaCredentialsProvisioning");
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
+        userDb = (UaaUserDatabase)getWebApplicationContext().getBean("userDatabase");
 
         mfaProvider = createMfaProvider(getMockMvc(), "uaa", adminToken);
         otherMfaProvider = createMfaProvider(getMockMvc(), "uaa", adminToken);
@@ -87,6 +99,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
 
+        listener = mock(ApplicationListener.class);
+        getWebApplicationContext().addApplicationListener(listener);
+
         user = createUser();
         session = new MockHttpSession();
     }
@@ -95,6 +110,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
     public void cleanup () throws Exception {
         uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);
     }
 
     @Test
@@ -118,6 +134,11 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
+        ArgumentCaptor<AbstractUaaEvent> eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
+        assertEquals(8, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(6), instanceOf(MfaAuthenticationSuccessEvent.class));
+
         getMockMvc().perform(get(location)
                 .session(session))
                 .andExpect(status().isFound())
@@ -126,6 +147,11 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         session = new MockHttpSession();
         performLoginWithSession();
         MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+
+        eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
+        assertEquals(14, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(12), instanceOf(MfaAuthenticationSuccessEvent.class));
     }
 
     @Test
@@ -288,6 +314,11 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
         assertEquals("/login/mfa/completed", location);
 
+        ArgumentCaptor<AbstractUaaEvent> eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
+        assertEquals(8, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(6), instanceOf(MfaAuthenticationSuccessEvent.class));
+
         getMockMvc().perform(get("/")
             .session(session))
             .andExpect(status().isOk())
@@ -298,6 +329,11 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         session = new MockHttpSession();
         performLoginWithSession();
         MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+
+        eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
+        assertEquals(15, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(13), instanceOf(MfaAuthenticationSuccessEvent.class));
     }
 
     @Test

@@ -19,17 +19,24 @@ package org.cloudfoundry.identity.uaa.login;
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.mfa.GoogleAuthenticatorAdapter;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
@@ -37,8 +44,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.List;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +69,9 @@ public class TotpMfaEndpointTest {
     private MfaProvider<GoogleMfaProviderConfig> mfaProvider;
     private MfaProvider<GoogleMfaProviderConfig> otherMfaProvider;
     private SavedRequestAwareAuthenticationSuccessHandler mockSuccessHandler;
+    private ApplicationEventPublisher publisher;
+    private ArgumentCaptor<ApplicationEvent> eventCaptor;
+    private UaaUserDatabase userDb;
 
     @Before
     public void setup() {
@@ -69,11 +85,13 @@ public class TotpMfaEndpointTest {
         mfaProvider.setName("provider-name");
         mfaProvider.setId("provider_id1");
         mfaProvider.setConfig(new GoogleMfaProviderConfig());
+        mfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
 
         otherMfaProvider = new MfaProvider();
         otherMfaProvider.setName("other-provider-name");
         otherMfaProvider.setId("provider_id2");
         otherMfaProvider.setConfig(new GoogleMfaProviderConfig());
+        otherMfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
 
 
         endpoint.setUserGoogleMfaCredentialsProvisioning(userGoogleMfaCredentialsProvisioning);
@@ -84,11 +102,20 @@ public class TotpMfaEndpointTest {
         mockSuccessHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
 
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+
+        publisher = mock(ApplicationEventPublisher.class);
+        eventCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        doNothing().when(publisher).publishEvent(eventCaptor.capture());
+
+        userDb = mock(UaaUserDatabase.class);
+
+        endpoint.setApplicationEventPublisher(publisher);
+        endpoint.setUserDatabase(userDb);
     }
 
     @After
     public void cleanUp() throws Exception {
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false).setProviderName(null);
         SecurityContextHolder.clearContext();
     }
 
@@ -153,22 +180,31 @@ public class TotpMfaEndpointTest {
     public void testValidOTPTakesToHomePage() throws Exception{
         int code = 1234;
         when(googleAuthenticatorService.isValidCode(userId, code)).thenReturn(true);
-        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, "uaa", null, null), null, null);
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        when(userDb.retrieveUserByName("Marissa", "uaa")).thenReturn(new UaaUser(new UaaUserPrototype().withUsername("Marissa").withOrigin("uaa").withId("1234").withEmail("marissa@example.com")));
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
 
         ModelAndView returnView = endpoint.validateCode(mock(Model.class), Integer.toString(code));
 
         assertEquals("/login/mfa/completed", ((RedirectView)returnView.getView()).getUrl());
+
+        verifyMfaEvent(MfaAuthenticationSuccessEvent.class);
     }
 
     @Test
     public void testValidOTPActivatesUser() throws Exception {
         int code = 1234;
         when(googleAuthenticatorService.isValidCode(userId, code)).thenReturn(true);
-        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, null, null, null), null, null);
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, "uaa", null, null), null, null);
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        when(userDb.retrieveUserByName("Marissa", "uaa")).thenReturn(new UaaUser(new UaaUserPrototype().withUsername("Marissa").withOrigin("uaa").withId("1234").withEmail("marissa@example.com")));
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
 
         endpoint.validateCode(mock(Model.class), Integer.toString(code));
         verify(userGoogleMfaCredentialsProvisioning).persistCredentials();
 
+        verifyMfaEvent(MfaAuthenticationSuccessEvent.class);
     }
 
     @Test
@@ -228,5 +264,14 @@ public class TotpMfaEndpointTest {
         String returnValue = endpoint.manualRegistration(mock(Model.class));
 
         assertEquals("redirect:/login/mfa/verify", returnValue);
+    }
+
+    private void verifyMfaEvent(Class<? extends ApplicationEvent> eventClass) {
+        List<ApplicationEvent> values = eventCaptor.getAllValues();
+        assertEquals(1, values.size());
+        ApplicationEvent event = values.get(0);
+        assertThat(event, instanceOf(eventClass));
+        MfaAuthenticationSuccessEvent mfaEvent = (MfaAuthenticationSuccessEvent) event;
+        assertThat(mfaEvent.getAuditEvent().getOrigin(), containsString("type=google-authenticator"));
     }
 }
