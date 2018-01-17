@@ -122,6 +122,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
@@ -356,12 +358,18 @@ public class UaaTokenServicesTests {
         tokenServices.refreshAccessToken("", tokenSupport.requestFactory.createTokenRequest(ar,"dsdada"));
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testInvalidRefreshToken() {
         Map<String,String> map = new HashMap<>();
         map.put("grant_type", "refresh_token");
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(map,null,null,null,null,null,false,null,null,null);
-        tokenServices.refreshAccessToken("dasdasdasdasdas", tokenSupport.requestFactory.createTokenRequest(authorizationRequest, "refresh_token"));
+        String refreshTokenValue = "dasdasdasdasdas";
+        try {
+            tokenServices.refreshAccessToken(refreshTokenValue, tokenSupport.requestFactory.createTokenRequest(authorizationRequest, "refresh_token"));
+            fail("Expected Exception was not thrown");
+        } catch (InvalidTokenException e) {
+            assertThat(e.getMessage(), not(containsString(refreshTokenValue)));
+        }
     }
 
     @Test
@@ -1392,7 +1400,7 @@ public class UaaTokenServicesTests {
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testRefreshTokenExpiry() {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -1435,7 +1443,12 @@ public class UaaTokenServicesTests {
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+        try {
+            tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+            fail("Expected Exception was not thrown");
+        } catch(InvalidTokenException e) {
+            assertThat(e.getMessage(), not(containsString(accessToken.getRefreshToken().getValue())));
+        }
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -1911,7 +1924,7 @@ public class UaaTokenServicesTests {
         assertNull(loadedAuthentication.getUserAuthentication());
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testLoadAuthenticationWithAnExpiredToken() throws InterruptedException {
         BaseClientDetails shortExpiryClient = tokenSupport.defaultClient;
         shortExpiryClient.setAccessTokenValiditySeconds(1);
@@ -1932,7 +1945,12 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, validFor(is(1)));
 
         Thread.sleep(1000l);
-        tokenServices.loadAuthentication(accessToken.getValue());
+        try {
+            tokenServices.loadAuthentication(accessToken.getValue());
+            fail("Expected Exception was not thrown");
+        } catch (InvalidTokenException e) {
+            assertThat(e.getMessage(), not(containsString(accessToken.getValue())));
+        }
     }
 
     @Test
@@ -1964,6 +1982,21 @@ public class UaaTokenServicesTests {
         azMap.put("external_group", "domain\\group1");
         azMap.put("external_id", "abcd1234");
         assertEquals(azMap, token.getAdditionalInformation().get("az_attr"));
+    }
+
+    @Test
+    public void testWrongClientDoesNotLeakToken() {
+        AuthorizationRequest ar = mock(AuthorizationRequest.class);
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest();
+        try {
+            refreshTokenRequest.setClientId("invalidClientForToken");
+            tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
+            fail();
+        } catch (InvalidGrantException e) {
+            assertThat(e.getMessage(), startsWith("Wrong client for this refresh token"));
+            assertThat(e.getMessage(), not(containsString(accessToken.getRefreshToken().getValue())));
+        }
     }
 
     private BaseClientDetails cloneClient(ClientDetails client) {
