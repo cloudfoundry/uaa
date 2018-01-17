@@ -44,15 +44,18 @@ public class MfaRequiredFilter extends GenericFilterBean {
     private final AntPathRequestMatcher completedMatcher;
     private final String redirect;
     private final RequestCache cache;
+    private final MfaChecker checker;
 
     public MfaRequiredFilter(String urlFilter,
                              String redirect,
                              RequestCache cache,
-                             String mfaCompleteUrl) {
+                             String mfaCompleteUrl,
+                             MfaChecker checker) {
         inProgressMatcher = new AntPathRequestMatcher(urlFilter);
         this.redirect = redirect;
         this.cache = cache;
         this.completedMatcher = new AntPathRequestMatcher(mfaCompleteUrl);
+        this.checker = checker;
     }
 
     @Override
@@ -130,10 +133,11 @@ public class MfaRequiredFilter extends GenericFilterBean {
         if (!(a instanceof UaaAuthentication)) {
             return MfaNextStep.INVALID_AUTH;
         }
-        if (!mfaRequired()) {
+        UaaAuthentication uaaAuth = (UaaAuthentication) a;
+        if (!mfaRequired(uaaAuth.getPrincipal().getOrigin())) {
             return MfaNextStep.MFA_NOT_REQUIRED;
         }
-        UaaAuthentication uaaAuth = (UaaAuthentication) a;
+
         if (completedMatcher.matches(request) && uaaAuth.getAuthenticationMethods().contains("mfa")) {
             return MfaNextStep.MFA_COMPLETED;
         }
@@ -158,7 +162,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
         response.sendRedirect(url.toString());
     }
 
-    protected boolean mfaRequired() {
-        return IdentityZoneHolder.get().getConfig().getMfaConfig().isEnabled();
+    protected boolean mfaRequired(String origin) {
+        return checker.isMfaEnabled(IdentityZoneHolder.get(), origin);
     }
 }

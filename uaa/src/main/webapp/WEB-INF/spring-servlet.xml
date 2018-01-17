@@ -572,8 +572,9 @@
         <property name="origin" value="ldap"/>
     </bean>
 
-    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.UserAuthenticationSuccessListener">
+    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.AuthenticationSuccessListener">
         <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <constructor-arg name="checker" ref="mfaChecker"/>
     </bean>
 
     <bean id="autologinAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">

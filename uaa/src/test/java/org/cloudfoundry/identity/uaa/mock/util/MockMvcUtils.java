@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -80,6 +81,7 @@ import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -174,6 +176,15 @@ public final class MockMvcUtils {
         "  </md:ContactPerson>\n" +
         "</md:EntityDescriptor>";
 
+
+    public static <T> T getEventOfType(ArgumentCaptor<AbstractUaaEvent> captor, Class<T> type) {
+        for (AbstractUaaEvent event : captor.getAllValues()) {
+            if (event.getClass().equals(type)) {
+                return (T)event;
+            }
+        }
+        return null;
+    }
 
     public static String performMfaPostVerifyWithCode(int code, MockMvc mvc, MockHttpSession session) throws Exception {
         return performMfaPostVerifyWithCode(code, mvc, session, "localhost");

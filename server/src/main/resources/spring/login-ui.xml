@@ -214,11 +214,16 @@
         <property name="requestMatcher" ref="uiAuthorizeRequestMatcher"/>
     </bean>
 
+    <bean id="mfaChecker" class="org.cloudfoundry.identity.uaa.mfa.MfaChecker">
+        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
+
     <bean id="mfaRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter">
         <constructor-arg name="urlFilter" value="/login/mfa/**"/>
         <constructor-arg name="redirect" value="/login/mfa/register"/>
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
         <constructor-arg name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
+        <constructor-arg name="checker" ref="mfaChecker"/>
     </bean>
 
     <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"

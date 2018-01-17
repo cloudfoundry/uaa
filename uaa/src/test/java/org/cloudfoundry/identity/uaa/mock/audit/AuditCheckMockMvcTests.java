@@ -12,8 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.audit;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
@@ -30,8 +34,8 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
@@ -56,6 +60,9 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.codec.binary.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,16 +82,11 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientCreateSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientUpdateSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupCreatedEvent;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getEventOfType;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -256,10 +258,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
+        IdentityProviderAuthenticationSuccessEvent passwordevent = getEventOfType(captor, IdentityProviderAuthenticationSuccessEvent.class);
         assertEquals(testUser.getUserName(), passwordevent.getUser().getUsername());
         assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
-        UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
+        UserAuthenticationSuccessEvent userevent = getEventOfType(captor, UserAuthenticationSuccessEvent.class);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertEquals(testUser.getUserName(), userevent.getUser().getUsername());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
@@ -281,10 +283,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
+        IdentityProviderAuthenticationSuccessEvent passwordevent = getEventOfType(captor, IdentityProviderAuthenticationSuccessEvent.class);
         assertEquals(testUser.getUserName(), passwordevent.getUser().getUsername());
         assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
-        UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
+        UserAuthenticationSuccessEvent userevent = getEventOfType(captor, UserAuthenticationSuccessEvent.class);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertEquals(testUser.getUserName(), userevent.getUser().getUsername());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
@@ -502,10 +504,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .andExpect(header().string("Location", "/"));
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
+        IdentityProviderAuthenticationSuccessEvent passwordevent = getEventOfType(captor, IdentityProviderAuthenticationSuccessEvent.class);
         String userid = passwordevent.getUser().getId();
         assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
-        UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
+        UserAuthenticationSuccessEvent userevent = getEventOfType(captor, UserAuthenticationSuccessEvent.class);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
@@ -553,10 +555,10 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
-        PasswordAuthenticationSuccessEvent passwordevent = (PasswordAuthenticationSuccessEvent)captor.getAllValues().get(0);
+        IdentityProviderAuthenticationSuccessEvent passwordevent = getEventOfType(captor, IdentityProviderAuthenticationSuccessEvent.class);
         String userid = passwordevent.getUser().getId();
         assertTrue(passwordevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
-        UserAuthenticationSuccessEvent userevent = (UserAuthenticationSuccessEvent)captor.getAllValues().get(1);
+        UserAuthenticationSuccessEvent userevent = getEventOfType(captor, UserAuthenticationSuccessEvent.class);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
@@ -793,7 +795,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(userPost)
             .andExpect(status().isOk());
 
-        assertEquals(2, testListener.getEventCount());
+        assertEquals(3, testListener.getEventCount());
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getEvents().get(0);
         assertEquals("login", userModifiedEvent.getAuthentication().getName());
