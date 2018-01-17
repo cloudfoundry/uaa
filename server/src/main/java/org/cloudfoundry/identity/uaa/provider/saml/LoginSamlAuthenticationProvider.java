@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,7 +40,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -85,6 +83,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
+import static java.util.Optional.of;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
@@ -92,6 +91,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
     private final static Log logger = LogFactory.getLog(LoginSamlAuthenticationProvider.class);
@@ -129,7 +129,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
 
         IdentityZone zone = IdentityZoneHolder.get();
-
+        logger.debug(String.format("Initiating SAML authentication in zone '%s' domain '%s'", zone.getId(), zone.getSubdomain()));
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
@@ -147,8 +147,17 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         } catch (EmptyResultDataAccessException x) {
             throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:"+alias);
         }
+
         ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
         UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
+        logger.debug(
+            String.format(
+                "Mapped SAML authentication to IDP with origin '%s' and username '%s'",
+                idp.getOriginKey(),
+                samlPrincipal.getName()
+            )
+        );
+
         Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, (SAMLCredential) result.getCredentials());
 
         Collection<? extends GrantedAuthority> authorities = null;
@@ -210,19 +219,25 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     }
 
     protected Set<String> filterSamlAuthorities(SamlIdentityProviderDefinition definition, Collection<? extends GrantedAuthority> samlAuthorities) {
-        List<String> whiteList = Optional.of(definition.getExternalGroupsWhitelist()).orElse(Collections.EMPTY_LIST);
+        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(Collections.EMPTY_LIST);
         Set<String> authorities = samlAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
-        return UaaStringUtils.retainAllMatches(authorities, whiteList);
+        Set<String> result = retainAllMatches(authorities, whiteList);
+        logger.debug(String.format("White listed external SAML groups:'%s'", result));
+        return result;
     }
 
     protected Collection<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
         Collection<GrantedAuthority> result = new LinkedList<>();
-            for (GrantedAuthority authority : authorities ) {
-                String externalGroup = authority.getAuthority();
-                    for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
-                        result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
-                    }
+        logger.debug("Mapping SAML authorities:" + authorities);
+        for (GrantedAuthority authority : authorities ) {
+            String externalGroup = authority.getAuthority();
+            logger.debug("Attempting to map external group: "+externalGroup);
+            for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
+                String internalName = internalGroup.getDisplayName();
+                logger.debug(String.format("Mapped external: '%s' to internal: '%s'", externalGroup, internalName));
+                result.add(new SimpleGrantedAuthority(internalName));
             }
+        }
         return result;
     }
 
