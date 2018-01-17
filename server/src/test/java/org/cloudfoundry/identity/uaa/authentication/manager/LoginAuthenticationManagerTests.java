@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,10 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,12 +20,13 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,9 +43,13 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class LoginAuthenticationManagerTests {
 
@@ -58,14 +59,14 @@ public class LoginAuthenticationManagerTests {
 
     private OAuth2Authentication oauth2Authentication;
 
-    private TestApplicationEventPublisher<UserAuthenticationSuccessEvent> publisher;
+    private TestApplicationEventPublisher<IdentityProviderAuthenticationSuccessEvent> publisher;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void init() {
-        publisher = TestApplicationEventPublisher.forEventClass(UserAuthenticationSuccessEvent.class);
+        publisher = TestApplicationEventPublisher.forEventClass(IdentityProviderAuthenticationSuccessEvent.class);
         manager.setApplicationEventPublisher(publisher);
         manager.setUserDatabase(userDatabase);
         oauth2Authentication = new OAuth2Authentication(new AuthorizationRequest("client", Arrays.asList("read",

@@ -23,6 +23,7 @@ import java.util.HashSet;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.junit.After;
@@ -46,11 +47,9 @@ import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MF
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.MFA_REQUIRED;
 import static org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter.MfaNextStep.NOT_AUTHENTICATED;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -72,14 +71,17 @@ public class MfaRequiredFilterTests {
     private HttpServletResponse response;
     private FilterChain chain;
     private MfaRequiredFilter filter;
+    private IdentityProviderProvisioning providerProvisioning;
 
     @Before
     public void setup() throws Exception {
+        providerProvisioning = mock(IdentityProviderProvisioning.class);
         requestCache = mock(RequestCache.class);
         filter = new MfaRequiredFilter("/login/mfa/**",
             "/login/mfa/register",
             requestCache,
-            "/login/mfa/completed");
+            "/login/mfa/completed",
+            new MfaChecker(providerProvisioning));
         spyFilter = spy(filter);
         request = new MockHttpServletRequest();
         usernameAuthentication = new UsernamePasswordAuthenticationToken("fake-principal","fake-credentials");
@@ -98,17 +100,6 @@ public class MfaRequiredFilterTests {
     public void teardown() throws Exception {
         IdentityZoneHolder.clear();
         SecurityContextHolder.clearContext();
-    }
-
-    @Test
-    public void mfa_not_required() throws Exception {
-        assertFalse(spyFilter.mfaRequired());
-    }
-
-    @Test
-    public void mfa_required() throws Exception {
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
-        assertTrue(spyFilter.mfaRequired());
     }
 
     @Test
