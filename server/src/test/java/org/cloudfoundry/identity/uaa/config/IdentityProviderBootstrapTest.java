@@ -14,6 +14,15 @@
 
 package org.cloudfoundry.identity.uaa.config;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -23,29 +32,21 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -245,7 +246,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
 
     @Test
-    public void testRemovedOAuthIdentityProviderIsInactive() throws Exception {
+    public void test_oauth_and_oidc_provider() throws Exception {
         AbstractXOAuthIdentityProviderDefinition oauthProvider = new RawXOAuthIdentityProviderDefinition();
         setCommonProperties(oauthProvider);
         AbstractXOAuthIdentityProviderDefinition oidcProvider = new OIDCIdentityProviderDefinition();
@@ -286,7 +287,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
             assertNotNull(bootstrapOauthProvider.getCreated());
             assertNotNull(bootstrapOauthProvider.getLastModified());
             assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
-            assertFalse(bootstrapOauthProvider.isActive());
+            assertTrue(bootstrapOauthProvider.isActive());
         }
     }
 
@@ -365,7 +366,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void testRemovedSamlBootstrapIsInactive() throws Exception {
+    public void test_saml_provider_not_deactivated() throws Exception {
         SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
         definition.setAssertionConsumerIndex(0);
         definition.setIconUrl("iconUrl");
@@ -425,7 +426,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertFalse(samlProvider2.isActive());
+        assertTrue(samlProvider2.isActive());
 
         configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition2));
@@ -438,7 +439,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertFalse(samlProvider.isActive());
+        assertTrue(samlProvider.isActive());
 
         samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
@@ -459,7 +460,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertFalse(samlProvider.isActive());
+        assertTrue(samlProvider.isActive());
 
         samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
@@ -467,7 +468,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertFalse(samlProvider2.isActive());
+        assertTrue(samlProvider2.isActive());
 
         configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition2,definition));

@@ -13,6 +13,13 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -21,28 +28,22 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+
 import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
-
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES;
@@ -132,19 +133,19 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     protected void addLdapProvider() {
         boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(OriginKeys.LDAP);
-        if (ldapConfig != null || ldapProfile) {
-            IdentityProvider provider = new IdentityProvider();
-            provider.setActive(ldapProfile);
-            provider.setOriginKey(OriginKeys.LDAP);
-            provider.setType(OriginKeys.LDAP);
-            provider.setName("UAA LDAP Provider");
-            Map<String,Object> ldap = new HashMap<>();
-            ldap.put(LDAP, ldapConfig);
-            LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
-            provider.setConfig(json);
-            provider.setActive(ldapProfile && json.isConfigured());
-            providers.add(provider);
-        }
+        //the LDAP provider has to be there
+        //and we activate, deactivate based on the `ldap` profile presence
+        IdentityProvider provider = new IdentityProvider();
+        provider.setActive(ldapProfile);
+        provider.setOriginKey(OriginKeys.LDAP);
+        provider.setType(OriginKeys.LDAP);
+        provider.setName("UAA LDAP Provider");
+        Map<String,Object> ldap = new HashMap<>();
+        ldap.put(LDAP, ldapConfig);
+        LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
+        provider.setConfig(json);
+        provider.setActive(ldapProfile && json.isConfigured());
+        providers.add(provider);
     }
 
 
@@ -209,9 +210,6 @@ public class IdentityProviderBootstrap implements InitializingBean {
         addKeystoneProvider();
 
         String zoneId = IdentityZone.getUaa().getId();
-
-        //deactivate all providers that are no longer present
-        deactivateUnusedProviders(zoneId);
 
         for (IdentityProvider provider: providers) {
             IdentityProvider existing = null;
