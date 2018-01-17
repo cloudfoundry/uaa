@@ -83,6 +83,10 @@ Authentication and Password Events
     - Happens: When a user successfully authenticates with MFA
     - Data Recorded: User ID, Username and MFA type (e.g. google-authenticator)
 
+* MfaAuthenticationFailure
+    - Happens: When a user enters an incorrect code for MFA
+    - Data Recorded: User ID, Username and MFA type (e.g. google-authenticator)
+
 Scim Administration Events
 ==============================================================
 
