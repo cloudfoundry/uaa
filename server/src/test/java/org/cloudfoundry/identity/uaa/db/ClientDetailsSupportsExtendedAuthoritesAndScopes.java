@@ -14,21 +14,20 @@
  */
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.util.StringUtils;
+import static org.hamcrest.Matchers.isIn;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.isIn;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.junit.Test;
+import org.springframework.mock.env.MockEnvironment;
+import org.springframework.util.StringUtils;
 
 public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBase {
 
@@ -60,7 +59,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName) && (scopeColumnName.equalsIgnoreCase(rscolumnName)
                         || authoritiesColumnName.equalsIgnoreCase(rscolumnName))) {
-                    assertEquals(String.format("Table: %s Column: %s should be 4000 in size.", rstableName, rscolumnName), 4000,  columnSize);
+                    assertTrue(String.format("Table: %s Column: %s should be over 4000 chars", rstableName, rscolumnName), columnSize > 4000);
                     foundTable = true;
                     if(scopeColumnName.equalsIgnoreCase(rscolumnName)) {
                         foundColumnScope = true;
@@ -71,7 +70,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
 
                     String columnType = rs.getString("TYPE_NAME");
                     assertNotNull(String.format("Table: %s Column: %s should have a column type", rstableName, rscolumnName), columnType);
-                    assertThat(String.format("Table: %s Column: %s should be varchar or nvarchar", rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("varchar","nvarchar")));
+                    assertThat(String.format("Table: %s Column: %s should be text, longtext, nvarchar or clob", rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("text","longtext","nvarchar","clob")));
                 } else {
                     continue;
                 }
