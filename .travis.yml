@@ -125,6 +125,10 @@ cache:
   directories:
   - $HOME/.gradle
 
+branches:
+  except:
+  - ci-passed
+
 before_install:
 - ulimit -c
 - ulimit -a -S
