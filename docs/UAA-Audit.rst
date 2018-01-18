@@ -70,7 +70,7 @@ Authentication and Password Events
     - Happens: When a user requests to reset his/her password
     - Data Recorded: Email used
 
-* PasswordVerificationSuccess
+* IdentityProviderAuthenticationSuccess
     - Happens: When a user successfully authenticates for the password login
     - Data Recorded: User ID and Username
 
