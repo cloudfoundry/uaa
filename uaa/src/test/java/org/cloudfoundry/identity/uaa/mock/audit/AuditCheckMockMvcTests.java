@@ -12,12 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.audit;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
@@ -34,8 +30,8 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
@@ -60,9 +56,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +74,12 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientCreateSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientUpdateSuccess;
@@ -310,7 +309,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
 
-        PasswordAuthenticationFailureEvent event1  = (PasswordAuthenticationFailureEvent)captor.getAllValues().get(0);
+        IdentityProviderAuthenticationFailureEvent event1  = (IdentityProviderAuthenticationFailureEvent)captor.getAllValues().get(0);
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
         PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
         assertEquals(testUser.getUserName(), event1.getUser().getUsername());
@@ -420,7 +419,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
 
-        PasswordAuthenticationFailureEvent event1 = (PasswordAuthenticationFailureEvent)captor.getAllValues().get(0);
+        IdentityProviderAuthenticationFailureEvent event1 = (IdentityProviderAuthenticationFailureEvent)captor.getAllValues().get(0);
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
         PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
         assertEquals(testUser.getUserName(), event1.getUser().getUsername());

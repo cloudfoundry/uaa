@@ -23,7 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -95,7 +95,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
             if (!passwordMatches) {
                 logger.debug("Password did not match for user " + req.getName());
-                publish(new PasswordAuthenticationFailureEvent(user, req));
+                publish(new IdentityProviderAuthenticationFailureEvent(user, req));
                 publish(new UserAuthenticationFailureEvent(user, req));
             } else {
                 logger.debug("Password successfully matched for userId["+user.getUsername()+"]:"+user.getId());
