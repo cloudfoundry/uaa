@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
@@ -205,6 +206,61 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
                     .with(cookieCsrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    public void testOtpValidationFails() throws Exception {
+        redirectToMFARegistration();
+
+        assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
+
+        performGetMfaManualRegister().andExpect((view().name("mfa/manual_registration")));
+
+        int code = MockMvcUtils.getMFACodeFromSession(session);
+
+        String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        assertEquals("/login/mfa/completed", location);
+
+        ArgumentCaptor<AbstractUaaEvent> eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
+        assertEquals(8, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(6), instanceOf(MfaAuthenticationSuccessEvent.class));
+
+        getMockMvc().perform(get("/")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("home"));
+
+        getMockMvc().perform(get("/logout.do")).andReturn();
+
+        session = new MockHttpSession();
+        performLoginWithSession();
+
+        getMockMvc().perform(post("/login/mfa/verify.do")
+                .param("code", Integer.toString(code+1))
+                .header("Host", "localhost")
+                .session(session)
+                .with(cookieCsrf()))
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(view().name("mfa/enter_code"));
+
+        eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
+        assertEquals(14, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(12), instanceOf(MfaAuthenticationFailureEvent.class));
+
+        getMockMvc().perform(post("/login/mfa/verify.do")
+                .param("code", "ABCDEF")
+                .header("Host", "localhost")
+                .session(session)
+                .with(cookieCsrf()))
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(view().name("mfa/enter_code"));
+
+        eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
+        assertEquals(16, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(14), instanceOf(MfaAuthenticationFailureEvent.class));
     }
 
     @Test
