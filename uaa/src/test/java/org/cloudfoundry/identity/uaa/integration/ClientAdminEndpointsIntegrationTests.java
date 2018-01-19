@@ -26,7 +26,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -86,7 +85,6 @@ public class ClientAdminEndpointsIntegrationTests {
 
     @Before
     public void setUp() throws Exception {
-        Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
         token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         headers = getAuthenticatedHeaders(token);
     }
