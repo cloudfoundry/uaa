@@ -17,7 +17,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -49,6 +48,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
 
+import static org.junit.Assert.fail;
+
 /**
  * <p>
  * A rule that prevents integration tests from failing if the server application
@@ -79,12 +80,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
     private static Log logger = LogFactory.getLog(ServerRunning.class);
 
     // Static so that we only test once on failure: speeds up test suite
-    private static Map<Integer, Boolean> serverOnline = new HashMap<Integer, Boolean>();
-
-    // Static so that we only test once on failure
-    private static Map<Integer, Boolean> serverOffline = new HashMap<Integer, Boolean>();
-
-    private final boolean assumeOnline;
+    private static Boolean serverOnline = null;
 
     private static int DEFAULT_PORT = 8080;
 
@@ -108,18 +104,10 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
      * @return a new rule that assumes an existing running broker
      */
     public static ServerRunning isRunning() {
-        return new ServerRunning(true);
+        return new ServerRunning();
     }
 
-    /**
-     * @return a new rule that assumes there is no existing broker
-     */
-    public static ServerRunning isNotRunning() {
-        return new ServerRunning(false);
-    }
-
-    private ServerRunning(boolean assumeOnline) {
-        this.assumeOnline = assumeOnline;
+    private ServerRunning() {
         setPort(DEFAULT_PORT);
         setUaaPort(DEFAULT_UAA_PORT);
     }
@@ -133,12 +121,6 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
      */
     public void setPort(int port) {
         this.port = port;
-        if (!serverOffline.containsKey(port)) {
-            serverOffline.put(port, true);
-        }
-        if (!serverOnline.containsKey(port)) {
-            serverOnline.put(port, true);
-        }
         client = createRestTemplate();
     }
 
@@ -151,45 +133,29 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 
     @Override
     public Statement apply(Statement base, FrameworkMethod method, Object target) {
-
-        // Check at the beginning, so this can be used as a static field
-        if (assumeOnline) {
-            Assume.assumeTrue(serverOnline.get(port));
-        }
-        else {
-            Assume.assumeTrue(serverOffline.get(port));
+        if (serverOnline) {
+            logger.debug(String.format("Relying on previous test of basic connectivity to hostName=%s, port=%d", hostName, port));
+            return super.apply(base, method, target);
+        } else if (serverOnline == false) {
+            failTest(); // fast fail if we've previously determined the server is not running
         }
 
-        RestTemplate client = new RestTemplate();
-        boolean online = false;
         try {
+            RestTemplate client = new RestTemplate();
             client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(), String.class);
             client.getForEntity(new UriTemplate(getUrl("/api/index.html")).toString(), String.class);
-            online = true;
             logger.debug("Basic connectivity test passed");
+            serverOnline = true;
         } catch (RestClientException e) {
-            logger.warn(String.format(
-                            "Not executing tests because basic connectivity test failed for hostName=%s, port=%d",
-                            hostName,
-                            port), e);
-            if (assumeOnline) {
-                Assume.assumeNoException(e);
-            }
-        } finally {
-            if (online) {
-                serverOffline.put(port, false);
-                if (!assumeOnline) {
-                    Assume.assumeTrue(serverOffline.get(port));
-                }
-
-            }
-            else {
-                serverOnline.put(port, false);
-            }
+            serverOnline = false;
+            failTest();
         }
 
         return super.apply(base, method, target);
+    }
 
+    private void failTest() {
+        fail(String.format("Not executing tests because basic connectivity test failed for hostName=%s, port=%d", hostName, port));
     }
 
     @Override
