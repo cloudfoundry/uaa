@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.api.web;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.test.UrlHelper;
@@ -30,23 +23,18 @@ import org.junit.runners.model.Statement;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.test.RestTemplateHolder;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseErrorHandler;
-import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
-import org.springframework.web.util.UriUtils;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
 
 import static org.junit.Assert.fail;
 
@@ -110,6 +98,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
     private ServerRunning() {
         setPort(DEFAULT_PORT);
         setUaaPort(DEFAULT_UAA_PORT);
+        setHostName(DEFAULT_HOST);
     }
 
     public void setUaaPort(int uaaPort) {
@@ -203,31 +192,6 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
         return "http://" + hostName + ":" + port + path;
     }
 
-    public String getHostHeader() {
-        return hostName + ":" + port;
-    }
-
-    @SuppressWarnings("rawtypes")
-    public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
-        if (headers.getContentType() == null) {
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        }
-        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-                        headers), Map.class);
-    }
-
-    public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
-        if (headers.getContentType() == null) {
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        }
-        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-                        headers), String.class);
-    }
-
-    public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
-        return postForString(path, formData, new HttpHeaders());
-    }
-
     public ResponseEntity<String> getForString(String path) {
         return getForString(path, new HttpHeaders());
     }
@@ -235,29 +199,6 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
     public ResponseEntity<String> getForString(String path, HttpHeaders headers) {
         HttpEntity<Void> request = new HttpEntity<Void>((Void) null, headers);
         return client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
-    }
-
-    public HttpStatus getStatusCode(String path, final HttpHeaders headers) {
-        RequestCallback requestCallback = new NullRequestCallback();
-        if (headers != null) {
-            requestCallback = new RequestCallback() {
-                @Override
-                public void doWithRequest(ClientHttpRequest request) throws IOException {
-                    request.getHeaders().putAll(headers);
-                }
-            };
-        }
-        return client.execute(getUrl(path), HttpMethod.GET, requestCallback,
-                        new ResponseExtractor<ResponseEntity<String>>() {
-                            @Override
-                            public ResponseEntity<String> extractData(ClientHttpResponse response) throws IOException {
-                                return new ResponseEntity<String>(response.getStatusCode());
-                            }
-                        }).getStatusCode();
-    }
-
-    public HttpStatus getStatusCode(String path) {
-        return getStatusCode(getUrl(path), null);
     }
 
     @Override
@@ -292,63 +233,4 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
         });
         return client;
     }
-
-    public UriBuilder buildUri(String url) {
-        return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
-    }
-
-    private static final class NullRequestCallback implements RequestCallback {
-        @Override
-        public void doWithRequest(ClientHttpRequest request) throws IOException {
-        }
-    }
-
-    public static class UriBuilder {
-
-        private final String url;
-
-        private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
-
-        public UriBuilder(String url) {
-            this.url = url;
-        }
-
-        public static UriBuilder fromUri(String url) {
-            return new UriBuilder(url);
-        }
-
-        public UriBuilder queryParam(String key, String value) {
-            params.add(key, value);
-            return this;
-        }
-
-        public URI build() {
-            StringBuilder builder = new StringBuilder(url);
-            try {
-                if (!params.isEmpty()) {
-                    builder.append("?");
-                    boolean first = true;
-                    for (String key : params.keySet()) {
-                        if (!first) {
-                            builder.append("&");
-                        }
-                        else {
-                            first = false;
-                        }
-                        for (String value : params.get(key)) {
-                            builder.append(key + "=" + UriUtils.encodeQueryParam(value, "UTF-8"));
-                        }
-                    }
-                }
-                return new URI(builder.toString());
-            } catch (UnsupportedEncodingException ex) {
-                // should not happen, UTF-8 is always supported
-                throw new IllegalStateException(ex);
-            } catch (URISyntaxException ex) {
-                throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
-            }
-        }
-
-    }
-
 }
