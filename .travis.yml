@@ -1,3 +1,4 @@
+group: deprecated-2017Q4
 sudo: required
 language: java
 jdk:
@@ -32,7 +33,7 @@ before_install:
 - mysql -e 'drop database if exists uaa;'
 - mysql -e 'create database uaa;'
 - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
-- mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
+- mysql -u root -pchangeme -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');";
 install:
 - sudo chmod a+w `readlink -f $JAVA_HOME/jre/lib/security/cacerts`
 - scripts/travis/install-ldap-certs.sh
