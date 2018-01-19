@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.app.integration;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,14 +37,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.test.RestTemplateHolder;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
-import org.springframework.web.util.UriUtils;
 
 /**
  * <p>
@@ -210,10 +206,6 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
         return root + path;
     }
 
-    public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
-        return postForString(path, formData, new HttpHeaders());
-    }
-
     public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
         if (headers.getContentType() == null) {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -222,49 +214,9 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
                         headers), String.class);
     }
 
-    @SuppressWarnings("rawtypes")
-    public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData) {
-        return postForMap(path, formData, new HttpHeaders());
-    }
-
-    @SuppressWarnings("rawtypes")
-    public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
-        if (headers.getContentType() == null) {
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        }
-        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-                        headers), Map.class);
-    }
-
-    public ResponseEntity<String> getForString(String path) {
-        ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>(
-                        (Void) null), String.class);
-        logger.debug("Response headers: " + exchange.getHeaders());
-        return exchange;
-    }
-
     public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
         HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
         ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
-        logger.debug("Response headers: " + exchange.getHeaders());
-        return exchange;
-    }
-
-    public ResponseEntity<Void> getForResponse(String path, final HttpHeaders headers, Object... uriVariables) {
-        HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-        ResponseEntity<Void> exchange = client
-                        .exchange(getUrl(path), HttpMethod.GET, request, Void.class, uriVariables);
-        logger.debug("Response headers: " + exchange.getHeaders());
-        return exchange;
-    }
-
-    public ResponseEntity<Void> postForResponse(String path, HttpHeaders headers, MultiValueMap<String, String> params) {
-        HttpHeaders actualHeaders = new HttpHeaders();
-        actualHeaders.putAll(headers);
-        actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.POST,
-                        new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), Void.class);
         logger.debug("Response headers: " + exchange.getHeaders());
         return exchange;
     }
@@ -300,57 +252,4 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
         });
         return client;
     }
-
-    public UriBuilder buildUri(String url) {
-        return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
-    }
-
-    public static class UriBuilder {
-
-        private final String url;
-
-        private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
-
-        public UriBuilder(String url) {
-            this.url = url;
-        }
-
-        public static UriBuilder fromUri(String url) {
-            return new UriBuilder(url);
-        }
-
-        public UriBuilder queryParam(String key, String value) {
-            params.add(key, value);
-            return this;
-        }
-
-        public URI build() {
-            StringBuilder builder = new StringBuilder(url);
-            try {
-                if (!params.isEmpty()) {
-                    builder.append("?");
-                    boolean first = true;
-                    for (String key : params.keySet()) {
-                        if (!first) {
-                            builder.append("&");
-                        }
-                        else {
-                            first = false;
-                        }
-                        for (String value : params.get(key)) {
-                            builder.append(key + "=" + UriUtils.encodeQueryParam(value, "UTF-8"));
-                        }
-                    }
-                }
-                return new URI(builder.toString());
-            } catch (UnsupportedEncodingException ex) {
-                // should not happen, UTF-8 is always supported
-                throw new IllegalStateException(ex);
-            } catch (URISyntaxException ex) {
-                throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
-            }
-        }
-
-    }
-
 }
