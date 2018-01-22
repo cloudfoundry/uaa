@@ -370,6 +370,58 @@ public class UaaUrlUtilsTest {
         validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
     }
 
+    @Test
+    public void addSubdomainToUrl_givenUaaUrl() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain("somezone"));
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomainToUrl_givenUaaUrlAndSubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "somezone");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomainToUrl_handlesEmptySubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "");
+        assertEquals("http://localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain(""));
+        String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://localhost:8080", url2);
+    }
+
+    @Test
+    public void addSudomain_handlesExtraSpaceInSubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", " somezone  ");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSudomain_handlesExtraSpaceInSubdomain_currentZone() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain(" somezone2 "));
+        String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://somezone2.localhost:8080", url2);
+    }
+
+    @Test
+    public void addSubdomain_handlesUnexpectedDotInSubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", " somezone. ");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomain_handlesUnexpectedDotInSubdomain_currentZone() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain(" somezone2. "));
+        String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://somezone2.localhost:8080", url2);
+    }
+
     private void validateRedirectUri(List<String> urls, boolean result) {
         Map<String, String> failed = getFailedUrls(urls, result);
         if (!failed.isEmpty()) {
