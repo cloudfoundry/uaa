@@ -12,6 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -20,13 +27,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static java.util.Collections.EMPTY_MAP;
 
@@ -251,5 +251,9 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     public void setAuthenticatedTime(long authenticatedTime) {
         this.authenticatedTime = authenticatedTime;
+    }
+
+    public void setAuthenticationDetails(UaaAuthenticationDetails authenticationDetails) {
+        this.details = authenticationDetails;
     }
 }
