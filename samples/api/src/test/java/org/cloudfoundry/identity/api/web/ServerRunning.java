@@ -67,9 +67,6 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 
     private static Log logger = LogFactory.getLog(ServerRunning.class);
 
-    // Static so that we only test once on failure: speeds up test suite
-    private static Boolean serverOnline = null;
-
     private static int DEFAULT_PORT = 8080;
 
     private static int DEFAULT_UAA_PORT = 8080;
@@ -122,21 +119,12 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 
     @Override
     public Statement apply(Statement base, FrameworkMethod method, Object target) {
-        if (serverOnline) {
-            logger.debug(String.format("Relying on previous test of basic connectivity to hostName=%s, port=%d", hostName, port));
-            return super.apply(base, method, target);
-        } else if (serverOnline == false) {
-            failTest(); // fast fail if we've previously determined the server is not running
-        }
-
         try {
             RestTemplate client = new RestTemplate();
             client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(), String.class);
             client.getForEntity(new UriTemplate(getUrl("/api/index.html")).toString(), String.class);
             logger.debug("Basic connectivity test passed");
-            serverOnline = true;
         } catch (RestClientException e) {
-            serverOnline = false;
             failTest();
         }
 
