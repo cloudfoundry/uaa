@@ -12,10 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.providers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.lang.RandomStringUtils;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -35,9 +43,14 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -45,15 +58,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsString;
@@ -63,6 +67,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -107,6 +112,25 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     public void clearUaaConfig() throws Exception {
         getWebApplicationContext().getBean(JdbcTemplate.class).update("UPDATE identity_provider SET config=null WHERE origin_key='uaa'");
         mockMvcUtils.removeEventListener(getWebApplicationContext(), eventListener);
+    }
+
+    @Test
+    public void test_delete_through_event() throws Exception {
+        String accessToken = setUpAccessToken();
+        IdentityProvider idp = createAndUpdateIdentityProvider(accessToken, null);
+        String origin = idp.getOriginKey();
+        IdentityProviderBootstrap bootstrap = getWebApplicationContext().getBean(IdentityProviderBootstrap.class);
+        assertNotNull(identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaa().getId() ));
+        try {
+            bootstrap.setOriginsToDelete(Arrays.asList(origin));
+            bootstrap.onApplicationEvent(new ContextRefreshedEvent(getWebApplicationContext()));
+        } finally {
+            bootstrap.setOriginsToDelete(null);
+        }
+        try {
+            identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaa().getId() );
+            fail("Identity provider should have been deleted");
+        } catch (EmptyResultDataAccessException e) {}
     }
 
     @Test
@@ -250,7 +274,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         }
     }
 
-    private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception {
+    private IdentityProvider createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
         // create
         // check response
@@ -286,6 +310,8 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(2, eventListener.getEventCount());
         event = eventListener.getLatestEvent();
         assertEquals(AuditEventType.IdentityProviderModifiedEvent, event.getAuditEvent().getType());
+
+        return identityProvider;
     }
 
     @Test
