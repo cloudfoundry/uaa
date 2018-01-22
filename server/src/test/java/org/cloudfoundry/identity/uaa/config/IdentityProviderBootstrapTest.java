@@ -14,30 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.config;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -47,6 +23,38 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.mock.env.MockEnvironment;
+
+import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -55,38 +63,85 @@ import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
+    private SamlIdentityProviderDefinition samlIdentityProviderDefinition;
+    private SamlIdentityProviderDefinition samlIdentityProviderDefinition1;
+    private BootstrapSamlIdentityProviderConfigurator configurator;
+    private ApplicationEventPublisher publisher;
+    private IdentityProviderProvisioning provisioning;
+    private IdentityProviderBootstrap bootstrap;
+    private MockEnvironment environment;
+    private AbstractXOAuthIdentityProviderDefinition oauthProvider;
+    private AbstractXOAuthIdentityProviderDefinition oidcProvider;
+    private HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig;
+
     @After
-    @Before
     public void clearIdentityHolder() {
         IdentityZoneHolder.clear();
+    }
+
+    @Before
+    public void setup() throws Exception {
+        IdentityZoneHolder.clear();
+        samlIdentityProviderDefinition = new SamlIdentityProviderDefinition();
+        samlIdentityProviderDefinition.setAssertionConsumerIndex(0);
+        samlIdentityProviderDefinition.setIconUrl("iconUrl");
+        samlIdentityProviderDefinition.setIdpEntityAlias("alias");
+        samlIdentityProviderDefinition.setLinkText("text");
+        samlIdentityProviderDefinition.setMetaDataLocation("http://location");
+        samlIdentityProviderDefinition.setNameID("nameId");
+        samlIdentityProviderDefinition.setShowSamlLink(true);
+        samlIdentityProviderDefinition.setMetadataTrustCheck(true);
+        samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone(
+
+        );
+        samlIdentityProviderDefinition.setIdpEntityAlias("alias2");
+        samlIdentityProviderDefinition.setMetaDataLocation("http://location2");
+
+        oauthProvider = new RawXOAuthIdentityProviderDefinition();
+        setCommonProperties(oauthProvider);
+        oidcProvider = new OIDCIdentityProviderDefinition();
+        setCommonProperties(oidcProvider);
+
+        oauthProviderConfig = new HashMap<>();
+        oauthProviderConfig.put(OAUTH20, oauthProvider);
+        oauthProviderConfig.put(OIDC10, oidcProvider);
+
+
+        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
+        publisher = mock(ApplicationEventPublisher.class);
+        provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        environment = new MockEnvironment();
+        bootstrap = new IdentityProviderBootstrap(provisioning, environment);
+        bootstrap.setApplicationEventPublisher(publisher);
+
     }
 
     @Test
     public void testUpgradeLDAPProvider() throws Exception {
         String insertSQL = "INSERT INTO identity_provider (id,identity_zone_id,name,origin_key,type,config)VALUES ('ldap','uaa','ldap','ldap2','ldap','{\"ldapdebug\":\"Test debug\",\"profile\":{\"file\":\"ldap/ldap-search-and-bind.xml\"},\"base\":{\"url\":\"ldap://localhost:389/\",\"userDn\":\"cn=admin,dc=test,dc=com\",\"password\":\"password\",\"searchBase\":\"dc=test,dc=com\",\"searchFilter\":\"cn={0}\",\"referral\":\"follow\"},\"groups\":{\"file\":\"ldap/ldap-groups-map-to-scopes.xml\",\"searchBase\":\"dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"searchSubtree\":true,\"maxSearchDepth\":10,\"autoAdd\":true,\"ignorePartialResultException\":true}}')";
         jdbcTemplate.update(insertSQL);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
     }
 
     @Test
     public void testLdapProfileBootstrap() throws Exception {
-        MockEnvironment environment = new MockEnvironment();
         environment.setActiveProfiles(OriginKeys.LDAP);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
         IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
@@ -101,8 +156,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testLdapBootstrap() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
 
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
@@ -133,11 +186,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void testRemovedLdapBootstrapIsInactive() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        MockEnvironment env = new MockEnvironment();
-        env.setActiveProfiles(OriginKeys.LDAP);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
+    public void testRemovedLdapBootstrapRemainsActive() throws Exception {
+        environment.setActiveProfiles(OriginKeys.LDAP);
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put("base.url","ldap://localhost:389/");
         bootstrap.setLdapConfig(ldapConfig);
@@ -167,14 +217,20 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(OriginKeys.LDAP, ldapProvider.getType());
         assertTrue(ldapProvider.isActive());
+
+        environment.setActiveProfiles("default");
+        bootstrap.afterPropertiesSet();
+        ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        assertNotNull(ldapProvider);
+        assertNotNull(ldapProvider.getCreated());
+        assertNotNull(ldapProvider.getLastModified());
+        assertEquals(OriginKeys.LDAP, ldapProvider.getType());
+        assertFalse(ldapProvider.isActive());
     }
 
     @Test
     public void testKeystoneProfileBootstrap() throws Exception {
-        MockEnvironment environment = new MockEnvironment();
         environment.setActiveProfiles(KEYSTONE);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
         IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOrigin(KEYSTONE, IdentityZoneHolder.get().getId());
@@ -189,8 +245,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testKeystoneBootstrap() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
         bootstrap.setKeystoneConfig(keystoneConfig);
@@ -206,10 +260,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testRemovedKeystoneBootstrapIsInactive() throws Exception {
-        MockEnvironment env = new MockEnvironment();
-        env.setActiveProfiles(KEYSTONE);
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
+        environment.setActiveProfiles(KEYSTONE);
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
         bootstrap.setKeystoneConfig(keystoneConfig);
@@ -245,25 +296,29 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
 
     @Test
-    public void testRemovedOAuthIdentityProviderIsInactive() throws Exception {
-        AbstractXOAuthIdentityProviderDefinition oauthProvider = new RawXOAuthIdentityProviderDefinition();
-        setCommonProperties(oauthProvider);
-        AbstractXOAuthIdentityProviderDefinition oidcProvider = new OIDCIdentityProviderDefinition();
-        setCommonProperties(oidcProvider);
-        oidcProvider.setResponseType("code id_token");
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
-        oauthProviderConfig.put(OAUTH20, oauthProvider);
-        oauthProviderConfig.put(OIDC10, oidcProvider);
+    public void test_oauth_and_oidc_provider_deletion() throws Exception {
         bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        bootstrap.setOriginsToDelete(new LinkedList(oauthProviderConfig.keySet()));
+        bootstrap.afterPropertiesSet();
+        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            try {
+                provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
+                fail(String.format("Provider '%s' should not exist.", provider.getKey()));
+            } catch (EmptyResultDataAccessException e) {
+            }
+
+        }
+    }
+    @Test
+    public void test_oauth_and_oidc_provider_activation() throws Exception {
+        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
 
         for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
             assertNotNull(bootstrapOauthProvider);
-            assertThat(oauthProviderConfig.values(), PredicateMatcher.<AbstractXOAuthIdentityProviderDefinition>has(c -> c.equals(bootstrapOauthProvider.getConfig())));
+            assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
             assertNotNull(bootstrapOauthProvider.getCreated());
             assertNotNull(bootstrapOauthProvider.getLastModified());
             assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
@@ -282,32 +337,24 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
             assertNotNull(bootstrapOauthProvider);
-            assertThat(oauthProviderConfig.values(), PredicateMatcher.<AbstractXOAuthIdentityProviderDefinition>has(c -> c.equals(bootstrapOauthProvider.getConfig())));
+            assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
             assertNotNull(bootstrapOauthProvider.getCreated());
             assertNotNull(bootstrapOauthProvider.getLastModified());
             assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
-            assertFalse(bootstrapOauthProvider.isActive());
+            assertTrue(bootstrapOauthProvider.isActive());
         }
+
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void bootstrap_failsIf_samlAndOauth_haveTheSameAlias() throws Exception {
-        AbstractXOAuthIdentityProviderDefinition oauthProvider = setCommonProperties(new RawXOAuthIdentityProviderDefinition());
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
+        oauthProviderConfig.clear();
         oauthProviderConfig.put("same-alias", oauthProvider);
 
-        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
-        definition.setIdpEntityAlias("same-alias");
-        definition.setLinkText("text");
-        definition.setMetaDataLocation("http://location");
-        definition.setNameID("nameId");
-        definition.setShowSamlLink(true);
-        definition.setMetadataTrustCheck(true);
+        samlIdentityProviderDefinition.setIdpEntityAlias("same-alias");
 
-        BootstrapSamlIdentityProviderConfigurator configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
+        reset(configurator);
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition));
 
         bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
         bootstrap.setSamlProviders(configurator);
@@ -328,121 +375,115 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testSamlBootstrap() throws Exception {
-        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
-        definition.setAssertionConsumerIndex(0);
-        definition.setIconUrl("iconUrl");
-        definition.setIdpEntityAlias("alias");
-        definition.setLinkText("text");
-        definition.setMetaDataLocation("http://location");
-        definition.setNameID("nameId");
-        definition.setShowSamlLink(true);
-        definition.setMetadataTrustCheck(true);
-        definition.setEmailDomain(Arrays.asList("test.domain"));
-        List<String> externalGroupsWhitelist = new ArrayList<>();
-        externalGroupsWhitelist.add("value1");
-        externalGroupsWhitelist.add("value2");
-        definition.setExternalGroupsWhitelist(externalGroupsWhitelist);
-
-        Map<String, Object> attributeMappings = new HashMap<>();
-        attributeMappings.put("given_name", "first_name");
-        definition.setAttributeMappings(attributeMappings);
-
-        BootstrapSamlIdentityProviderConfigurator configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
-
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         bootstrap.setSamlProviders(configurator);
+        reset(configurator);
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition));
+
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        definition.setZoneId(IdentityZoneHolder.get().getId());
-        assertEquals(definition, samlProvider.getConfig());
+        samlIdentityProviderDefinition.setZoneId(IdentityZoneHolder.get().getId());
+        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
     }
 
     @Test
-    public void testRemovedSamlBootstrapIsInactive() throws Exception {
-        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
-        definition.setAssertionConsumerIndex(0);
-        definition.setIconUrl("iconUrl");
-        definition.setIdpEntityAlias("alias");
-        definition.setLinkText("text");
-        definition.setMetaDataLocation("http://location");
-        definition.setNameID("nameId");
-        definition.setShowSamlLink(true);
-        definition.setMetadataTrustCheck(true);
+    public void test_providers_deleted_and_not_created() throws Exception {
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition, samlIdentityProviderDefinition1));
+        List<String> originsToDelete = Arrays.asList(
+            samlIdentityProviderDefinition.getIdpEntityAlias(),
+            OIDC10
+        );
 
-        SamlIdentityProviderDefinition definition2 = definition.clone();
-        definition.setIdpEntityAlias("alias2");
-        definition.setMetaDataLocation("http://location2");
-
-        BootstrapSamlIdentityProviderConfigurator configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition, definition2));
-
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         bootstrap.setSamlProviders(configurator);
+        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        bootstrap.afterPropertiesSet();
+        ContextRefreshedEvent event = new ContextRefreshedEvent(mock(ApplicationContext.class));
+        bootstrap.onApplicationEvent(event);
+        bootstrap.setOriginsToDelete(originsToDelete);
+        bootstrap.afterPropertiesSet();
+        bootstrap.onApplicationEvent(event);
+
+        ArgumentCaptor<EntityDeletedEvent<IdentityProvider>> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+        verify(publisher, times(2)).publishEvent(captor.capture());
+        assertThat(
+            captor
+                .getAllValues()
+                .stream()
+                .map(
+                    p -> p.getDeleted().getOriginKey()
+                ).collect(toList()
+            ),
+            containsInAnyOrder(originsToDelete.toArray())
+        );
+    }
+
+    @Test
+    public void test_saml_provider_not_deactivated() throws Exception {
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition, samlIdentityProviderDefinition1));
+
+        bootstrap.setSamlProviders(configurator);
+
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        definition.setZoneId(IdentityZoneHolder.get().getId());
-        assertEquals(definition, samlProvider.getConfig());
+        samlIdentityProviderDefinition.setZoneId(IdentityZoneHolder.get().getId());
+        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        IdentityProvider samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider samlProvider2 = provisioning.retrieveByOrigin(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        definition2.setZoneId(IdentityZoneHolder.get().getId());
-        assertEquals(definition2, samlProvider2.getConfig());
+        samlIdentityProviderDefinition1.setZoneId(IdentityZoneHolder.get().getId());
+        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
         configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition));
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        assertEquals(definition, samlProvider.getConfig());
+        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOrigin(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        assertEquals(definition2, samlProvider2.getConfig());
+        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertFalse(samlProvider2.isActive());
+        assertTrue(samlProvider2.isActive());
 
         configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition2));
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition1));
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        assertEquals(definition, samlProvider.getConfig());
+        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertFalse(samlProvider.isActive());
+        assertTrue(samlProvider.isActive());
 
-        samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOrigin(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        assertEquals(definition2, samlProvider2.getConfig());
+        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
@@ -453,43 +494,42 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        assertEquals(definition, samlProvider.getConfig());
-        assertNotNull(samlProvider.getCreated());
-        assertNotNull(samlProvider.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertFalse(samlProvider.isActive());
-
-        samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
-        assertNotNull(samlProvider2);
-        assertEquals(definition2, samlProvider2.getConfig());
-        assertNotNull(samlProvider2.getCreated());
-        assertNotNull(samlProvider2.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertFalse(samlProvider2.isActive());
-
-        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition2,definition));
-        bootstrap.setSamlProviders(configurator);
-        bootstrap.afterPropertiesSet();
-
-        samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
-        assertNotNull(samlProvider);
-        assertEquals(definition, samlProvider.getConfig());
+        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOrigin(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        assertEquals(definition2, samlProvider2.getConfig());
+        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
+        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition1, samlIdentityProviderDefinition));
+        bootstrap.setSamlProviders(configurator);
+        bootstrap.afterPropertiesSet();
+
+        samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        assertNotNull(samlProvider);
+        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
+        assertNotNull(samlProvider.getCreated());
+        assertNotNull(samlProvider.getLastModified());
+        assertEquals(OriginKeys.SAML, samlProvider.getType());
+        assertTrue(samlProvider.isActive());
+
+        samlProvider2 = provisioning.retrieveByOrigin(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        assertNotNull(samlProvider2);
+        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
+        assertNotNull(samlProvider2.getCreated());
+        assertNotNull(samlProvider2.getLastModified());
+        assertEquals(OriginKeys.SAML, samlProvider2.getType());
+        assertTrue(samlProvider2.isActive());
     }
 
     @Test
@@ -508,13 +548,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     private void setDisableInternalUserManagement(String expectedValue) throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-
-        MockEnvironment mock = new MockEnvironment();
-
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, mock);
         bootstrap.setDisableInternalUserManagement(Boolean.valueOf(expectedValue));
-
         bootstrap.afterPropertiesSet();
         IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
 
@@ -526,8 +560,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void setPasswordPolicyToInternalIDP() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         bootstrap.setDefaultPasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
         bootstrap.afterPropertiesSet();
 
@@ -544,8 +576,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void setLockoutPolicyToInternalIDP() throws Exception {
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         LockoutPolicy lockoutPolicy = new LockoutPolicy();
         lockoutPolicy.setLockoutPeriodSeconds(123);
         lockoutPolicy.setLockoutAfterFailures(3);
@@ -563,10 +593,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void deactivate_and_activate_InternalIDP() throws Exception {
-        MockEnvironment environment = new MockEnvironment();
         environment.setProperty("disableInternalAuth", "true");
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
         IdentityProvider internalIdp =  provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
@@ -581,11 +608,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void defaultActiveFlagOnInternalIDP() throws Exception {
-        MockEnvironment environment = new MockEnvironment();
-        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
-
         IdentityProvider internalIdp =  provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertTrue(internalIdp.isActive());
     }

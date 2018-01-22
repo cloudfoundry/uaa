@@ -12,7 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.tomcat.jdbc.pool.DataSource;
+import javax.servlet.RequestDispatcher;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EventListener;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
@@ -75,6 +91,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -90,6 +108,7 @@ import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -108,23 +127,6 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
-
-import javax.servlet.RequestDispatcher;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EventListener;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -147,6 +149,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -762,6 +765,14 @@ public class BootstrapTests {
         assertTrue(defaultOauthProvider.getConfig().isStoreCustomAttributes());
         assertFalse(defaultOauthProvider.getConfig().isSkipSslValidation());
 
+        List<String> deletedIdps = Arrays.asList("delete-discovery-provider", "delete.local");
+        for (String deleteOrigin : deletedIdps) {
+            try {
+                idpProvisioning.retrieveByOrigin(deleteOrigin, IdentityZone.getUaa().getId());
+                fail("The identity provider '" + deleteOrigin + "' should have been deleted");
+            } catch (EmptyResultDataAccessException e) {}
+        }
+
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
         DataSource ds = context.getBean(DataSource.class);
@@ -857,7 +868,9 @@ public class BootstrapTests {
         assertTrue(samlProviders.getIdentityProviderDefinitions().size() >= 4);
         //verify that they got loaded in the DB
         for (SamlIdentityProviderDefinition def : samlProviders.getIdentityProviderDefinitions()) {
-            assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias(), IdentityZone.getUaa().getId()));
+            if (!deletedIdps.contains(def.getIdpEntityAlias())) {
+                assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias(), IdentityZone.getUaa().getId()));
+            }
         }
 
         assertEquals(3600, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());

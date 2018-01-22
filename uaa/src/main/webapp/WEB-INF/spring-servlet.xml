@@ -521,6 +521,7 @@
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="bootstrapMetaDataProviders"/>
         <property name="oauthIdpDefinitions" ref="oauthIdpDefinitions"/>
+        <property name="originsToDelete" value="#{@config['delete']==null ? null : @config['delete']['identityProviders']}" />
     </bean>
 
     <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean">
