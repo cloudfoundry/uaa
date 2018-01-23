@@ -15,16 +15,26 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import java.util.concurrent.ConcurrentMap;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TimeBasedExpiringValueMapTest {
 
@@ -120,6 +130,18 @@ public class TimeBasedExpiringValueMapTest {
         assertThat(map.size(), greaterThan(0));
         map.get("random-key");
         assertEquals(0, map.size());
+    }
+
+    @Test
+    public void avoid_npe_during_remove() throws Exception {
+        map = new TimeBasedExpiringValueMap<>(new TimeServiceImpl(), TIMEOUT);
+        ConcurrentMap internalMap = mock(ConcurrentMap.class);
+        TimedKeyValue<String, Object> value = new TimedKeyValue<>(0, "test", new Object());
+        when(internalMap.remove(any())).thenReturn(null);
+        ReflectionTestUtils.setField(map, "map", internalMap);
+        assertFalse(map.removeExpired(value));
+        verify(internalMap, times(1)).putIfAbsent(same(value.key), same(value));
+        assertFalse(map.removeExpired(null));
     }
 
 }

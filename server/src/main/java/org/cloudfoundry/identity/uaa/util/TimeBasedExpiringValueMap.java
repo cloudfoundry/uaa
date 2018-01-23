@@ -30,7 +30,7 @@ public class TimeBasedExpiringValueMap<K,V> {
     public static final long DEFALT_TIMEOUT = 2 * 1000 * 60;
 
     private final TimeService timeService;
-    private final Map<K,Value> map;
+    private final Map<K,TimedKeyValue> map;
     private final long timeout;
     private final AtomicLong lastCheck = new AtomicLong(0);
 
@@ -44,13 +44,13 @@ public class TimeBasedExpiringValueMap<K,V> {
     }
 
     public void put(K key, V value) {
-        Value v = new Value(timeService.getCurrentTimeMillis(), key, value);
+        TimedKeyValue v = new TimedKeyValue(timeService.getCurrentTimeMillis(), key, value);
         map.put(key, v);
         expireCheck();
     }
 
     public V get(K key) {
-        Value v = map.get(key);
+        TimedKeyValue<K,V> v = map.get(key);
         if (v!=null) {
             //optimized for fast retrieval
             removeExpired(v);
@@ -63,7 +63,7 @@ public class TimeBasedExpiringValueMap<K,V> {
     }
 
     public V remove(K key) {
-        Value v = map.remove(key);
+        TimedKeyValue<K,V> v = map.remove(key);
         if (v!=null) {
             return v.getValue();
         }
@@ -85,7 +85,7 @@ public class TimeBasedExpiringValueMap<K,V> {
             //time for an expiry check
             if (lastCheck.compareAndSet(l,now)) {
                 Map.Entry[] entries = map.entrySet().toArray(new Map.Entry[0]);
-                for (Map.Entry<K, Value> entry : entries) {
+                for (Map.Entry<K, TimedKeyValue> entry : entries) {
                     removeExpired(entry.getValue());
                 }
             }
@@ -97,40 +97,17 @@ public class TimeBasedExpiringValueMap<K,V> {
         return (now - time) > timeout;
     }
 
-    protected boolean removeExpired(Value value) {
-        if ( hasExpired(value.getTime()) ) {
-            Value remove = map.remove(value.getKey());
-            if (hasExpired(remove.getTime())) {
+    protected boolean removeExpired(TimedKeyValue<K,V> timedKeyValue) {
+        if (timedKeyValue != null && hasExpired(timedKeyValue.getTime()) ) {
+            TimedKeyValue remove = map.remove(timedKeyValue.getKey());
+            if (remove !=null && hasExpired(remove.getTime())) {
                 return true;
             }
             //value has been replaced since we decided to expire it
             //replace it only if there isn't one
-            map.putIfAbsent(value.getKey(), value);
+            map.putIfAbsent(timedKeyValue.getKey(), timedKeyValue);
         }
         return false;
     }
 
-    private class Value {
-        final long time;
-        final K key;
-        final V value;
-
-        private Value(long time, K key, V value) {
-            this.time = time;
-            this.value = value;
-            this.key = key;
-        }
-
-        public V getValue() {
-            return value;
-        }
-
-        public K getKey() {
-            return key;
-        }
-
-        public long getTime() {
-            return time;
-        }
-    }
 }
