@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -47,6 +48,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
@@ -91,6 +93,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyObject;
@@ -113,6 +117,7 @@ public class LoginInfoEndpointTests {
     private IdentityProvider uaaProvider;
     private IdentityZoneConfiguration originalConfiguration;
     private XOAuthProviderConfigurator configurator;
+    private MfaChecker mfaChecker;
 
     @Before
     public void setUpPrincipal() {
@@ -131,6 +136,7 @@ public class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, mock(UrlContentCache.class), mock(RestTemplateFactory.class));
+        mfaChecker = mock(MfaChecker.class);
     }
 
     @After
@@ -850,6 +856,30 @@ public class LoginInfoEndpointTests {
         endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Arrays.asList(MediaType.TEXT_XML));
     }
 
+    @Test
+    public void testGenerateAutologinCodeFailsWhenMfaRequired() throws Exception {
+        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        LoginInfoEndpoint endpoint = getEndpoint();
+        try {
+            endpoint.generateAutologinCode(mock(AutologinRequest.class), "Basic 1234");
+            fail("MFA was not required");
+        } catch (BadCredentialsException e) {
+            assertEquals("MFA is required", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPerformAutologinFailsWhenMfaRequired() throws Exception {
+        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        LoginInfoEndpoint endpoint = getEndpoint();
+        try {
+            endpoint.performAutologin(new MockHttpSession());
+            fail("MFA was not required");
+        } catch (BadCredentialsException e) {
+            assertEquals("MFA is required", e.getMessage());
+        }
+    }
+
     private MockHttpServletRequest getMockHttpServletRequest() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
@@ -872,6 +902,7 @@ public class LoginInfoEndpointTests {
         IdentityZoneHolder.get().getConfig().setPrompts(prompts);
         endpoint.setProviderProvisioning(identityProviderProvisioning);
         endpoint.setXoAuthProviderConfigurator(configurator);
+        endpoint.setMfaChecker(mfaChecker);
         return endpoint;
     }
 
