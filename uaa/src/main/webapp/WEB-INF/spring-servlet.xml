@@ -525,14 +525,14 @@
         <property name="originsToDelete" value="#{@config['delete']==null ? null : @config['delete']['identityProviders']}" />
     </bean>
 
-    <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean">
+    <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean">
         <constructor-arg name="definitions"
                   value="#{@config['login']==null ? null :
                            @config['login']['oauth']==null ? null :
                            @config['login']['oauth']['providers']}"/>
     </bean>
 
-    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getOauthIdpDefinitions" />
+    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getProviders" />
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap" depends-on="mfaProviderBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>

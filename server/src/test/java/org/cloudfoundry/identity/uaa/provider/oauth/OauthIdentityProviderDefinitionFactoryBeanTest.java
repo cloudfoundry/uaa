@@ -27,13 +27,13 @@ import static org.junit.Assert.assertTrue;
 
 public class OauthIdentityProviderDefinitionFactoryBeanTest {
 
-    private OauthIdentityProviderDefinitionFactoryBean factoryBean;
+    private OauthIDPWrapperFactoryBean factoryBean;
     private HashMap<String, Object> idpDefinitionMap;
     private OIDCIdentityProviderDefinition providerDefinition;
 
     @Before
     public void setup() throws Exception {
-        factoryBean = new OauthIdentityProviderDefinitionFactoryBean(null);
+        factoryBean = new OauthIDPWrapperFactoryBean(null);
         providerDefinition = new OIDCIdentityProviderDefinition();
         idpDefinitionMap = new HashMap<>();
         idpDefinitionMap.put("authUrl", "http://auth.url");

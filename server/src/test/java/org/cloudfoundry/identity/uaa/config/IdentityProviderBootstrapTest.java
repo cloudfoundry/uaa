@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -38,6 +39,7 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
@@ -328,7 +330,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void test_oauth_and_oidc_provider_deletion() throws Exception {
-        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        setOauthIDPWrappers();
         bootstrap.setOriginsToDelete(new LinkedList(oauthProviderConfig.keySet()));
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
@@ -340,9 +342,36 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         }
     }
+
+    public void setOauthIDPWrappers() {
+        List<IdentityProviderWrapper> wrappers = new LinkedList<>();
+        oauthProviderConfig
+            .entrySet()
+            .stream()
+            .forEach(
+                p -> {
+                    IdentityProvider provider = new IdentityProvider();
+                    if (p.getValue() instanceof OIDCIdentityProviderDefinition) {
+                        provider.setType(OIDC10);
+                    } else if (p.getValue() instanceof RawXOAuthIdentityProviderDefinition) {
+                        provider.setType(OAUTH20);
+                    }
+                    wrappers.add(
+                        OauthIDPWrapperFactoryBean.getIdentityProviderWrapper(
+                            p.getKey(),
+                            p.getValue(),
+                            provider,
+                            true
+                        )
+                    );
+                }
+            );
+        bootstrap.setOauthIdpDefinitions(wrappers);
+    }
+
     @Test
     public void test_oauth_and_oidc_provider_activation() throws Exception {
-        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        setOauthIDPWrappers();
         oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
 
@@ -382,13 +411,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void test_oauth_and_oidc_provider_override_false() throws Exception {
-        oauthProviderConfig
-            .entrySet()
-            .stream()
-            .forEach(
-                e -> e.get
-            );
-        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        setOauthIDPWrappers();
         oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
@@ -407,8 +430,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         reset(configurator);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition));
 
-        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
-        bootstrap.setSamlProviders(configurator);
+            setOauthIDPWrappers();
+            bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
     }
 
@@ -450,7 +473,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         );
 
         bootstrap.setSamlProviders(configurator);
-        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        setOauthIDPWrappers();
         bootstrap.afterPropertiesSet();
         ContextRefreshedEvent event = new ContextRefreshedEvent(mock(ApplicationContext.class));
         bootstrap.onApplicationEvent(event);

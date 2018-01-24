@@ -23,15 +23,13 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
@@ -68,7 +66,7 @@ public class IdentityProviderBootstrap
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProviderWrapper> providers = new LinkedList<>();
     private BootstrapSamlIdentityProviderConfigurator configurator;
-    private Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions;
+    private List<IdentityProviderWrapper> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
     private Environment environment;
@@ -92,25 +90,9 @@ public class IdentityProviderBootstrap
         if (oauthIdpDefintions == null) {
             return;
         }
-        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> definition : oauthIdpDefintions.entrySet()) {
-            validateDuplicateAlias(definition.getKey());
-            IdentityProvider provider = new IdentityProvider();
-            if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
-                provider.setType(OriginKeys.OAUTH20);
-            } else if(OIDCIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
-                provider.setType(OriginKeys.OIDC10);
-            } else {
-                throw new IllegalArgumentException("Unknown provider type.");
-            }
-            provider.setOriginKey(definition.getKey());
-            provider.setName("UAA Oauth Identity Provider["+provider.getOriginKey()+"]");
-            provider.setActive(true);
-            try {
-                provider.setConfig(definition.getValue());
-            } catch (JsonUtils.JsonUtilException x) {
-                throw new RuntimeException("Non serializable Oauth config");
-            }
-            providers.add(new IdentityProviderWrapper(provider));
+        for (IdentityProviderWrapper wrapper : oauthIdpDefintions) {
+            validateDuplicateAlias(wrapper.getProvider().getOriginKey());
+            providers.add(wrapper);
         }
     }
 
@@ -337,7 +319,7 @@ public class IdentityProviderBootstrap
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
-    public void setOauthIdpDefinitions(Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions) {
+    public void setOauthIdpDefinitions(List<IdentityProviderWrapper> oauthIdpDefintions) {
         this.oauthIdpDefintions = oauthIdpDefintions;
     }
 
@@ -349,23 +331,4 @@ public class IdentityProviderBootstrap
         return ofNullable(originsToDelete).orElse(emptyList());
     }
 
-    public class IdentityProviderWrapper {
-        final IdentityProvider provider;
-        boolean override = true;
-        public IdentityProviderWrapper(IdentityProvider provider) {
-            this.provider = provider;
-        }
-
-        public IdentityProvider getProvider() {
-            return provider;
-        }
-
-        public boolean isOverride() {
-            return override;
-        }
-
-        public void setOverride(boolean override) {
-            this.override = override;
-        }
-    }
 }
