@@ -219,7 +219,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
                 model.put("original_uri", UrlUtils.buildFullRequestUrl(request));
                 return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
             }
-
         } catch (RuntimeException e) {
             sessionStatus.setComplete();
             throw e;
@@ -432,11 +431,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
 
-        HttpHost httpHost = URIUtils.extractHost(URI.create(requestedRedirect));
-        String sessionState = openIdSessionStateCalculator.calculate(RequestContextHolder.currentRequestAttributes().getSessionId(),
-                authorizationRequest.getClientId(), httpHost.toURI());
+        if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))) {
+          HttpHost httpHost = URIUtils.extractHost(URI.create(requestedRedirect));
+          String sessionState = openIdSessionStateCalculator.calculate(RequestContextHolder.currentRequestAttributes().getSessionId(),
+                  authorizationRequest.getClientId(), httpHost.toURI());
 
-        url.append("&session_state=").append(sessionState);
+          url.append("&session_state=").append(sessionState);
+        }
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
         String existingFragment = builder.build(true).getFragment();
