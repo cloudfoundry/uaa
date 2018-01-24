@@ -94,6 +94,7 @@ jwt:
       unique: true
     revocable: true
 ldap:
+  override: false
   addShadowUserOnLogin: false
   base:
     password: password

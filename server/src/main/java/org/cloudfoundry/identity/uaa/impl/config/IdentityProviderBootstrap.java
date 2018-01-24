@@ -54,7 +54,9 @@ import org.springframework.dao.EmptyResultDataAccessException;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.SYSTEM_AUTHENTICATION;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
@@ -64,7 +66,7 @@ public class IdentityProviderBootstrap
     private static Log logger = LogFactory.getLog(IdentityProviderBootstrap.class);
 
     private IdentityProviderProvisioning provisioning;
-    private List<IdentityProvider> providers = new LinkedList<>();
+    private List<IdentityProviderWrapper> providers = new LinkedList<>();
     private BootstrapSamlIdentityProviderConfigurator configurator;
     private Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
@@ -108,12 +110,12 @@ public class IdentityProviderBootstrap
             } catch (JsonUtils.JsonUtilException x) {
                 throw new RuntimeException("Non serializable Oauth config");
             }
-            providers.add(provider);
+            providers.add(new IdentityProviderWrapper(provider));
         }
     }
 
     public void validateDuplicateAlias(String originKey) {
-        for (IdentityProvider provider: providers) {
+        for (IdentityProvider provider: providers.stream().map(IdentityProviderWrapper::getProvider).collect(toList())) {
             if (provider.getOriginKey().equals(originKey)) {
                 throw new IllegalArgumentException("Provider alias " + originKey + " is not unique.");
             }
@@ -139,7 +141,7 @@ public class IdentityProviderBootstrap
             } catch (JsonUtils.JsonUtilException x) {
                 throw new RuntimeException("Non serializable SAML config");
             }
-            providers.add(provider);
+            providers.add(new IdentityProviderWrapper(provider));
         }
     }
 
@@ -148,20 +150,31 @@ public class IdentityProviderBootstrap
     }
 
     protected void addLdapProvider() {
-        boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(OriginKeys.LDAP);
+        boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(LDAP);
         //the LDAP provider has to be there
         //and we activate, deactivate based on the `ldap` profile presence
         IdentityProvider provider = new IdentityProvider();
         provider.setActive(ldapProfile);
-        provider.setOriginKey(OriginKeys.LDAP);
-        provider.setType(OriginKeys.LDAP);
+        provider.setOriginKey(LDAP);
+        provider.setType(LDAP);
         provider.setName("UAA LDAP Provider");
         Map<String,Object> ldap = new HashMap<>();
         ldap.put(LdapIdentityProviderDefinition.LDAP, ldapConfig);
         LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
         provider.setConfig(json);
         provider.setActive(ldapProfile && json.isConfigured());
-        providers.add(provider);
+        /*
+          LDAP is a bit tricky. We have a Flyway conversion (2.0.2) that always adds an LDAP provider.
+          So we have to assume that if LDAP config == null, then we should override it
+         */
+        boolean override = ldapConfig == null || ldapConfig.get("override") == null ? true : (boolean) ldapConfig.get("override");
+        if (!override) {
+            IdentityProvider existing = getProviderByOrigin(LDAP, IdentityZone.getUaa().getId());
+            override = existing == null || existing.getConfig() == null;
+        }
+        IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
+        wrapper.setOverride(override);
+        providers.add(wrapper);
     }
 
 
@@ -212,7 +225,7 @@ public class IdentityProviderBootstrap
             provider.setName("UAA Keystone Provider");
             provider.setActive(active);
             provider.setConfig(getKeystoneDefinition(keystoneConfig));
-            providers.add(provider);
+            providers.add(new IdentityProviderWrapper(provider));
         }
     }
 
@@ -237,20 +250,17 @@ public class IdentityProviderBootstrap
 
         String zoneId = IdentityZone.getUaa().getId();
 
-        for (IdentityProvider provider: providers) {
+        for (IdentityProviderWrapper wrapper: providers) {
+            IdentityProvider provider = wrapper.getProvider();
             if (getOriginsToDelete().contains(provider.getOriginKey())) {
                 //dont process origins slated for deletion
                 continue;
             }
-            IdentityProvider existing = null;
-            try {
-                existing = provisioning.retrieveByOrigin(provider.getOriginKey(), zoneId);
-            }catch (EmptyResultDataAccessException x){
-            }
+            IdentityProvider existing = getProviderByOrigin(provider.getOriginKey(), zoneId);
             provider.setIdentityZoneId(zoneId);
             if (existing==null) {
                 provisioning.create(provider, zoneId);
-            } else {
+            } else if (wrapper.isOverride()) {
                 provider.setId(existing.getId());
                 provider.setCreated(existing.getCreated());
                 provider.setVersion(existing.getVersion());
@@ -261,9 +271,18 @@ public class IdentityProviderBootstrap
         updateDefaultZoneUaaIDP();
     }
 
+    public IdentityProvider getProviderByOrigin(String origin, String zoneId) {
+        try {
+            return provisioning.retrieveByOrigin(origin, zoneId);
+        }catch (EmptyResultDataAccessException x){
+        }
+        return null;
+
+    }
+
     private void deleteIdentityProviders(String zoneId) {
         for (String origin : getOriginsToDelete()) {
-            if (!UAA.equals(origin) && !OriginKeys.LDAP.equals(origin)) {
+            if (!UAA.equals(origin) && !LDAP.equals(origin)) {
                 try {
                     logger.debug("Attempting to deactivating identity provider:"+origin);
                     IdentityProvider provider = provisioning.retrieveByOrigin(origin, zoneId);
@@ -302,15 +321,6 @@ public class IdentityProviderBootstrap
         }
     }
 
-    private boolean isAmongProviders(String originKey, String type) {
-        for (IdentityProvider provider: providers) {
-            if (provider.getOriginKey().equals(originKey) && provider.getType().equals(type)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public void setDefaultPasswordPolicy(PasswordPolicy defaultPasswordPolicy) {
         this.defaultPasswordPolicy = defaultPasswordPolicy;
     }
@@ -337,5 +347,25 @@ public class IdentityProviderBootstrap
 
     public List<String> getOriginsToDelete() {
         return ofNullable(originsToDelete).orElse(emptyList());
+    }
+
+    public class IdentityProviderWrapper {
+        final IdentityProvider provider;
+        boolean override = true;
+        public IdentityProviderWrapper(IdentityProvider provider) {
+            this.provider = provider;
+        }
+
+        public IdentityProvider getProvider() {
+            return provider;
+        }
+
+        public boolean isOverride() {
+            return override;
+        }
+
+        public void setOverride(boolean override) {
+            this.override = override;
+        }
     }
 }

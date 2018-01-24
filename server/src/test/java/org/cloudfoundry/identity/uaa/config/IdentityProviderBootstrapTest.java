@@ -56,6 +56,7 @@ import org.springframework.mock.env.MockEnvironment;
 
 import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
@@ -141,14 +142,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testLdapProfileBootstrap() throws Exception {
-        environment.setActiveProfiles(OriginKeys.LDAP);
+        environment.setActiveProfiles(LDAP);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
-        assertEquals(OriginKeys.LDAP, ldapProvider.getType());
+        assertEquals(LDAP, ldapProvider.getType());
         LdapIdentityProviderDefinition definition = ldapProvider.getConfig();
         assertNotNull(definition);
         assertFalse(definition.isConfigured());
@@ -156,11 +157,33 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testLdapBootstrap() throws Exception {
+        final String idpDescription = "Test LDAP Provider Description";
+        HashMap<String, Object> ldapConfig = getGenericLdapConfig(idpDescription);
+
+        bootstrap.setLdapConfig(ldapConfig);
+        bootstrap.afterPropertiesSet();
+
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
+        validateGenericLdapProvider(idpDescription, ldapProvider);
+    }
+
+    public void validateGenericLdapProvider(String idpDescription, IdentityProvider<LdapIdentityProviderDefinition> ldapProvider) {
+        assertNotNull(ldapProvider);
+        assertNotNull(ldapProvider.getCreated());
+        assertNotNull(ldapProvider.getLastModified());
+        assertEquals(LDAP, ldapProvider.getType());
+        assertThat(ldapProvider.getConfig().getEmailDomain(), containsInAnyOrder("test.domain"));
+        assertEquals(Arrays.asList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
+        assertEquals("first_name", ldapProvider.getConfig().getAttributeMappings().get("given_name"));
+        assertEquals(idpDescription, ldapProvider.getConfig().getProviderDescription());
+        assertFalse(ldapProvider.getConfig().isStoreCustomAttributes());
+    }
+
+    private HashMap<String, Object> getGenericLdapConfig(String idpDescription) {
         HashMap<String, Object> ldapConfig = new HashMap<>();
 
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
         ldapConfig.put(STORE_CUSTOM_ATTRIBUTES_NAME, false);
-        final String idpDescription = "Test LDAP Provider Description";
         ldapConfig.put(PROVIDER_DESCRIPTION, idpDescription);
         List<String> attrMap = new ArrayList<>();
         attrMap.add("value");
@@ -169,62 +192,70 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "first_name");
         ldapConfig.put(ATTRIBUTE_MAPPINGS, attributeMappings);
+        return ldapConfig;
+    }
+
+    @Test
+    public void test_ldap_override_false() throws Exception {
+        environment.setActiveProfiles(LDAP);
+        final String idpDescription = "Test LDAP Provider Description";
+        HashMap<String, Object> ldapConfig = getGenericLdapConfig(idpDescription);
+        ldapConfig.put("override", false);
 
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
-        assertNotNull(ldapProvider);
-        assertNotNull(ldapProvider.getCreated());
-        assertNotNull(ldapProvider.getLastModified());
-        assertEquals(OriginKeys.LDAP, ldapProvider.getType());
-        assertEquals("test.domain", ldapProvider.getConfig().getEmailDomain().get(0));
-        assertEquals(Arrays.asList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
-        assertEquals("first_name", ldapProvider.getConfig().getAttributeMappings().get("given_name"));
-        assertEquals(idpDescription, ldapProvider.getConfig().getProviderDescription());
-        assertFalse(ldapProvider.getConfig().isStoreCustomAttributes());
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
+        validateGenericLdapProvider(idpDescription, ldapProvider);
+
+        ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain", "test2.domain"));
+        bootstrap.setLdapConfig(ldapConfig);
+        bootstrap.afterPropertiesSet();
+        ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
+        //no changes
+        validateGenericLdapProvider(idpDescription, ldapProvider);
     }
 
     @Test
     public void testRemovedLdapBootstrapRemainsActive() throws Exception {
-        environment.setActiveProfiles(OriginKeys.LDAP);
+        environment.setActiveProfiles(LDAP);
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put("base.url","ldap://localhost:389/");
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
-        assertEquals(OriginKeys.LDAP, ldapProvider.getType());
+        assertEquals(LDAP, ldapProvider.getType());
         assertTrue(ldapProvider.isActive());
 
         bootstrap.setLdapConfig(null);
         bootstrap.afterPropertiesSet();
-        ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
-        assertEquals(OriginKeys.LDAP, ldapProvider.getType());
+        assertEquals(LDAP, ldapProvider.getType());
         assertFalse(ldapProvider.isActive());
 
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
-        ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
-        assertEquals(OriginKeys.LDAP, ldapProvider.getType());
+        assertEquals(LDAP, ldapProvider.getType());
         assertTrue(ldapProvider.isActive());
 
         environment.setActiveProfiles("default");
         bootstrap.afterPropertiesSet();
-        ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
-        assertEquals(OriginKeys.LDAP, ldapProvider.getType());
+        assertEquals(LDAP, ldapProvider.getType());
         assertFalse(ldapProvider.isActive());
     }
 
@@ -317,19 +348,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
-            assertNotNull(bootstrapOauthProvider);
-            assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
-            assertNotNull(bootstrapOauthProvider.getCreated());
-            assertNotNull(bootstrapOauthProvider.getLastModified());
-            assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
-            assertTrue(bootstrapOauthProvider.isActive());
-            assertTrue(bootstrapOauthProvider.getConfig().isStoreCustomAttributes()); //default
-            if (OIDC10.equals(provider.getKey())) {
-                assertEquals("code id_token", bootstrapOauthProvider.getConfig().getResponseType());
-            } else {
-                assertEquals("code", bootstrapOauthProvider.getConfig().getResponseType());
-            }
-
+            validateOauthOidcProvider(provider, bootstrapOauthProvider);
         }
 
         bootstrap.setOauthIdpDefinitions(null);
@@ -346,7 +365,39 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    public void validateOauthOidcProvider(Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider, IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider) {
+        assertNotNull(bootstrapOauthProvider);
+        assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
+        assertNotNull(bootstrapOauthProvider.getCreated());
+        assertNotNull(bootstrapOauthProvider.getLastModified());
+        assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
+        assertTrue(bootstrapOauthProvider.isActive());
+        assertTrue(bootstrapOauthProvider.getConfig().isStoreCustomAttributes()); //default
+        if (OIDC10.equals(provider.getKey())) {
+            assertEquals("code id_token", bootstrapOauthProvider.getConfig().getResponseType());
+        } else {
+            assertEquals("code", bootstrapOauthProvider.getConfig().getResponseType());
+        }
+    }
+
+    @Test
+    public void test_oauth_and_oidc_provider_override_false() throws Exception {
+        oauthProviderConfig
+            .entrySet()
+            .stream()
+            .forEach(
+                e -> e.get
+            );
+        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+        oidcProvider.setResponseType("code id_token");
+        bootstrap.afterPropertiesSet();
+        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
+            validateOauthOidcProvider(provider, bootstrapOauthProvider);
+        }
+    }
+
+        @Test(expected = IllegalArgumentException.class)
     public void bootstrap_failsIf_samlAndOauth_haveTheSameAlias() throws Exception {
         oauthProviderConfig.clear();
         oauthProviderConfig.put("same-alias", oauthProvider);
