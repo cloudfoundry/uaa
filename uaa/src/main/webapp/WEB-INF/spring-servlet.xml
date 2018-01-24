@@ -503,6 +503,7 @@
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
         <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
         <property name="globalLinks" ref="globalLinks"/>
+        <property name="mfaChecker" ref="mfaChecker"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint">

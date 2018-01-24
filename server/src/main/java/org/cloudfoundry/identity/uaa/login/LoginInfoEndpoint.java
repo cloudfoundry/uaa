@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -168,6 +169,8 @@ public class LoginInfoEndpoint {
 
     private Links globalLinks = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
 
+    private MfaChecker mfaChecker;
+
     public void setGlobalLinks(Links globalLinks) {
         this.globalLinks = globalLinks;
     }
@@ -205,6 +208,10 @@ public class LoginInfoEndpoint {
 
     public void setEntityID(String entityID) {
         this.entityID = entityID;
+    }
+
+    public void setMfaChecker(MfaChecker mfaChecker) {
+        this.mfaChecker = mfaChecker;
     }
 
     public LoginInfoEndpoint() {
@@ -653,6 +660,10 @@ public class LoginInfoEndpoint {
     @ResponseBody
     public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
                                                    @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), "uaa")) {
+            throw new BadCredentialsException("MFA is required");
+        }
+
         if (auth == null || (!auth.startsWith("Basic"))) {
             throw new BadCredentialsException("No basic authorization client information in request");
         }
@@ -695,6 +706,9 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), "uaa")) {
+            throw new BadCredentialsException("MFA is required");
+        }
         String redirectLocation = "home";
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
