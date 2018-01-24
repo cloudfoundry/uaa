@@ -113,6 +113,22 @@ public class ClientAdminEndpointsValidatorTests {
         validator.validate(client, true, true);
     }
 
+    @Test(expected = InvalidClientDetailsException.class)
+    public void validate_rejectsMalformedUrls() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
+        client.setRegisteredRedirectUri(Collections.singleton("httasdfasp://anything.comadfsfdasfdsa"));
+
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void validate_allowsAUrlWithUnderscore() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
+        client.setRegisteredRedirectUri(Collections.singleton("http://foo_name.anything.com/"));
+
+        validator.validate(client, true, true);
+    }
+
     @Test
     public void test_validate_jwt_bearer_grant_type_without_secret_for_update() throws Exception {
         client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));

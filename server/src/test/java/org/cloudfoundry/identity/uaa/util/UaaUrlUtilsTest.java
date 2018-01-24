@@ -78,7 +78,8 @@ public class UaaUrlUtilsTest {
         "http://sub*.valid.com/*/with/path**",
         "http://*.domain.com",
         "http://username:password@some.server.com",
-        "http://username:password@some.server.com/path"
+        "http://username:password@some.server.com/path",
+        "http://under_score_subdomain.example.com"
     );
 
     @Before
