@@ -13,7 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.apache.http.HttpHost;
+import org.apache.http.client.utils.URIUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
@@ -51,7 +52,6 @@ import org.springframework.security.oauth2.provider.approval.UserApprovalHandler
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.oauth2.provider.code.InMemoryAuthorizationCodeServices;
 import org.springframework.security.oauth2.provider.endpoint.AbstractEndpoint;
-import org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.oauth2.provider.implicit.ImplicitTokenRequest;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestValidator;
@@ -67,6 +67,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.DefaultSessionAttributeStore;
 import org.springframework.web.bind.support.SessionAttributeStore;
 import org.springframework.web.bind.support.SessionStatus;
+import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.View;
@@ -77,8 +78,8 @@ import org.springframework.web.util.UriUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.security.Principal;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -116,23 +117,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
 
-    public HybridTokenGranterForAuthorizationCode getHybridTokenGranterForAuthCode() {
-        return hybridTokenGranterForAuthCode;
-    }
-
-    public void setHybridTokenGranterForAuthCode(HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode) {
-        this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
-    }
-
-    public void setSessionAttributeStore(SessionAttributeStore sessionAttributeStore) {
-        this.sessionAttributeStore = sessionAttributeStore;
-    }
-
-    public void setErrorPage(String errorPage) {
-        this.errorPage = errorPage;
-    }
+    private OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
+
     @RequestMapping(value = "/oauth/authorize")
     public ModelAndView authorize(Map<String, Object> model,
                                   @RequestParam Map<String, String> parameters,
@@ -447,14 +435,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
         }
 
-        if (authUser.getDetails() != null && authUser.getDetails() instanceof UaaAuthenticationDetails) {
-            UaaAuthenticationDetails details = (UaaAuthenticationDetails) authUser.getDetails();
-            OpenIdSessionStateCalculator openIdSessionStateCalculator = new OpenIdSessionStateCalculator(details, new SecureRandom());
-            String session_state = openIdSessionStateCalculator.calculate();
-            if (session_state != null) {
-                url.append("&session_state=").append(session_state);
-            }
-        }
+
+        HttpHost httpHost = URIUtils.extractHost(URI.create(requestedRedirect));
+        String sessionState = openIdSessionStateCalculator.calculate(RequestContextHolder.currentRequestAttributes().getSessionId(),
+                authorizationRequest.getClientId(), httpHost.toURI());
+
+        url.append("&session_state=").append(sessionState);
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
         String existingFragment = builder.build(true).getFragment();
@@ -657,11 +643,36 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
     }
 
     protected ClientServicesExtension getClientServiceExtention() {
-        return (ClientServicesExtension )super.getClientDetailsService();
+        return (ClientServicesExtension) super.getClientDetailsService();
     }
 
 
     public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         super.setClientDetailsService(clientDetailsService);
+    }
+
+    public HybridTokenGranterForAuthorizationCode getHybridTokenGranterForAuthCode() {
+        return hybridTokenGranterForAuthCode;
+    }
+
+    public void setHybridTokenGranterForAuthCode(HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode) {
+        this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
+    }
+
+    public void setSessionAttributeStore(SessionAttributeStore sessionAttributeStore) {
+        this.sessionAttributeStore = sessionAttributeStore;
+    }
+
+    public void setErrorPage(String errorPage) {
+        this.errorPage = errorPage;
+    }
+
+
+    public OpenIdSessionStateCalculator getOpenIdSessionStateCalculator() {
+        return openIdSessionStateCalculator;
+    }
+
+    public void setOpenIdSessionStateCalculator(OpenIdSessionStateCalculator openIdSessionStateCalculator) {
+        this.openIdSessionStateCalculator = openIdSessionStateCalculator;
     }
 }

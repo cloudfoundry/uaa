@@ -38,4 +38,7 @@
       <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
     </bean>
 
+    <bean id="openIdSessionStateCalculator" class="org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator">
+        <constructor-arg name="uaaUrl" ref="uaaUrl"/>
+    </bean>
 </beans>
