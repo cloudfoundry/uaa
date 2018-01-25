@@ -110,11 +110,10 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         samlIdentityProviderDefinition.setNameID("nameId");
         samlIdentityProviderDefinition.setShowSamlLink(true);
         samlIdentityProviderDefinition.setMetadataTrustCheck(true);
-        samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone(
 
-        );
-        samlIdentityProviderDefinition.setIdpEntityAlias("alias2");
-        samlIdentityProviderDefinition.setMetaDataLocation("http://location2");
+        samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone();
+        samlIdentityProviderDefinition1.setIdpEntityAlias("alias2");
+        samlIdentityProviderDefinition1.setMetaDataLocation("http://location2");
 
         oauthProvider = new RawXOAuthIdentityProviderDefinition();
         setCommonProperties(oauthProvider);
@@ -427,7 +426,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlIdentityProviderDefinition.setIdpEntityAlias("same-alias");
 
-        configureSamlProviders(samlIdentityProviderDefinition);
+        configureSamlProviders(true, samlIdentityProviderDefinition);
 
         setOauthIDPWrappers();
         bootstrap.setSamlProviders(configurator);
@@ -449,7 +448,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     @Test
     public void testSamlBootstrap() throws Exception {
         bootstrap.setSamlProviders(configurator);
-        configureSamlProviders(samlIdentityProviderDefinition);
+        configureSamlProviders(true,samlIdentityProviderDefinition);
 
         bootstrap.afterPropertiesSet();
 
@@ -464,7 +463,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void test_providers_deleted_and_not_created() throws Exception {
-        configureSamlProviders(samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
+        configureSamlProviders(true,samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
         List<String> originsToDelete = Arrays.asList(
             samlIdentityProviderDefinition.getIdpEntityAlias(),
             OIDC10
@@ -493,25 +492,54 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         );
     }
 
-    public void configureSamlProviders(SamlIdentityProviderDefinition... definitions) {
+    public void configureSamlProviders(boolean override, SamlIdentityProviderDefinition... definitions) {
         reset(configurator);
         List<IdentityProviderWrapper<SamlIdentityProviderDefinition>> wrappers = new LinkedList<>();
         for (SamlIdentityProviderDefinition def : definitions) {
+            IdentityProviderWrapper w = new IdentityProviderWrapper(
+                BootstrapSamlIdentityProviderData.parseSamlProvider(def)
+            );
+            w.setOverride(override);
             wrappers.add(
-                new IdentityProviderWrapper(
-                    BootstrapSamlIdentityProviderData.parseSamlProvider(def)
-                )
+                w
             );
         }
         when(configurator.getSamlProviders()).thenReturn(wrappers);
     }
 
     @Test
-    public void test_saml_provider_not_deactivated() throws Exception {
-        configureSamlProviders(samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
-
+    public void test_saml_provider_override_false() throws Exception {
+        configureSamlProviders(true,samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
         bootstrap.setSamlProviders(configurator);
+        bootstrap.afterPropertiesSet();
 
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = provisioning.retrieveByOrigin(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        assertNotNull(samlProvider);
+        assertNotNull(samlProvider2);
+        assertEquals("http://location", samlProvider.getConfig().getMetaDataLocation());
+        assertEquals("http://location2", samlProvider2.getConfig().getMetaDataLocation());
+
+        samlIdentityProviderDefinition.setMetaDataLocation("http://some.other.location");
+        samlIdentityProviderDefinition1.setMetaDataLocation("http://some.other.location");
+        configureSamlProviders(false,samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
+        bootstrap.setSamlProviders(configurator);
+        bootstrap.afterPropertiesSet();
+
+        samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOrigin(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        assertNotNull(samlProvider);
+        assertNotNull(samlProvider2);
+        assertEquals("http://location", samlProvider.getConfig().getMetaDataLocation());
+        assertEquals("http://location2", samlProvider2.getConfig().getMetaDataLocation());
+
+
+    }
+
+    @Test
+    public void test_saml_provider_not_deactivated() throws Exception {
+        configureSamlProviders(true,samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
+        bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
         IdentityProvider samlProvider = provisioning.retrieveByOrigin(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
@@ -532,7 +560,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
-        configureSamlProviders(samlIdentityProviderDefinition);
+        configureSamlProviders(true,samlIdentityProviderDefinition);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
@@ -552,7 +580,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
-        configureSamlProviders(samlIdentityProviderDefinition1);
+        configureSamlProviders(true,samlIdentityProviderDefinition1);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
