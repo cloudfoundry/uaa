@@ -226,13 +226,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // OAuth2RefreshToken refreshToken =
         // tokenStore.readRefreshToken(refreshTokenValue);
         // if (refreshToken == null) {
-        // throw new InvalidGrantException("Invalid refresh token: " +
-        // refreshTokenValue);
+        // throw new InvalidGrantException("Invalid refresh token");
         // }
 
         String clientId = (String) claims.get(CID);
         if (clientId == null || !clientId.equals(request.getClientId())) {
-            throw new InvalidGrantException("Wrong client for this refresh token: " + refreshTokenValue);
+            throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
         }
 
         String userid = (String) claims.get(USER_ID);
@@ -256,8 +255,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000l;
 
         if (new Date(refreshTokenExpireDate).before(new Date())) {
-            throw new InvalidTokenException("Invalid refresh token (expired): " + refreshTokenValue + " expired at "
-                            + new Date(refreshTokenExpireDate));
+            throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireDate));
         }
 
         // default request scopes to what is in the refresh token
@@ -301,7 +299,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
             String newRevocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, clientSecretForHash, user);
             if (!revocableHashSignature.equals(newRevocableHashSignature)) {
-                throw new TokenRevokedException(refreshTokenValue);
+                throw new TokenRevokedException("Invalid refresh token: revocable signature mismatch");
             }
         }
 
@@ -1026,7 +1024,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
         if (StringUtils.isEmpty(accessToken)) {
-            throw new InvalidTokenException("Invalid access token value, must be at least 30 characters:"+accessToken);
+            throw new InvalidTokenException("Invalid access token value, must be at least 30 characters");
         }
 
         TokenValidation tokenValidation = validateToken(accessToken);
@@ -1036,8 +1034,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Check token expiry
         Integer expiration = (Integer) claims.get(EXP);
         if (expiration != null && new Date(expiration * 1000l).before(new Date())) {
-            throw new InvalidTokenException("Invalid access token (expired): " + accessToken + " expired at "
-                            + new Date(expiration * 1000l));
+            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000l));
         }
 
         @SuppressWarnings("unchecked")
@@ -1142,7 +1139,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             try {
                  revocableToken = tokenProvisioning.retrieve(token, IdentityZoneHolder.get().getId());
             } catch(EmptyResultDataAccessException ex) {
-                throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect: " + token);
+                throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect.");
             }
             token = revocableToken.getValue();
         }
