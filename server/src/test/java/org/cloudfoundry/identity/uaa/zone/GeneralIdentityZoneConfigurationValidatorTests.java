@@ -19,13 +19,23 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.security.Security;
+import java.util.ArrayList;
+import java.util.Arrays;
 
+import static java.util.Collections.EMPTY_LIST;
 import static java.util.Collections.EMPTY_MAP;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -274,7 +284,29 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     }
 
     @Test
-    public void mfa_validation_exception_gets_thrown_back() throws Exception{
+    public void validate_redirect_uri_protocol_list_empty() throws Exception {
+        zone.getConfig().getLinks().setRedirectURIProtocolWhiteList(EMPTY_LIST);
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid Redirect Uri Protocol Whitelist. Must provide at least one protocol scheme");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_redirect_uri_protocol_list_elements_conform_to_scheme_pattern_negative() throws Exception {
+        zone.getConfig().getLinks().setRedirectURIProtocolWhiteList(Arrays.asList("http", "https", "*"));
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid Redirect Uri Protocol Whitelist Element(s) found. Must Match the pattern " + UaaUrlUtils.allowedRedirectUriProtocolPattern);
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_redirect_uri_protocol_list_elements_conform_to_scheme_pattern_positive() throws Exception {
+        zone.getConfig().getLinks().setRedirectURIProtocolWhiteList(Arrays.asList("http", "https", "cool-scheme", "cool+scheme", "cool.scheme.01"));
+        assertEquals(zoneConfiguration, validator.validate(zone, mode));
+    }
+
+     @Test
+     public void mfa_validation_exception_gets_thrown_back() throws Exception{
         MfaConfigValidator mfaConfigValidator = mock(MfaConfigValidator.class);
         validator.setMfaConfigValidator(mfaConfigValidator);
         doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mfaConfigValidator).validate(any(), any());

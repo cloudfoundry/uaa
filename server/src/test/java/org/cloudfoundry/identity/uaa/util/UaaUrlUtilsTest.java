@@ -58,7 +58,9 @@ public class UaaUrlUtilsTest {
         "www.invalid.com/*/with/path**",
         "www.*.invalid.com/*/with/path**",
         "http://username:password@*.com",
-        "http://username:password@*.com/path"
+        "http://username:password@*.com/path",
+        "http://localhost:80*",
+        "http://localhost:"
     );
     private List<String> validUrls = Arrays.asList(
         "http://localhost",
@@ -70,15 +72,17 @@ public class UaaUrlUtilsTest {
         "https://subsub.sub.valid.com/**",
         "https://valid.com/path/*/path",
         "http://sub.valid.com/*/with/path**",
-        "http*://sub.valid.com/*/with/path**",
-        "http*://*.valid.com/*/with/path**",
         "http://*.valid.com/*/with/path**",
         "https://*.valid.com/*/with/path**",
         "https://*.*.valid.com/*/with/path**",
         "http://sub*.valid.com/*/with/path**",
         "http://*.domain.com",
         "http://username:password@some.server.com",
-        "http://username:password@some.server.com/path"
+        "http://username:password@some.server.com/path",
+        "http://localhost:*/path",
+        "http://username:password@example.com:8080/path",
+        "http://localhost:*/**",
+        "http://localhost:*/*"
     );
 
     @Before

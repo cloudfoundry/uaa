@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -74,15 +75,22 @@ public abstract class UaaUrlUtils {
         return builder;
     }
 
-    private static final Pattern allowedRedirectUriPattern = Pattern.compile(
-        "^http(\\*|s)?://" +            //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
-        "(.*:.*@)?" +                   //username/password in URL
-        "(([a-zA-Z0-9\\-\\*]+\\.)*" +   //subdomains
-        "[a-zA-Z0-9\\-]+\\.)?" +        //hostname
-        "[a-zA-Z0-9\\-]+" +             //tld
-        "(:[0-9]+)?(/.*|$)"             //port and path
-    );
+    private static Pattern getAllowedRedirectUriPattern() {
+        return Pattern.compile(
+                "^(" + IdentityZoneHolder.get().getConfig().getLinks().getRedirectURIProtocolWhiteList().stream()
+                        .map(protocol -> "(" + protocol + ")").collect(Collectors.joining("|")) + ")://" +
+                        "(.*:.*@)?" +                   //username/password in URL
+                        "(([a-zA-Z0-9\\-\\*]+\\.)*" +   //subdomains
+                        "[a-zA-Z0-9\\-]+\\.)?" +        //hostname
+                        "[a-zA-Z0-9\\-]+" +             //tld
+                        "(:([0-9]+|\\*))?(/.*|$)"       //port and path
+        );
+    }
+
+    public static final Pattern allowedRedirectUriProtocolPattern = Pattern.compile("^([a-zA-Z][a-zA-Z0-9+-.]*)");
+
     public static boolean isValidRegisteredRedirectUrl(String url) {
+        Pattern allowedRedirectUriPattern = getAllowedRedirectUriPattern();
         if (hasText(url)) {
             return allowedRedirectUriPattern.matcher(url).matches();
         }

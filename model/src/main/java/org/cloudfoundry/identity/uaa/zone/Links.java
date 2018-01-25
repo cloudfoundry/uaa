@@ -17,16 +17,25 @@ package org.cloudfoundry.identity.uaa.zone;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Links {
 
+    private enum RedirectUriProtocolScheme { http,https }
+
     private SelfService service = new SelfService();
     private Logout logout = new Logout();
     private String homeRedirect = null;
+    private List<String> redirectURIProtocolWhiteList =  Stream.of(RedirectUriProtocolScheme.values())
+                                                            .map(RedirectUriProtocolScheme::name)
+                                                            .collect(Collectors.toList());
 
     public Logout getLogout() {
         return logout;
@@ -52,6 +61,15 @@ public class Links {
 
     public Links setHomeRedirect(String homeRedirect) {
         this.homeRedirect = homeRedirect;
+        return this;
+    }
+
+    public List<String> getRedirectURIProtocolWhiteList() {
+        return redirectURIProtocolWhiteList;
+    }
+
+    public Links setRedirectURIProtocolWhiteList(List<String> redirectURIProtocolWhiteList) {
+        this.redirectURIProtocolWhiteList = redirectURIProtocolWhiteList;
         return this;
     }
 
