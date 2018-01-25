@@ -16,6 +16,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -101,7 +102,7 @@ public class UaaAuthorizationEndpointTest {
     }
 
     @Test
-    public void testBuildRedirectURI() {
+    public void testBuildRedirectURI_doesNotIncludeSessionStateWhenNotPromptNone() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest();
         authorizationRequest.setRedirectUri("http://example.com/somepath");
         authorizationRequest.setResponseTypes(new HashSet<String>() {
@@ -121,6 +122,7 @@ public class UaaAuthorizationEndpointTest {
         OAuth2Request storedOAuth2Request = mock(OAuth2Request.class);
         when(oAuth2RequestFactory.createOAuth2Request(any())).thenReturn(storedOAuth2Request);
         when(authorizationCodeServices.createAuthorizationCode(any())).thenReturn("ABCD");
+
         String result = uaaAuthorizationEndpoint.buildRedirectURI(authorizationRequest, accessToken, authUser);
 
         assertThat(result, containsString("http://example.com/somepath#"));
@@ -131,6 +133,25 @@ public class UaaAuthorizationEndpointTest {
         assertThat(result, containsString("state=California"));
         assertThat(result, containsString("expires_in="));
         assertThat(result, containsString("scope=null"));
+    }
+
+    @Test
+    public void buildRedirectURI_includesSessionStateForPromptEqualsNone() {
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest();
+        authorizationRequest.setRedirectUri("http://example.com/somepath");
+        authorizationRequest.setRequestParameters(new HashMap<String, String>() {
+            {
+                put("prompt", "none");
+            }
+        });
+        CompositeAccessToken accessToken = new CompositeAccessToken("TOKEN_VALUE+=");
+        UaaPrincipal principal = new UaaPrincipal("userid", "username", "email", "origin", "extid", "zoneid");
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(true, "clientid", "origin", "SOMESESSIONID");
+        Authentication authUser = new UaaAuthentication(principal, Collections.emptyList(), details);
+        when(authorizationCodeServices.createAuthorizationCode(any())).thenReturn("ABCD");
+
+        String result = uaaAuthorizationEndpoint.buildRedirectURI(authorizationRequest, accessToken, authUser);
+
         assertThat(result, containsString("session_state=opbshash"));
     }
 }
