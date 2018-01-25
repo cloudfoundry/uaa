@@ -303,7 +303,7 @@
         <property name="contentCache" ref="urlCache"/>
     </bean>
 
-    <bean id="bootstrapMetaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator">
+    <bean id="bootstrapMetaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData">
         <property name="identityProviders" value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}" />
         <property name="legacyIdpMetaData" ref="metaDataUrl"/>
         <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>

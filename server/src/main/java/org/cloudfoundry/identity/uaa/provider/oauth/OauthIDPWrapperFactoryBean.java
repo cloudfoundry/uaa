@@ -12,15 +12,20 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -28,35 +33,66 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.springframework.util.StringUtils.hasText;
 
-public class OauthIdentityProviderDefinitionFactoryBean {
+public class OauthIDPWrapperFactoryBean {
     private Map<String,AbstractXOAuthIdentityProviderDefinition> oauthIdpDefinitions = new HashMap<>();
+    private List<IdentityProviderWrapper> providers = new LinkedList<>();
 
-    public OauthIdentityProviderDefinitionFactoryBean(Map<String, Map> definitions) {
+    public OauthIDPWrapperFactoryBean(Map<String, Map> definitions) {
         if (definitions != null) {
             for (String alias : definitions.keySet()) {
                 Map<String, Object> idpDefinitionMap = definitions.get(alias);
+                AbstractXOAuthIdentityProviderDefinition rawDef;
                 try {
+                    IdentityProvider provider = new IdentityProvider();
                     String type = (String) idpDefinitionMap.get("type");
                     if(OAUTH20.equalsIgnoreCase(type)) {
                         RawXOAuthIdentityProviderDefinition oauthIdentityProviderDefinition = new RawXOAuthIdentityProviderDefinition();
                         oauthIdentityProviderDefinition.setCheckTokenUrl(idpDefinitionMap.get("checkTokenUrl") == null ? null : new URL((String) idpDefinitionMap.get("checkTokenUrl")));
                         setCommonProperties(idpDefinitionMap, oauthIdentityProviderDefinition);
                         oauthIdpDefinitions.put(alias, oauthIdentityProviderDefinition);
+                        rawDef = oauthIdentityProviderDefinition;
+                        provider.setType(OriginKeys.OAUTH20);
                     }
                     else if(OIDC10.equalsIgnoreCase(type)) {
                         OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
                         setCommonProperties(idpDefinitionMap, oidcIdentityProviderDefinition);
                         oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
                         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
+                        rawDef = oidcIdentityProviderDefinition;
+                        provider.setType(OriginKeys.OIDC10);
                     } else {
                         throw new IllegalArgumentException("Unknown type for provider. Type must be oauth2.0 or oidc1.0. (Was " + type + ")");
                     }
-                }
-                catch (MalformedURLException e) {
-                    throw new IllegalArgumentException("URL is malformed.", e);
+                    boolean override = true;
+                    if (idpDefinitionMap.get("override") != null) {
+                        override = (boolean) idpDefinitionMap.get("override");
+                    }
+
+                    IdentityProviderWrapper wrapper = getIdentityProviderWrapper(alias, rawDef, provider, override);
+
+                    providers.add(wrapper);
+                } catch (MalformedURLException e) {
+                    throw new IllegalArgumentException("OAuth/OIDC Provider Configuration - URL is malformed.", e);
                 }
             }
+
+
+
         }
+    }
+
+    public static IdentityProviderWrapper getIdentityProviderWrapper(String origin, AbstractXOAuthIdentityProviderDefinition rawDef, IdentityProvider provider, boolean override) {
+        provider.setOriginKey(origin);
+        provider.setName("UAA Oauth Identity Provider["+provider.getOriginKey()+"]");
+        provider.setActive(true);
+        try {
+            provider.setConfig(rawDef);
+        } catch (JsonUtils.JsonUtilException x) {
+            throw new RuntimeException("Non serializable Oauth config");
+        }
+        IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
+        wrapper.setOverride(override);
+        return wrapper;
     }
 
     protected void setCommonProperties(Map<String, Object> idpDefinitionMap, AbstractXOAuthIdentityProviderDefinition idpDefinition) {
@@ -95,6 +131,10 @@ public class OauthIdentityProviderDefinitionFactoryBean {
 
     public Map<String,AbstractXOAuthIdentityProviderDefinition> getOauthIdpDefinitions() {
         return oauthIdpDefinitions;
+    }
+
+    public List<IdentityProviderWrapper> getProviders() {
+        return providers;
     }
 
     public void setOauthIdpDefinitions(Map<String,AbstractXOAuthIdentityProviderDefinition> oauthIdpDefinitions) {

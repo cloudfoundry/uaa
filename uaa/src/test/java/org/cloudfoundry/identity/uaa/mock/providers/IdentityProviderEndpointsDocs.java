@@ -31,7 +31,7 @@ import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinitio
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
-import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -965,7 +965,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setType(SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderConfiguratorTests.xmlWithoutID, "http://www.okta.com/" + identityProvider.getOriginKey()))
+            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://www.okta.com/" + identityProvider.getOriginKey()))
             .setIdpEntityAlias(identityProvider.getOriginKey())
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
