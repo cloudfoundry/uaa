@@ -30,10 +30,8 @@ import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -65,7 +63,7 @@ public class IdentityProviderBootstrap
 
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProviderWrapper> providers = new LinkedList<>();
-    private BootstrapSamlIdentityProviderConfigurator configurator;
+    private BootstrapSamlIdentityProviderData configurator;
     private List<IdentityProviderWrapper> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
@@ -104,27 +102,18 @@ public class IdentityProviderBootstrap
         }
     }
 
-    public void setSamlProviders(BootstrapSamlIdentityProviderConfigurator configurator) {
+    public void setSamlProviders(BootstrapSamlIdentityProviderData configurator) {
         this.configurator = configurator;
     }
     protected void addSamlProviders() {
         if (configurator==null) {
             return;
         }
-        for (SamlIdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
-            validateDuplicateAlias(def.getIdpEntityAlias());
-            IdentityProvider provider = new IdentityProvider();
-            provider.setType(OriginKeys.SAML);
-            provider.setOriginKey(def.getIdpEntityAlias());
-            provider.setName("UAA SAML Identity Provider["+provider.getOriginKey()+"]");
-            provider.setActive(true);
-            try {
-                provider.setConfig(def);
-            } catch (JsonUtils.JsonUtilException x) {
-                throw new RuntimeException("Non serializable SAML config");
-            }
-            providers.add(new IdentityProviderWrapper(provider));
+        for (IdentityProviderWrapper wrapper : configurator.getSamlProviders()) {
+            validateDuplicateAlias(wrapper.getProvider().getOriginKey());
+            providers.add(wrapper);
         }
+
     }
 
     public void setLdapConfig(HashMap<String, Object> ldapConfig) {

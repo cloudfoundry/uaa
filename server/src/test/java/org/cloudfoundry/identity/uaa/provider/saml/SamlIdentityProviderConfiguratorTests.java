@@ -74,18 +74,18 @@ public class SamlIdentityProviderConfiguratorTests {
     public static final String singleAddAlias = "sample-alias";
 
     private SamlIdentityProviderConfigurator configurator;
-    private BootstrapSamlIdentityProviderConfigurator bootstrap;
+    private BootstrapSamlIdentityProviderData bootstrap;
     SamlIdentityProviderDefinition singleAdd = null;
     SamlIdentityProviderDefinition singleAddWithoutHeader = null;
     IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
 
     @Before
     public void setUp() throws Exception {
-        bootstrap = new BootstrapSamlIdentityProviderConfigurator();
+        bootstrap = new BootstrapSamlIdentityProviderData();
         configurator = new SamlIdentityProviderConfigurator();
         configurator.setParserPool(new BasicParserPool());
         singleAdd = new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderConfiguratorTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
+            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
             .setIdpEntityAlias(singleAddAlias)
             .setNameID("sample-nameID")
             .setAssertionConsumerIndex(1)
@@ -131,7 +131,7 @@ public class SamlIdentityProviderConfiguratorTests {
     @Test
     public void testGetEntityID() throws Exception {
         Timer t = new Timer();
-        bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderConfiguratorTests.parseYaml(BootstrapSamlIdentityProviderConfiguratorTests.sampleYaml));
+        bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
         bootstrap.afterPropertiesSet();
         for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
             switch (def.getIdpEntityAlias()) {

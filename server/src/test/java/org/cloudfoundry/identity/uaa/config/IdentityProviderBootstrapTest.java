@@ -40,7 +40,7 @@ import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinitio
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean;
-import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -84,7 +84,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     private SamlIdentityProviderDefinition samlIdentityProviderDefinition;
     private SamlIdentityProviderDefinition samlIdentityProviderDefinition1;
-    private BootstrapSamlIdentityProviderConfigurator configurator;
+    private BootstrapSamlIdentityProviderData configurator;
     private ApplicationEventPublisher publisher;
     private IdentityProviderProvisioning provisioning;
     private IdentityProviderBootstrap bootstrap;
@@ -126,7 +126,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         oauthProviderConfig.put(OIDC10, oidcProvider);
 
 
-        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
+        configurator = mock(BootstrapSamlIdentityProviderData.class);
         publisher = mock(ApplicationEventPublisher.class);
         provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         environment = new MockEnvironment();
@@ -420,18 +420,17 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         }
     }
 
-        @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void bootstrap_failsIf_samlAndOauth_haveTheSameAlias() throws Exception {
         oauthProviderConfig.clear();
         oauthProviderConfig.put("same-alias", oauthProvider);
 
         samlIdentityProviderDefinition.setIdpEntityAlias("same-alias");
 
-        reset(configurator);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition));
+        configureSamlProviders(samlIdentityProviderDefinition);
 
-            setOauthIDPWrappers();
-            bootstrap.setSamlProviders(configurator);
+        setOauthIDPWrappers();
+        bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
     }
 
@@ -450,8 +449,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     @Test
     public void testSamlBootstrap() throws Exception {
         bootstrap.setSamlProviders(configurator);
-        reset(configurator);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition));
+        configureSamlProviders(samlIdentityProviderDefinition);
 
         bootstrap.afterPropertiesSet();
 
@@ -466,7 +464,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void test_providers_deleted_and_not_created() throws Exception {
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition, samlIdentityProviderDefinition1));
+        configureSamlProviders(samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
         List<String> originsToDelete = Arrays.asList(
             samlIdentityProviderDefinition.getIdpEntityAlias(),
             OIDC10
@@ -495,9 +493,22 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         );
     }
 
+    public void configureSamlProviders(SamlIdentityProviderDefinition... definitions) {
+        reset(configurator);
+        List<IdentityProviderWrapper<SamlIdentityProviderDefinition>> wrappers = new LinkedList<>();
+        for (SamlIdentityProviderDefinition def : definitions) {
+            wrappers.add(
+                new IdentityProviderWrapper(
+                    BootstrapSamlIdentityProviderData.parseSamlProvider(def)
+                )
+            );
+        }
+        when(configurator.getSamlProviders()).thenReturn(wrappers);
+    }
+
     @Test
     public void test_saml_provider_not_deactivated() throws Exception {
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition, samlIdentityProviderDefinition1));
+        configureSamlProviders(samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
 
         bootstrap.setSamlProviders(configurator);
 
@@ -521,8 +532,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
-        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition));
+        configureSamlProviders(samlIdentityProviderDefinition);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
@@ -542,8 +552,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
-        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition1));
+        configureSamlProviders(samlIdentityProviderDefinition1);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
@@ -563,7 +572,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
-        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
+        configurator = mock(BootstrapSamlIdentityProviderData.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(new LinkedList<>());
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
@@ -584,7 +593,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(OriginKeys.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
-        configurator = mock(BootstrapSamlIdentityProviderConfigurator.class);
+        configurator = mock(BootstrapSamlIdentityProviderData.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition1, samlIdentityProviderDefinition));
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();

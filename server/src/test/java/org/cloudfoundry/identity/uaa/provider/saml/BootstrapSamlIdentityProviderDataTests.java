@@ -12,31 +12,34 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
+import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
 import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class BootstrapSamlIdentityProviderConfiguratorTests {
+public class BootstrapSamlIdentityProviderDataTests {
 
     public static final String testXmlFileData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lvtem0VAJDMINKEYJW\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
         "  A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\n" +
@@ -94,7 +97,7 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
 
     public static final String xml = String.format(xmlWithoutID, "http://www.okta.com/k2lw4l5bPODCMIIDBRYZ");
 
-    BootstrapSamlIdentityProviderConfigurator bootstrap = null;
+    BootstrapSamlIdentityProviderData bootstrap = null;
     SamlIdentityProviderDefinition singleAdd = null;
     public static final String singleAddAlias = "sample-alias";
 
@@ -163,9 +166,9 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
 
     @Before
     public void setUp() throws Exception {
-        bootstrap = new BootstrapSamlIdentityProviderConfigurator();
+        bootstrap = new BootstrapSamlIdentityProviderData();
         singleAdd = new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderConfiguratorTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
+            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
             .setIdpEntityAlias(singleAddAlias)
             .setNameID("sample-nameID")
             .setAssertionConsumerIndex(1)
@@ -204,8 +207,28 @@ public class BootstrapSamlIdentityProviderConfiguratorTests {
         bootstrap.setIdentityProviders(sampleData);
         bootstrap.afterPropertiesSet();
         testGetIdentityProviderDefinitions(4, false);
+        bootstrap.getSamlProviders()
+            .stream()
+            .forEach(p -> assertThat(p.isOverride(), is(true)));
     }
 
+    @Test
+    public void test_override() throws Exception {
+        sampleData.get("okta-local").put("override", false);
+        bootstrap.setIdentityProviders(sampleData);
+        bootstrap.afterPropertiesSet();
+        testGetIdentityProviderDefinitions(4, false);
+        assertThat(
+            bootstrap
+                .getSamlProviders()
+                .stream()
+                .filter(p -> "okta-local".equals(p.getProvider().getOriginKey()))
+                .findFirst()
+                .get()
+                .isOverride(),
+            is(false)
+        );
+    }
 
 
     @Test
