@@ -172,6 +172,7 @@ script:
 - sudo lsof -i :33636 || echo "Nothing listening on port 33636"
 - echo "Test env $TESTENV"
 - echo "Test cmd $TEST_COMMAND"
+- ./gradlew wrapper --gradle-version 4.4.1
 - ./gradlew "-Dspring.profiles.active=$TESTENV" "$TEST_COMMAND"
 after_success:
 - ./gradlew coveralls
