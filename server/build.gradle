@@ -125,14 +125,3 @@ processResources {
 integrationTest {}.onlyIf { //disable since we don't have any
   true == false
 }
-
-task npmInstall(type: Exec) {
-  executable 'npm'
-  args 'install'
-}
-
-task jasmineTest(type: Exec) {
-  dependsOn npmInstall
-  executable 'npm'
-  args 'test'
-}

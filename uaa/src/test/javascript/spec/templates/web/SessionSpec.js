@@ -1,7 +1,7 @@
 describe("Session", function() {
     var fs = require('fs');
-    eval(fs.readFileSync('src/main/resources/templates/web/session/sjcl.js','utf-8'));
-    eval(fs.readFileSync('src/main/resources/templates/web/session/session.js','utf-8'));
+    eval(fs.readFileSync('src/main/webapp/resources/javascripts/session/sjcl.js','utf-8'));
+    eval(fs.readFileSync('src/main/webapp/resources/javascripts/session/session.js','utf-8'));
 
     var sm;
     var document;
