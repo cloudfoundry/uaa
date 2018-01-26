@@ -19,6 +19,8 @@ import org.opensaml.xml.security.BasicSecurityConfiguration;
 import org.opensaml.xml.signature.SignatureConstants;
 import org.springframework.beans.factory.InitializingBean;
 
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
+
 
 public class SamlConfigurationBean implements InitializingBean {
   private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.SHA1;
@@ -44,11 +46,5 @@ public class SamlConfigurationBean implements InitializingBean {
         config.setSignatureReferenceDigestMethod(SignatureConstants.ALGO_ID_DIGEST_SHA512);
         break;
     }
-  }
-
-  public enum SignatureAlgorithm {
-    SHA1,
-    SHA256,
-    SHA512
   }
 }

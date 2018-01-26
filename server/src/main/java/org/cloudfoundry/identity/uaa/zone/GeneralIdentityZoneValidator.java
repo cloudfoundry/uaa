@@ -18,10 +18,6 @@ import org.springframework.util.StringUtils;
 public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
     private final IdentityZoneConfigurationValidator configValidator;
 
-    public GeneralIdentityZoneValidator() {
-        this(new GeneralIdentityZoneConfigurationValidator());
-    }
-
     public GeneralIdentityZoneValidator(IdentityZoneConfigurationValidator configValidator) {
         this.configValidator = configValidator;
     }

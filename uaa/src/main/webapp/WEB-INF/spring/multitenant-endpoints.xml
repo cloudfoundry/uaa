@@ -41,6 +41,7 @@
         <constructor-arg ref="zoneEndpointsClientRegistrationService"/>
         <constructor-arg ref="scimGroupProvisioning"/>
         <property name="validator" ref="identityZoneValidator"/>
+        <property name="defaultSamlSignatureAlgorithm" ref="globalSamlSignatureAlgorithm"/>
     </bean>
 
     <bean id="zoneEndpointsClientDetailsValidator"

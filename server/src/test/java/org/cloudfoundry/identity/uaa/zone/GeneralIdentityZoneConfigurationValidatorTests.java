@@ -19,6 +19,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,6 +28,7 @@ import org.junit.runners.Parameterized;
 import java.security.Security;
 
 import static java.util.Collections.EMPTY_MAP;
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.*;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -271,6 +274,39 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         samlConfig.setKeys(EMPTY_MAP);
         assertNull(samlConfig.getActiveKeyId());
         validator.validate(zone, mode);
+    }
+
+    @Test
+    public void testSamlSignatureAlgorithmValid() throws Exception{
+        validateSignatureAlgorithm(SHA1, SHA1, true);
+        validateSignatureAlgorithm(SHA1, SHA256, true);
+        validateSignatureAlgorithm(SHA1, SHA512, true);
+        validateSignatureAlgorithm(SHA256, SHA256, true);
+        validateSignatureAlgorithm(SHA256, SHA512, true);
+        validateSignatureAlgorithm(SHA512, SHA512, true);
+    }
+
+    @Test
+    public void testSamlSignatureAlgorithmLessThanGlobalDefault() throws Exception{
+        boolean valid = true;
+        if(mode == IdentityZoneValidator.Mode.CREATE) {
+            valid = false;
+        }
+        validateSignatureAlgorithm(SHA256, SHA1, valid);
+        validateSignatureAlgorithm(SHA512, SHA1, valid);
+        validateSignatureAlgorithm(SHA512, SHA256, valid);
+    }
+
+    private void validateSignatureAlgorithm(SignatureAlgorithm globalDefault, SignatureAlgorithm samlConfigAlgorithm, boolean valid) throws Exception{
+
+        validator.setDefaultSamlSignatureAlgorithm(globalDefault);
+        samlConfig.setSignatureAlgorithm(samlConfigAlgorithm);
+
+        if(!valid) {
+            expection.expect(InvalidIdentityZoneConfigurationException.class);
+            expection.expectMessage("Invalid SAML signatureAlgorithm. Must be " + globalDefault + " or higher");
+        }
+        validator.validate(new IdentityZone().setConfig(zoneConfiguration), mode);
     }
 
     @Test

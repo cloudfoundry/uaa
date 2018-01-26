@@ -45,6 +45,7 @@
 
     <bean id ="identityZoneConfigValidator" class ="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
         <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
+        <property name="defaultSamlSignatureAlgorithm" ref="globalSamlSignatureAlgorithm" />
     </bean>
 
     <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
@@ -558,6 +559,7 @@
         <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}" />
         <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}" />
         <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}" />
+        <property name="samlSignatureAlgorithm" ref="defaultUaaSamlSignatureAlgorithm" />
         <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
         <property name="samlKeys"
                   value="#{@config['login']==null ? null :

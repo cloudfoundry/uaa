@@ -443,6 +443,8 @@ login:
         showSamlLoginLink: true
         skipSslValidation: true
     signatureAlgorithm: SHA256
+    global:
+      signatureAlgorithm: SHA512
     wantAssertionSigned: false
     disableInResponseToCheck: true
     signRequest: false

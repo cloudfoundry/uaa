@@ -13,16 +13,22 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.*;
+
 
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
 
     private MfaConfigValidator mfaConfigValidator;
+
+    private SignatureAlgorithm defaultSamlSignatureAlgorithm;
 
     @Override
     public IdentityZoneConfiguration validate(IdentityZone zone, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
@@ -47,6 +53,27 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                             new KeyWithCert(samlSpKey, samlSpkeyPassphrase, samlSpCert);
                         }
                         failIfPartialCertKeyInfo(samlSpCert, samlSpKey, samlSpkeyPassphrase);
+                    }
+                }
+                if(samlConfig != null && samlConfig.getSignatureAlgorithm() != null) {
+                    boolean invalidSignatureAlgorithm = false;
+                    switch(samlConfig.getSignatureAlgorithm()) {
+
+                        case UNKNOWN :
+                            throw new InvalidIdentityZoneConfigurationException(String.format("Invalid SAML signatureAlgorithm. Must be one of : %s", JsonUtils.writeValueAsString(SignatureAlgorithm.values())));
+                        case SHA1:
+                            if(mode == IdentityZoneValidator.Mode.CREATE && defaultSamlSignatureAlgorithm != SHA1) {
+                                invalidSignatureAlgorithm = true;
+                            }
+                            break;
+                        case SHA256:
+                            if(mode == IdentityZoneValidator.Mode.CREATE && defaultSamlSignatureAlgorithm == SHA512) {
+                                invalidSignatureAlgorithm = true;
+                            }
+                            break;
+                    }
+                    if(invalidSignatureAlgorithm) {
+                        throw new InvalidIdentityZoneConfigurationException("Invalid SAML signatureAlgorithm. Must be " + defaultSamlSignatureAlgorithm + " or higher");
                     }
                 }
             } catch (GeneralSecurityException ex) {
@@ -92,5 +119,9 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
     public GeneralIdentityZoneConfigurationValidator setMfaConfigValidator(MfaConfigValidator mfaConfigValidator) {
         this.mfaConfigValidator = mfaConfigValidator;
         return this;
+    }
+
+    public void setDefaultSamlSignatureAlgorithm(SignatureAlgorithm samlSignatureAlgorithm) {
+        this.defaultSamlSignatureAlgorithm = samlSignatureAlgorithm;
     }
 }

@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
     private final ScimGroupProvisioning groupProvisioning;
+    private SignatureAlgorithm defaultSamlSignatureAlgorithm;
 
     private IdentityZoneValidator validator;
 
@@ -100,6 +102,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     public void setValidator(IdentityZoneValidator validator) {
         this.validator = validator;
+    }
+
+    public void setDefaultSamlSignatureAlgorithm(SignatureAlgorithm samlSignatureAlgorithm) {
+        this.defaultSamlSignatureAlgorithm = samlSignatureAlgorithm;
     }
 
     @Override
@@ -195,6 +201,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
         }
 
+        if(body.getConfig().getSamlConfig() != null && body.getConfig().getSamlConfig().getSignatureAlgorithm() == null) {
+            body.getConfig().getSamlConfig().setSignatureAlgorithm(defaultSamlSignatureAlgorithm);
+        }
+
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.CREATE);
         } catch (InvalidIdentityZoneDetailsException ex) {
@@ -276,6 +286,9 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             restoreSecretProperties(existingZone, body);
             //validator require id to be present
             body.setId(id);
+            if(body.getConfig().getSamlConfig() != null && body.getConfig().getSamlConfig().getSignatureAlgorithm() == null) {
+                body.getConfig().getSamlConfig().setSignatureAlgorithm(defaultSamlSignatureAlgorithm);
+            }
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
 
             logger.debug("Zone - updating id[" + id + "] subdomain[" + body.getSubdomain() + "]");
