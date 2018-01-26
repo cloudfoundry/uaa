@@ -12,6 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd.integration;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketTimeoutException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,15 +33,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketTimeoutException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_PASSWORD;
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_USERNAME;
@@ -78,10 +78,10 @@ public class UaaMetricsEmitterIT {
         "uaa.requests.global.completed.time",
         "uaa.database.global.unhealthy.time",
         "uaa.database.global.unhealthy.count",
-        "uaa.requests.ui.completed.count", //this fails standalone since there are no UI requests in pre batch
-        "uaa.requests.ui.completed.time",  //this fails standalone since there are no UI requests in pre batch
+        "uaa.requests.ui.completed.count",
+        "uaa.requests.ui.completed.time",
         "uaa.server.up.time",
-        "uaa.requests.ui.latency",         //this fails standalone since there are no UI requests in pre batch
+        "uaa.requests.ui.latency",
         "uaa.server.idle.time",
         "uaa.vitals.vm.cpu.count",
         "uaa.vitals.vm.cpu.load",
@@ -117,6 +117,7 @@ public class UaaMetricsEmitterIT {
         serverSocket.setSoTimeout(1000);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        performSimpleGet();
         firstBatch = getMessages(metricFragments, WAIT_FOR_MESSAGE);
         performSimpleGet();
         performLogin(TEST_USERNAME);
