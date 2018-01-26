@@ -11,8 +11,6 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.Calendar;
 import java.util.Collections;
@@ -46,11 +44,7 @@ public class UaaAuthorizationEndpointTest {
         uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(openIdSessionStateCalculator);
         responseTypes = new HashSet<>();
 
-        RequestAttributes requestAttributeMock = mock(RequestAttributes.class);
-        String sessionId = "sessionid";
-        when(requestAttributeMock.getSessionId()).thenReturn(sessionId);
-        RequestContextHolder.setRequestAttributes(requestAttributeMock, true);
-        when(openIdSessionStateCalculator.calculate(sessionId, null, "http://example.com")).thenReturn("opbshash");
+        when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");
     }
 
 

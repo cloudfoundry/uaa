@@ -11,20 +11,18 @@ import java.security.SecureRandom;
 
 public class OpenIdSessionStateCalculator {
     private final Logger logger = LoggerFactory.getLogger(OpenIdSessionStateCalculator.class);
-    private String uaaUrl;
     private SecureRandom secureRandom;
 
-    public OpenIdSessionStateCalculator(String uaaUrl) {
-        this.uaaUrl = uaaUrl;
+    public OpenIdSessionStateCalculator() {
         this.secureRandom = new SecureRandom();
     }
 
-    public String calculate(String sessionId, String clientId, String origin)  {
+    public String calculate(String currentUserId, String clientId, String origin)  {
         byte[] array = new byte[32];
         secureRandom.nextBytes(array);
         String salt = DatatypeConverter.printHexBinary(array).toLowerCase();
 
-        String text = String.format("%s %s %s %s", clientId, origin, sessionId, salt);
+        String text = String.format("%s %s %s %s", clientId, origin, currentUserId, salt);
         byte[] hash = DigestUtils.sha256(text.getBytes(StandardCharsets.UTF_8));
         logger.debug(String.format("Calculated OIDC session state for clientId=%s, origin=%s, sessionId=REDACTED, salt=%s", clientId, origin, salt));
         return String.format("%s.%s", DatatypeConverter.printHexBinary(hash).toLowerCase(), salt);

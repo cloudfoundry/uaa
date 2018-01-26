@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.http.HttpHost;
 import org.apache.http.client.utils.URIUtils;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
@@ -443,7 +444,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
         if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))) {
             HttpHost httpHost = URIUtils.extractHost(URI.create(requestedRedirect));
-            String sessionState = openIdSessionStateCalculator.calculate(RequestContextHolder.currentRequestAttributes().getSessionId(),
+            String sessionState = openIdSessionStateCalculator.calculate(((UaaPrincipal) authUser.getPrincipal()).getId(),
               authorizationRequest.getClientId(), httpHost.toURI());
 
             url.append("&session_state=").append(sessionState);

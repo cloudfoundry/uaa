@@ -100,14 +100,17 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.naming.directory.SearchResult;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -337,6 +340,17 @@ public final class MockMvcUtils {
         SavedRequest savedRequest = new MockSavedRequest();
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         return session;
+    }
+
+    public static ScimUser getUserByUsername(MockMvc mockMvc, String username, String accessToken) throws Exception {
+        MockHttpServletRequestBuilder get = get("/Users?filter=userName eq \"" + username + "\"")
+            .header("Authorization", "Bearer " + accessToken)
+            .header("Accept", APPLICATION_JSON);
+        MvcResult userResult = mockMvc.perform(get)
+          .andExpect(status().isOk()).andReturn();
+        SearchResults<ScimUser> results = JsonUtils.readValue(userResult.getResponse().getContentAsString(),
+            new TypeReference<SearchResults<ScimUser>>(){});
+        return results.getResources().get(0);
     }
 
     public static class MockSavedRequest extends DefaultSavedRequest {

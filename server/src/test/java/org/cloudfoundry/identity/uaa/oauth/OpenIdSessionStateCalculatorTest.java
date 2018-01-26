@@ -17,8 +17,7 @@ public class OpenIdSessionStateCalculatorTest {
 
     @Before
     public void setup() throws Exception {
-        String uaaUrl = "http://localhost:8080";
-        calculator = new OpenIdSessionStateCalculator(uaaUrl);
+        calculator = new OpenIdSessionStateCalculator();
         SecureRandom secureRandom = mock(SecureRandom.class);
         doNothing().when(secureRandom).nextBytes(any());
         calculator.setSecureRandom(secureRandom);
@@ -26,19 +25,19 @@ public class OpenIdSessionStateCalculatorTest {
 
     @Test
     public void calculate() throws Exception {
-        String sessionState = calculator.calculate("session_id", "client_id", "http://example.com");
-        assertEquals("b6d594e481f023303f2dd9e41af3c653564b34363f6dc0b5a5555fd31d8f56b4.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
+            String sessionState = calculator.calculate("current-user-id", "client_id", "http://example.com");
+        assertEquals("3b501628aea599d810e86e06884fd5a468b91a7a1c05c5a0b7211b553ec4aa02.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
     }
 
     @Test
     public void calculate_shouldChangeSessionIdChanges() {
-        String sessionState = calculator.calculate("session_id2", "client_id", "http://example.com");
-        assertEquals("74992895f9312791755774d9ca7d175352ac7e10803631d23c5e79d228d881b4.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
+        String sessionState = calculator.calculate("current-user-id2", "client_id", "http://example.com");
+        assertEquals("8ccaa974ff0d15740285da892a1296ff4cebcf6dfcc4b76bd36e76565aadf3df.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
     }
 
     @Test
     public void calculate_shouldChangeClientIdChanges() {
-        String sessionState = calculator.calculate("session_id", "client_id2", "http://example.com");
-        assertEquals("757191b323b642b37d4975bffaafefacc0b1d0386eb97c1983a3c8d18d0d3a13.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
+        String sessionState = calculator.calculate("current-user-id", "client_id2", "http://example.com");
+        assertEquals("cfe7afa30be40cc680db7e0311b7cb559381995632477f05f66d7d88f905a6f4.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
     }
 }

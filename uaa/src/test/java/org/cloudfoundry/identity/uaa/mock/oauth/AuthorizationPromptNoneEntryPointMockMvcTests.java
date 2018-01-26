@@ -13,7 +13,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -21,8 +20,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -85,13 +84,12 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
     }
 
     @Test
-    public void testSilentAuthentication_testSessionStateIsCorrect() throws Exception {
-        SecureRandom secureRandom = mock(SecureRandom.class);
-        doNothing().when(secureRandom).nextBytes(any());
-
-        OpenIdSessionStateCalculator sessionStateCalculator
-          = (OpenIdSessionStateCalculator) getWebApplicationContext().getBean("openIdSessionStateCalculator");
-        sessionStateCalculator.setSecureRandom(secureRandom);
+    public void testSilentAuthentication_includesSessionState() throws Exception {
+        OpenIdSessionStateCalculator calculator = mock(OpenIdSessionStateCalculator.class);
+        UaaAuthorizationEndpoint uaaAuthorizationEndpoint = (UaaAuthorizationEndpoint) getWebApplicationContext().getBean("uaaAuthorizationEndpoint");
+        uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(calculator);
+        when(calculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionhash.saltvalue");
+        String currentUserId = MockMvcUtils.getUserByUsername(getMockMvc(), "marissa", adminToken).getId();
 
         //we need to know session id when we are calculating session_state
         MockHttpSession session = new MockHttpSession(null, "12345") {
@@ -109,7 +107,8 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
           .andReturn();
 
         String redirectUrl = result.getResponse().getRedirectedUrl();
-        Assert.assertThat(redirectUrl, containsString("session_state=707c310bc5aa38acc03d48a099fc999cd77f44df163178df1ca35863913f5711.0000000000000000000000000000000000000000000000000000000000000000"));
+        Assert.assertThat(redirectUrl, containsString("session_state=sessionhash.saltvalue"));
+        verify(calculator).calculate(currentUserId, "ant", "http://example.com");
     }
 
     @Test
