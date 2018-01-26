@@ -18,7 +18,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +42,7 @@ public class SamlConfig {
     private Map<String, SamlKey> keys = new HashMap<>();
     private String entityID;
     private boolean disableInResponseToCheck = false;
+    private SignatureAlgorithm signatureAlgorithm;
 
     public boolean isAssertionSigned() {
         return assertionSigned;
@@ -199,5 +202,33 @@ public class SamlConfig {
 
     public void setDisableInResponseToCheck(boolean disableInResponseToCheck) {
         this.disableInResponseToCheck = disableInResponseToCheck;
+    }
+
+    public SignatureAlgorithm getSignatureAlgorithm() {
+        return signatureAlgorithm;
+    }
+
+    public void setSignatureAlgorithm(SignatureAlgorithm signatureAlgorithm) {
+        this.signatureAlgorithm = signatureAlgorithm;
+    }
+
+    @JsonSetter("signatureAlgorithm")
+    public void parseSignatureAlgorithm (String signatureAlgorithm) {
+        if(StringUtils.hasText(signatureAlgorithm)) {
+            try {
+                this.signatureAlgorithm = SignatureAlgorithm.valueOf(signatureAlgorithm);
+            } catch (IllegalArgumentException e) {
+                if(e.getMessage().contains("No enum constant")) {
+                    this.signatureAlgorithm = SignatureAlgorithm.UNKNOWN;
+                }
+            }
+        }
+    }
+
+    public enum SignatureAlgorithm {
+        SHA1,
+        SHA256,
+        SHA512,
+        UNKNOWN
     }
 }

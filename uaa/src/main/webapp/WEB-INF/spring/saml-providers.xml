@@ -77,6 +77,14 @@
             <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>
         </bean>
 
+        <bean id="globalSamlSignatureAlgorithm" class="org.cloudfoundry.identity.uaa.zone.SamlConfig$SignatureAlgorithm" factory-method="valueOf">
+            <constructor-arg value="${login.saml.global.signatureAlgorithm:SHA256}"/>
+        </bean>
+
+        <bean id="defaultUaaSamlSignatureAlgorithm" class="org.cloudfoundry.identity.uaa.zone.SamlConfig$SignatureAlgorithm" factory-method="valueOf">
+            <constructor-arg value="${login.saml.signatureAlgorithm:#{globalSamlSignatureAlgorithm.name()}}"/>
+        </bean>
+
         <bean id="extendedMetaData" class="org.springframework.security.saml.metadata.ExtendedMetadata">
             <property name="idpDiscoveryEnabled" value="true" />
             <property name="alias" value="#{T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).getHostIfArgIsURL(@samlSPAlias)}" />
