@@ -314,11 +314,11 @@
     <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
 
     <bean id="uaaUrl" class="java.lang.String">
-        <constructor-arg value="${uaa.url}"/>
+        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
     </bean>
 
     <bean id="loginUrl" class="java.lang.String">
-        <constructor-arg value="${login.url}"/>
+        <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
     <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
