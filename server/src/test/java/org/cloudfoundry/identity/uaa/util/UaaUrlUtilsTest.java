@@ -59,7 +59,8 @@ public class UaaUrlUtilsTest {
         "www.invalid.com/*/with/path**",
         "www.*.invalid.com/*/with/path**",
         "http://username:password@*.com",
-        "http://username:password@*.com/path"
+        "http://username:password@*.com/path",
+        "org-;cl0udfoundry-identity://mobile-android-app.com/view"
     );
     private List<String> validUrls = Arrays.asList(
         "http://localhost",
