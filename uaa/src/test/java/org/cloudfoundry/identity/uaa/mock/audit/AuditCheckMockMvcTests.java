@@ -312,7 +312,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         IdentityProviderAuthenticationFailureEvent event1  = (IdentityProviderAuthenticationFailureEvent)captor.getAllValues().get(0);
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
         PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
-        assertEquals(testUser.getUserName(), event1.getUser().getUsername());
+        assertEquals(testUser.getUserName(), event1.getUsername());
         assertEquals(testUser.getUserName(), event2.getUser().getUsername());
         assertEquals(testUser.getUserName(), event3.getName());
         assertTrue(event1.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
@@ -422,7 +422,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         IdentityProviderAuthenticationFailureEvent event1 = (IdentityProviderAuthenticationFailureEvent)captor.getAllValues().get(0);
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent)captor.getAllValues().get(1);
         PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(2);
-        assertEquals(testUser.getUserName(), event1.getUser().getUsername());
+        assertEquals(testUser.getUserName(), event1.getUsername());
         assertEquals(testUser.getUserName(), event2.getUser().getUsername());
         assertEquals(testUser.getUserName(), event3.getName());
         assertTrue(event1.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));

@@ -12,22 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
-import javax.servlet.http.HttpSession;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
@@ -57,8 +45,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -70,6 +56,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -90,7 +78,22 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import javax.servlet.http.HttpSession;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -102,6 +105,7 @@ import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -111,6 +115,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -137,10 +144,11 @@ public class LdapMockMvcTests  {
 
     private static int ldapPortRotation = 0;
     private String host;
-    private static WebApplicationContext webApplicationContext;
+    private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
+    private ApplicationListener<AbstractUaaEvent> listener;
 
-    public WebApplicationContext getWebApplicationContext() {
+    public XmlWebApplicationContext getWebApplicationContext() {
         return webApplicationContext;
     }
 
@@ -245,6 +253,9 @@ public class LdapMockMvcTests  {
 
         host = zone.getZone().getIdentityZone().getSubdomain() + ".localhost";
         IdentityZoneHolder.clear();
+
+        listener = (ApplicationListener<AbstractUaaEvent>) mock(ApplicationListener.class);
+        getWebApplicationContext().addApplicationListener(listener);
     }
 
     @After
@@ -254,6 +265,7 @@ public class LdapMockMvcTests  {
                 .header("Authorization", "Bearer " + zone.getDefaultZoneAdminToken())
                 .accept(APPLICATION_JSON))
             .andExpect(status().isOk());
+        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);
     }
 
 
@@ -896,6 +908,14 @@ public class LdapMockMvcTests  {
             .andExpect(unauthenticated())
             .andExpect(redirectedUrl("/login?error=login_failure"));
 
+        ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
+        List<AbstractUaaEvent> allValues = captor.getAllValues();
+        assertThat(allValues.get(4), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent)allValues.get(4);
+        assertEquals("marissa", event.getUsername());
+        assertEquals(OriginKeys.LDAP, event.getOrigin());
+
         testSuccessfulLogin();
     }
 
@@ -1050,6 +1070,14 @@ public class LdapMockMvcTests  {
                 .param("password", password);
         getMockMvc().perform(post)
             .andExpect(status().isUnauthorized());
+
+        ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
+        List<AbstractUaaEvent> allValues = captor.getAllValues();
+        assertThat(allValues.get(3), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent)allValues.get(3);
+        assertEquals("marissa3", event.getUsername());
+        assertEquals(OriginKeys.LDAP, event.getOrigin());
     }
 
     @Test
