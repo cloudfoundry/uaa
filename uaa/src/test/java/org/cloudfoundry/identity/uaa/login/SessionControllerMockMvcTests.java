@@ -19,7 +19,7 @@ public class SessionControllerMockMvcTests extends InjectedMockContextTest {
 
   @Test
   public void sessionManagement_ReturnsSessionManagementView() throws Exception {
-    getMockMvc().perform(get("/session_management")
+    getMockMvc().perform(get("/v2/session")
       .param("clientId","1")
       .param("messageOrigin", "origin"))
       .andExpect(view().name("session_management"))
