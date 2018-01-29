@@ -379,13 +379,27 @@ public class UaaUrlUtilsTest {
             fail(builder.toString());
         }
     }
+
+    enum CASE {
+        AS_IS,
+        UPPER_CASE,
+        LOWER_CASE
+    }
+
     private Map<String, String> getFailedUrls(List<String> urls, boolean result) {
         Map<String, String> failed = new LinkedHashMap<>();
         urls.stream().forEach(
             url -> {
-                String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
-                if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
-                    failed.put(url, message);
+                for (CASE c : CASE.values()) {
+                    switch (c) {
+                        case AS_IS: break;
+                        case LOWER_CASE: url = url.toLowerCase(); break;
+                        case UPPER_CASE: url = url.toUpperCase(); break;
+                    }
+                    String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
+                    if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
+                        failed.put(url, message);
+                    }
                 }
             }
         );
