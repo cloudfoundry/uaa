@@ -8,11 +8,12 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "jasmine --config=jasmine.json"
+    "test": "node_modules/jasmine/bin/jasmine.js --config=jasmine.json"
   },
   "author": "CloudFoundry",
   "license": "Apache-2.0",
   "dependencies": {
+    "jasmine": "^2.9.0",
     "jasmine-core": "2.8.0"
   }
 }
