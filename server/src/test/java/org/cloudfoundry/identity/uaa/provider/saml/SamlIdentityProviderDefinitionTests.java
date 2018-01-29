@@ -1,15 +1,15 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.httpclient.contrib.ssl.StrictSSLProtocolSocketFactory;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.util.ReflectionUtils;
-
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.util.ReflectionUtils;
 
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.DATA;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN;
@@ -217,8 +217,6 @@ public class SamlIdentityProviderDefinitionTests {
         def.setSocketFactoryClassName(null);
         assertNull(def.getSocketFactoryClassName());
         def.setSocketFactoryClassName("test.class.that.DoesntExist");
-        assertNull(def.getSocketFactoryClassName());
-        def.setSocketFactoryClassName(StrictSSLProtocolSocketFactory.class.getName());
         assertNull(def.getSocketFactoryClassName());
 
     }
