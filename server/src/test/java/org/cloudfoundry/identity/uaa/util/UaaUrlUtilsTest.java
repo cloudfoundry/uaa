@@ -12,22 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
@@ -58,7 +59,8 @@ public class UaaUrlUtilsTest {
         "www.invalid.com/*/with/path**",
         "www.*.invalid.com/*/with/path**",
         "http://username:password@*.com",
-        "http://username:password@*.com/path"
+        "http://username:password@*.com/path",
+        "org-;cl0udfoundry-identity://mobile-android-app.com/view"
     );
     private List<String> validUrls = Arrays.asList(
         "http://localhost",
@@ -80,7 +82,13 @@ public class UaaUrlUtilsTest {
         "http://username:password@some.server.com",
         "http://username:password@some.server.com/path",
         "http://under_score_subdomain.example.com",
-        "http://under_score_subdomain.ex_ample.com"
+        "http://under_score_subdomain.ex_ample.com",
+        "http://dash-subdomain.example.com",
+        "http://dash-subdomain.ex-ample.com",
+        "cool-app://example.com",
+        "org.cloudfoundry.identity://mobile-windows-app.com/view",
+        "org+cloudfoundry+identity://mobile-ios-app.com/view",
+        "org-cl0udfoundry-identity://mobile-android-app.com/view"
     );
 
     @Before
@@ -372,13 +380,27 @@ public class UaaUrlUtilsTest {
             fail(builder.toString());
         }
     }
+
+    enum CASE {
+        AS_IS,
+        UPPER_CASE,
+        LOWER_CASE
+    }
+
     private Map<String, String> getFailedUrls(List<String> urls, boolean result) {
         Map<String, String> failed = new LinkedHashMap<>();
         urls.stream().forEach(
             url -> {
-                String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
-                if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
-                    failed.put(url, message);
+                for (CASE c : CASE.values()) {
+                    switch (c) {
+                        case AS_IS: break;
+                        case LOWER_CASE: url = url.toLowerCase(); break;
+                        case UPPER_CASE: url = url.toUpperCase(); break;
+                    }
+                    String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
+                    if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
+                        failed.put(url, message);
+                    }
                 }
             }
         );
