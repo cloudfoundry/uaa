@@ -914,7 +914,7 @@ public class LdapMockMvcTests  {
         assertThat(allValues.get(4), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
         IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent)allValues.get(4);
         assertEquals("marissa", event.getUsername());
-        assertEquals(OriginKeys.LDAP, event.getOrigin());
+        assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
 
         testSuccessfulLogin();
     }
@@ -1077,7 +1077,7 @@ public class LdapMockMvcTests  {
         assertThat(allValues.get(3), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
         IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent)allValues.get(3);
         assertEquals("marissa3", event.getUsername());
-        assertEquals(OriginKeys.LDAP, event.getOrigin());
+        assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
     }
 
     @Test

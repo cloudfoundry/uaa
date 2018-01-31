@@ -8,26 +8,26 @@ import org.springframework.util.Assert;
 public class IdentityProviderAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent {
 
     private String username;
-    private String origin;
+    private String authenticationType;
 
     public String getUsername() {
         return username;
     }
 
-    public String getOrigin() {
-        return origin;
+    public String getAuthenticationType() {
+        return authenticationType;
     }
 
-    public IdentityProviderAuthenticationFailureEvent(Authentication authentication, String username, String origin) {
+    public IdentityProviderAuthenticationFailureEvent(Authentication authentication, String username, String authenticationType) {
         super(authentication);
         this.username = username;
-        this.origin = origin;
+        this.authenticationType = authenticationType;
     }
 
     @Override
     public AuditEvent getAuditEvent() {
         Assert.notNull(username, "UaaUser cannot be null");
         return createAuditRecord(null, AuditEventType.IdentityProviderAuthenticationFailure,
-                getOrigin(getAuthenticationDetails()), username);
+                getOrigin(getAuthenticationDetails()), username, authenticationType, null);
     }
 }
