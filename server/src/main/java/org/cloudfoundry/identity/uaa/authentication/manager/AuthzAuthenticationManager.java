@@ -12,18 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Locale;
-
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PasswordAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -36,7 +31,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -48,6 +42,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Locale;
 
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
@@ -95,7 +94,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
             if (!passwordMatches) {
                 logger.debug("Password did not match for user " + req.getName());
-                publish(new PasswordAuthenticationFailureEvent(user, req));
+                publish(new IdentityProviderAuthenticationFailureEvent(req, req.getName(), OriginKeys.UAA));
                 publish(new UserAuthenticationFailureEvent(user, req));
             } else {
                 logger.debug("Password successfully matched for userId["+user.getUsername()+"]:"+user.getId());

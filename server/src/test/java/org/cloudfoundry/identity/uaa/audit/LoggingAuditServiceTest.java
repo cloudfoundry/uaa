@@ -26,7 +26,7 @@ public class LoggingAuditServiceTest {
 
     @Test
     public void log_sanitizesMaliciousInput() {
-        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "malicious-zone\r\n\t");
+        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "malicious-zone\r\n\t", null, null);
 
         loggingAuditService.log(auditEvent, "not-used");
 
@@ -40,7 +40,7 @@ public class LoggingAuditServiceTest {
 
     @Test
     public void log_doesNotModifyNonMaliciousInput() {
-        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "safe-zone");
+        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "safe-zone", null, null);
 
         loggingAuditService.log(auditEvent, "not-used");
 
