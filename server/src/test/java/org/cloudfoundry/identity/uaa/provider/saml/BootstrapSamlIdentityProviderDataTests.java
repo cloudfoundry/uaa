@@ -326,7 +326,28 @@ public class BootstrapSamlIdentityProviderDataTests {
         testGetIdentityProviderDefinitions(4);
     }
 
+    @Test
+    public void testCanParseASimpleSamlConfig() throws Exception {
+        String yaml = "  providers:\n" +
+          "    my-okta:\n" +
+          "      assertionConsumerIndex: 0\n" +
+          "      emailDomain: \n" +
+          "      - mydomain.io\n" +
+          "      iconUrl: https://my.identityprovider.com/icon.png\n" +
+          "      idpMetadata: https://pivotal.oktapreview.com/app/abcdefghasdfsafjdsklf/sso/saml/metadata\n" +
+          "      linkText: Log in with Pivotal OktaPreview\n" +
+          "      metadataTrustCheck: true\n" +
+          "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+          "      showSamlLoginLink: false\n" +
+          "      signMetaData: false\n" +
+          "      signRequest: false\n" +
+          "      skipSslValidation: false\n" +
+          "      storeCustomAttributes: true";
 
+        bootstrap.setIdentityProviders(parseYaml(yaml));
+        bootstrap.afterPropertiesSet();
+    }
+    
     @Test
     public void testSetAddShadowUserOnLoginFromYaml() throws Exception {
         String yaml = "  providers:\n" +
