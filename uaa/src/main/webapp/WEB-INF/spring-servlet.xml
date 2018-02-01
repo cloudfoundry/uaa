@@ -111,7 +111,7 @@
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
     <sec:http name="secFilterOpen18" pattern="/session" security="none" />
-    <sec:http name="secFilterOpen21" pattern="/v2/session" security="none" />
+    <sec:http name="secFilterOpen21" pattern="/session_management" security="none" />
     <sec:http name="secFilterWellKnownOpen19" pattern="/oauth/token/.well-known/openid-configuration" security="none" />
     <sec:http name="secFilterWellKnownOpen20" pattern="/.well-known/openid-configuration" security="none" />
     <!--<sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />-->

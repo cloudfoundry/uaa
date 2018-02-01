@@ -29,7 +29,7 @@ public class SessionController {
         return "session";
     }
 
-    @RequestMapping("/v2/session")
+    @RequestMapping("/session_management")
     public String sessionManagement(Model model, @RequestParam String clientId, @RequestParam String messageOrigin) {
         model.addAttribute("clientId", clientId);
         model.addAttribute("messageOrigin", messageOrigin);
