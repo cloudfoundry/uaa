@@ -7,11 +7,13 @@ import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -149,6 +151,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
     private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
     private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
+
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
 
     @Before
     public void setUp() throws Exception {
@@ -291,7 +296,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                   preprocessRequest(prettyPrint()),
                   preprocessResponse(prettyPrint()),
                   requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `uaa.admin`")
                   ),
                   requestFields(fieldDescriptors),
                 getResponseFields()
@@ -318,7 +323,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to retrieve")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` or `zones.<zone id>.read` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 getResponseFields()
             ));
@@ -446,7 +453,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields
             ));
@@ -584,7 +593,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to update")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields,
                 getResponseFields()
@@ -612,7 +623,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to delete")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.write`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 getResponseFields()
             ));
