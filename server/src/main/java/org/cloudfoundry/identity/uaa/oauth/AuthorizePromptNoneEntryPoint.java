@@ -17,6 +17,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpHost;
+import org.apache.http.client.utils.URIUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Set;
 
 import static java.util.Arrays.stream;
@@ -50,13 +53,16 @@ public class AuthorizePromptNoneEntryPoint implements AuthenticationEntryPoint {
     private final AuthenticationFailureHandler failureHandler;
     private final ClientServicesExtension clientDetailsService;
     private final RedirectResolver redirectResolver;
+    private final OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
     public AuthorizePromptNoneEntryPoint(AuthenticationFailureHandler failureHandler,
                                          ClientServicesExtension clientDetailsService,
-                                         RedirectResolver redirectResolver) {
+                                         RedirectResolver redirectResolver,
+                                         OpenIdSessionStateCalculator openIdSessionStateCalculator) {
         this.failureHandler = failureHandler;
         this.clientDetailsService = clientDetailsService;
         this.redirectResolver = redirectResolver;
+        this.openIdSessionStateCalculator = openIdSessionStateCalculator;
     }
 
     @Override
@@ -100,8 +106,18 @@ public class AuthorizePromptNoneEntryPoint implements AuthenticationEntryPoint {
         }
 
         failureHandler.onAuthenticationFailure(request, response, authException);
+        HttpHost httpHost = URIUtils.extractHost(URI.create(resolvedRedirect));
+        String sessionState = openIdSessionStateCalculator.calculate("", clientId, httpHost.toURI());
         boolean implicit = stream(responseTypes).noneMatch("code"::equalsIgnoreCase);
-        String redirectLocation = implicit ? addFragmentComponent(resolvedRedirect, "error=login_required") : addQueryParameter(resolvedRedirect, "error", "login_required");
+        String redirectLocation;
+        if (implicit) {
+            redirectLocation = addFragmentComponent(resolvedRedirect, "error=login_required");
+            redirectLocation = addFragmentComponent(redirectLocation, "session_state="+sessionState);
+        } else {
+            redirectLocation = addQueryParameter(resolvedRedirect, "error", "login_required");
+            redirectLocation = addQueryParameter(redirectLocation, "session_state", sessionState);
+        }
+
         response.sendRedirect(redirectLocation);
     }
 }

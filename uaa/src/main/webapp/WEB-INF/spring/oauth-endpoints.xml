@@ -364,6 +364,7 @@
         </constructor-arg>
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="redirectResolver" ref="antPathRedirectResolver"/>
+        <constructor-arg name="openIdSessionStateCalculator" ref="openIdSessionStateCalculator"/>
     </bean>
 
     <http name="promptStatelessTokenApiSecurity"

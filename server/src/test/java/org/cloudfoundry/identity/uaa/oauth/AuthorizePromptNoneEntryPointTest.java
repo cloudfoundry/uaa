@@ -61,6 +61,7 @@ public class AuthorizePromptNoneEntryPointTest {
     private MockHttpServletResponse response;
     private ClientServicesExtension clientDetailsService;
     private RedirectResolver redirectResolver;
+    private OpenIdSessionStateCalculator calculator;
 
     private final String responseType;
     private final String redirectHash;
@@ -92,13 +93,14 @@ public class AuthorizePromptNoneEntryPointTest {
         clientDetailsService = mock(ClientServicesExtension.class);
         redirectResolver = mock(RedirectResolver.class);
         failureHandler = mock(AuthenticationFailureHandler.class);
+        calculator = mock(OpenIdSessionStateCalculator.class);
 
         String zoneID = IdentityZoneHolder.get().getId();
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), eq(zoneID))).thenReturn(client);
         when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
         when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(""));
 
-        entryPoint = new AuthorizePromptNoneEntryPoint(failureHandler, clientDetailsService, redirectResolver);
+        entryPoint = new AuthorizePromptNoneEntryPoint(failureHandler, clientDetailsService, redirectResolver, calculator);
 
         request = new MockHttpServletRequest("GET", "/oauth/authorize");
         request.setParameter(OAuth2Utils.CLIENT_ID, client.getClientId());

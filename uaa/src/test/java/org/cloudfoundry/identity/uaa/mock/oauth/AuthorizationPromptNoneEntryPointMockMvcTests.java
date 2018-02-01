@@ -16,8 +16,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -47,10 +49,11 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
 
     @Test
     public void testSilentAuthHonorsAntRedirect_whenNotAuthenticated() throws Exception {
-        getMockMvc().perform(
+        MvcResult result = getMockMvc().perform(
           get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
-        )
-          .andExpect(redirectedUrl("http://example.com/with/path.html#error=login_required"));
+        ).andReturn();
+
+        assertThat(result.getResponse().getRedirectedUrl(), startsWith("http://example.com/with/path.html#error=login_required"));
     }
 
     @Test
@@ -154,6 +157,27 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
           .andReturn();
         Assert.assertThat(result.getResponse().getRedirectedUrl(), not(containsString("session_state")));
     }
+
+    @Test
+    public void silentAuthentication_implicit_returnsSessionStateWhenLoginIsRequired() throws Exception {
+        MvcResult result = getMockMvc().perform(
+          get("/oauth/authorize?response_type=id_token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
+        )
+        .andReturn();
+        Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("login_required"));
+        Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("session_state"));
+    }
+
+    @Test
+    public void silentAuthentication_notImplicit_returnsSessionStateWhenLoginIsRequired() throws Exception {
+        MvcResult result = getMockMvc().perform(
+          get("/oauth/authorize?response_type=code&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
+        )
+          .andReturn();
+        Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("login_required"));
+        Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("session_state"));
+    }
+
 
     private void login(MockHttpSession session) throws Exception {
         getMockMvc().perform(
