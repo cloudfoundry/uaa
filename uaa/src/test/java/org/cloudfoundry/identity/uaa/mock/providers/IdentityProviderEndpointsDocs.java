@@ -50,6 +50,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
@@ -220,6 +221,10 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_LASTNAME = fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC);
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC);
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_USER_NAME = fieldWithPath("config.attributeMappings.user_name").optional("user_name").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for LDAP is the User Name filter");
+
+
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
     private FieldDescriptor[] ldapAllFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
         LDAP_TYPE,
         LDAP_ORIGIN_KEY,
@@ -429,7 +434,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             preprocessResponse(prettyPrint()),
             requestHeaders(
                 headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
             ),
             commonRequestParams,
             requestFields,
@@ -457,7 +463,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             preprocessResponse(prettyPrint()),
             requestHeaders(
                 headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
             ),
             commonRequestParams,
             requestFields,
@@ -524,7 +531,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             preprocessResponse(prettyPrint()),
             requestHeaders(
                 headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
             ),
             commonRequestParams,
             requestFields,
@@ -595,7 +603,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                                      preprocessResponse(prettyPrint()),
                                      requestHeaders(
                                          headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                                         headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                                         IDENTITY_ZONE_ID_HEADER,
+                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                      ),
                                      commonRequestParams,
                                      requestFields,
@@ -729,7 +738,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                                      preprocessResponse(prettyPrint()),
                                      requestHeaders(
                                          headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                                         headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                                         IDENTITY_ZONE_ID_HEADER,
+                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                      ),
                                      commonRequestParams,
                                      requestFields,
@@ -777,7 +787,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 preprocessResponse(prettyPrint()),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` or `idps.read` (only in the same zone that you are a user of)"),
-                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional()
+                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional(),
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 commonRequestParams,
                 responseFields));
@@ -804,7 +815,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` or `idps.read` (only in the same zone that you are a user of)"),
-                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional()
+                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional(),
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 commonRequestParams,
                 responseFields(getCommonProviderFieldsAnyType())));
@@ -863,7 +875,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 commonRequestParams,
                 requestFields,
@@ -896,7 +909,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                         ),
                         requestHeaders(
                                 headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                                IDENTITY_ZONE_ID_HEADER,
+                                IDENTITY_ZONE_SUBDOMAIN_HEADER
                         ),
                         requestFields,
                         responseFields));
@@ -926,7 +940,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 commonRequestParams,
                 responseFields(getCommonProviderFieldsAnyType())));
