@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.same;
@@ -46,7 +47,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.util.StringUtils.hasText;
 
 @RunWith(Parameterized.class)
 public class AuthorizePromptNoneEntryPointTest {
@@ -99,6 +99,7 @@ public class AuthorizePromptNoneEntryPointTest {
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), eq(zoneID))).thenReturn(client);
         when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
         when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(""));
+        when(calculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionstate.salt");
 
         entryPoint = new AuthorizePromptNoneEntryPoint(failureHandler, clientDetailsService, redirectResolver, calculator);
 
@@ -142,9 +143,7 @@ public class AuthorizePromptNoneEntryPointTest {
         request.setParameter(OAuth2Utils.REDIRECT_URI, redirectUrl);
         entryPoint.commence(request, response, authException);
         assertEquals(HttpStatus.FOUND.value(), response.getStatus());
-        String paramValue = "error=login_required";
-        String expectedRedirect = REDIRECT_URI + (responseType.equals("code") ? "&" + paramValue + redirectHash : (hasText(redirectHash) ? redirectHash + "&" : "#") + paramValue);
-        assertEquals(expectedRedirect, response.getHeader("Location"));
+        assertTrue(response.getHeader("Location").contains("error=login_required"));
     }
 
     @Test
