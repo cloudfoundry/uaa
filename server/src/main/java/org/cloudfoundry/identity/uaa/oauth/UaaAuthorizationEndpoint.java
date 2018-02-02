@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
@@ -56,6 +55,7 @@ import org.springframework.security.oauth2.provider.endpoint.AbstractEndpoint;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.oauth2.provider.implicit.ImplicitTokenRequest;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestValidator;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
@@ -75,8 +75,10 @@ import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.Principal;
@@ -88,6 +90,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Arrays.stream;
+import static java.util.Collections.EMPTY_SET;
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.hasText;
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addFragmentComponent;
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
+
 /**
  * Authorization endpoint that returns id_token's if requested.
  * This is a copy of AuthorizationEndpoint.java in
@@ -97,7 +106,7 @@ import java.util.Set;
  */
 @Controller
 @SessionAttributes("authorizationRequest")
-public class UaaAuthorizationEndpoint extends AbstractEndpoint {
+public class UaaAuthorizationEndpoint extends AbstractEndpoint implements AuthenticationEntryPoint {
 
     private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
 
@@ -209,7 +218,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
             if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))) {
                 return new ModelAndView(
-                  new RedirectView(UaaUrlUtils.addFragmentComponent(resolvedRedirect, "error=interaction_required"))
+                  new RedirectView(addFragmentComponent(resolvedRedirect, "error=interaction_required"))
                 );
             } else {
                 // Place auth request into the model so that it is stored in the session
@@ -227,13 +236,62 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
             if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))) {
                 return new ModelAndView(
-                  new RedirectView(UaaUrlUtils.addFragmentComponent(resolvedRedirect, "error=internal_server_error"))
+                  new RedirectView(addFragmentComponent(resolvedRedirect, "error=internal_server_error"))
                 );
             }
 
             throw e;
         }
 
+    }
+
+    // This method handles /oauth/authorize calls when user is not logged in and the prompt=none param is used
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+        String clientId = request.getParameter(OAuth2Utils.CLIENT_ID);
+        String redirectUri = request.getParameter(OAuth2Utils.REDIRECT_URI);
+        String[] responseTypes = ofNullable(request.getParameter(OAuth2Utils.RESPONSE_TYPE)).map(rt -> rt.split(" ")).orElse(new String[0]);
+
+        ClientDetails client;
+        try {
+            client = getClientServiceExtention().loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        } catch (ClientRegistrationException e) {
+            logger.debug("[prompt=none] Unable to look up client for client_id=" + clientId, e);
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return;
+        }
+
+        Set<String> redirectUris = ofNullable(client.getRegisteredRedirectUri()).orElse(EMPTY_SET);
+
+        //if the client doesn't have a redirect uri set, the parameter is required.
+        if (redirectUris.size() == 0 && !hasText(redirectUri)) {
+            logger.debug("[prompt=none] Missing redirect_uri");
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return;
+        }
+
+        String resolvedRedirect;
+        try {
+            resolvedRedirect = redirectResolver.resolveRedirect(redirectUri, client);
+        } catch (RedirectMismatchException rme) {
+            logger.debug("[prompt=none] Invalid redirect " + redirectUri + " did not match one of the registered values");
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return;
+        }
+
+        HttpHost httpHost = URIUtils.extractHost(URI.create(resolvedRedirect));
+        String sessionState = openIdSessionStateCalculator.calculate("", clientId, httpHost.toURI());
+        boolean implicit = stream(responseTypes).noneMatch("code"::equalsIgnoreCase);
+        String redirectLocation;
+        if (implicit) {
+            redirectLocation = addFragmentComponent(resolvedRedirect, "error=login_required");
+            redirectLocation = addFragmentComponent(redirectLocation, "session_state=" + sessionState);
+        } else {
+            redirectLocation = addQueryParameter(resolvedRedirect, "error", "login_required");
+            redirectLocation = addQueryParameter(redirectLocation, "session_state", sessionState);
+        }
+
+        response.sendRedirect(redirectLocation);
     }
 
     private ModelAndView switchIdp(Map<String, Object> model, ClientDetails client, String clientId, HttpServletRequest request) {
