@@ -71,6 +71,7 @@
         <property name="processor" ref="idpSamlProcessor" />
         <property name="samlServiceProviderProvisioning" ref="serviceProviderProvisioning" />
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <property name="zoneAwareSecurityConfiguration" ref="zoneAwareSamlSecurityConfiguration" />
     </bean>
 
     <!-- Class loading incoming SAML messages from httpRequest stream -->
@@ -151,9 +152,5 @@
         <property name="contentCache" ref="urlCache"/>
         <property name="providerProvisioning" ref="serviceProviderProvisioning" />
 
-    </bean>
-
-    <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
-        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}" />
     </bean>
 </beans>
