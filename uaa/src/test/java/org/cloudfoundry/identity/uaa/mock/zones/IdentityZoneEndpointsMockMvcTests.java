@@ -546,6 +546,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(mvcResult.getResponse().getContentAsString(), containsString("Invalid SAML signatureAlgorithm."));
     }
 
+
     @Test
     public void testCreateWithSHA1WhenGlobalDefaultIsSHA256() throws Exception{
         String zoneId = generator.generate();
