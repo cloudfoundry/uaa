@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareSamlSecurityConfiguration;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -77,6 +78,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
     private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning;
     private JdbcScimUserProvisioning scimUserProvisioning;
+    private ZoneAwareSamlSecurityConfiguration zoneAwareSecurityConfiguration;
 
     @Override
     public void sendResponse(Authentication authentication, SAMLMessageContext context, IdpWebSSOProfileOptions options)
@@ -410,7 +412,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         Signature signature = signatureBuilder.buildObject();
         signature.setSigningCredential(credential);
 
-        SecurityHelper.prepareSignatureParams(signature, credential, null, null);
+        SecurityHelper.prepareSignatureParams(signature, credential, zoneAwareSecurityConfiguration, null);
         assertion.setSignature(signature);
 
         Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
@@ -425,5 +427,9 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
     public void setScimUserProvisioning(JdbcScimUserProvisioning scimUserProvisioning) {
         this.scimUserProvisioning = scimUserProvisioning;
+    }
+
+    public void setZoneAwareSecurityConfiguration(ZoneAwareSamlSecurityConfiguration zoneAwareSecurityConfiguration) {
+        this.zoneAwareSecurityConfiguration = zoneAwareSecurityConfiguration;
     }
 }
