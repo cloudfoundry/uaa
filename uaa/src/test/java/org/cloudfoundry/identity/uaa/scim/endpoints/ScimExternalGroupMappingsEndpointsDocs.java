@@ -14,10 +14,12 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.DecodePathInfoPostProcessor;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.restdocs.headers.HeaderDescriptor;
@@ -130,9 +132,15 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
                 AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
-        MockHttpServletRequestBuilder delete = delete("/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}",
-                group.getId(), scimGroupExternalMember.getExternalGroup(), scimGroupExternalMember.getOrigin())
-                .header("Authorization", "Bearer " + scimWriteToken);
+        MockHttpServletRequestBuilder delete =
+            delete(
+                "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}",
+                group.getId(),
+                scimGroupExternalMember.getExternalGroup(),
+                scimGroupExternalMember.getOrigin()
+            )
+                .header("Authorization", "Bearer " + scimWriteToken)
+                .with(new DecodePathInfoPostProcessor());
 
         getMockMvc().perform(delete)
                 .andExpect(status().isOk())
@@ -160,9 +168,15 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
                 AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
-        MockHttpServletRequestBuilder delete = delete("/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}",
-                group.getDisplayName(), scimGroupExternalMember.getExternalGroup(), scimGroupExternalMember.getOrigin())
-                .header("Authorization", "Bearer " + scimWriteToken);
+        MockHttpServletRequestBuilder delete =
+            delete(
+                "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}",
+                group.getDisplayName(),
+                scimGroupExternalMember.getExternalGroup(),
+                scimGroupExternalMember.getOrigin()
+            )
+                .header("Authorization", "Bearer " + scimWriteToken)
+                .with(new DecodePathInfoPostProcessor());
 
         getMockMvc().perform(delete)
                 .andExpect(status().isOk())

@@ -36,6 +36,9 @@ dependencies {
   compile group: 'log4j', name: 'log4j', version: '1.2.14'
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: parent.jacksonVersion
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat'
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
