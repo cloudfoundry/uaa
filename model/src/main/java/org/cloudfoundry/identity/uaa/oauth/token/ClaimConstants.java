@@ -50,6 +50,7 @@ public class ClaimConstants {
     public static final String USER_ATTRIBUTES = "user_attributes";
     public static final String REVOCABLE = "revocable";
     public static final String EXTERNAL_ATTR = "ext_attr";
+    public static final String EXTERNAL_CONTEXT = "ext_ctx";
     public static final String AMR = "amr";
     public static final String ACR = "acr";
     public static final String PREVIOUS_LOGON_TIME = "previous_logon_time";

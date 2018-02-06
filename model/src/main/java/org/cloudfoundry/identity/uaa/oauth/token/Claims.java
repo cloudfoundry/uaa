@@ -89,6 +89,8 @@ public class Claims {
     private Long previousLogonTime;
     @JsonProperty(ClaimConstants.AMR)
     private String[] amr;
+    @JsonProperty(ClaimConstants.EXTERNAL_CONTEXT)
+    private Map<String,Object> extContext;
 
     public String getUserId() {
         return userId;
@@ -342,6 +344,14 @@ public class Claims {
 
     public void setAmr(String[] amr) {
         this.amr = amr;
+    }
+
+    public Map<String, Object> getExtContext() {
+        return extContext;
+    }
+
+    public void setExtContext(Map<String, Object> extContext) {
+        this.extContext = extContext;
     }
 
 }
