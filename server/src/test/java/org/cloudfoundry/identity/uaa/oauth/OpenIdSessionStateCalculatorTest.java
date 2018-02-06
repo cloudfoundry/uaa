@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.security.SecureRandom;
@@ -13,15 +13,31 @@ import static org.mockito.Mockito.mock;
 
 public class OpenIdSessionStateCalculatorTest {
 
-    @Test
-    public void calculate() throws Exception {
+    private OpenIdSessionStateCalculator calculator;
+
+    @Before
+    public void setup() throws Exception {
+        calculator = new OpenIdSessionStateCalculator();
         SecureRandom secureRandom = mock(SecureRandom.class);
         doNothing().when(secureRandom).nextBytes(any());
+        calculator.setSecureRandom(secureRandom);
+    }
 
-        UaaAuthenticationDetails details = new UaaAuthenticationDetails(true, "client-id", "origin", "session-id");
-        OpenIdSessionStateCalculator openIdSessionState = new OpenIdSessionStateCalculator(details, secureRandom);
+    @Test
+    public void calculate() throws Exception {
+            String sessionState = calculator.calculate("current-user-id", "client_id", "http://example.com");
+        assertEquals("3b501628aea599d810e86e06884fd5a468b91a7a1c05c5a0b7211b553ec4aa02.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
+    }
 
-        String sessionState = openIdSessionState.calculate();
-        assertEquals("8d6dea62907d8796ffbed3c000cb7cdb9f3e3295545df54da940d7196917b653.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
+    @Test
+    public void calculate_shouldChangeSessionIdChanges() {
+        String sessionState = calculator.calculate("current-user-id2", "client_id", "http://example.com");
+        assertEquals("8ccaa974ff0d15740285da892a1296ff4cebcf6dfcc4b76bd36e76565aadf3df.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
+    }
+
+    @Test
+    public void calculate_shouldChangeClientIdChanges() {
+        String sessionState = calculator.calculate("current-user-id", "client_id2", "http://example.com");
+        assertEquals("cfe7afa30be40cc680db7e0311b7cb559381995632477f05f66d7d88f905a6f4.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
     }
 }

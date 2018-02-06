@@ -1052,12 +1052,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
                 .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
             .andExpect(status().isFound())
-            .andExpect(cookie().maxAge("Current-User", 0))
             .andReturn();
 
         String url = result.getResponse().getHeader("Location");
-        assertEquals(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "login_required"), url);
-
+        assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "login_required")));
     }
 
     @Test

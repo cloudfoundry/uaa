@@ -29,8 +29,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
-import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.session.SessionAuthenticationException;
 
 import java.util.Arrays;
@@ -38,51 +36,43 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.util.StringUtils.hasText;
 
 @RunWith(Parameterized.class)
-public class AuthorizePromptNoneEntryPointTest {
+public class UaaAuthorizationEndpointParamaterizedTest {
 
     private static final String REDIRECT_URI = "http://sub.domain.com/callback?oauth=true";
     private static final String HTTP_SOME_OTHER_SITE_CALLBACK = "http://some.other.site/callback";
     private final SessionAuthenticationException authException = new SessionAuthenticationException("");
-    private AuthenticationFailureHandler failureHandler;
-    private AuthenticationEntryPoint entryPoint;
+    private UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
     private BaseClientDetails client;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
     private ClientServicesExtension clientDetailsService;
     private RedirectResolver redirectResolver;
+    private OpenIdSessionStateCalculator calculator;
 
     private final String responseType;
-    private final String redirectHash;
     private final String redirectUrl;
 
-    public AuthorizePromptNoneEntryPointTest(String responseType, String redirectHash) {
+    public UaaAuthorizationEndpointParamaterizedTest(String responseType) {
         this.responseType = responseType;
-        this.redirectHash = redirectHash;
-        redirectUrl = REDIRECT_URI + redirectHash;
+        redirectUrl = REDIRECT_URI;
     }
 
-    @Parameterized.Parameters(name = "{index}: {0} {1}")
+    @Parameterized.Parameters(name = "{index}: {0}")
     public static Collection<Object[]> parameters() {
         return Arrays.asList(new Object[][]{
-            {"code", ""},
-            {"token", ""},
-            {"id_token", ""},
-            {"token id_token", ""},
-            {"code", "#frag"},
-            {"token", "#frag"},
-            {"id_token", "#frag"},
-            {"token id_token", "#frag"}
+          {"code"},
+          {"token"},
+          {"id_token"},
+          {"token id_token"}
         });
     }
 
@@ -91,14 +81,18 @@ public class AuthorizePromptNoneEntryPointTest {
         client = new BaseClientDetails("id", "", "openid", "authorization_code", "", redirectUrl);
         clientDetailsService = mock(ClientServicesExtension.class);
         redirectResolver = mock(RedirectResolver.class);
-        failureHandler = mock(AuthenticationFailureHandler.class);
+        calculator = mock(OpenIdSessionStateCalculator.class);
 
         String zoneID = IdentityZoneHolder.get().getId();
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), eq(zoneID))).thenReturn(client);
         when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
         when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(""));
+        when(calculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionstate.salt");
 
-        entryPoint = new AuthorizePromptNoneEntryPoint(failureHandler, clientDetailsService, redirectResolver);
+        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint();
+        uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(calculator);
+        uaaAuthorizationEndpoint.setRedirectResolver(redirectResolver);
+        uaaAuthorizationEndpoint.setClientDetailsService(clientDetailsService);
 
         request = new MockHttpServletRequest("GET", "/oauth/authorize");
         request.setParameter(OAuth2Utils.CLIENT_ID, client.getClientId());
@@ -107,16 +101,9 @@ public class AuthorizePromptNoneEntryPointTest {
     }
 
     @Test
-    public void test_missing_client_id() throws Exception {
-        request.removeParameter(OAuth2Utils.CLIENT_ID);
-        entryPoint.commence(request, response, authException);
-        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
-    }
-
-    @Test
     public void test_missing_redirect_uri() throws Exception {
         client.setRegisteredRedirectUri(Collections.emptySet());
-        entryPoint.commence(request, response, authException);
+        uaaAuthorizationEndpoint.commence(request, response, authException);
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
     }
 
@@ -124,34 +111,24 @@ public class AuthorizePromptNoneEntryPointTest {
     public void test_client_not_found() throws Exception {
         reset(clientDetailsService);
         when(clientDetailsService.loadClientByClientId(anyString(), anyString())).thenThrow(new NoSuchClientException("not found"));
-        entryPoint.commence(request, response, authException);
+        uaaAuthorizationEndpoint.commence(request, response, authException);
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
     }
 
     @Test
     public void test_redirect_mismatch() throws Exception {
         request.setParameter(OAuth2Utils.REDIRECT_URI, HTTP_SOME_OTHER_SITE_CALLBACK);
-        entryPoint.commence(request, response, authException);
+        uaaAuthorizationEndpoint.commence(request, response, authException);
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
     }
 
     @Test
     public void test_redirect_contains_error() throws Exception {
         request.setParameter(OAuth2Utils.REDIRECT_URI, redirectUrl);
-        entryPoint.commence(request, response, authException);
+        uaaAuthorizationEndpoint.commence(request, response, authException);
         assertEquals(HttpStatus.FOUND.value(), response.getStatus());
-        String paramValue = "error=login_required";
-        String expectedRedirect = REDIRECT_URI + (responseType.equals("code") ? "&" + paramValue + redirectHash : (hasText(redirectHash) ? redirectHash + "&" : "#") + paramValue);
-        assertEquals(expectedRedirect, response.getHeader("Location"));
+        assertTrue(response.getHeader("Location").contains("error=login_required"));
     }
-
-    @Test
-    public void test_failure_handler_is_invoked() throws Exception {
-        request.setParameter(OAuth2Utils.REDIRECT_URI, redirectUrl);
-        entryPoint.commence(request, response, authException);
-        verify(failureHandler, times(1)).onAuthenticationFailure(same(request), same(response), same(authException));
-    }
-
 
     @Test
     public void test_redirect_honors_ant_matcher() throws Exception {
@@ -163,7 +140,7 @@ public class AuthorizePromptNoneEntryPointTest {
         when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
 
         when(redirectResolver.resolveRedirect(eq("http://example.com/some/path"), same(client))).thenReturn("http://example.com/some/path");
-        entryPoint.commence(request, response, authException);
+        uaaAuthorizationEndpoint.commence(request, response, authException);
     }
 
 }

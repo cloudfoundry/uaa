@@ -12,20 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd;
 
-import com.timgroup.statsd.StatsDClient;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
-import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
-import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
-import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.springframework.context.expression.MapAccessor;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.util.ReflectionUtils;
-
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
 import javax.management.NotificationEmitter;
@@ -39,7 +25,24 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
+
+import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
+import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
+import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
+import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+
+import com.timgroup.statsd.StatsDClient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.context.expression.MapAccessor;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.util.ReflectionUtils;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.ReflectionUtils.findMethod;
@@ -53,6 +56,7 @@ public class UaaMetricsEmitter {
     private final MetricsUtils metricsUtils;
     private NotificationEmitter emitter;
     private boolean notificationsEnabled;
+    private ConcurrentMap<String, Long> delta = new ConcurrentHashMap<>();
 
     public UaaMetricsEmitter(MetricsUtils metricsUtils, StatsDClient statsDClient, MBeanServerConnection server) {
         this.statsDClient = statsDClient;
@@ -126,19 +130,20 @@ public class UaaMetricsEmitter {
         String prefix = "requests.global.";
         RequestMetricSummary totals = globals.getTotals();
         statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageTime());
-        statsDClient.gauge(prefix + "completed.count", totals.getCount());
-        statsDClient.gauge(prefix + "unhealthy.count", totals.getIntolerableCount());
+        statsDClient.count(prefix + "completed.count", getMetricDelta(prefix + "completed.count",totals.getCount()));
+        statsDClient.count(prefix + "unhealthy.count",getMetricDelta(prefix + "unhealthy.count",totals.getIntolerableCount()));
         statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageIntolerableTime());
         //status codes
         for (StatusCodeGroup family : StatusCodeGroup.values()) {
             RequestMetricSummary summary = ofNullable(globals.getDetailed().get(family)).orElse(MISSING_METRICS);
-            statsDClient.gauge(prefix + "status_"+family.getName()+".count", summary.getCount());
+            String aspect = prefix + "status_" + family.getName() + ".count";
+            statsDClient.count(aspect, getMetricDelta(aspect,summary.getCount()));
         }
         //database metrics
         prefix = "database.global.";
         statsDClient.gauge(prefix + "completed.time", (long) totals.getAverageDatabaseQueryTime());
-        statsDClient.gauge(prefix + "completed.count", totals.getDatabaseQueryCount());
-        statsDClient.gauge(prefix + "unhealthy.count", totals.getDatabaseIntolerableQueryCount());
+        statsDClient.count(prefix + "completed.count", getMetricDelta(prefix + "completed.count",totals.getDatabaseQueryCount()));
+        statsDClient.count(prefix + "unhealthy.count", getMetricDelta(prefix + "unhealthy.count", totals.getDatabaseIntolerableQueryCount()));
         statsDClient.gauge(prefix + "unhealthy.time", (long) totals.getAverageDatabaseIntolerableQueryTime());
     }
 
@@ -235,6 +240,17 @@ public class UaaMetricsEmitter {
                 logger.info("Unable to create server request metric bean", e);
             }
         }
+    }
+
+    public long getMetricDelta(String name, long gaugeValue) {
+        long result = gaugeValue;
+        Long data = delta.get(name);
+        delta.put(name, gaugeValue);
+        if (data != null) {
+            result = gaugeValue - data;
+        }
+        return result;
+
     }
 
     public boolean isNotificationEnabled() {

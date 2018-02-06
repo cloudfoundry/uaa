@@ -121,3 +121,14 @@ war {
   //workaround for maven <scope>optional</scope>
   rootSpec.exclude("**/spring-security-oauth-*.jar")
 }
+
+task npmInstall(type: Exec) {
+  executable 'npm'
+  args 'install'
+}
+
+task jasmineTest(type: Exec) {
+  dependsOn npmInstall
+  executable 'npm'
+  args 'test'
+}

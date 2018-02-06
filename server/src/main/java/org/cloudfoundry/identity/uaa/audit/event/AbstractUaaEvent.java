@@ -69,11 +69,15 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin) {
-        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis(), identityZone.getId());
+        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis(), identityZone.getId(), "unknown", null);
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data) {
-        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId());
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId(), "unknown", null);
+    }
+
+    protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data, String authenticationType, String message) {
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId(), authenticationType, message);
     }
 
     public Authentication getAuthentication() {

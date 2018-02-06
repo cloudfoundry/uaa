@@ -1,8 +1,9 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+
+import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.springframework.restdocs.snippet.Snippet;
 

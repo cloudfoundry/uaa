@@ -1,0 +1,19 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "This is used only to fetch dependencies for the UAA session iframe.",
+  "repository": "https://github.com/cloudfoundry/uaa",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "node_modules/jasmine/bin/jasmine.js --config=jasmine.json"
+  },
+  "author": "CloudFoundry",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "jasmine": "^2.9.0",
+    "jasmine-core": "2.8.0"
+  }
+}

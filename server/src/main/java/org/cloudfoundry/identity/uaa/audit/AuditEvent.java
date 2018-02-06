@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -23,14 +23,18 @@ public class AuditEvent {
     private final long time;
     private final String data;
     private final String identityZoneId;
+    private final String description;
+    private final String authenticationType;
 
-    public AuditEvent(AuditEventType type, String principalId, String origin, String data, long time, String identityZoneId) {
+    public AuditEvent(AuditEventType type, String principalId, String origin, String data, long time, String identityZoneId, String authenticationType, String description) {
         this.type = type;
         this.data = data;
         this.origin = origin;
         this.time = time;
         this.principalId = principalId;
         this.identityZoneId = identityZoneId;
+        this.description = description;
+        this.authenticationType = authenticationType;
     }
 
     public AuditEventType getType() {
@@ -57,4 +61,7 @@ public class AuditEvent {
         return identityZoneId;
     }
 
+    public String getDescription() { return description; }
+
+    public String getAuthenticationType() { return authenticationType; }
 }
