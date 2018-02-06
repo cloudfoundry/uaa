@@ -12,7 +12,21 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.collections.map.HashedMap;
+import java.lang.reflect.Field;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -21,6 +35,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -35,6 +50,9 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.collections.map.HashedMap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -61,21 +79,6 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.ReflectionUtils;
-
-import java.lang.reflect.Field;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyMap;
@@ -680,6 +683,15 @@ public class UaaTokenServicesTests {
         Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
         if (tokenEnhancer!=null) {
             Assert.assertEquals("test", extendedAttributes.get("purpose"));
+            String atValue = accessToken.getValue();
+            Map<String,Object> claims = JsonUtils.readValue(JwtHelper.decode(atValue).getClaims(),
+                                                            new TypeReference<Map<String, Object>>() {});
+
+            assertNotNull(claims.get("ex_prop"));
+            assertEquals("nz", ((Map)claims.get("ex_prop")).get("country"));
+
+            assertThat((List<String>)claims.get("ex_groups"), containsInAnyOrder("admin","editor"));
+
         } else {
             assertNull("External attributes should not exist", extendedAttributes);
         }
