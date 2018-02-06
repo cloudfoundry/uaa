@@ -12,9 +12,24 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -40,6 +55,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -74,22 +93,6 @@ import org.springframework.security.oauth2.provider.token.AuthorizationServerTok
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
@@ -290,6 +293,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         @SuppressWarnings("unchecked")
         Map<String, String> externalAttributes = (Map<String, String>) claims.get(EXTERNAL_ATTR);
+        Map<String, Object> additionalRootClaims = new HashMap<>();
+        if (null != externalAttributes) {
+            additionalRootClaims.put(EXTERNAL_ATTR, externalAttributes);
+        }
 
         String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
         if (hasText(revocableHashSignature)) {
@@ -324,7 +331,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue,
                 nonce,
                 additionalAuthorizationInfo,
-                externalAttributes,
+                additionalRootClaims,
                 new HashSet<>(),
                 revocableHashSignature,
                 false,
@@ -397,7 +404,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                    String refreshToken,
                                                    String nonce,
                                                    Map<String, String> additionalAuthorizationAttributes,
-                                                   Map<String, String> externalAttributes,
+                                                   Map<String, Object> additionalRootClaims,
                                                    Set<String> responseTypes,
                                                    String revocableHashSignature,
                                                    boolean forceIdTokenCreation,
@@ -417,14 +424,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         accessToken.setScope(requestedScopes);
 
-        Map<String, Object> info = new HashMap<String, Object>();
+        ConcurrentMap<String, Object> info = new ConcurrentHashMap<>();
         info.put(JTI, accessToken.getValue());
         if (null != additionalAuthorizationAttributes) {
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
-        if (null != externalAttributes) {
-            info.put(EXTERNAL_ATTR, externalAttributes);
-        }
+
+        additionalRootClaims
+            .entrySet()
+            .stream()
+            .forEach(entry -> info.putIfAbsent(entry.getKey(), entry.getValue()));
+
         if (nonce != null) {
             info.put(NONCE, nonce);
         }
@@ -691,9 +701,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
 
-        Map<String,String> externalAttributes = null;
+        Map<String,Object> additionalRootClaims = new HashMap<>();
+
         if (uaaTokenEnhancer != null) {
-            externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
+            additionalRootClaims.put(EXTERNAL_ATTR, uaaTokenEnhancer.getExternalAttributes(authentication));
         }
 
         CompositeAccessToken accessToken =
@@ -711,7 +722,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshToken != null ? refreshToken.getValue() : null,
                 nonce,
                 additionalAuthorizationAttributes,
-                externalAttributes,
+                additionalRootClaims,
                 responseTypes,
                 revocableHashSignature,
                 wasIdTokenRequestedThroughAuthCodeScopeParameter,
