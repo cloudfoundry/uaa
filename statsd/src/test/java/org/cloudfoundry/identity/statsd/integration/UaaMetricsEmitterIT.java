@@ -49,9 +49,6 @@ public class UaaMetricsEmitterIT {
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
     private static Map<String, String> firstBatch;
-    private static List<String> perRequestFragments = Arrays.asList(
-        "uaa.requests.ui.latency"
-    );
 
     private static List<String> metricFragments = Arrays.asList(
         "uaa.audit_service.user_authentication_count",
@@ -81,7 +78,6 @@ public class UaaMetricsEmitterIT {
         "uaa.requests.ui.completed.count",
         "uaa.requests.ui.completed.time",
         "uaa.server.up.time",
-        "uaa.requests.ui.latency",
         "uaa.server.idle.time",
         "uaa.vitals.vm.cpu.count",
         "uaa.vitals.vm.cpu.load",
@@ -126,32 +122,18 @@ public class UaaMetricsEmitterIT {
     }
 
     @Test
-    public void assert_gauge_metrics() throws IOException {
+    public void assert_generic_metrics() throws IOException {
         String data1 = firstBatch.get(statsDKey);
         String data2 = secondBatch.get(statsDKey);
 
-        if(!perRequestFragments.contains(statsDKey)) {
-            assertNotNull("Expected to find message for:'" + statsDKey + "' in the first batch.", data1);
-            long first = IntegrationTestUtils.getGaugeValueFromMessage(data1);
-            assertThat(statsDKey + " first value must have a positive value.", first, greaterThanOrEqualTo(0l));
+        assertNotNull("Expected to find message for:'" + statsDKey + "' in the first batch.", data1);
+        long first = IntegrationTestUtils.getStatsDValueFromMessage(data1);
+        assertThat(statsDKey + " first value must have a positive value.", first, greaterThanOrEqualTo(0l));
 
-            assertNotNull("Expected to find message for:'"+statsDKey+"' in the second batch.", data2);
-            long second = IntegrationTestUtils.getGaugeValueFromMessage(data2);
-            assertThat(statsDKey + " second value must have a positive value.", second, greaterThanOrEqualTo(0l));
-        }
+        assertNotNull("Expected to find message for:'"+statsDKey+"' in the second batch.", data2);
+        long second = IntegrationTestUtils.getStatsDValueFromMessage(data2);
+        assertThat(statsDKey + " second value must have a positive value.", second, greaterThanOrEqualTo(0l));
     }
-
-    @Test
-    public void assert_per_request_metrics() throws IOException {
-        String data2 = secondBatch.get(statsDKey);
-
-        if(perRequestFragments.contains(statsDKey)) {
-            assertNotNull("Expected to find message for:'"+statsDKey+"' in the second batch.", data2);
-            long second = IntegrationTestUtils.getTimeValueFromMessage(data2);
-            assertThat(statsDKey + " second value must have a positive value.", second, greaterThanOrEqualTo(0l));
-        }
-    }
-
 
     protected static Map<String,String> getMessages(List<String> fragments, int timeout) throws IOException {
         long startTime = System.currentTimeMillis();

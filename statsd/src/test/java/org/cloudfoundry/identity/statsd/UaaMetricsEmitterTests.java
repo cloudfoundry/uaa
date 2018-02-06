@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd;
 
-import com.timgroup.statsd.ConvenienceMethodProvidingStatsDClient;
-import com.timgroup.statsd.StatsDClient;
-import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import javax.management.MBeanServerConnection;
 import javax.management.Notification;
 import javax.management.NotificationBroadcasterSupport;
@@ -26,6 +19,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
+
+import com.timgroup.statsd.ConvenienceMethodProvidingStatsDClient;
+import com.timgroup.statsd.StatsDClient;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.junit.Assert.assertEquals;
 import static org.mockito.AdditionalMatchers.and;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.AdditionalMatchers.gt;
@@ -35,6 +37,7 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +51,7 @@ public class UaaMetricsEmitterTests {
     private Map<String, MBeanMap> mBeanMap3;
     private MBeanMap serverRequestsBeanMap;
     private MetricsUtils metricsUtils;
-    private UaaMetrics uaaMetrics;
+    private UaaMetrics uaaMetrics1, uaaMetrics2;
     private Map<String,String> urlGroupJsonMap;
     private NotificationBroadcasterSupport emitter;
 
@@ -61,12 +64,19 @@ public class UaaMetricsEmitterTests {
         urlGroupJsonMap.put("/ui", uiJson);
         urlGroupJsonMap.put("/static-content", staticContentJson);
 
-        uaaMetrics = mock(UaaMetrics.class);
-        when(uaaMetrics.getGlobals()).thenReturn(globalsJson);
-        when(uaaMetrics.getSummary()).thenReturn(urlGroupJsonMap);
-        when(uaaMetrics.getIdleTime()).thenReturn(12349l);
-        when(uaaMetrics.getUpTime()).thenReturn(12349843l);
-        when(uaaMetrics.getInflightCount()).thenReturn(3l);
+        uaaMetrics1 = mock(UaaMetrics.class);
+        when(uaaMetrics1.getGlobals()).thenReturn(globalsJson1);
+        when(uaaMetrics1.getSummary()).thenReturn(urlGroupJsonMap);
+        when(uaaMetrics1.getIdleTime()).thenReturn(12349l);
+        when(uaaMetrics1.getUpTime()).thenReturn(12349843l);
+        when(uaaMetrics1.getInflightCount()).thenReturn(3l);
+
+        uaaMetrics2 = mock(UaaMetrics.class);
+        when(uaaMetrics2.getGlobals()).thenReturn(globalsJson2);
+        when(uaaMetrics2.getSummary()).thenReturn(urlGroupJsonMap);
+        when(uaaMetrics2.getIdleTime()).thenReturn(12349l);
+        when(uaaMetrics2.getUpTime()).thenReturn(12349843l);
+        when(uaaMetrics2.getInflightCount()).thenReturn(3l);
 
         server = mock(MBeanServerConnection.class);
 
@@ -89,7 +99,7 @@ public class UaaMetricsEmitterTests {
         mBeanMap2.put("UaaAudit", mBeanMap1);
 
         serverRequestsBeanMap = new MBeanMap();
-        serverRequestsBeanMap.put("globals", globalsJson);
+        serverRequestsBeanMap.put("globals", globalsJson1);
         serverRequestsBeanMap.put("inflight.count", 3l);
         serverRequestsBeanMap.put("up.time", 12349843l);
         serverRequestsBeanMap.put("idle.time", 12349l);
@@ -114,24 +124,54 @@ public class UaaMetricsEmitterTests {
 
     @Test
     public void requestCount_metrics_emitted() throws Exception {
-        Mockito.when(metricsUtils.getUaaMetrics(any())).thenReturn(uaaMetrics);
+        Mockito.when(metricsUtils.getUaaMetrics(any())).thenReturn(uaaMetrics1, uaaMetrics2);
         uaaMetricsEmitter.emitGlobalRequestMetrics();
-        Mockito.verify(statsDClient).gauge("requests.global.completed.count", 3087l);
+        Mockito.verify(statsDClient).count("requests.global.completed.count", 3087l);
         Mockito.verify(statsDClient).gauge("requests.global.completed.time", 29l);
-        Mockito.verify(statsDClient).gauge("requests.global.unhealthy.count", 1l);
+        Mockito.verify(statsDClient).count("requests.global.unhealthy.count", 1l);
         Mockito.verify(statsDClient).gauge("requests.global.unhealthy.time", 4318l);
-        Mockito.verify(statsDClient).gauge("requests.global.status_1xx.count", 0l);
-        Mockito.verify(statsDClient).gauge("requests.global.status_2xx.count", 2148l);
-        Mockito.verify(statsDClient).gauge("requests.global.status_3xx.count", 763l);
-        Mockito.verify(statsDClient).gauge("requests.global.status_4xx.count", 175l);
-        Mockito.verify(statsDClient).gauge("requests.global.status_5xx.count", 1l);
+        Mockito.verify(statsDClient).count("requests.global.status_1xx.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.status_2xx.count", 2148l);
+        Mockito.verify(statsDClient).count("requests.global.status_3xx.count", 763l);
+        Mockito.verify(statsDClient).count("requests.global.status_4xx.count", 175l);
+        Mockito.verify(statsDClient).count("requests.global.status_5xx.count", 1l);
         Mockito.verify(statsDClient).gauge("server.inflight.count", 3l);
         Mockito.verify(statsDClient).gauge("server.up.time", 12349843l);
         Mockito.verify(statsDClient).gauge("server.idle.time", 12349l);
-        Mockito.verify(statsDClient).gauge("database.global.completed.count", 83797l);
+        Mockito.verify(statsDClient).count("database.global.completed.count", 83797l);
         Mockito.verify(statsDClient).gauge("database.global.completed.time", 0l);
-        Mockito.verify(statsDClient).gauge("database.global.unhealthy.count", 17549l);
+        Mockito.verify(statsDClient).count("database.global.unhealthy.count", 17549l);
         Mockito.verify(statsDClient).gauge("database.global.unhealthy.time", 0l);
+        reset(statsDClient);
+        uaaMetricsEmitter.emitGlobalRequestMetrics();
+        Mockito.verify(statsDClient).count("requests.global.completed.count", 4l);
+        Mockito.verify(statsDClient).count("requests.global.unhealthy.count", 1l);
+        Mockito.verify(statsDClient).count("requests.global.status_1xx.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.status_2xx.count", 1l);
+        Mockito.verify(statsDClient).count("requests.global.status_3xx.count", 1l);
+        Mockito.verify(statsDClient).count("requests.global.status_4xx.count", 1l);
+        Mockito.verify(statsDClient).count("requests.global.status_5xx.count", 1l);
+        Mockito.verify(statsDClient).count("database.global.completed.count", 2l);
+        Mockito.verify(statsDClient).count("database.global.unhealthy.count", 5l);
+        reset(statsDClient);
+        uaaMetricsEmitter.emitGlobalRequestMetrics();
+        Mockito.verify(statsDClient).count("requests.global.completed.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.unhealthy.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.status_1xx.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.status_2xx.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.status_3xx.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.status_4xx.count", 0l);
+        Mockito.verify(statsDClient).count("requests.global.status_5xx.count", 0l);
+        Mockito.verify(statsDClient).count("database.global.completed.count", 0l);
+        Mockito.verify(statsDClient).count("database.global.unhealthy.count", 0l);
+    }
+
+    @Test
+    public void test_delta_method() throws Exception {
+        String name = "metric.name";
+        assertEquals(5l, uaaMetricsEmitter.getMetricDelta(name, 5l));
+        assertEquals(0l, uaaMetricsEmitter.getMetricDelta(name, 5l));
+        assertEquals(3l, uaaMetricsEmitter.getMetricDelta(name, 8l));
     }
 
     @Test
@@ -146,7 +186,7 @@ public class UaaMetricsEmitterTests {
 
     @Test
     public void perUrlGroup_request_metrics() throws Exception {
-        Mockito.when(metricsUtils.getUaaMetrics(any())).thenReturn(uaaMetrics);
+        Mockito.when(metricsUtils.getUaaMetrics(any())).thenReturn(uaaMetrics1);
         uaaMetricsEmitter.emitUrlGroupRequestMetrics();
         Mockito.verify(statsDClient).gauge(eq("requests.ui.completed.count"), gt(0l));
         Mockito.verify(statsDClient).gauge(eq("requests.ui.completed.time"), geq(300l));
@@ -332,7 +372,7 @@ public class UaaMetricsEmitterTests {
             "   }\n" +
             "}";
 
-    String globalsJson = "{\n" +
+    String globalsJson1 = "{\n" +
         "   \"lastRequests\":[\n" +
         "      {\n" +
         "         \"uri\":\"/uaa/\",\n" +
@@ -428,4 +468,15 @@ public class UaaMetricsEmitterTests {
         "      \"averageDatabaseIntolerableQueryTime\":0.05704028719585168\n" +
         "   }\n" +
         "}";
+
+    //values have increased
+    String globalsJson2 = globalsJson1
+        .replace("\"count\":3087,\n", "\"count\":3091,\n") //total
+        .replace("         \"count\":763,\n", "         \"count\":764,\n") //redirect
+        .replace("         \"count\":175,\n", "         \"count\":176,\n") //client_error
+        .replace("         \"count\":2148,\n", "         \"count\":2149,\n") //success
+        .replace("         \"count\":1,\n", "         \"count\":2,\n") //error
+        .replace("         \"databaseQueryCount\":77513,\n", "         \"databaseQueryCount\":77515,\n") //database count
+        .replace("         \"databaseIntolerableQueryCount\":17327,\n", "         \"databaseIntolerableQueryCount\":17332,\n") //database unhealthy count
+        .replace("         \"intolerableCount\":1,\n", "         \"intolerableCount\":2,\n"); //intolerable count
 }
