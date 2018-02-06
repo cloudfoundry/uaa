@@ -242,6 +242,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (clientId == null || !clientId.equals(request.getClientId())) {
             throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
         }
+        //remove known claims
+        claims.remove(CLIENT_ID);
+        claims.remove(ORIGIN);
+        claims.remove(SUB);
+        claims.remove(ISS);
+        claims.remove(USER_NAME);
+        claims.remove(ZONE_ID);
 
         String userid = (String) claims.get(USER_ID);
 
