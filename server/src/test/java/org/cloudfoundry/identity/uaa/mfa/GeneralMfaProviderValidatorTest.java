@@ -34,6 +34,22 @@ public class GeneralMfaProviderValidatorTest {
     }
 
     @Test
+    public void validateProviderConfigWithInvalidIssuer() throws ValidationException {
+        expectedException.expect(InvalidMfaProviderException.class);
+        expectedException.expectMessage("Provider config contains an invalid issuer. Issuer must not contain a colon");
+        MfaProvider<GoogleMfaProviderConfig> provider = createValidGoogleMfaProvider()
+                .setConfig(createValidGoogleMfaConfig().setIssuer("invalid:issuer"));
+        validator.validate(provider);
+    }
+
+    @Test
+    public void validateProviderConfigWithMissingIssuer() throws ValidationException {
+        MfaProvider<GoogleMfaProviderConfig> provider = createValidGoogleMfaProvider()
+                .setConfig(createValidGoogleMfaConfig().setIssuer(null));
+        validator.validate(provider);
+    }
+
+    @Test
     public void validateProviderEmptyName() throws ValidationException {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider name is required");

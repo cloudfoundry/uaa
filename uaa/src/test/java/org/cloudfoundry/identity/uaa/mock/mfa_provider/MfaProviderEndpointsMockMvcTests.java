@@ -112,6 +112,22 @@ public class MfaProviderEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCreateMfaProviderInvalidIssuer() throws Exception {
+        GoogleMfaProviderConfig config = new GoogleMfaProviderConfig();
+        config.setIssuer("invalid:issuer");
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider().setConfig(config);
+        String name = new RandomValueStringGenerator(5).generate();
+        mfaProvider.setName(name);
+        MvcResult mfaResponse = getMockMvc().perform(
+                post("/mfa-providers")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(mfaProvider))).andReturn();
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), mfaResponse.getResponse().getStatus());
+    }
+
+    @Test
     public void testCreateDuplicate() throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleProvider();
         mfaProvider.setConfig(null);
