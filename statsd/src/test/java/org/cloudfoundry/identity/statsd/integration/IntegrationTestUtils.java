@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class IntegrationTestUtils {
 
@@ -35,11 +36,11 @@ public class IntegrationTestUtils {
         return null;
     }
 
-    public static long getGaugeValueFromMessage(String message) {
+    public static long getStatsDValueFromMessage(String message) {
         assertNotNull(message);
 
         String[] parts = message.split("[:|]");
-        assertEquals(parts[2], "g");
+        assertTrue(parts[2].equals("g") || parts[2].equals("c"));
 
         return Long.valueOf(parts[1]);
     }
