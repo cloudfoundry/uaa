@@ -901,7 +901,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (uaaTokenEnhancer != null) {
             externalAttributes = new HashMap<>();
             externalAttributes.putAll(uaaTokenEnhancer.enhance(emptyMap(), authentication));
-            //externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
         }
 
         String content;
