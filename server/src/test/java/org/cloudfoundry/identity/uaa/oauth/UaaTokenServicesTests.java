@@ -442,6 +442,7 @@ public class UaaTokenServicesTests {
             OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(s, refreshTokenRequest);
             assertThat("Token value should be equal to or lesser than 36 characters", refreshedAccessToken.getValue().length(), lessThanOrEqualTo(36));
             assertCommonUserAccessTokenProperties(new DefaultOAuth2AccessToken(tokenSupport.tokens.get(refreshedAccessToken).getValue()), CLIENT_ID);
+            validateExternalAttributes(refreshedAccessToken);
         }
     }
 
@@ -683,7 +684,9 @@ public class UaaTokenServicesTests {
         Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
         if (tokenEnhancer!=null) {
             Assert.assertEquals("test", extendedAttributes.get("purpose"));
-            String atValue = accessToken.getValue();
+            String atValue = accessToken.getValue().length() < 40 ?
+                tokenSupport.tokens.get(accessToken.getValue()).getValue() :
+                accessToken.getValue();
             Map<String,Object> claims = JsonUtils.readValue(JwtHelper.decode(atValue).getClaims(),
                                                             new TypeReference<Map<String, Object>>() {});
 
