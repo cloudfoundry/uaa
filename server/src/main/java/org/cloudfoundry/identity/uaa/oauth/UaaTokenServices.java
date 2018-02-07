@@ -109,7 +109,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXTERNAL_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
@@ -321,12 +320,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         int zoneAccessTokenValidity = getZoneAccessTokenValidity();
 
-        @SuppressWarnings("unchecked")
-        Map<String, String> externalAttributes = (Map<String, String>) claims.get(EXTERNAL_ATTR);
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        if (null != externalAttributes) {
-            additionalRootClaims.put(EXTERNAL_ATTR, externalAttributes);
-        }
         claims.entrySet()
             .stream()
             .forEach(
