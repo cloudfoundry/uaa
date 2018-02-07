@@ -698,6 +698,26 @@ public class UaaTokenServicesTests {
     }
 
     @Test
+    public void testCreateAccessTokenExternalContext() throws InterruptedException {
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest();
+        String xx = accessToken.getRefreshToken().getValue();
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(xx, refreshTokenRequest);
+        Map<String, Object> extendedContext = (Map<String, Object>) refreshedAccessToken.getAdditionalInformation();
+
+        if (tokenEnhancer!=null) {
+            assertNotNull(extendedContext);
+            assertEquals("test", ((Map<String, String>)extendedContext.get("ext_attr")).get("purpose"));
+            assertNotNull(extendedContext.get("ex_groups"));
+            assertNotNull(extendedContext.get("ex_prop"));
+            assertEquals("nz", ((Map<String, String>) extendedContext.get("ex_prop")).get("country"));
+        } else {
+            assertNull("External attributes should not exist", extendedContext.get("ext_attr"));
+        }
+    }
+
+    @Test
     public void testCreateAccessTokenRefreshGrant() throws InterruptedException {
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
 
