@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,8 +60,6 @@ import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -73,10 +72,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -101,9 +99,14 @@ import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 
 public class LoginInfoEndpointTests {
 
@@ -136,7 +139,7 @@ public class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, mock(UrlContentCache.class), mock(RestTemplateFactory.class));
-        mfaChecker = mock(MfaChecker.class);
+        mfaChecker = spy(new MfaChecker(mock(IdentityProviderProvisioning.class)));
     }
 
     @After
@@ -400,7 +403,31 @@ public class LoginInfoEndpointTests {
         check_links_urls(zone);
     }
 
-    public void check_links_urls(IdentityZone zone) throws Exception {
+
+    public void mfa_prompt(IdentityZone zone) throws Exception {
+        zone.getConfig().getMfaConfig().setEnabled(true);
+        IdentityZoneHolder.set(zone);
+        String baseUrl = check_links_urls(zone);
+        Map mapPrompts = (Map) model.get("prompts");
+        assertNotNull(mapPrompts.get("mfaCode"));
+        assertEquals(
+            "MFA Code ( Register at "+addSubdomainToUrl(baseUrl) + " )",
+            ((String[])mapPrompts.get("mfaCode"))[1]
+        );
+    }
+    @Test
+    public void mfa_prompt_in_default_zone() throws Exception {
+        IdentityZone zone = IdentityZone.getUaa();
+        mfa_prompt(zone);
+    }
+
+    @Test
+    public void mfa_prompt_in_non_default_zone() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test","test");
+        mfa_prompt(zone);
+    }
+
+    public String check_links_urls(IdentityZone zone) throws Exception {
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         String baseUrl = "http://uaa.domain.com";
@@ -421,6 +448,7 @@ public class LoginInfoEndpointTests {
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
         assertEquals("One Time Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
+        return baseUrl;
     }
 
     @Test
@@ -858,7 +886,8 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void testGenerateAutologinCodeFailsWhenMfaRequired() throws Exception {
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class), anyString());
+
         LoginInfoEndpoint endpoint = getEndpoint();
         try {
             endpoint.generateAutologinCode(mock(AutologinRequest.class), "Basic 1234");
@@ -870,7 +899,7 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void testPerformAutologinFailsWhenMfaRequired() throws Exception {
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class), anyString());
         LoginInfoEndpoint endpoint = getEndpoint();
         try {
             endpoint.performAutologin(new MockHttpSession());
