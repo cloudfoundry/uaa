@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -327,6 +328,40 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         Assert.assertEquals("user-id-001", principal.getId());
         Assert.assertEquals("bob", principal.getName());
         Assert.assertEquals("user@example.com", principal.getEmail());
+    }
+
+    @Test
+    public void testVerifyEmailDoesNotDeleteAuthenticationMethods() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        Map<String,String> response = new HashMap<>();
+        response.put("userId", "user-id-001");
+        response.put("username", "new@example.com");
+        response.put("email", "new@example.com");
+        when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        setupSecurityContext();
+        UaaAuthentication authentication = (UaaAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        authentication.setAuthenticationMethods(Collections.singleton("pwd"));
+
+        MockHttpServletRequestBuilder get = get("/verify_email")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
+
+        mockMvc.perform(get)
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
+
+        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        Assert.assertEquals("user-id-001", principal.getId());
+        Assert.assertEquals("new@example.com", principal.getName());
+        Assert.assertEquals("new@example.com", principal.getEmail());
+
+        authentication = (UaaAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        assertNotNull(authentication.getAuthenticationMethods());
+        Assert.assertTrue(authentication.getAuthenticationMethods().contains("pwd"));
+        Assert.assertEquals(1, authentication.getAuthenticationMethods().size());
     }
 
     private void setupSecurityContext() {
