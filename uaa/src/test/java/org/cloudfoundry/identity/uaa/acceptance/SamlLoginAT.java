@@ -134,7 +134,6 @@ public class SamlLoginAT {
             this.baseUrl = "https://" + this.zoneSubdomain + "."  + this.publishedHost + "." + this.cfDomain;
         }
         this.zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(this.baseUrl, "admin", "acceptance-test");
-
         this.screenShootRule.setWebDriver(this.webDriver);
     }
 
@@ -169,7 +168,7 @@ public class SamlLoginAT {
 
     private boolean findZoneInUaa() {
         RestTemplate zoneAdminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-                IntegrationTestUtils.getClientCredentialsResource(this.baseUrl, new String[0], "admin", "acceptance-test"));
+            IntegrationTestUtils.getClientCredentialsResource(this.baseUrl, new String[0], "admin", "acceptance-test"));
         ResponseEntity<String> responseEntity = zoneAdminClient.getForEntity(this.baseUrl + "/login", String.class);
 
         logger.info("response body: " + responseEntity.getStatusCode());

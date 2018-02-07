@@ -1,14 +1,13 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    // agent {
-    //     docker {
-    //         image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
-    //         label 'dind'
-    //         args '-v /var/lib/docker/.gradle:/root/.gradle'
-    //     }
-    // }
-    agent none
+    agent {
+        docker {
+            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing-with-docker:latest'
+            label 'dind'
+            args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "localhost":127.0.0.1'
+        }
+    }
     environment {
         COMPLIANCEENABLED = true
     }
@@ -17,89 +16,41 @@ pipeline {
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
     stages {
-        stage ('Ensure clean environment') {
-            when { expression { false } }
-            agent {
-                label 'dind'
-            }
+        stage('Cleanup Docker Containers') {
             steps {
-                echo env.BRANCH_NAME
-                dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
-                }
-                dir('uaa') {
-                    checkout scm
-                }
-                sh '''#!/bin/bash -ex
-                    source uaa-cf-release/config-local/set-env.sh
-                    unset HTTPS_PROXY
-                    unset HTTP_PROXY
-                    unset http_proxy
-                    unset https_proxy
-                    unset GRADLE_OPTS
-                    pushd uaa
-                        #ping -c 1 uaa-acceptance-zone.localhost
+                sh'''#!/bin/bash -ex
+                    docker ps -a --filter "name=local_uaa_0"
+                    if [ $(docker ps -a --filter "name=local_uaa_0" | wc -l) -gt 1 ]; then
+                        docker stop local_uaa_0
+                        docker rm local_uaa_0
+                    fi
 
-                        #Remove any stale metering-filter 1.1.0. Performance fix did not change the artifact version which causes
-                        #build to pick the version without the fix
-                        #rm -rf ~/.gradle/caches/modules-2/files-2.1/com.ge.predix/spring-metering-filter/1.1.0
+                    #check for other docker processes running on port 8080
+                    containerId=$(docker ps -a --format "{{.ID}} {{.Ports}}" | grep 8080 | cut -d" " -f1)
 
-                        export JAVA_HOME=$JAVA_HOME_ORACLEJDK8
-                        export PATH=$JAVA_HOME/bin:$PATH
-
-                        echo "WARNING: failing gradle jobs may leave running docker uaa containers on the slave. Be sure to clear these out manually"
-
-                        docker -v
-
-                        docker ps -a --filter "name=local_uaa_0"
-
-                        if [ $(docker ps -a --filter "name=local_uaa_0" | wc -l) -gt 1 ]; then
-                            docker stop local_uaa_0
-                            docker rm local_uaa_0
-                        fi
-
-                        #check for other docker processes running on port 8080
-                        containerId=$(docker ps -a --format "{{.ID}} {{.Ports}}" | grep 8080 | cut -d" " -f1)
-
-                        if [ ! -z $containerId ]; then
-                            docker stop $containerId
-                            docker rm $containerId
-                        fi
-
-                        # start uaa container
-                        #./gradlew startUaaContainer
-                        #sleep 30
-                        #docker logs local_uaa_0
-                        #docker inspect local_uaa_0
-                    popd
+                    if [ ! -z $containerId ]; then
+                        docker stop $containerId
+                        docker rm $containerId
+                    fi
                 '''
             }
             post {
                 success {
-                    echo "Environment clean stage success"
+                    echo "Cleanup docker containers stage success"
                 }
                 failure {
-                    echo "Environment clean stage failed"
+                    echo "Cleanup docker containers stage failed"
                 }
             }
         }
-        stage('Acceptance tests') {
-            agent {
-                docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing-with-docker:latest'
-                    label 'dind'
-                    args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
-                }
-            }
+        stage('Build, Test, and Push Image') {
             steps {
                 dir('uaa-cf-release') {
                     git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
                 }
-
                 dir('uaa') {
                     checkout scm
                 }
-
                 sh '''#!/bin/bash -ex
                     source uaa-cf-release/config-local/set-env.sh
                     unset HTTPS_PROXY
@@ -109,25 +60,23 @@ pipeline {
                     unset GRADLE_OPTS
 
                     pushd uaa
-                        #cp uaa-cf-release/docker-resources/uaa.yml uaa/uaa/src/main/resources/uaa.yml
-                        docker stop local_uaa_0 || echo 'local_uaa_0 container has stopped'
-                        docker container rm local_uaa_0 || echo 'local_uaa_0 container is not there'
-
+                        export UAA_HOST=localhost
+                        export UAA_PORT=8080
                         ./gradlew startUaaContainer
                         sleep 30
-                        docker logs local_uaa_0
-                        export UAA_HOST=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' local_uaa_0`
-                        curl -i -vvv http://${UAA_HOST}:8080/uaa
-                        
-                        pushd ../uaa-cf-release
-                            . ./uaa-acceptance-tests.sh
-                            export LAST=$?
-                            echo $LAST
-                            docker kill $DOCKER_CONTAINER_NAME && docker rm $DOCKER_CONTAINER_NAME || true
-                            if [ $LAST != 0 ]; then
-                                exit $LAST
-                            fi
-                        popd
+                        export UAA_IPADDR=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' local_uaa_0`
+                        echo -e "\n${UAA_IPADDR} uaa-acceptance-zone.${UAA_HOST} ${UAA_HOST}" >> /etc/hosts
+                    popd
+
+                    pushd uaa-cf-release
+                        ./uaa-acceptance-tests.sh || export LAST=$?
+                        docker kill $DOCKER_CONTAINER_NAME && docker rm $DOCKER_CONTAINER_NAME || true
+                        if [ $LAST != 0 ]; then
+                            exit $LAST
+                        fi
+                    popd
+
+                    pushd uaa
                         ./gradlew pushUaaImage --continue -x javadoc
                     popd
                 '''
