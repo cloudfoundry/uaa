@@ -68,6 +68,16 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
+    public void holderIsResolvedWithCaseInsensitiveIdentityZone() throws Exception {
+        assertFindsCorrectSubdomain("", "Login.MyCF.COM", "uaa.mycf.com","login.mycf.com");
+    }
+
+    @Test
+    public void holderIsSetWithCaseInsensitiveIdentityZone() throws Exception {
+        assertFindsCorrectSubdomain("", "login.mycf.com", "uaa.mycf.com","Login.MyCF.COM");
+    }
+
+    @Test
     public void doNotThrowException_InCase_RetrievingZoneFails() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         String incomingSubdomain = "not_a_zone";
