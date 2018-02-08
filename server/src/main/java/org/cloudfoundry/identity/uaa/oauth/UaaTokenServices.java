@@ -12,9 +12,24 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -40,6 +55,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -75,22 +94,7 @@ import org.springframework.security.oauth2.provider.token.ResourceServerTokenSer
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
@@ -105,7 +109,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXTERNAL_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
@@ -210,7 +213,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         TokenValidation tokenValidation = validateToken(refreshTokenValue);
-        Map<String, Object> claims = tokenValidation.getClaims();
+        Map<String, Object> claims = new HashMap<String,Object>(tokenValidation.getClaims()) {
+            @Override
+            public Object get(Object key) {
+                return super.remove(key);
+            }
+        };
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         @SuppressWarnings("unchecked")
@@ -233,6 +241,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (clientId == null || !clientId.equals(request.getClientId())) {
             throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
         }
+        //remove known claims
+        claims.remove(CLIENT_ID);
+        claims.remove(ORIGIN);
+        claims.remove(SUB);
+        claims.remove(ISS);
+        claims.remove(USER_NAME);
+        claims.remove(ZONE_ID);
 
         String userid = (String) claims.get(USER_ID);
 
@@ -240,7 +255,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String accessTokenId = generateUniqueTokenId();
 
         boolean opaque = TokenConstants.OPAQUE.equals(request.getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
-        boolean revocable = opaque || (claims.get(REVOCABLE) == null ? false : (Boolean)claims.get(REVOCABLE));
+        Boolean revocableClaim = (Boolean)claims.get(REVOCABLE);
+        boolean revocable = opaque || (revocableClaim == null ? false : revocableClaim);
 
 
         // TODO: Need to add a lookup by id so that the refresh token does not
@@ -288,9 +304,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
 
-        @SuppressWarnings("unchecked")
-        Map<String, String> externalAttributes = (Map<String, String>) claims.get(EXTERNAL_ATTR);
-
         String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
         if (hasText(revocableHashSignature)) {
             String clientSecretForHash = client.getClientSecret();
@@ -307,7 +320,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         int zoneAccessTokenValidity = getZoneAccessTokenValidity();
 
-
+        Map<String, Object> additionalRootClaims = new HashMap<>();
+        claims.entrySet()
+            .stream()
+            .forEach(
+                entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
+            );
 
         CompositeAccessToken accessToken =
             createAccessToken(
@@ -324,7 +342,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue,
                 nonce,
                 additionalAuthorizationInfo,
-                externalAttributes,
+                additionalRootClaims,
                 new HashSet<>(),
                 revocableHashSignature,
                 false,
@@ -397,7 +415,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                    String refreshToken,
                                                    String nonce,
                                                    Map<String, String> additionalAuthorizationAttributes,
-                                                   Map<String, String> externalAttributes,
+                                                   Map<String, Object> additionalRootClaims,
                                                    Set<String> responseTypes,
                                                    String revocableHashSignature,
                                                    boolean forceIdTokenCreation,
@@ -417,17 +435,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         accessToken.setScope(requestedScopes);
 
-        Map<String, Object> info = new HashMap<String, Object>();
+        ConcurrentMap<String, Object> info = new ConcurrentHashMap<>();
         info.put(JTI, accessToken.getValue());
         if (null != additionalAuthorizationAttributes) {
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
-        if (null != externalAttributes) {
-            info.put(EXTERNAL_ATTR, externalAttributes);
-        }
+
         if (nonce != null) {
             info.put(NONCE, nonce);
         }
+
+        additionalRootClaims
+            .entrySet()
+            .stream()
+            .forEach(entry -> info.putIfAbsent(entry.getKey(), entry.getValue()));
+
         accessToken.setAdditionalInformation(info);
 
         String content;
@@ -549,66 +571,66 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String revocableHashSignature,
                                                 boolean revocable) {
 
-        Map<String, Object> response = new LinkedHashMap<String, Object>();
+        Map<String, Object> claims = new LinkedHashMap<>();
 
-        response.put(JTI, token.getAdditionalInformation().get(JTI));
-        response.putAll(token.getAdditionalInformation());
+        claims.put(JTI, token.getAdditionalInformation().get(JTI));
+        claims.putAll(token.getAdditionalInformation());
 
-        response.put(SUB, clientId);
+        claims.put(SUB, clientId);
         if (null != clientScopes) {
-            response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
+            claims.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
         }
 
-        response.put(OAuth2AccessToken.SCOPE, requestedScopes);
-        response.put(CLIENT_ID, clientId);
-        response.put(CID, clientId);
-        response.put(AZP, clientId); //openId Connect
+        claims.put(OAuth2AccessToken.SCOPE, requestedScopes);
+        claims.put(CLIENT_ID, clientId);
+        claims.put(CID, clientId);
+        claims.put(AZP, clientId); //openId Connect
         if (revocable) {
-            response.put(REVOCABLE, true);
+            claims.put(REVOCABLE, true);
         }
 
         if (null != grantType) {
-            response.put(GRANT_TYPE, grantType);
+            claims.put(GRANT_TYPE, grantType);
         }
         if (user!=null && userId!=null) {
-            response.put(USER_ID, userId);
+            claims.put(USER_ID, userId);
             String origin = user.getOrigin();
             if (StringUtils.hasLength(origin)) {
-                response.put(ORIGIN, origin);
+                claims.put(ORIGIN, origin);
             }
             String username = user.getUsername();
-            response.put(USER_NAME, username == null ? userId : username);
+            claims.put(USER_NAME, username == null ? userId : username);
             String userEmail = user.getEmail();
             if (userEmail != null) {
-                response.put(EMAIL, userEmail);
+                claims.put(EMAIL, userEmail);
             }
             if (userAuthenticationTime!=null) {
-                response.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
+                claims.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
             }
-            response.put(SUB, userId);
+            claims.put(SUB, userId);
         }
 
         if (StringUtils.hasText(revocableHashSignature)) {
-            response.put(REVOCATION_SIGNATURE, revocableHashSignature);
+            claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
         }
 
-        response.put(IAT, System.currentTimeMillis() / 1000);
-        response.put(EXP, token.getExpiration().getTime() / 1000);
+        claims.put(IAT, System.currentTimeMillis() / 1000);
+        claims.put(EXP, token.getExpiration().getTime() / 1000);
 
         if (getTokenEndpoint() != null) {
-            response.put(ISS, getTokenEndpoint());
-            response.put(ZONE_ID,IdentityZoneHolder.get().getId());
+            claims.put(ISS, getTokenEndpoint());
+            claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
         // TODO: different values for audience in the AT and RT. Need to sync
         // them up
-        response.put(AUD, resourceIds);
+        claims.put(AUD, resourceIds);
 
         for (String excludedClaim : getExcludedClaims()) {
-            response.remove(excludedClaim);
+            claims.remove(excludedClaim);
         }
 
-        return response;
+        return claims;
     }
 
     @Override
@@ -691,9 +713,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
 
-        Map<String,String> externalAttributes = null;
+        Map<String,Object> additionalRootClaims = new HashMap<>();
+
         if (uaaTokenEnhancer != null) {
-            externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
+            additionalRootClaims.putAll(uaaTokenEnhancer.enhance(emptyMap(), authentication));
         }
 
         CompositeAccessToken accessToken =
@@ -711,7 +734,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshToken != null ? refreshToken.getValue() : null,
                 nonce,
                 additionalAuthorizationAttributes,
-                externalAttributes,
+                additionalRootClaims,
                 responseTypes,
                 revocableHashSignature,
                 wasIdTokenRequestedThroughAuthCodeScopeParameter,
@@ -868,9 +891,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(tokenId,
                                                                                  new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
 
-        Map<String,String> externalAttributes = null;
+        Map<String,Object> externalAttributes = null;
         if (uaaTokenEnhancer != null) {
-            externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
+            externalAttributes = new HashMap<>();
+            externalAttributes.putAll(uaaTokenEnhancer.enhance(emptyMap(), authentication));
         }
 
         String content;
@@ -914,7 +938,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> resourceIds,
         String revocableSignature,
         boolean revocable,
-        Map<String, String> externalAttributes) {
+        Map<String, Object> externalAttributes) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
@@ -925,7 +949,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
         if (null != externalAttributes) {
-            response.put(EXTERNAL_ATTR, externalAttributes);
+            response.putAll(externalAttributes);
         }
 
         response.put(IAT, System.currentTimeMillis() / 1000);
