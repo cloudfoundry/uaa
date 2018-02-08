@@ -705,8 +705,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
 
         TokenRequest refreshTokenRequest = getRefreshTokenRequest();
-        String xx = accessToken.getRefreshToken().getValue();
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(xx, refreshTokenRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
         Map<String, Object> extendedContext = (Map<String, Object>) refreshedAccessToken.getAdditionalInformation();
 
         if (tokenEnhancer!=null) {
