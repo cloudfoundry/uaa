@@ -214,7 +214,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         @SuppressWarnings("unchecked")
-        ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
+        ArrayList<String> tokenScopes = (ArrayList<String>) getAndRemove(SCOPE, claims);;
         if (isRestrictRefreshGrant() && !tokenScopes.contains(UAA_REFRESH_TOKEN)) {
             throw new InsufficientScopeException(String.format("Expected scope %s is missing", UAA_REFRESH_TOKEN));
         }
@@ -229,18 +229,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // throw new InvalidGrantException("Invalid refresh token");
         // }
 
-        String clientId = (String) claims.get(CID);
+        String clientId = (String) getAndRemove(CID, claims);
         if (clientId == null || !clientId.equals(request.getClientId())) {
             throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
         }
 
-        String userid = (String) claims.get(USER_ID);
+        String userid = (String) getAndRemove(USER_ID, claims);
 
-        String refreshTokenId = (String) claims.get(JTI);
+        String refreshTokenId = (String) getAndRemove(JTI, claims);
         String accessTokenId = generateUniqueTokenId();
 
         boolean opaque = TokenConstants.OPAQUE.equals(request.getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
-        boolean revocable = opaque || (claims.get(REVOCABLE) == null ? false : (Boolean)claims.get(REVOCABLE));
+        boolean revocable = opaque || (claims.get(REVOCABLE) == null ? false : (Boolean)getAndRemove(REVOCABLE, claims));
 
 
         // TODO: Need to add a lookup by id so that the refresh token does not
@@ -248,10 +248,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UaaUser user = userDatabase.retrieveUserById(userid);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
-        Integer refreshTokenIssuedAt = (Integer) claims.get(IAT);
+        Integer refreshTokenIssuedAt = (Integer) getAndRemove(IAT, claims);
         long refreshTokenIssueDate = refreshTokenIssuedAt.longValue() * 1000l;
 
-        Integer refreshTokenExpiry = (Integer) claims.get(EXP);
+        Integer refreshTokenExpiry = (Integer) getAndRemove(EXP, claims);
         long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000l;
 
         if (new Date(refreshTokenExpireDate).before(new Date())) {
@@ -275,7 +275,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // is in the refresh token
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
-        String grantType = claims.get(GRANT_TYPE).toString();
+        String grantType = getAndRemove(GRANT_TYPE, claims).toString();
         checkForApproval(userid, clientId, requestedScopes,
                         getAutoApprovedScopes(grantType, tokenScopes, client)
         );
@@ -283,15 +283,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // if we have reached so far, issue an access token
         Integer validity = client.getAccessTokenValiditySeconds();
 
-        String nonce = (String) claims.get(NONCE);
+        String nonce = (String) getAndRemove(NONCE, claims);
 
         @SuppressWarnings("unchecked")
-        Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
+        Map<String, String> additionalAuthorizationInfo = (Map<String, String>) getAndRemove(ADDITIONAL_AZ_ATTR, claims);
 
         @SuppressWarnings("unchecked")
-        Map<String, String> externalAttributes = (Map<String, String>) claims.get(EXTERNAL_ATTR);
+        Map<String, String> externalAttributes = (Map<String, String>) getAndRemove(EXTERNAL_ATTR, claims);
 
-        String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
+        String revocableHashSignature = (String)getAndRemove(REVOCATION_SIGNATURE, claims);
         if (hasText(revocableHashSignature)) {
             String clientSecretForHash = client.getClientSecret();
             if(clientSecretForHash != null && clientSecretForHash.split(" ").length > 1){
@@ -303,18 +303,19 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        Set<String> audience = new HashSet<>((ArrayList<String>)claims.get(AUD));
+        Set<String> audience = new HashSet<>((ArrayList<String>)getAndRemove(AUD, claims));
 
         int zoneAccessTokenValidity = getZoneAccessTokenValidity();
 
-
+        Date auth_time = (claims.get(AUTH_TIME) != null) ? new Date(((Long) getAndRemove(AUTH_TIME, claims)) * 1000l) : null;
+        Map<String, Object> externalContext = claims;
 
         CompositeAccessToken accessToken =
             createAccessToken(
                 accessTokenId,
                 user.getId(),
                 user,
-                (claims.get(AUTH_TIME) != null) ? new Date(((Long) claims.get(AUTH_TIME)) * 1000l) : null,
+                auth_time,
                 validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 null,
                 requestedScopes,
@@ -325,6 +326,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 nonce,
                 additionalAuthorizationInfo,
                 externalAttributes,
+                externalContext,
                 new HashSet<>(),
                 revocableHashSignature,
                 false,
@@ -337,6 +339,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         DefaultExpiringOAuth2RefreshToken expiringRefreshToken = new DefaultExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireDate));
         return persistRevocableToken(accessTokenId, refreshTokenId, accessToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
 
+    }
+
+    private Object getAndRemove(String key, Map<String, Object> claims) {
+        Object ret = claims.get(key);
+        if(ret != null)
+           claims.remove(key);
+        return ret;
     }
 
     private int getZoneAccessTokenValidity() {
@@ -398,6 +407,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                    String nonce,
                                                    Map<String, String> additionalAuthorizationAttributes,
                                                    Map<String, String> externalAttributes,
+                                                   Map<String, Object> externalContext,
                                                    Set<String> responseTypes,
                                                    String revocableHashSignature,
                                                    boolean forceIdTokenCreation,
@@ -424,6 +434,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         if (null != externalAttributes) {
             info.put(EXTERNAL_ATTR, externalAttributes);
+        }
+        if (null != externalContext) {
+            info.putAll(externalContext);
         }
         if (nonce != null) {
             info.put(NONCE, nonce);
@@ -692,8 +705,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> responseTypes = extractResponseTypes(authentication);
 
         Map<String,String> externalAttributes = null;
+        Map<String, Object> externalContext = null;
         if (uaaTokenEnhancer != null) {
             externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
+            externalContext = uaaTokenEnhancer.enhance(authentication);
         }
 
         CompositeAccessToken accessToken =
@@ -712,6 +727,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 nonce,
                 additionalAuthorizationAttributes,
                 externalAttributes,
+                externalContext,
                 responseTypes,
                 revocableHashSignature,
                 wasIdTokenRequestedThroughAuthCodeScopeParameter,
@@ -869,8 +885,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                                                  new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
 
         Map<String,String> externalAttributes = null;
+        Map<String, Object> externalContext = null;
         if (uaaTokenEnhancer != null) {
             externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
+            externalContext = uaaTokenEnhancer.enhance(authentication);
         }
 
         String content;
@@ -886,7 +904,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     additionalAuthorizationAttributes,authentication.getOAuth2Request().getResourceIds(),
                     revocableHashSignature,
                     revocable,
-                    externalAttributes
+                    externalAttributes,
+                    externalContext
                 )
             );
         } catch (JsonUtils.JsonUtilException e) {
@@ -914,7 +933,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> resourceIds,
         String revocableSignature,
         boolean revocable,
-        Map<String, String> externalAttributes) {
+        Map<String, String> externalAttributes,
+        Map<String, Object> externalContext) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
@@ -926,6 +946,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         if (null != externalAttributes) {
             response.put(EXTERNAL_ATTR, externalAttributes);
+        }
+        if (null != externalContext) {
+            response.putAll(externalContext);
         }
 
         response.put(IAT, System.currentTimeMillis() / 1000);
