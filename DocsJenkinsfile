@@ -31,7 +31,7 @@ pipeline {
                     checkout scm
                 }
                 dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                 }
                 sh '''#!/bin/bash -ex
                     source uaa-cf-release/config-local/set-env.sh

@@ -29,7 +29,7 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                         }
                         dir('uaa') {
                             checkout scm
@@ -72,7 +72,7 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                         }
                         dir('uaa') {
                             checkout scm
@@ -112,7 +112,7 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                         }
                         dir('uaa') {
                             checkout scm
@@ -156,7 +156,7 @@ pipeline {
             steps {
                 echo env.BRANCH_NAME
                 dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                 }
                 dir('uaa') {
                     checkout scm
@@ -205,6 +205,9 @@ pipeline {
                 }
                 dir('build') {
                         unstash 'uaa-war'
+                }
+                dir('uaa-cf-release') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                 }
                 script {
                     APP_VERSION = sh (returnStdout: true, script: '''
