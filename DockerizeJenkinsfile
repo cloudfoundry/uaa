@@ -44,6 +44,9 @@ pipeline {
             }
         }
         stage('Build, Test, and Push Image') {
+            environment {
+                DOCKER_USER = credentials('artifactory-docker-repo-pusher')
+            }
             steps {
                 dir('uaa-cf-release') {
                     git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
@@ -58,6 +61,8 @@ pipeline {
                     unset http_proxy
                     unset https_proxy
                     unset GRADLE_OPTS
+                    export DOCKER_REPO_USER=$DOCKER_USER_USR
+                    export DOCKER_REPO_USER_PW=$DOCKER_USER_PSW
 
                     pushd uaa
                         export UAA_HOST=localhost
