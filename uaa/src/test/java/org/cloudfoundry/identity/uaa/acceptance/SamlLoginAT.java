@@ -64,7 +64,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class SamlLoginAT {
 
-    private static final String SAML_ENTITY_ID = "gefssstg";
+    private static final String SAML_ENTITY_ID = "gefssprd";
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
@@ -150,7 +150,7 @@ public class SamlLoginAT {
     private void testGESSOLogin(String firstUrl, String lookfor) throws Exception {
         Assert.assertTrue("Expected acceptance zone subdomain to exist", findZoneInUaa());
 
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createGESSOIdentityProvider("gefssstg");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createGESSOIdentityProvider(SAML_ENTITY_ID);
         this.webDriver.get(this.baseUrl + firstUrl);
         this.webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
         logger.info(this.webDriver.getCurrentUrl());

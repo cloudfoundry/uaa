@@ -18,7 +18,7 @@ pipeline {
         stage('Deploy') {
             agent{
                 docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.6'
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.7'
                     label 'dind'
                     args '-v /var/lib/docker/.gradle:/root/.gradle'
                 }
@@ -97,8 +97,7 @@ pipeline {
                 label 'dind'
             }
             when {
-                //expression { params.DEPLOYMENT_TYPE == 'cf3-staging' }
-                expression { true }
+                expression { params.DEPLOYMENT_TYPE == 'cf3-staging' }
             }
             steps{
                 script {
