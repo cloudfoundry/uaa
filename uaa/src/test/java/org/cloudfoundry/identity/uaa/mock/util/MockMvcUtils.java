@@ -204,7 +204,7 @@ public final class MockMvcUtils {
     }
 
     public static int getMFACodeFromSession(MockHttpSession session) {
-        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
+        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("uaaMfaCredentials");
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
         return authenticator.getTotpPassword(activeCreds.getSecretKey());
     }
