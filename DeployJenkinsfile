@@ -18,7 +18,7 @@ pipeline {
         stage('Deploy') {
             agent{
                 docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.7'
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                     label 'dind'
                     args '-v /var/lib/docker/.gradle:/root/.gradle'
                 }
@@ -50,12 +50,11 @@ pipeline {
                     sh "ls -ltr deploy-workspace/"
                 }
                 dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                 }
                 sh '''#!/bin/bash -ex
                 export CF_USERNAME=$CF_CREDENTIALS_USR
                 export CF_PASSWORD=$CF_CREDENTIALS_PSW
-                export SKIP_ACCEPTANCE_TESTS=true
                 export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
                 echo "APP_VERSION is:$APP_VERSION"
                 export DEPLOY_BRANCH_SUFFIX=$APP_VERSION

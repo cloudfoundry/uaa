@@ -13,7 +13,7 @@ pipeline {
         booleanParam(name: 'UNIT_TESTS', defaultValue: true, description: 'Run Unit tests')
         booleanParam(name: 'MOCK_MVC_TESTS', defaultValue: true, description: 'Run Mock MVC tests')
         booleanParam(name: 'INTEGRATION_TESTS', defaultValue: true, description: 'Run Integration tests')
-        booleanParam(name: 'BUILD_TO_STAGE', defaultValue: false, description: 'Publish to build artifactory')
+        booleanParam(name: 'PUSH_TO_DEVCLOUD', defaultValue: false, description: 'Publish to build artifactory')
     }
     stages {
         stage('Build and run Tests') {
@@ -21,7 +21,7 @@ pipeline {
                 stage ('Checkout & Build') {
                     agent {
                       docker {
-                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.7'
+                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                           label 'dind'
                           args '-v /var/lib/docker/.gradle:/root/.gradle'
                       }
@@ -64,7 +64,7 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.7'
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                             label 'dind'
                             args '-v /var/lib/docker/.gradle:/root/.gradle'
                         }
@@ -104,7 +104,7 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.7'
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                             label 'dind'
                             args '-v /var/lib/docker/.gradle:/root/.gradle'
                         }
@@ -148,7 +148,7 @@ pipeline {
             }
             agent {
                 docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.7'
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                     label 'dind'
                     args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
                 }
@@ -197,7 +197,7 @@ pipeline {
                 label 'dind'
             }
             when {
-                expression { params.BUILD_TO_STAGE == true }
+                expression { params.PUSH_TO_DEVCLOUD == true }
             }
             steps{
                 dir('uaa') {
