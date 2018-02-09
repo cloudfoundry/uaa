@@ -426,7 +426,10 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
                 clientDetailsValidator.getClientSecretValidator().validate(change[i].getSecret());
-                clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), IdentityZoneHolder.get().getId());
+                if (!authenticateClient(clientId, change[i].getSecret())) {
+                    clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), IdentityZoneHolder.get().getId());
+                    clientSecretChanges.incrementAndGet();
+                }
                 if (!oldPasswordOk) {
                     deleteApprovals(clientId);
                     clientDetails[i].setApprovalsDeleted(true);
@@ -436,7 +439,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         } catch (InvalidClientException e) {
             throw new NoSuchClientException("No such client: " + clientId);
         }
-        clientSecretChanges.getAndAdd(change.length);
         return clientDetails;
     }
 
@@ -531,6 +533,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
                 clientRegistrationService.addClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "Secret is added");
+                clientSecretChanges.incrementAndGet();
                 break;
 
             case DELETE :
@@ -540,14 +543,19 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
                 clientRegistrationService.deleteClientSecret(client_id, IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "Secret is deleted");
+                clientSecretChanges.incrementAndGet();
                 break;
 
             default:
                 clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
-                clientRegistrationService.updateClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
-                result = new ActionResult("ok", "secret updated");
+                if (authenticateClient(client_id, change.getSecret())) {
+                    result = new ActionResult("ok", "nothing to do");
+                } else {
+                    clientRegistrationService.updateClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
+                    result = new ActionResult("ok", "secret updated");
+                    clientSecretChanges.incrementAndGet();
+                }
         }
-        clientSecretChanges.incrementAndGet();
 
         return result;
     }
