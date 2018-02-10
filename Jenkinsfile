@@ -1,5 +1,5 @@
 #!/usr/bin/env groovy
-
+def devcloudArtServer = Artifactory.server('devcloud')
 pipeline {
     agent none
     environment {
@@ -9,17 +9,19 @@ pipeline {
         skipDefaultCheckout()
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
+    parameters {
+        booleanParam(name: 'UNIT_TESTS', defaultValue: true, description: 'Run Unit tests')
+        booleanParam(name: 'MOCK_MVC_TESTS', defaultValue: true, description: 'Run Mock MVC tests')
+        booleanParam(name: 'INTEGRATION_TESTS', defaultValue: true, description: 'Run Integration tests')
+        booleanParam(name: 'PUSH_TO_DEVCLOUD', defaultValue: false, description: 'Publish to build artifactory')
+    }
     stages {
         stage('Build and run Tests') {
             parallel {
                 stage ('Checkout & Build') {
-                    when {
-                        expression { true }
-
-                    }
                     agent {
                       docker {
-                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                           label 'dind'
                           args '-v /var/lib/docker/.gradle:/root/.gradle'
                       }
@@ -58,11 +60,11 @@ pipeline {
                 }
                 stage('Unit Tests') {
                     when {
-                        expression { true }
+                        expression { params.UNIT_TESTS == true }
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                             label 'dind'
                             args '-v /var/lib/docker/.gradle:/root/.gradle'
                         }
@@ -98,11 +100,11 @@ pipeline {
                 }
                 stage('Mockmvc Tests') {
                     when {
-                        expression { true }
+                        expression { params.MOCK_MVC_TESTS == true }
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.5'
+                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                             label 'dind'
                             args '-v /var/lib/docker/.gradle:/root/.gradle'
                         }
@@ -142,11 +144,11 @@ pipeline {
         }
         stage('Integration Tests') {
             when {
-                expression { true }
+                expression { params.INTEGRATION_TESTS == true }
             }
             agent {
                 docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
+                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
                     label 'dind'
                     args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
                 }
@@ -172,7 +174,6 @@ pipeline {
                     unset PROXY_HOST
                     cat /etc/hosts
                     curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
-                    curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
                     pushd uaa
                         env
                        ./gradlew --no-daemon --continue jacocoRootReportIntegrationTest
@@ -191,82 +192,45 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to RC') {
-            agent{
-                docker {
-                    image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.4'
-                    label 'dind'
-                    args '-v /var/lib/docker/.gradle:/root/.gradle'
-                }
+        stage('Upload Build Artifact') {
+            agent {
+                label 'dind'
             }
             when {
-                expression { false }
+                expression { params.PUSH_TO_DEVCLOUD == true }
             }
-            environment {
-                CF_CREDENTIALS = credentials('CF_CREDENTIALS_CF3')
-                ADMIN_CLIENT_SECRET = credentials('CF3_RELEASE_CANDIDATE_ADMIN_CLIENT_SECRET')
-                DEPLOYMENT_TYPE = 'cf3-release-candidate'
-                MAP_ROUTES_TO_DEPLOYED_APP = 'true'
-            }
-            steps {
+            steps{
+                dir('uaa') {
+                    checkout scm
+                }
                 dir('build') {
-                    unstash 'uaa-war'
+                        unstash 'uaa-war'
                 }
-                dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'feature/jenkinsfile'
+                script {
+                    APP_VERSION = sh (returnStdout: true, script: '''
+                        grep 'version' uaa/gradle.properties | sed 's/version=//'
+                        ''').trim()
+                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
+                    def uploadSpec = """{
+                        "files": [
+                            {
+                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+                                "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
+                            }
+                        ]
+                    }"""
+                    def buildInfo = devcloudArtServer.upload(uploadSpec)
+                    devcloudArtServer.publishBuildInfo(buildInfo)
                 }
-                sh '''#!/bin/bash -ex
-                export CF_USERNAME=$CF_CREDENTIALS_USR
-                export CF_PASSWORD=$CF_CREDENTIALS_PSW
-                export SKIP_ACCEPTANCE_TESTS=true
-                export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
-                echo "APP_VERSION is:$APP_VERSION"
-                export DEPLOY_BRANCH_SUFFIX=$APP_VERSION
-                source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
-                unset HTTPS_PROXY
-                unset HTTP_PROXY
-                unset http_proxy
-                unset https_proxy
-                unset GRADLE_OPTS
-
-                pushd uaa-cf-release
-                    source combine-inline-config.sh
-                    echo "$UAA_CONFIG_YAML"
-                    echo "$APP_NAME"
-                    export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
-                    cf -v
-                    ruby -v
-                    ./ci_deploy.sh
-
-                    # mvn deploy:deploy-file -DgroupId=org.cloudfoundry.identity \\
-                    #    -DartifactId=cloudfoundry-identity-uaa \\
-                    #    -Dversion=$APP_VERSION \\
-                    #    -Dpackaging=war \\
-                    #    -Dfile=../build/cloudfoundry-identity-uaa-$APP_VERSION.war \\
-                    #    -DrepositoryId=artifactory.releases \\
-                    #    -Durl=https://devcloud.swcoe.ge.com/artifactory/MAAXA-MVN \\
-                    #    -Dartifactory.password=$ARTIFACTORY_PASSWORD \\
-                    #    -s mvn_settings.xml \\
-                    #    -B
-                    if [ $DEPLOYMENT_TYPE != 'perf-vpc-sb' -a $DEPLOYMENT_TYPE != 'perf-asv-sb' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'perf-azr-usw' -a $DEPLOYMENT_TYPE != 'cf3-integration' -a $DEPLOYMENT_TYPE != 'asv-pr-db-mig-test' ]; then
-                        ./uaa-sb-acceptance-tests.sh
-                    fi
-                popd
-                touch uaa-release.properties
-                echo "DEPLOYMENT_TYPE:$DEPLOYMENT_TYPE" >> uaa-release.properties
-                echo "UAA_CF_RELEASE_COMMIT_HASH:$UAA_CONFIG_COMMIT" >> uaa-release.properties
-                echo "UAA_APP_VERSION:$APP_VERSION" >> uaa-release.properties
-                '''
-                stash includes: 'uaa-release.properties', name:'uaa-release.properties'
             }
         }
     }
     post {
         success {
-            echo 'Your Gradle pipeline was successful sending notification'
+            echo 'UAA pipeline was successful. Sending notification!'
         }
         failure {
-            echo "Your Gradle pipeline failed sending notification...."
+            echo "UAA pipeline failed. Sending notification!"
         }
 
     }
