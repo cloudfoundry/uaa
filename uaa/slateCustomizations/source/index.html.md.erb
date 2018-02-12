@@ -221,6 +221,23 @@ _Response Fields_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md")).result(binding) %>
 
+### Password Grant with MFA
+
+A password grant can be completed when multi-factor authentication is enabled.
+
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/response-fields.md")).result(binding) %>
+
 ### One-time Passcode
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/curl-request.md")).result(binding) %>

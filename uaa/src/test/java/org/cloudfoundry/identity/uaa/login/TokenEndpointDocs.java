@@ -14,9 +14,6 @@
  */
 package org.cloudfoundry.identity.uaa.login;
 
-import java.net.URI;
-import java.util.Arrays;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
@@ -58,8 +55,12 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+import java.util.Arrays;
+
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -280,6 +281,47 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             clientSecretParameter,
             parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
             parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
+            opaqueFormatParameter
+        );
+
+        Snippet responseFields = responseFields(
+            fieldWithPath("access_token").description("the access token"),
+            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
+            fieldWithPath("expires_in").description("number of seconds until token expiry"),
+            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
+            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
+            fieldWithPath("jti").description("a globally unique identifier for this token")
+        );
+
+        getMockMvc().perform(postForToken)
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
+    }
+
+    @Test
+    public void getTokenUsingMfaPasswordGrant() throws Exception {
+        createUser();
+        setupForMfaPasswordGrant(user.getId());
+
+        MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param(CLIENT_ID, "app")
+            .param("client_secret", "appclientsecret")
+            .param(GRANT_TYPE, "password")
+            .param("username", user.getUserName())
+            .param("password", user.getPassword())
+            .param("mfaCode", String.valueOf(getMfaCodeFromCredentials(credentials)))
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(RESPONSE_TYPE, "token");
+
+        Snippet requestParameters = requestParameters(
+            responseTypeParameter,
+            clientIdParameter,
+            grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
+            clientSecretParameter,
+            parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
+            parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
+            parameterWithName("mfaCode").required().type(NUMBER).description("A one time passcode from a registered multi-factor generator"),
             opaqueFormatParameter
         );
 

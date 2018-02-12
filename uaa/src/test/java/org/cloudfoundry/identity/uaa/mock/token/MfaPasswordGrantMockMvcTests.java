@@ -1,65 +1,34 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.mfa.StatelessMfaAuthenticationFilter;
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class MfaPasswordGrantMockMvcTests extends InjectedMockContextTest {
-
-    IdentityZone zone;
-    private String adminToken;
-    private JdbcUserGoogleMfaCredentialsProvisioning jdbcUserGoogleMfaCredentialsProvisioning;
-    private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
-    private UaaUserDatabase userDb;
-    private MfaProvider mfaProvider;
-    private IdentityZoneConfiguration uaaZoneConfig;
-    private GoogleAuthenticator authenticator;
+public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Before
     public void setupForMfaPasswordGrant() throws Exception {
-        adminToken = testClient.getClientCredentialsOAuthAccessToken(
-            "admin",
-            "adminsecret",
-            "clients.read clients.write clients.secret clients.admin uaa.admin"
-        );
-        mfaProvider = createMfaProvider(getMockMvc(), IdentityZone.getUaa().getId(), adminToken);
-
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
-        uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
-
-        userDb = getWebApplicationContext().getBean(UaaUserDatabase.class);
-        String userId = userDb.retrieveUserByName("marissa", OriginKeys.UAA).getId();
-        authenticator = getWebApplicationContext().getBean(GoogleAuthenticator.class);
-
-
-        //GoogleAuthenticatorKey credentials = authenticator.createCredentials(userId);
-
+        super.setupForMfaPasswordGrant();
     }
 
-    @After
-    public void cleanup() throws Exception {
-        uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
-        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
-
+    @Test
+    public void filter_only_triggers_on_password_grant() throws Exception {
+        StatelessMfaAuthenticationFilter filter = getWebApplicationContext().getBean(StatelessMfaAuthenticationFilter.class);
+        assertThat(filter.getSupportedGrantTypes(), containsInAnyOrder("password"));
     }
 
     @Test
@@ -74,7 +43,53 @@ public class MfaPasswordGrantMockMvcTests extends InjectedMockContextTest {
                 .param("client_secret", "")
                 .param("username", "marissa")
                 .param("password", "koala")
-        );
+                .param("mfaCode", String.valueOf(getMfaCodeFromCredentials(credentials)))
+        )
+            .andDo(print())
+            .andExpect(status().isOk());
     }
+
+    @Test
+    public void invalid_code() throws Exception {
+        getMockMvc().perform(
+            post("/oauth/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, "password")
+                .param(OAuth2Utils.CLIENT_ID, "cf")
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+                .param("client_secret", "")
+                .param("username", "marissa")
+                .param("password", "koala")
+                .param("mfaCode", "1234")
+        )
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("error").value("unauthorized"))
+            .andExpect(jsonPath("error_description").value(containsString("Bad credentials")));
+    }
+
+    @Test
+    public void not_registered() throws Exception {
+        deleteMfaRegistrations();
+        getMockMvc().perform(
+            post("/oauth/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, "password")
+                .param(OAuth2Utils.CLIENT_ID, "cf")
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+                .param("client_secret", "")
+                .param("username", "marissa")
+                .param("password", "koala")
+                .param("mfaCode", "1234")
+        )
+            .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("error").value("invalid_request"))
+            .andExpect(jsonPath("error_description").value(containsString("register a multi-factor")));
+    }
+
+
 
 }
