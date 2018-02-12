@@ -17,13 +17,13 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -128,7 +128,8 @@ public class AuthenticationSuccessListenerTests {
         when(checker.isMfaEnabled(any(), any())).thenReturn(false);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
             user,
-            mockAuth
+            mockAuth,
+            OriginKeys.UAA
         );
         listener.onApplicationEvent(event);
         verify(publisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
@@ -139,7 +140,8 @@ public class AuthenticationSuccessListenerTests {
         when(checker.isMfaEnabled(any(), any())).thenReturn(true);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
             user,
-            mockAuth
+            mockAuth,
+            OriginKeys.UAA
         );
         listener.onApplicationEvent(event);
         verifyZeroInteractions(publisher);
