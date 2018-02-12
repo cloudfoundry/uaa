@@ -16,6 +16,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
@@ -917,6 +918,13 @@ public class LdapMockMvcTests  {
         assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
 
         testSuccessfulLogin();
+
+        captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
+        allValues = captor.getAllValues();
+        assertThat(allValues.get(12), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
+        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent)allValues.get(12);
+        assertEquals(OriginKeys.LDAP, successEvent.getAuthenticationType());
     }
 
     @Test
