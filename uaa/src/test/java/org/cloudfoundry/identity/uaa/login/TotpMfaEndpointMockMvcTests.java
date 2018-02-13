@@ -127,7 +127,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
     public void testGoogleAuthenticatorLoginFlow() throws Exception {
         redirectToMFARegistration();
 
-        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
+        performGetMfaRegister()
+            .andDo(print())
+            .andExpect(view().name("mfa/qr_code"));
 
         assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
 
@@ -282,7 +284,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         session = new MockHttpSession();
         performLoginWithSession();
 
-        performGetMfaRegister().andExpect(redirectedUrl("/uaa/login/mfa/verify"));
+        performGetMfaRegister().andExpect(redirectedUrl("/login/mfa/verify"));
     }
 
     @Test
@@ -351,7 +353,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
-        UserGoogleMfaCredentials inActiveCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
+        UserGoogleMfaCredentials inActiveCreds = (UserGoogleMfaCredentials) session.getAttribute("uaaMfaCredentials");
         assertNotNull(inActiveCreds);
 
         performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
@@ -427,15 +429,14 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
 
     private ResultActions performGetMfaRegister() throws Exception {
-        return getMockMvc().perform(get("/uaa/login/mfa/register")
-            .session(session)
-            .contextPath("/uaa"));
+        return getMockMvc().perform(get("/login/mfa/register")
+            .session(session));
     }
 
     private ResultActions performGetMfaManualRegister() throws Exception {
-        return getMockMvc().perform(get("/uaa/login/mfa/manual")
+        return getMockMvc().perform(get("/login/mfa/manual")
             .session(session)
-            .contextPath("/uaa"));
+        );
     }
 
     private void redirectToMFARegistration() throws Exception {

@@ -14,11 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.mock.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -62,6 +57,12 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -100,9 +101,6 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
@@ -116,8 +114,10 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
-import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -138,6 +138,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
+import static java.util.Arrays.asList;
 
 public final class MockMvcUtils {
 
@@ -203,7 +204,11 @@ public final class MockMvcUtils {
     }
 
     public static int getMFACodeFromSession(MockHttpSession session) {
-        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
+        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("uaaMfaCredentials");
+        return getMfaCodeFromCredentials(activeCreds);
+    }
+
+    public static int getMfaCodeFromCredentials(UserGoogleMfaCredentials activeCreds) {
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
         return authenticator.getTotpPassword(activeCreds.getSecretKey());
     }
@@ -276,7 +281,7 @@ public final class MockMvcUtils {
 
     public static MfaProvider createMfaProvider(MockMvc mockMvc, String zoneId, String adminToken) throws Exception {
         MfaProvider provider = new MfaProvider();
-        provider.setName(new RandomValueStringGenerator(5).generate());
+        provider.setName(new RandomValueStringGenerator(5).generate().toLowerCase());
         provider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         provider.setIdentityZoneId(zoneId);
         provider.setConfig(new GoogleMfaProviderConfig());

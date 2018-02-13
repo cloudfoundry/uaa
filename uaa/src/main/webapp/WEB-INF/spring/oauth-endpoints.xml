@@ -203,6 +203,7 @@
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <custom-filter ref="clientParameterAuthenticationFilter" before="BASIC_AUTH_FILTER" />
         <custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER" />
+        <custom-filter ref="statelessMfaAuthenticationFilter" before="EXCEPTION_TRANSLATION_FILTER"/>
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <csrf disabled="true"/>
     </http>
@@ -257,6 +258,16 @@
         <constructor-arg ref="xOauthAuthenticationManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
+    </bean>
+
+    <bean id="statelessMfaAuthenticationFilter" class="org.cloudfoundry.identity.uaa.mfa.StatelessMfaAuthenticationFilter">
+        <constructor-arg name="provisioning" ref="userGoogleMfaCredentialsProvisioning"/>
+        <constructor-arg name="supportedGrantTypes">
+            <util:set>
+                <value>password</value>
+            </util:set>
+        </constructor-arg>
+        <constructor-arg name="mfaProvider" ref="mfaProviderProvisioning"/>
     </bean>
 
     <bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">

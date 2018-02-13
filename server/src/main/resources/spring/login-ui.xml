@@ -589,26 +589,18 @@
     <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
         <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
-        <property name="credCache" ref="mfaCredentialsSessionCache" />
+        <property name="authenticator" ref="googleAuthenticator"/>
     </bean>
-
-    <bean id="mfaCredentialsSessionCache" class="org.cloudfoundry.identity.uaa.mfa.MfaCredentialsSessionCache" />
 
     <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint">
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
-        <property name="googleAuthenticatorService" ref="googleAuthenticatorAdapter" />
         <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
         <property name="userDatabase" ref="userDatabase" />
     </bean>
 
     <bean id="mfaCompleteUrl" class="java.lang.String">
         <constructor-arg value="/login/mfa/completed"/>
-    </bean>
-
-    <bean id="googleAuthenticatorAdapter" class="org.cloudfoundry.identity.uaa.mfa.GoogleAuthenticatorAdapter">
-        <property name="authenticator" ref="googleAuthenticator"/>
-        <property name="credCache" ref="mfaCredentialsSessionCache" />
     </bean>
 
     <bean id="googleAuthenticator" class="com.warrenstrange.googleauth.GoogleAuthenticator">
