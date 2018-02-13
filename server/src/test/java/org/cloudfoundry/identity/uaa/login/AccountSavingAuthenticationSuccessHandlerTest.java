@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,6 +26,7 @@ import java.util.Date;
 
 import static java.util.Arrays.asList;
 import static junit.framework.TestCase.assertEquals;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
@@ -64,6 +66,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
     @SuppressWarnings("deprecation")
     @Test
     public void whenSuccessfullyAuthenticated_accountGetsSavedViaCookie() throws IOException, ServletException {
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
         Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
         UaaUser user = new UaaUser(
                 "user-id",
@@ -115,4 +118,42 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         verify(redirectingHandler, times(1)).onAuthenticationSuccess(request, response, authentication);
     }
 
+    @Test
+    public void empty_Account_Cookie() throws IOException, ServletException {
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
+        UaaUser user = new UaaUser(
+                "user-id",
+                "username",
+                "password",
+                "email",
+                Collections.EMPTY_LIST,
+                "given name",
+                "family name",
+                yesterday,
+                yesterday,
+                "user-origin",
+                null,
+                true,
+                IdentityZone.getUaa().getId(),
+                "salt",
+                yesterday
+        );
+
+        UaaPrincipal principal = new UaaPrincipal(user);
+        UaaAuthentication authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+
+        AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
+        SavedRequestAwareAuthenticationSuccessHandler redirectingHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
+        successHandler.setRedirectingHandler(redirectingHandler);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setSecure(secure);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        successHandler.onAuthenticationSuccess(request, response, authentication);
+
+        Cookie accountOptionCookie = response.getCookie("Saved-Account-user-id");
+        assertThat(accountOptionCookie, nullValue());
+    }
 }
