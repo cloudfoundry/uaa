@@ -1,0 +1,107 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent {
+        docker {
+            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing-with-docker:latest'
+            label 'dind'
+            args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "localhost":127.0.0.1'
+        }
+    }
+    environment {
+        COMPLIANCEENABLED = true
+    }
+    options {
+        skipDefaultCheckout()
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
+    }
+    stages {
+        stage('Cleanup Docker Containers') {
+            steps {
+                sh'''#!/bin/bash -ex
+                    docker ps -a --filter "name=local_uaa_0"
+                    if [ $(docker ps -a --filter "name=local_uaa_0" | wc -l) -gt 1 ]; then
+                        docker stop local_uaa_0
+                        docker rm local_uaa_0
+                    fi
+
+                    #check for other docker processes running on port 8080
+                    containerId=$(docker ps -a --format "{{.ID}} {{.Ports}}" | grep 8080 | cut -d" " -f1)
+
+                    if [ ! -z $containerId ]; then
+                        docker stop $containerId
+                        docker rm $containerId
+                    fi
+                '''
+            }
+            post {
+                success {
+                    echo "Cleanup docker containers stage success"
+                }
+                failure {
+                    echo "Cleanup docker containers stage failed"
+                }
+            }
+        }
+        stage('Build, Test, and Push Image') {
+            environment {
+                DOCKER_USER = credentials('artifactory-docker-repo-pusher')
+            }
+            steps {
+                dir('uaa-cf-release') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                }
+                dir('uaa') {
+                    checkout scm
+                }
+                sh '''#!/bin/bash -ex
+                    source uaa-cf-release/config-local/set-env.sh
+                    unset HTTPS_PROXY
+                    unset HTTP_PROXY
+                    unset http_proxy
+                    unset https_proxy
+                    unset GRADLE_OPTS
+                    export DOCKER_REPO_USER=$DOCKER_USER_USR
+                    export DOCKER_REPO_USER_PW=$DOCKER_USER_PSW
+
+                    pushd uaa
+                        export UAA_HOST=localhost
+                        export UAA_PORT=8080
+                        ./gradlew startUaaContainer
+                        sleep 30
+                        export UAA_IPADDR=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' local_uaa_0`
+                        echo -e "\n${UAA_IPADDR} uaa-acceptance-zone.${UAA_HOST} ${UAA_HOST}" >> /etc/hosts
+                    popd
+
+                    pushd uaa-cf-release
+                        ./uaa-acceptance-tests.sh || export LAST=$?
+                        docker kill $DOCKER_CONTAINER_NAME && docker rm $DOCKER_CONTAINER_NAME || true
+                        if [ $LAST != 0 ]; then
+                            exit $LAST
+                        fi
+                    popd
+
+                    pushd uaa
+                        ./gradlew pushUaaImage --continue -x javadoc
+                    popd
+                '''
+            }
+            post {
+                success {
+                    echo "Acceptance test stage success"
+                }
+                failure {
+                    echo "Acceptance test stage failed"
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo "Dockerize UAA pipeline completed"
+        }
+        failure {
+            echo "Dockerize UAA pipeline failed"
+        }
+    }
+}
