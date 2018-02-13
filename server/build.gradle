@@ -33,6 +33,7 @@ dependencies {
     exclude(group: 'org.owasp.esapi', module: 'esapi')
     exclude(group: 'ca.juliusdavies', module: 'not-yet-commons-ssl')
     exclude(group: "org.apache.velocity", module: 'velocity')
+    exclude(group: 'org.beanshell', module: 'beanshell')
   }
   compile group: 'org.apache.santuario', name: 'xmlsec', version: parent.openSamlXmlSec
   compile group: 'org.apache.velocity', name: 'velocity-engine-core', version: '2.0'
