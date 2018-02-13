@@ -491,8 +491,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(validPost)
             .andDo(print())
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/uaa/"))
-            .andExpect(currentUserCookie(marissa.getId()));
+            .andExpect(redirectedUrl("/uaa/"));
     }
 
     private static ResultMatcher currentUserCookie(String userId) {
@@ -577,8 +576,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("username", user.getUserName())
             .param("password", user.getPassword()))
             .andDo(print())
-            .andExpect(redirectedUrl("/uaa/"))
-            .andExpect(currentUserCookie(user.getId()));
+            .andExpect(redirectedUrl("/uaa/"));
     }
 
     @Test
@@ -2547,9 +2545,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
           .param("password", user.getPassword());
 
         getMockMvc().perform(post)
-          .andExpect(redirectedUrl("/uaa/"))
-          .andExpect(currentUserCookie(user.getId()));
-
+          .andExpect(redirectedUrl("/uaa/"));
         // authorize for client that does not allow that idp
 
         String clientId = "different-provider-client";

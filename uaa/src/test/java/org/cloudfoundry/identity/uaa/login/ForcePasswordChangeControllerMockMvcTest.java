@@ -112,8 +112,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
             .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1");
         getMockMvc().perform(invalidPost)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"))
-            .andExpect(currentUserCookie(user.getId()));
+            .andExpect(redirectedUrl("/"));
 
         assertTrue(getUaaAuthentication(session).isAuthenticated());
         assertTrue(getUaaAuthentication(session).isRequiresPasswordChange());
@@ -215,8 +214,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
 
             getMockMvc().perform(invalidPost)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/"))
-                .andExpect(currentUserCookie(user.getId()));
+                .andExpect(redirectedUrl("/"));
 
             getMockMvc().perform(
                 get("/")

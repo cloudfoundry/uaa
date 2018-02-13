@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -52,6 +53,10 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         Object principal = authentication.getPrincipal();
         if(!(principal instanceof UaaPrincipal)) {
             throw new IllegalArgumentException("Unrecognized authentication principle.");
+        }
+
+        if(IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() == false) {
+            return;
         }
 
         UaaPrincipal uaaPrincipal = (UaaPrincipal) principal;
