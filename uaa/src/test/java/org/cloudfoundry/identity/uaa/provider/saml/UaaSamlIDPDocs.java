@@ -95,6 +95,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         fieldWithPath("config.attributeMappings.given_name").type(STRING).attributes(key("constraints").value("Optional")).description("Map given_name value within UAA to a specified assertion in the SAML response.").optional(),
         fieldWithPath("config.attributeMappings.family_name").type(STRING).attributes(key("constraints").value("Optional")).description("Map family_name value within UAA to a specified assertion in the SAML response").optional(),
         fieldWithPath("config.attributeMappings.phone_number").type(STRING).attributes(key("constraints").value("Optional")).description("Map phone_number value within UAA to a specified assertion in the SAML response.").optional(),
+        fieldWithPath("config.attributeMappings.email").type(STRING).attributes(key("constraints").value("Optional")).description("Map email value within UAA to a specified assertion in the SAML response.").optional(),
         fieldWithPath("config.metadataTrustCheck").type(BOOLEAN).attributes(key("constraints").value("Optional")).description("Determines whether UAA should validate the SAML SP metadata.").optional(),
         fieldWithPath("config.enableIdpInitiatedSso").type(BOOLEAN).description(ENABLE_IDP_INITIATED_SSO).attributes(key("constraints").value("Optional")).optional(),
         fieldWithPath("config.staticCustomAttributes").type(OBJECT).description(STATIC_ATTRIBUTES_DESC).attributes(key("constraints").value("Optional")).optional()
@@ -114,6 +115,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         fieldWithPath("config.attributeMappings.given_name").type(STRING).description("Map given_name value within UAA to a specified assertion in the SAML response.").optional(),
         fieldWithPath("config.attributeMappings.family_name").type(STRING).description("Map family_name value within UAA to a specified assertion in the SAML response").optional(),
         fieldWithPath("config.attributeMappings.phone_number").type(STRING).description("Map phone_number value within UAA to a specified assertion in the SAML response.").optional(),
+        fieldWithPath("config.attributeMappings.email").type(STRING).attributes(key("constraints").value("Optional")).description("Map email value within UAA to a specified assertion in the SAML response.").optional(),
         fieldWithPath("config.enableIdpInitiatedSso").type(BOOLEAN).description(ENABLE_IDP_INITIATED_SSO).attributes(key("constraints").value("Optional")).optional(),
         fieldWithPath("config.staticCustomAttributes").type(OBJECT).description(STATIC_ATTRIBUTES_DESC).attributes(key("constraints").value("Optional")).optional()
     );
@@ -141,6 +143,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         staticAttributes.put("organization-name", "The Demo Org");
         staticAttributes.put("organization-emails", Arrays.asList("contact@demoorg.com", "info@demo.org"));
         requestBody.getConfig().setStaticCustomAttributes(staticAttributes);
+        requestBody.getConfig().getAttributeMappings().put("email", "primary-email");
     }
 
     @Test
