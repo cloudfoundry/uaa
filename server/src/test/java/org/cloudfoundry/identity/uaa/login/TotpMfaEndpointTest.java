@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 
+import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -30,8 +31,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -51,7 +50,6 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -329,6 +327,6 @@ public class TotpMfaEndpointTest {
         ApplicationEvent event = values.get(0);
         assertThat(event, instanceOf(eventClass));
         AbstractUaaEvent mfaEvent = (AbstractUaaEvent) event;
-        assertThat(mfaEvent.getAuditEvent().getOrigin(), containsString("type=google-authenticator"));
+        assertEquals("google-authenticator", mfaEvent.getAuditEvent().getAuthenticationType());
     }
 }
