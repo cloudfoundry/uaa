@@ -124,6 +124,7 @@ public class ScimUserBootstrap implements
         List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
         users.removeIf(u -> deleteMe.contains(u.getUsername()));
         for (UaaUser u : users) {
+            u.setVerified(true);
             addUser(u);
         }
     }
@@ -334,7 +335,7 @@ public class ScimUserBootstrap implements
 
     /**
      * Convert UaaUser to SCIM data.
-     * Bootstrapped users are verified by default
+     *
      */
     private ScimUser convertToScimUser(UaaUser user) {
         ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
@@ -342,7 +343,7 @@ public class ScimUserBootstrap implements
         scim.addEmail(user.getEmail());
         scim.setOrigin(user.getOrigin());
         scim.setExternalId(user.getExternalId());
-        scim.setVerified(true);
+        scim.setVerified(user.isVerified());
         return scim;
     }
 

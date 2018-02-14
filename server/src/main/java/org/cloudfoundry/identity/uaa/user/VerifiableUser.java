@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.user;
 
-
-public interface DialableByPhone {
-    public String getPhoneNumber();
+public interface VerifiableUser {
+    boolean isVerified();
 }
