@@ -43,6 +43,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -422,7 +423,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         // Invited users are created with their email as their username.
         UaaUser invitedUser = addUserToDb(email, userId, origin, email);
-        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString())).thenReturn(invitedUser);
+        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
         UaaUser updatedUser = new UaaUser(new UaaUserPrototype().withUsername(username).withId(userId).withOrigin(origin).withEmail(email));
         when(invitedUser.modifyUsername(username)).thenReturn(updatedUser);
 
