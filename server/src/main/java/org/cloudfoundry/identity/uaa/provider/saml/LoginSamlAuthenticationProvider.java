@@ -13,9 +13,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
@@ -36,6 +33,10 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AuthnStatement;
@@ -71,7 +72,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import javax.xml.namespace.QName;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -81,8 +81,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.xml.namespace.QName;
 
-import static java.util.Optional.of;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
@@ -91,6 +91,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
+import static java.util.Optional.of;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
     private final static Log logger = LogFactory.getLog(LoginSamlAuthenticationProvider.class);
@@ -363,6 +364,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                             + "You can correct this by creating a shadow user for the SAML user.", e);
                 }
                 // Register new users automatically
+                userWithSamlAttributes.setVerified(true);
                 publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
                 try {
                     user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
@@ -374,7 +376,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         if (haveUserAttributesChanged(user, userWithSamlAttributes)) {
             userModified = true;
             user = user.modifyAttributes(userWithSamlAttributes.getEmail(), userWithSamlAttributes.getGivenName(), userWithSamlAttributes.getFamilyName(), userWithSamlAttributes.getPhoneNumber());
+            user.setVerified(true);
         }
+        userModified = true;
+        user.setVerified(true);
         publish(
             new ExternalGroupAuthorizationEvent(
                 user,
@@ -425,6 +430,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
         return new UaaUser(
         new UaaUserPrototype()
+            .withVerified(true)
             .withEmail(email)
             .withGivenName(givenName)
             .withFamilyName(familyName)
