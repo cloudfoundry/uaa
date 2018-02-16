@@ -122,7 +122,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                                                          userFromRequest.getGivenName(),
                                                          userFromRequest.getFamilyName(),
                                                          userFromRequest.getPhoneNumber(),
-                                                         userFromRequest.isVerified())
+                                                         userFromDb.isVerified() || userFromRequest.isVerified())
                     .modifyUsername(userFromRequest.getUsername());
                 userModified = true;
             }
