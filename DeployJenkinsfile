@@ -74,7 +74,8 @@ pipeline {
                     ruby -v
                     ./ci_deploy.sh
 
-                    if [ $DEPLOYMENT_TYPE != 'perf-vpc-sb' -a $DEPLOYMENT_TYPE != 'perf-asv-sb' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'perf-azr-usw' -a $DEPLOYMENT_TYPE != 'cf3-integration' -a $DEPLOYMENT_TYPE != 'asv-pr-db-mig-test' ]; then
+                    # run service broker acceptance tests
+                    if [ $DEPLOYMENT_TYPE != 'perf-vpc-sb' -a $DEPLOYMENT_TYPE != 'perf-asv-sb' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'perf-azr-usw' -a $DEPLOYMENT_TYPE != 'perf-govcloud' -a $DEPLOYMENT_TYPE != 'cf3-integration' -a $DEPLOYMENT_TYPE != 'asv-pr-db-mig-test' ]; then
                         ./uaa-sb-acceptance-tests.sh
                     fi
                 popd
