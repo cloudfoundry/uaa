@@ -94,6 +94,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
@@ -301,6 +302,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             String givenNameClaim = (String) authenticationData.getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME);
             String familyNameClaim = (String) authenticationData.getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME);
             String phoneClaim = (String) authenticationData.getAttributeMappings().get(PHONE_NUMBER_ATTRIBUTE_NAME);
+            Object emailVerifiedClaim = authenticationData.getAttributeMappings().get(EMAIL_VERIFIED_ATTRIBUTE_NAME);
 
             Map<String, Object> claims = authenticationData.getClaims();
 
@@ -309,6 +311,8 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             String familyName = (String) claims.get(familyNameClaim == null ? "family_name" : familyNameClaim);
             String phoneNumber = (String) claims.get(phoneClaim == null ? "phone_number" : phoneClaim);
             String email = (String) claims.get(emailClaim == null ? "email" : emailClaim);
+            Object verifiedObj = claims.get(emailVerifiedClaim == null ? "email_verified" : emailVerifiedClaim);
+            boolean verified =  verifiedObj instanceof Boolean ? (Boolean)verifiedObj: false;
 
             if (email == null) {
                 email = generateEmailIfNull(username);
@@ -329,7 +333,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                     .withCreated(new Date())
                     .withOrigin(getOrigin())
                     .withExternalId((String) authenticationData.getClaims().get(SUB))
-                    .withVerified(true)
+                    .withVerified(verified)
                     .withZoneId(IdentityZoneHolder.get().getId())
                     .withSalt(null)
                     .withPasswordLastModified(null));
@@ -395,7 +399,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                                                          userFromRequest.getGivenName(),
                                                          userFromRequest.getFamilyName(),
                                                          userFromRequest.getPhoneNumber(),
-                                                         userFromRequest.isVerified())
+                                                         userFromDb.isVerified() || userFromRequest.isVerified())
                     .modifyUsername(userFromRequest.getUsername());
                 userModified = true;
             }
