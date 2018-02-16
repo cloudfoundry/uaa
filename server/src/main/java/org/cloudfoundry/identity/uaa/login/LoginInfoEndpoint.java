@@ -118,6 +118,7 @@ import static java.util.Optional.ofNullable;
 @Controller
 public class LoginInfoEndpoint {
 
+    public static final String MFA_CODE = "mfaCode";
     private static Log logger = LogFactory.getLog(LoginInfoEndpoint.class);
 
     public static final String NotANumber = OriginKeys.NotANumber;
@@ -240,7 +241,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
     public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
+        return login(model, principal, Arrays.asList(PASSCODE, MFA_CODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -582,27 +583,28 @@ public class LoginInfoEndpoint {
         }
         Map<String, String[]> map = new LinkedHashMap<>();
         for (Prompt prompt : zoneConfiguration.getPrompts()) {
-            if (!exclude.contains(prompt.getName())) {
-                String[] details = prompt.getDetails();
-                if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
-                    String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
-                    if (hasText(urlInPasscode)) {
-                        String[] newDetails = new String[details.length];
-                        System.arraycopy(details, 0, newDetails, 0, details.length);
-                        newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
-                        details = newDetails;
-                    }
+            String[] details = prompt.getDetails();
+            if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
+                String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
+                if (hasText(urlInPasscode)) {
+                    String[] newDetails = new String[details.length];
+                    System.arraycopy(details, 0, newDetails, 0, details.length);
+                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
+                    details = newDetails;
                 }
-                map.put(prompt.getName(), details);
             }
+            map.put(prompt.getName(), details);
         }
         if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), OriginKeys.UAA)) {
             Prompt p = new Prompt(
-                "mfaCode",
+                MFA_CODE,
                 "password",
                 "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl()+" )")
             );
-            map.put(p.getName(), p.getDetails());
+            map.putIfAbsent(p.getName(), p.getDetails());
+        }
+        for (String excludeThisPrompt : exclude) {
+            map.remove(excludeThisPrompt);
         }
         model.addAttribute("prompts", map);
     }

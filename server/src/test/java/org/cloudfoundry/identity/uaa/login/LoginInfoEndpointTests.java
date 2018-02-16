@@ -574,6 +574,7 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void test_PromptLogic() throws Exception {
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.infoForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
@@ -583,14 +584,16 @@ public class LoginInfoEndpointTests {
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNull(mapPrompts.get("passcode"));
+        assertNull(mapPrompts.get("mfaCode"));
 
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
         mapPrompts = (Map)model.get("prompts");
-        assertEquals("there should be two prompts for html", 2, mapPrompts.size());
+        assertEquals("there should be two prompts for html", 3, mapPrompts.size());
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
+        assertNotNull(mapPrompts.get("mfaCode"));
         assertNull(mapPrompts.get("passcode"));
 
         //add a SAML IDP, should make the passcode prompt appear
@@ -600,10 +603,11 @@ public class LoginInfoEndpointTests {
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
         mapPrompts = (Map)model.get("prompts");
-        assertEquals("there should be three prompts for html", 3, mapPrompts.size());
+        assertEquals("there should be three prompts for html", 4, mapPrompts.size());
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNotNull(mapPrompts.get("passcode"));
+        assertNotNull(mapPrompts.get("mfaCode"));
 
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
