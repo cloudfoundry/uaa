@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
@@ -46,6 +45,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -81,7 +82,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import javax.servlet.http.HttpSession;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -95,8 +95,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.servlet.http.HttpSession;
 
-import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
@@ -138,6 +138,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static java.util.Collections.EMPTY_LIST;
 
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests  {
@@ -451,7 +452,7 @@ public class LdapMockMvcTests  {
         final String FIRST_NAME = "first_name";
         final String FAMILY_NAME = "family_name";
         final String PHONE_NUMBER = "phone_number";
-        final String EMAIL = "email";
+        final String EMAIL_VERIFIED = "email_verified";
 
 
         Map<String, Object> attributeMappings = new HashMap<>();
@@ -461,10 +462,12 @@ public class LdapMockMvcTests  {
         attributeMappings.put("user.attribute." + MANAGERS, MANAGER);
         attributeMappings.put("user.attribute." + COST_CENTERS, COST_CENTER);
 
+
         //test to remap the user/person properties
         attributeMappings.put(FIRST_NAME, "sn");
         attributeMappings.put(PHONE_NUMBER, "givenname");
         attributeMappings.put(FAMILY_NAME, "telephonenumber");
+        attributeMappings.put(EMAIL_VERIFIED, "emailVerified");
 
         definition.setAttributeMappings(attributeMappings);
         provider.setConfig(definition);
@@ -488,6 +491,7 @@ public class LdapMockMvcTests  {
         assertEquals("8885550986", getFamilyName(username));
         assertEquals("Marissa", getPhoneNumber(username));
         assertEquals("Marissa9", getGivenName(username));
+        assertTrue(getVerified(username));
     }
 
     @Test
@@ -1055,6 +1059,7 @@ public class LdapMockMvcTests  {
         assertEquals("Marissa", getGivenName(username));
         assertEquals("Lastnamerton", getFamilyName(username));
         assertEquals("8885550986", getPhoneNumber(username));
+        assertFalse(getVerified(username));
     }
 
     @Test
@@ -1245,6 +1250,10 @@ public class LdapMockMvcTests  {
 
     private String getPhoneNumber(String username) throws Exception {
         return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select phonenumber from users where username=? and origin=? and identity_zone_id=?", String.class, username, LDAP, zone.getZone().getIdentityZone().getId());
+    }
+
+    private boolean getVerified(String username) throws Exception {
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select verified from users where username=? and origin=? and identity_zone_id=?", Boolean.class, username, LDAP, zone.getZone().getIdentityZone().getId());
     }
 
     private MvcResult performAuthentication(String username, String password) throws Exception {

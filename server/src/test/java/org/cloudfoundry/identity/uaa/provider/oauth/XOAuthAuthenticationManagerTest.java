@@ -13,8 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
@@ -31,16 +29,27 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.user.*;
+import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.codec.binary.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -70,33 +79,62 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
-import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.same;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static java.util.Collections.emptyList;
 
 public class XOAuthAuthenticationManagerTest {
 
@@ -212,6 +250,7 @@ public class XOAuthAuthenticationManagerTest {
             entry("email", "marissa@bloggs.com"),
             entry("rev_sig", "3314dc98"),
             entry("cid", "client"),
+            entry("email_verified", true),
             entry(ClaimConstants.ACR, JsonUtils.readValue("{\"values\": [\"urn:oasis:names:tc:SAML:2.0:ac:classes:Password\"] }", Map.class))
         );
 
@@ -978,6 +1017,7 @@ public class XOAuthAuthenticationManagerTest {
         attributeMappings.put("given_name", "firstName");
         attributeMappings.put("family_name", "lastName");
         attributeMappings.put("phone_number", "phoneNum");
+        attributeMappings.put("email_verified", "email_verified");
         config.setStoreCustomAttributes(true);
         mockToken();
         UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
@@ -986,7 +1026,57 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals("first_name", actualUaaUser.getGivenName());
         assertEquals("last_name", actualUaaUser.getFamilyName());
         assertEquals("randomNumber", actualUaaUser.getPhoneNumber());
+        assertTrue("verified", actualUaaUser.isVerified());
     }
+
+    @Test
+    public void email_verified_is_false() throws Exception {
+        addTheUserOnAuth();
+        claims.put("email_verified", false);
+        attributeMappings.put("email_verified", "email_verified");
+        config.setStoreCustomAttributes(true);
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        UaaUser actualUaaUser = xoAuthAuthenticationManager.getUserDatabase().retrieveUserById(authentication.getPrincipal().getId());
+        assertFalse("verified", actualUaaUser.isVerified());
+    }
+
+    @Test
+    public void email_verified_claim_is_using_a_custom_name() throws Exception {
+        addTheUserOnAuth();
+        claims.remove("email_verified");
+        claims.put("emailVerified", true);
+        attributeMappings.put("email_verified", "emailVerified");
+        config.setStoreCustomAttributes(true);
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        UaaUser actualUaaUser = xoAuthAuthenticationManager.getUserDatabase().retrieveUserById(authentication.getPrincipal().getId());
+        assertTrue("verified", actualUaaUser.isVerified());
+    }
+
+    @Test
+    public void email_verified_mapping_is_not_there() throws Exception {
+        addTheUserOnAuth();
+        attributeMappings.remove("email_verified");
+        config.setStoreCustomAttributes(true);
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        UaaUser actualUaaUser = xoAuthAuthenticationManager.getUserDatabase().retrieveUserById(authentication.getPrincipal().getId());
+        assertTrue("verified", actualUaaUser.isVerified());
+    }
+
+    @Test
+    public void email_verified_is_ommitted() throws Exception {
+        addTheUserOnAuth();
+        claims.remove("email_verified");
+        attributeMappings.put("email_verified", "email_verified");
+        config.setStoreCustomAttributes(true);
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        UaaUser actualUaaUser = xoAuthAuthenticationManager.getUserDatabase().retrieveUserById(authentication.getPrincipal().getId());
+        assertFalse("verified", actualUaaUser.isVerified());
+    }
+
 
     @Test
     public void testDefaultUsernameValueIsSubjectClaim() throws MalformedURLException {

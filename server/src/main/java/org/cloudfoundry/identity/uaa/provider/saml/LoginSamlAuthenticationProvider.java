@@ -13,9 +13,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
@@ -36,6 +33,10 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AuthnStatement;
@@ -71,7 +72,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import javax.xml.namespace.QName;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -81,9 +81,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.xml.namespace.QName;
 
-import static java.util.Optional.of;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
@@ -91,6 +92,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
+import static java.util.Optional.of;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
     private final static Log logger = LogFactory.getLog(LoginSamlAuthenticationProvider.class);
@@ -340,7 +342,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             }
             addNew = false;
             if(user.getUsername().equals(user.getEmail()) && !user.getUsername().equals(samlPrincipal.getName())) {
-                user.setVerified(true);
                 user = user.modifyUsername(samlPrincipal.getName());
             }
             publish(new InvitedUserAuthenticatedEvent(user));
@@ -349,6 +350,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
         boolean userModified = false;
         UaaUser userWithSamlAttributes = getUser(samlPrincipal, userAttributes);
+        boolean hasVerifiedAttribute = userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME)!=null;
         try {
             if (user==null) {
                 user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
@@ -363,6 +365,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                             + "You can correct this by creating a shadow user for the SAML user.", e);
                 }
                 // Register new users automatically
+                if (!hasVerifiedAttribute) {
+                    //invited users automatically become verified, others default to verified=false
+                    userWithSamlAttributes.setVerified(is_invitation_acceptance);
+                }
                 publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
                 try {
                     user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
@@ -373,7 +379,11 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
         if (haveUserAttributesChanged(user, userWithSamlAttributes)) {
             userModified = true;
-            user = user.modifyAttributes(userWithSamlAttributes.getEmail(), userWithSamlAttributes.getGivenName(), userWithSamlAttributes.getFamilyName(), userWithSamlAttributes.getPhoneNumber());
+            user = user.modifyAttributes(userWithSamlAttributes.getEmail(),
+                                         userWithSamlAttributes.getGivenName(),
+                                         userWithSamlAttributes.getFamilyName(),
+                                         userWithSamlAttributes.getPhoneNumber(),
+                                         user.isVerified() || userWithSamlAttributes.isVerified());
         }
         publish(
             new ExternalGroupAuthorizationEvent(
@@ -393,6 +403,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         String givenName = userAttributes.getFirst(GIVEN_NAME_ATTRIBUTE_NAME);
         String familyName = userAttributes.getFirst(FAMILY_NAME_ATTRIBUTE_NAME);
         String phoneNumber = userAttributes.getFirst(PHONE_NUMBER_ATTRIBUTE_NAME);
+        String emailVerified = userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME);
         String userId = OriginKeys.NotANumber;
         String origin = principal.getOrigin()!=null?principal.getOrigin(): OriginKeys.LOGIN_SERVER;
         String zoneId = principal.getZoneId();
@@ -425,6 +436,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
         return new UaaUser(
         new UaaUserPrototype()
+            .withVerified(Boolean.valueOf(emailVerified))
             .withEmail(email)
             .withGivenName(givenName)
             .withFamilyName(familyName)
@@ -437,15 +449,17 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             .withCreated(new Date())
             .withOrigin(origin)
             .withExternalId(name)
-            .withVerified(true)
             .withZoneId(zoneId)
             .withSalt(null)
             .withPasswordLastModified(null));
     }
 
-    private boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
-        if (!StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
-                !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail())) {
+    protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
+        if (existingUser.isVerified() != user.isVerified() ||
+            !StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) ||
+            !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
+            !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) ||
+            !StringUtils.equals(existingUser.getEmail(), user.getEmail())) {
             return true;
         }
         return false;
