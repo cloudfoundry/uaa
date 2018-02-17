@@ -88,7 +88,23 @@ pipeline {
             }
             post{
                 always {
-                    archiveArtifacts 'uaa/uaa/build/reports/tests/acceptanceTest/**'
+                    junit testResults: 'uaa/uaa/build/test-results/**/*.xml', allowEmptyResults: true
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'uaa/uaa/build/reports/tests/acceptanceTest',
+                        reportFiles: 'index.html',
+                        reportName: 'Acceptance Test Results'
+                    ]
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'uaa/build/reports/jacoco/jacocoRootReportAcceptanceTest/html',
+                        reportFiles: 'index.html',
+                        reportName: 'Acceptance Test Code Coverage'
+                    ]
                 }
             }
         }

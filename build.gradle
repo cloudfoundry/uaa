@@ -422,6 +422,11 @@ task jacocoRootReportDegradedJwtCloudTest(type: org.gradle.testing.jacoco.tasks.
   dependsOn(':cloudfoundry-identity-uaa:degradedJwtTestCloud')
 }
 
+task jacocoRootReportAcceptanceTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  configure jacocoRootReportConfiguration
+  dependsOn(':cloudfoundry-identity-uaa:acceptanceTest')
+}
+
 task mockAssertion(type: JavaExec) {
   main = 'org.cloudfoundry.identity.uaa.saml.MockSamlAssertion'
   args = System.getProperty("file", null) == null ? [] : [System.getProperty("file")]
