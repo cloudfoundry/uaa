@@ -16,7 +16,7 @@ import com.ge.predix.audit.sdk.message.AuditEventV2.AuditEventV2Builder;
 public class PredixAuditService implements UaaAuditService {
 
     private static final String LOG_CORRELATION_ID = "Correlation-Id";
-    private final Log logger = LogFactory.getLog("Predix.UAA.Audit");
+    private final Log logger = LogFactory.getLog(PredixAuditService.class);
 
     @Autowired(required = false)
     private AuditClient predixAuditClient;
