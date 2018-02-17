@@ -12,12 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -42,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 //)
 public class LoggingAuditService implements UaaAuditService {
 
-    private Log logger = LogFactory.getLog("UAA.Audit");
+    private Log logger = LogFactory.getLog(LoggingAuditService.class);
 
     private AtomicInteger userAuthenticationCount = new AtomicInteger();
 
