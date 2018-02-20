@@ -15,6 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
@@ -31,6 +36,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,11 +48,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
@@ -92,13 +93,13 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
         userDb = (UaaUserDatabase)getWebApplicationContext().getBean("userDatabase");
 
-        mfaProvider = createMfaProvider(getMockMvc(), "uaa", adminToken);
-        otherMfaProvider = createMfaProvider(getMockMvc(), "uaa", adminToken);
+        mfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
+        otherMfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
 
 
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
+        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId());
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId(), uaaZoneConfig);
 
         listener = mock(ApplicationListener.class);
         getWebApplicationContext().addApplicationListener(listener);

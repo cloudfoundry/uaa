@@ -14,6 +14,16 @@
 
 package org.cloudfoundry.identity.uaa.mock.token;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
@@ -49,16 +59,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -145,7 +145,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             "adminsecret",
             "uaa.admin"
         );
-        mfaProvider = createMfaProvider(getMockMvc(), IdentityZone.getUaa().getId(), adminToken);
+        mfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
 
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId(), uaaZoneConfig);
