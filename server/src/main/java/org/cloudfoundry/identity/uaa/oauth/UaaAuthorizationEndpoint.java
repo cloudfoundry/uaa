@@ -158,6 +158,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         }
 
         Set<String> responseTypes = authorizationRequest.getResponseTypes();
+        if (!(responseTypes.size() > 0)) {
+            throw new InvalidRequestException("Missing response_type in authorization request");
+        }
         String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
         if (!supported_response_types.containsAll(responseTypes)) {
