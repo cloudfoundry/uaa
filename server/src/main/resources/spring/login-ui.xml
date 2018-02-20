@@ -218,7 +218,7 @@
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="mfaRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter">
+    <bean id="mfaUiRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter">
         <constructor-arg name="urlFilter" value="/login/mfa/**"/>
         <constructor-arg name="redirect" value="/login/mfa/register"/>
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
@@ -314,7 +314,7 @@
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
         <custom-filter ref="clientRedirectStateCache" before="CSRF_FILTER"/>
-        <custom-filter ref="mfaRequiredFilter" after="CSRF_FILTER"/>
+        <custom-filter ref="mfaUiRequiredFilter" after="CSRF_FILTER"/>
         <custom-filter ref="passwordChangeRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
