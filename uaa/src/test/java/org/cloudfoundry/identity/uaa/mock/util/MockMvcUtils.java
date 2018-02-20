@@ -14,6 +14,23 @@
 
 package org.cloudfoundry.identity.uaa.mock.util;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.File;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -24,7 +41,9 @@ import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
+import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -101,23 +120,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.File;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-
+import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -138,7 +141,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
-import static java.util.Arrays.asList;
 
 public final class MockMvcUtils {
 
@@ -279,23 +281,20 @@ public final class MockMvcUtils {
         return resultActions;
     }
 
-    public static MfaProvider createMfaProvider(MockMvc mockMvc, String zoneId, String adminToken) throws Exception {
+    public static MfaProvider createMfaProvider(ApplicationContext context, IdentityZone zone) throws Exception {
+        String zoneId = zone.getId();
         MfaProvider provider = new MfaProvider();
         provider.setName(new RandomValueStringGenerator(5).generate().toLowerCase());
         provider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         provider.setIdentityZoneId(zoneId);
         provider.setConfig(new GoogleMfaProviderConfig());
-        MockHttpServletRequestBuilder post = post("/mfa-providers")
-          .header("Authorization", "Bearer " + adminToken)
-          .contentType(APPLICATION_JSON)
-          .content(JsonUtils.writeValueAsString(provider));
-        if (!IdentityZone.getUaa().getId().equalsIgnoreCase(zoneId)) {
-            post.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        provider.getConfig().setIssuer(zone.getName());
+        MfaProviderProvisioning provisioning = context.getBean(MfaProviderProvisioning.class);
+        try {
+            return provisioning.create(provider, zoneId);
+        } catch (MfaAlreadyExistsException x) {
+            return provisioning.update(provider, zoneId);
         }
-        return JsonUtils.readValue(mockMvc.perform(post)
-          .andExpect(status().isCreated())
-          .andReturn()
-          .getResponse().getContentAsByteArray(), MfaProvider.class);
     }
 
 

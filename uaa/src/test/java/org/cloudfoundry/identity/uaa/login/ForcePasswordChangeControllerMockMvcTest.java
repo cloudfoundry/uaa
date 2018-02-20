@@ -70,7 +70,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
             "adminsecret",
             "uaa.admin"
         );
-        mfaProvider = MockMvcUtils.createMfaProvider(getMockMvc(), IdentityZone.getUaa().getId(), adminToken);
+        mfaProvider = MockMvcUtils.createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
     }
 
     @After
