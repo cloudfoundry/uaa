@@ -12,6 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -60,21 +75,10 @@ import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
-
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -104,9 +108,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
 
 public class LoginInfoEndpointTests {
 
@@ -586,6 +587,18 @@ public class LoginInfoEndpointTests {
         assertNull(mapPrompts.get("passcode"));
         assertNull(mapPrompts.get("mfaCode"));
 
+        model.clear();
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), singletonList(MediaType.TEXT_HTML));
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof Map);
+        mapPrompts = (Map)model.get("prompts");
+        assertEquals("there should be two prompts for html", 2, mapPrompts.size());
+        assertNotNull(mapPrompts.get("username"));
+        assertNotNull(mapPrompts.get("password"));
+        assertNull(mapPrompts.get("passcode"));
+        assertNull(mapPrompts.get("mfaCode"));
+
+        model.clear();
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
@@ -597,6 +610,7 @@ public class LoginInfoEndpointTests {
         assertNull(mapPrompts.get("passcode"));
 
         //add a SAML IDP, should make the passcode prompt appear
+        model.clear();
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
@@ -619,6 +633,7 @@ public class LoginInfoEndpointTests {
         uaaIdentityProvider.setActive(false);
         when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
 
+        model.clear();
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         mapPrompts = (Map)model.get("prompts");
