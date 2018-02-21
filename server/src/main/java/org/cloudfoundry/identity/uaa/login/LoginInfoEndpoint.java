@@ -273,7 +273,7 @@ public class LoginInfoEndpoint {
 
         model.addAttribute("savedAccounts", savedAccounts);
 
-        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
+        return infoForHtml(model, principal, request);
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
