@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.mfa.exception.MfaRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
@@ -285,7 +284,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         String sessionState = openIdSessionStateCalculator.calculate("", clientId, httpHost.toURI());
         boolean implicit = stream(responseTypes).noneMatch("code"::equalsIgnoreCase);
         String redirectLocation;
-        String errorCode = authException instanceof MfaRequiredException ? "interaction_required" : "login_required";
+        String errorCode = authException instanceof InteractionRequiredException ? "interaction_required" : "login_required";
         if (implicit) {
             redirectLocation = addFragmentComponent(resolvedRedirect, "error="+ errorCode);
             redirectLocation = addFragmentComponent(redirectLocation, "session_state=" + sessionState);
