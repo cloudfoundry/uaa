@@ -15,7 +15,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
+public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
 
     private final String redirectUri;
     private final AntPathRequestMatcher matcher;
@@ -23,7 +23,7 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
     private final AntPathRequestMatcher completed = new AntPathRequestMatcher("/force_password_change_completed");
     private final RequestCache cache;
 
-    public PasswordChangeRequiredFilter(String redirectUri, RequestCache cache, String... ignoreUris) {
+    public PasswordChangeUiRequiredFilter(String redirectUri, RequestCache cache, String... ignoreUris) {
         this.redirectUri = redirectUri;
         matcher = new AntPathRequestMatcher(redirectUri);
         this.cache = cache;

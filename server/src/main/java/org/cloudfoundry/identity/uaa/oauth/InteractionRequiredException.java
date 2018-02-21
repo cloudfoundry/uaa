@@ -12,13 +12,12 @@
  *  ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.mfa.exception;
+package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.oauth.InteractionRequiredException;
+import org.springframework.security.core.AuthenticationException;
 
-public class MfaRequiredException extends InteractionRequiredException {
-
-    public MfaRequiredException(String msg) {
+public class InteractionRequiredException extends AuthenticationException {
+    public InteractionRequiredException(String msg) {
         super(msg);
     }
 }
