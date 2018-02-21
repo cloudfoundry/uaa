@@ -1091,7 +1091,57 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String url = result.getResponse().getHeader("Location");
         assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
 
-        setAuthentication(session, developer, "mfa", "pwd", "otp");
+        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
+        result = getMockMvc().perform(get("/oauth/authorize")
+                                          .session(session)
+                                          .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                                          .param(OAuth2Utils.STATE, state)
+                                          .param(OAuth2Utils.CLIENT_ID, clientId)
+                                          .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                                          .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andReturn();
+        url = result.getResponse().getHeader("Location");
+        assertThat(url, containsString(TEST_REDIRECT_URI));
+        assertThat(url, not(containsString("error")));
+        assertThat(url, not(containsString("login_required")));
+        assertThat(url, not(containsString("interaction_required")));
+    }
+
+    @Test
+    public void testAuthorizeEndpointWithPromptNone_ForcePasswordChangeRequired() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        clientDetails.setAutoApproveScopes(Arrays.asList("uaa.user"));
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Arrays.asList("other.scope"));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user,other.scope";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        MockHttpSession session = new MockHttpSession();
+        setAuthentication(session, developer, true, "pwd", "mfa", "otp");
+
+        String state = generator.generate();
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+                                                    .session(session)
+                                                    .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                                                    .param(OAuth2Utils.STATE, state)
+                                                    .param(OAuth2Utils.CLIENT_ID, clientId)
+                                                    .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                                                    .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andReturn();
+
+        String url = result.getResponse().getHeader("Location");
+        assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
+
+        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
         result = getMockMvc().perform(get("/oauth/authorize")
                                           .session(session)
                                           .param(OAuth2Utils.RESPONSE_TYPE, "code")
@@ -1799,12 +1849,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     public void setAuthentication(MockHttpSession session, ScimUser developer) {
-        setAuthentication(session, developer, "pwd");
+        setAuthentication(session, developer, false, "pwd");
     }
 
-    public void setAuthentication(MockHttpSession session, ScimUser developer, String... authMethods) {
+    public void setAuthentication(MockHttpSession session, ScimUser developer, boolean forcePasswordChange, String... authMethods) {
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), OriginKeys.UAA,"", IdentityZoneHolder.get().getId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId", OriginKeys.ORIGIN,"sessionId"));
+        auth.setRequiresPasswordChange(forcePasswordChange);
         auth.setAuthenticationMethods(new HashSet<>(Arrays.asList(authMethods)));
         Assert.assertTrue(auth.isAuthenticated());
         SecurityContextHolder.getContext().setAuthentication(auth);

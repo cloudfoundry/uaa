@@ -370,6 +370,10 @@
         <constructor-arg name="entryPoint" ref="uaaAuthorizationEndpoint"/>
     </bean>
 
+    <bean id="passwordChangeRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter">
+        <constructor-arg name="entryPoint" ref="uaaAuthorizationEndpoint"/>
+    </bean>
+
     <http name="promptStatelessTokenApiSecurity"
           disable-url-rewriting="true"
           entry-point-ref="uaaAuthorizationEndpoint"
@@ -378,6 +382,7 @@
           create-session="never"
           xmlns="http://www.springframework.org/schema/security">
         <custom-filter ref="mfaRequiredFilter" position="BASIC_AUTH_FILTER"/>
+        <custom-filter ref="passwordChangeRequiredFilter" after="BASIC_AUTH_FILTER"/>
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <csrf disabled="true"/>
     </http>
