@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MissingMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
@@ -86,7 +85,6 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter imple
                 if (provider != null) {
                     publishEvent(new MfaAuthenticationSuccessEvent(user, getAuthentication(), provider.getType().toValue()));
                 }
-                publishEvent(new UserAuthenticationSuccessEvent(user, getAuthentication()));
             }
             filterChain.doFilter(request, response);
         } catch (InsufficientAuthenticationException x) {

@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MissingMfaCodeException;
@@ -214,9 +213,8 @@ public class StatelessMfaAuthenticationFilterTests {
         verify(googleAuthenticator).isValidCode(any(), eq(123456));
         verify(chain).doFilter(same(request), same(response));
         assertThat(uaaAuthentication.getAuthenticationMethods(), containsInAnyOrder("pwd","otp","mfa"));
-        verify(publisher, times(1)).publishEvent(any(UserAuthenticationSuccessEvent.class));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationSuccessEvent.class));
-        verify(publisher, times(2)).publishEvent(any(ApplicationEvent.class));
+        verify(publisher, times(1)).publishEvent(any(ApplicationEvent.class));
 
     }
 
@@ -300,8 +298,7 @@ public class StatelessMfaAuthenticationFilterTests {
         verifyZeroInteractions(googleAuthenticator);
         verifyZeroInteractions(mfaProvider);
         verify(chain).doFilter(same(request),same(response));
-        verify(publisher, times(1)).publishEvent(any(UserAuthenticationSuccessEvent.class));
-        verify(publisher, times(1)).publishEvent(any(ApplicationEvent.class));
+        verifyZeroInteractions(publisher);
     }
 
 
