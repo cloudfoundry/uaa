@@ -268,6 +268,7 @@
             </util:set>
         </constructor-arg>
         <constructor-arg name="mfaProvider" ref="mfaProviderProvisioning"/>
+        <constructor-arg name="userDb" ref="userDatabase"/>
     </bean>
 
     <bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">

@@ -14,14 +14,31 @@
 
 package org.cloudfoundry.identity.uaa.mfa;
 
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MissingMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,29 +50,24 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
-public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter {
+public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter implements ApplicationEventPublisherAware {
 
     private final UserGoogleMfaCredentialsProvisioning provisioning;
     private final Set<String> supportedGrantTypes;
     private final MfaProviderProvisioning mfaProvider;
+    private final UaaUserDatabase userDb;
+    private ApplicationEventPublisher publisher;
 
     public StatelessMfaAuthenticationFilter(UserGoogleMfaCredentialsProvisioning provisioning,
                                             Set<String> supportedGrantTypes,
-                                            MfaProviderProvisioning mfaProvider) {
+                                            MfaProviderProvisioning mfaProvider,
+                                            UaaUserDatabase userDb) {
         this.provisioning = provisioning;
         this.supportedGrantTypes = supportedGrantTypes;
         this.mfaProvider = mfaProvider;
+        this.userDb = userDb;
     }
 
     public boolean isGrantTypeSupported(String type) {
@@ -65,12 +77,27 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
         throws ServletException, IOException {
+        MfaProvider provider = null;
         try {
-            checkMfaCode(request);
+            if (isGrantTypeSupported(request.getParameter(GRANT_TYPE))) {
+                provider = checkMfaCode(request);
+                UaaUser user = getUaaUser();
+                if (provider != null) {
+                    publishEvent(new MfaAuthenticationSuccessEvent(user, getAuthentication(), provider.getType().toValue()));
+                }
+            }
             filterChain.doFilter(request, response);
+        } catch (InsufficientAuthenticationException x) {
+            handleException(new JsonError(400, "invalid_request", x.getMessage()), response);
         } catch (MissingMfaCodeException | UserMfaConfigDoesNotExistException e) {
+            UaaUser user = getUaaUser();
+            publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider!=null? provider.getType().toValue() : "null"));
+            publishEvent(new UserAuthenticationFailureEvent(user, getAuthentication()));
             handleException(new JsonError(400, "invalid_request", e.getMessage()), response);
         } catch (InvalidMfaCodeException e) {
+            UaaUser user = getUaaUser();
+            publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider!=null? provider.getType().toValue() : "null"));
+            publishEvent(new UserAuthenticationFailureEvent(user, getAuthentication()));
             handleException(new JsonError(401, "unauthorized", "Bad credentials"), response);
         }
     }
@@ -81,12 +108,12 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter {
         response.getWriter().write(JsonUtils.writeValueAsString(error));
     }
 
-    protected void checkMfaCode(HttpServletRequest request)
+    protected MfaProvider checkMfaCode(HttpServletRequest request)
         throws ServletException, IOException {
         IdentityZone zone = IdentityZoneHolder.get();
-        if (isGrantTypeSupported(request.getParameter(GRANT_TYPE)) && isMfaEnabled(zone)) {
-            UaaAuthentication authentication = getAuthentication();
-            MfaProvider provider = null;
+        MfaProvider provider = null;
+        UaaAuthentication authentication = getAuthentication();
+        if (isMfaEnabled(zone)) {
             try {
                 provider = mfaProvider.retrieveByName(zone.getConfig().getMfaConfig().getProviderName(), zone.getId());
             } catch (EmptyResultDataAccessException x) {
@@ -104,6 +131,13 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter {
             authMethods.add("otp");
             authMethods.add("mfa");
             authentication.setAuthenticationMethods(authMethods);
+        }
+        return provider;
+    }
+
+    private void publishEvent(ApplicationEvent event) {
+        if (publisher!=null) {
+            publisher.publishEvent(event);
         }
     }
 
@@ -123,6 +157,10 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter {
         return zone.getConfig().getMfaConfig().isEnabled();
     }
 
+    private UaaUser getUaaUser() {
+        return userDb.retrieveUserById(getAuthentication().getPrincipal().getId());
+    }
+
     private UaaAuthentication getAuthentication() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) {
@@ -139,6 +177,11 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter {
 
     public Set<String> getSupportedGrantTypes() {
         return Collections.unmodifiableSet(supportedGrantTypes);
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
     }
 
     public static class JsonError {
