@@ -117,10 +117,7 @@ pipeline {
             }
             steps{
                 script {
-                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
-                    dir('build') {
-                        unstash 'uaa-war'
-                    }
+                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory" 
                     def uploadSpec = """{
                         "files": [
                             {
