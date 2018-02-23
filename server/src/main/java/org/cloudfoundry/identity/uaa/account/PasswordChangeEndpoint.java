@@ -82,12 +82,16 @@ public class PasswordChangeEndpoint {
     @RequestMapping(value = "/Users/{userId}/password", method = RequestMethod.PUT)
     @ResponseBody
     public ActionResult changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
-        checkPasswordChangeIsAllowed(userId, change.getOldPassword());
-        if (dao.checkPasswordMatches(userId, change.getPassword(), IdentityZoneHolder.get().getId())) {
+        String zoneId = IdentityZoneHolder.get().getId();
+        String oldPassword = change.getOldPassword();
+        String newPassword = change.getPassword();
+
+        throwIfPasswordChangeNotPermitted(userId, oldPassword, zoneId);
+        if (dao.checkPasswordMatches(userId, newPassword, zoneId)) {
             throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
         }
-        passwordValidator.validate(change.getPassword());
-        dao.changePassword(userId, change.getOldPassword(), change.getPassword(), IdentityZoneHolder.get().getId());
+        passwordValidator.validate(newPassword);
+        dao.changePassword(userId, oldPassword, newPassword, zoneId);
         return new ActionResult("ok", "password updated");
     }
 
@@ -121,39 +125,27 @@ public class PasswordChangeEndpoint {
                 messageConverters);
     }
 
-    private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
+    private void throwIfPasswordChangeNotPermitted(String userId, String oldPassword, String zoneId) {
+        String currentUser = securityContextAccessor.getUserId();
         if (securityContextAccessor.isClient()) {
             // Trusted client (not acting on behalf of user)
-            return;
-        }
-
-        // Call is by or on behalf of end user
-        String currentUser = securityContextAccessor.getUserId();
-
-        if (securityContextAccessor.isAdmin()) {
-
-            // even an admin needs to provide the old value to change his
-            // password
+        } else if (securityContextAccessor.isAdmin()) {
             if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
                 throw new InvalidPasswordException("Previous password is required even for admin");
             }
-
-        }
-        else {
-
+        } else {
             if (!userId.equals(currentUser)) {
                 logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
-                // TODO: This should be audited when we have non-authentication
-                // events in the log
                 throw new InvalidPasswordException("Not permitted to change another user's password");
             }
 
-            // User is changing their own password, old password is required
             if (!StringUtils.hasText(oldPassword)) {
                 throw new InvalidPasswordException("Previous password is required");
             }
 
+            if (!dao.checkPasswordMatches(userId, oldPassword, zoneId)) {
+                throw new InvalidPasswordException("Old password is incorrect");
+            }
         }
-
     }
 }
