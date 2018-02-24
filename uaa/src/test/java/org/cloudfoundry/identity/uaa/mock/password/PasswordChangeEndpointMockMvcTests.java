@@ -105,10 +105,9 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
           .header("Authorization", "Bearer " + userToken)
           .contentType(APPLICATION_JSON)
           .content(JsonUtils.writeValueAsString(request)))
-          .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.message").value("Old password is incorrect"))
+          .andExpect(status().isUnauthorized())
           .andExpect(jsonPath("$.error_description").value("Old password is incorrect"))
-          .andExpect(jsonPath("$.error").value("invalid_password"))
+          .andExpect(jsonPath("$.error").value("unauthorized"))
           ;
     }
 

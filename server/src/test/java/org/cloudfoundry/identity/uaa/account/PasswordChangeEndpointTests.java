@@ -174,7 +174,7 @@ public class PasswordChangeEndpointTests {
         endpoints.changePassword(joel.getId(), change);
     }
 
-    @Test(expected = InvalidPasswordException.class)
+    @Test(expected = BadCredentialsException.class)
     public void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();

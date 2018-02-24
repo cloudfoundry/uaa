@@ -126,16 +126,15 @@ public class PasswordChangeEndpoint {
     }
 
     private void throwIfPasswordChangeNotPermitted(String userId, String oldPassword, String zoneId) {
-        String currentUser = securityContextAccessor.getUserId();
         if (securityContextAccessor.isClient()) {
             // Trusted client (not acting on behalf of user)
         } else if (securityContextAccessor.isAdmin()) {
-            if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
+            if (userId.equals(currentUser()) && !StringUtils.hasText(oldPassword)) {
                 throw new InvalidPasswordException("Previous password is required even for admin");
             }
         } else {
-            if (!userId.equals(currentUser)) {
-                logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
+            if (!userId.equals(currentUser())) {
+                logger.warn("User with id " + currentUser() + " attempting to change password for user " + userId);
                 throw new InvalidPasswordException("Not permitted to change another user's password");
             }
 
@@ -144,8 +143,12 @@ public class PasswordChangeEndpoint {
             }
 
             if (!dao.checkPasswordMatches(userId, oldPassword, zoneId)) {
-                throw new InvalidPasswordException("Old password is incorrect");
+                throw new BadCredentialsException("Old password is incorrect");
             }
         }
+    }
+
+    private String currentUser() {
+        return securityContextAccessor.getUserId();
     }
 }
