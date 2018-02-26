@@ -12,6 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.cloudfoundry.identity.uaa.account.UaaChangePasswordService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -20,15 +23,17 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.Collections;
-import java.util.List;
-
+import static java.util.Collections.emptyList;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
@@ -64,9 +69,8 @@ public class UaaChangePasswordServiceTest {
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void testChangePasswordWithUserNotFound() {
-        List<ScimUser> results = Collections.emptyList();
         String zoneId = IdentityZoneHolder.get().getId();
-        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(results);
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(emptyList());
         subject.changePassword("username", "currentPassword", "validPassword");
         verify(passwordValidator).validate("validPassword");
         verify(scimUserProvisioning).query(anyString(), zoneId);
@@ -74,11 +78,7 @@ public class UaaChangePasswordServiceTest {
 
     @Test
     public void changePassword_ReturnsUnprocessableEntity_PasswordNoveltyViolation() {
-        ScimUser.Email email = new ScimUser.Email();
-        email.setValue("username@test.com");
-        ScimUser user = new ScimUser("id", "username", "givenName", "familyName");
-        user.setEmails(Collections.singletonList(email));
-        List<ScimUser> results = Collections.singletonList(user);
+        List<ScimUser> results = getScimUsers();
         when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(results);
         when(scimUserProvisioning.checkPasswordMatches("id", "samePassword1", IdentityZoneHolder.get().getId())).thenReturn(true);
         try {
@@ -91,15 +91,33 @@ public class UaaChangePasswordServiceTest {
 
     @Test
     public void testChangePassword() {
+        List<ScimUser> results = getScimUsers();
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(results);
+        subject.changePassword("username", "currentPassword", "validPassword");
+        verify(passwordValidator).validate("validPassword");
+        verify(scimUserProvisioning).query(anyString(), eq(zoneId));
+        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword", zoneId);
+    }
+
+    @Test
+    public void testQueryContainsOriginUaa() {
+        List<ScimUser> results = getScimUsers();
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(results);
+        subject.changePassword("username", "currentPassword", "validPassword");
+        verify(passwordValidator).validate("validPassword");
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(scimUserProvisioning).query(captor.capture(), eq(zoneId));
+        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword", zoneId);
+        assertThat(captor.getValue(), containsString("origin eq \"uaa\""));
+    }
+
+    private List<ScimUser> getScimUsers() {
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("username@test.com");
         ScimUser user = new ScimUser("id", "username", "givenName", "familyName");
         user.setEmails(Collections.singletonList(email));
-        List<ScimUser> results = Collections.singletonList(user);
-        when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(results);
-        subject.changePassword("username", "currentPassword", "validPassword");
-        verify(passwordValidator).validate("validPassword");
-        verify(scimUserProvisioning).query(anyString(), eq(IdentityZoneHolder.get().getId()));
-        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword", IdentityZoneHolder.get().getId());
+        return Collections.singletonList(user);
     }
 }
