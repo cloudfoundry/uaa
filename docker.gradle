@@ -79,7 +79,7 @@ task copyContainerFiles(type: Copy) {
 task buildImage(type: DockerBuildImage) {
   dependsOn copyContainerFiles
   inputDir = createDockerfile.destFile.parentFile
-  tag = System.getenv('DOCKER_REPO_URL') + '/' + System.getenv('DOCKER_REPO_USER') + '/uaa:' + version
+  tag = System.getenv('DOCKER_REPO_URL') + '/uaa:' + version
 }
 
 task createUaaContainer(type: DockerCreateContainer) {
@@ -97,7 +97,7 @@ task startUaaContainer(type: DockerStartContainer) {
 
 task pushUaaImage(type: DockerPushImage) {
   dependsOn buildImage
-  imageName = System.getenv('DOCKER_REPO_URL') + '/' + System.getenv('DOCKER_REPO_USER') + '/uaa:' + version
+  imageName = System.getenv('DOCKER_REPO_URL') + '/uaa:' + version
   registryCredentials = new DockerRegistryCredentials()
   registryCredentials.url = System.getenv('DOCKER_REPO_URL')
   registryCredentials.username = System.getenv('DOCKER_REPO_USER')
