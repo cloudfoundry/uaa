@@ -236,6 +236,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.remove(ISS);
         claims.remove(USER_NAME);
         claims.remove(ZONE_ID);
+        claims.remove(IAT);
 
         String userid = (String) claims.get(USER_ID);
 
