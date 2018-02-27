@@ -153,10 +153,17 @@ public final class UaaTokenUtils {
     }
 
     public static String getRevocableTokenSignature(ClientDetails client, String clientSecret, UaaUser user) {
+        String tokenSalt = (String) client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
+        String clientId = client.getClientId();
+
+        return getRevocableTokenSignature(user, tokenSalt, clientId, clientSecret);
+    }
+
+    public static String getRevocableTokenSignature(UaaUser user, String tokenSalt, String clientId, String clientSecret) {
         String[] salts = new String[] {
-            client.getClientId(),
+            clientId,
             clientSecret,
-            (String)client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT),
+            tokenSalt,
             user == null ? null : user.getId(),
             user == null ? null : user.getPassword(),
             user == null ? null : user.getSalt(),

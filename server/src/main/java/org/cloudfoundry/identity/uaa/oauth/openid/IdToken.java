@@ -23,6 +23,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
@@ -64,6 +65,8 @@ public class IdToken {
     public final String zid;
     public final String origin;
     public final String jti;
+    @JsonProperty(REVOCATION_SIGNATURE)
+    public final String revSig;
 
     public IdToken(String sub,
                    List<String> aud,
@@ -88,7 +91,8 @@ public class IdToken {
                    String userName,
                    String zid,
                    String origin,
-                   String jti) {
+                   String jti,
+                   String revSig) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
@@ -113,6 +117,7 @@ public class IdToken {
         this.zid = zid;
         this.origin = origin;
         this.jti = jti;
+        this.revSig = revSig;
     }
 
     @JsonProperty(ACR)

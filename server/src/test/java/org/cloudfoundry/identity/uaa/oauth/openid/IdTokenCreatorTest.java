@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
@@ -19,15 +20,20 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.net.URISyntaxException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.TOKEN_SALT;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -69,12 +75,16 @@ public class IdTokenCreatorTest {
     private String zoneId;
     private String origin;
     private String jti;
+    private String clientsecret;
+    private String tokensalt;
 
     @Before
     public void setup() throws Exception {
         issuerUrl = "http://localhost:8080/uaa/oauth/token";
         uaaUrl = "http://localhost:8080/uaa";
         clientId = "clientId";
+        clientsecret = "clientsecret";
+        tokensalt = "tokensalt";
         userId = "userId";
         zoneId = "zoneId";
         jti = "accessTokenId";
@@ -135,6 +145,9 @@ public class IdTokenCreatorTest {
 
         PowerMockito.mockStatic(UaaTokenUtils.class);
         when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn(issuerUrl);
+
+        when(UaaTokenUtils.getRevocableTokenSignature(user, tokensalt, clientId, clientsecret)).thenReturn("Signature");
+
         PowerMockito.mockStatic(IdentityZoneHolder.class);
         when(IdentityZoneHolder.get()).thenReturn(new IdentityZone() {{ setId(zoneId); }});
 
@@ -153,7 +166,18 @@ public class IdTokenCreatorTest {
             jti);
         excludedClaims = new HashSet<>();
 
-        tokenCreator = new IdTokenCreator(uaaUrl, tokenValidityResolver, uaaUserDatabase, excludedClaims);
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(clientId);
+        clientDetails.setClientSecret(clientsecret);
+
+        HashMap<String, String> additionalInfo = new HashMap<String, String>() {{
+            put(TOKEN_SALT, tokensalt);
+        }};
+        clientDetails.setAdditionalInformation(additionalInfo);
+        when(clientDetailsService.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
+
+        tokenCreator = new IdTokenCreator(uaaUrl, tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
     }
 
     @After
@@ -198,6 +222,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.zid, is(zoneId));
         assertThat(idToken.origin, is(origin));
         assertThat(idToken.jti, is("accessTokenId"));
+        assertThat(idToken.revSig, is("Signature"));
     }
 
     @Test
@@ -309,6 +334,7 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.ZONE_ID);
         excludedClaims.add(ClaimConstants.ORIGIN);
         excludedClaims.add(ClaimConstants.JTI);
+        excludedClaims.add(ClaimConstants.REVOCATION_SIGNATURE);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -336,6 +362,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.zid, is(nullValue()));
         assertThat(idToken.origin, is(nullValue()));
         assertThat(idToken.jti, is(nullValue()));
+        assertThat(idToken.revSig, is(nullValue()));
     }
 
     @Test(expected = IdTokenCreationException.class)

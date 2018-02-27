@@ -3,19 +3,21 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
@@ -37,25 +39,30 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
+import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.getRevocableTokenSignature;
 
 public class IdTokenCreator {
     private final Log logger = LogFactory.getLog(getClass());
     private String issuerUrlBase;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
+    private ClientServicesExtension clientServicesExtension;
     private Set<String> excludedClaims;
 
     public IdTokenCreator(String issuerUrlBase,
                           TokenValidityResolver tokenValidityResolver,
                           UaaUserDatabase uaaUserDatabase,
+                          ClientServicesExtension clientServicesExtension,
                           Set<String> excludedClaims) {
         this.tokenValidityResolver = tokenValidityResolver;
         this.uaaUserDatabase = uaaUserDatabase;
+        this.clientServicesExtension = clientServicesExtension;
         this.excludedClaims = excludedClaims;
         this.issuerUrlBase = issuerUrlBase;
     }
@@ -88,7 +95,11 @@ public class IdTokenCreator {
             logger.error("Could not construct the issuer url", e);
             throw new IdTokenCreationException();
         }
+        String identityZone = IdentityZoneHolder.get().getId();
 
+        ClientDetails clientDetails = clientServicesExtension.loadClientByClientId(clientId, identityZone);
+        String clientTokenSalt = (String) clientDetails.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
+        String revSig = getRevocableTokenSignature(uaaUser, clientTokenSalt, clientId, clientDetails.getClientSecret());
         return new IdToken(
             getIfNotExcluded(userId, USER_ID),
             getIfNotExcluded(newArrayList(clientId), AUD),
@@ -111,9 +122,10 @@ public class IdTokenCreator {
             getIfNotExcluded(clientId, CID),
             getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
             getIfNotExcluded(uaaUser.getUsername(), USER_NAME),
-            getIfNotExcluded(IdentityZoneHolder.get().getId(), ZONE_ID),
+            getIfNotExcluded(identityZone, ZONE_ID),
             getIfNotExcluded(uaaUser.getOrigin(), ORIGIN),
-            getIfNotExcluded(userAuthenticationData.jti, JTI));
+            getIfNotExcluded(userAuthenticationData.jti, JTI),
+            getIfNotExcluded(revSig, REVOCATION_SIGNATURE));
     }
 
     private String getIfScopeContainsProfile(String value, Set<String> scopes) {

@@ -527,6 +527,7 @@
         <constructor-arg name="issuerUrlBase" value="${issuer.uri}"/>
         <constructor-arg name="tokenValidityResolver" ref="accessTokenValidityResolver"/>
         <constructor-arg name="uaaUserDatabase" ref="userDatabase"/>
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="excludedClaims" ref="excludedClaims"/>
     </bean>
 

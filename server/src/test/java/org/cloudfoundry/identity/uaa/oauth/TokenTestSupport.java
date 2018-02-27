@@ -265,7 +265,7 @@ public class TokenTestSupport {
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234);
-        IdTokenCreator idTokenCreator = new IdTokenCreator(DEFAULT_ISSUER, accessTokenValidityResolver, userDatabase, new HashSet<>());
+        IdTokenCreator idTokenCreator = new IdTokenCreator(DEFAULT_ISSUER, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
         tokenServices.setIdTokenCreator(idTokenCreator);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345);
         tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);

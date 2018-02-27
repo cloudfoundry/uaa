@@ -61,7 +61,8 @@ public class IdTokenSerializationTest {
             "username",
             "myzid",
             "origin",
-            "some-uuid");
+            "some-uuid",
+            "revSig");
     }
 
     @After
@@ -96,6 +97,7 @@ public class IdTokenSerializationTest {
         assertThat(idTokenJsonString, hasJsonPath("zid", is("myzid")));
         assertThat(idTokenJsonString, hasJsonPath("origin", is("origin")));
         assertThat(idTokenJsonString, hasJsonPath("jti", is("some-uuid")));
+        assertThat(idTokenJsonString, hasJsonPath("rev_sig", is("revSig")));
     }
 
     @Test
@@ -124,6 +126,7 @@ public class IdTokenSerializationTest {
             null,
             null,
             null,
+            null,
             null);
 
         String idTokenJsonString = JsonUtils.writeValueAsString(idToken);
@@ -137,5 +140,6 @@ public class IdTokenSerializationTest {
         assertThat(idTokenJsonString, hasNoJsonPath("zid"));
         assertThat(idTokenJsonString, hasNoJsonPath("origin"));
         assertThat(idTokenJsonString, hasNoJsonPath("jti"));
+        assertThat(idTokenJsonString, hasNoJsonPath("rev_sig"));
     }
 }
