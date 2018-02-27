@@ -55,10 +55,6 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
             throw new IllegalArgumentException("Unrecognized authentication principle.");
         }
 
-        if(IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() == false) {
-            return;
-        }
-
         UaaPrincipal uaaPrincipal = (UaaPrincipal) principal;
         if(IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() == true) {
             SavedAccountOption savedAccountOption = new SavedAccountOption();
