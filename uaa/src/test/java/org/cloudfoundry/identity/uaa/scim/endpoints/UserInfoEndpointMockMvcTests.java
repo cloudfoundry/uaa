@@ -12,9 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.account.OpenIdConfiguration;
+import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
@@ -28,10 +27,8 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
@@ -39,7 +36,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTR
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -59,15 +55,27 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
+        adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            "admin",
+            "adminsecret",
+            "clients.read clients.write clients.secret scim.read scim.write clients.admin"
+        );
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,openid";
-        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid", USER_ATTRIBUTES, ROLES), Arrays.asList("client_credentials", "password"), authorities);
+        utils().createClient(
+            this.getMockMvc(),
+            adminToken,
+            clientId,
+            clientSecret,
+            Collections.singleton("oauth"),
+            Arrays.asList("openid", USER_ATTRIBUTES, ROLES),
+            Arrays.asList("client_credentials", "password"),
+            authorities
+        );
         userName = new RandomValueStringGenerator().generate() + "@test.org";
         user = new ScimUser(null, userName, "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = utils().createUser(getMockMvc(), adminToken, user);
-        getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
         userAttributes = new LinkedMultiValueMap<>();
@@ -85,41 +93,39 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testGetUserInfo() throws Exception {
-        getUserInfo("/userinfo", "openid");
-    }
+        UserInfoResponse userInfoResponse = getUserInfo("openid");
 
-    @Test
-    public void testGetUserInfoEndpointFromWellKnownConfiguration() throws Exception {
-        MockHttpServletResponse response = getMockMvc().perform(get("/.well-known/openid-configuration")
-            .servletPath("/.well-known/openid-configuration")
-            .accept(APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
+        assertEquals(user.getUserName(), userInfoResponse.getUserName());
+        assertEquals(user.getFamilyName(), userInfoResponse.getFamilyName());
+        assertEquals(user.getGivenName(), userInfoResponse.getGivenName());
+        assertEquals(user.isVerified(), userInfoResponse.isEmailVerified());
 
-        OpenIdConfiguration openIdConfiguration = JsonUtils.readValue(response.getContentAsString(), OpenIdConfiguration.class);
-        getUserInfo(openIdConfiguration.getUserInfoUrl(), "openid");
+        String userId = userInfoResponse.getUserId();
+        assertNotNull(userId);
+        Long dbPreviousLogonTime = getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserById(userId).getPreviousLogonTime();
+        assertEquals(dbPreviousLogonTime, userInfoResponse.getPreviousLogonSuccess());
     }
 
     @Test
     public void attributesWithRolesAndUserAttributes() throws Exception {
-        Map<String, Object> info = getUserInfo("/userinfo", "openid roles user_attributes");
-        Object ua = info.get(USER_ATTRIBUTES);
-        assertNotNull(ua);
-        assertEquals(userAttributes, ua);
-        Object r = info.get(ROLES);
+        UserInfoResponse userInfo = getUserInfo("openid user_attributes roles");
+        Map<String, List<String>> uas = userInfo.getUserAttributes();
+        assertNotNull(uas);
+        assertEquals(userAttributes, uas);
+
+        Object r = userInfo.getRoles();
         assertNotNull(r);
         assertEquals(roles, r);
     }
 
     @Test
     public void attributesWithNoExtraScopes() throws Exception {
-        Map<String, Object> info = getUserInfo("/userinfo", "openid");
-        assertNull(info.get(USER_ATTRIBUTES));
-        assertNull(info.get(ROLES));
+        UserInfoResponse userInfo = getUserInfo("openid");
+        assertNull(userInfo.getUserAttributes());
+        assertNull(userInfo.getRoles());
     }
 
-    private Map<String, Object> getUserInfo(String url, String scopes) throws Exception {
-
+    private UserInfoResponse getUserInfo(String scopes) throws Exception {
         String userInfoToken = testClient.getUserOAuthAccessToken(
             clientId,
             clientSecret,
@@ -129,21 +135,15 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
         );
 
         MockHttpServletResponse response = getMockMvc().perform(
-            get(url)
+            get("/userinfo")
                 .header("Authorization", "Bearer " + userInfoToken))
             .andExpect(status().isOk())
             .andReturn().getResponse();
 
-        Map<String, Object> map = JsonUtils.readValue(response.getContentAsString(), Map.class);
-        assertEquals(user.getUserName(), map.get("user_name"));
-        assertEquals(user.getFamilyName(), map.get("family_name"));
-        assertEquals(user.getGivenName(), map.get("given_name"));
-        String userId = (String) map.get(ClaimConstants.USER_ID);
-        assertNotNull(userId);
-        Long dbPreviousLogonTime = getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserById(userId).getPreviousLogonTime();
-        assertEquals(dbPreviousLogonTime, map.get(ClaimConstants.PREVIOUS_LOGON_TIME));
-        return map;
+        return JsonUtils.readValue(
+            response.getContentAsString(),
+            UserInfoResponse.class
+        );
     }
 
 }
-

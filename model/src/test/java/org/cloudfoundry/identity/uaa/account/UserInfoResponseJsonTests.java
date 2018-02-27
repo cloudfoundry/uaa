@@ -16,71 +16,66 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.List;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
+import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 public class UserInfoResponseJsonTests {
     String json = "{\n" +
-        "  \"multi_value\": [\n" +
-        "    \"value1\",\n" +
-        "    \"value2\"\n" +
-        "  ],\n" +
         "  \"email\": \"olds@vmware.com\",\n" +
+        "  \"email_verified\": true,\n" +
         "  \"name\": \"Dale Olds\",\n" +
         "  \"phone_number\": \"8505551234\",\n" +
         "  \"user_name\": \"olds\",\n" +
         "  \"given_name\": \"Dale\",\n" +
         "  \"family_name\": \"Olds\",\n" +
         "  \"sub\": \"12345\",\n" +
+        "  \"user_id\": \"12345\",\n" +
         "  \"number\": 123,\n" +
         "  \"origin\": \"uaa\",\n" +
         "  \"zid\": \"uaa\",\n" +
-        "  \"single_value\": \"value3\",\n" +
+        "  \"user_attributes\": {\"Key 1\":[\"Val 11\",\"Val 12\"],\"Key 2\":[\"Val 21\",\"Val 22\"]}," +
+        "  \"roles\": [\"role12\", \"role54\", \"role134\", \"role812\"]," +
         "  \"previous_logon_time\": 1000\n" +
         "}";
 
     @Test
     public void deserializeTest() {
         UserInfoResponse response = JsonUtils.readValue(json, UserInfoResponse.class);
-        assertEquals(Arrays.asList("value1", "value2"), response.getAttributeValues("multi_value"));
-        assertEquals("value1", response.getAttributeValue("multi_value"));
-        assertEquals(Arrays.asList("value3"), response.getAttributeValues("single_value"));
-        assertEquals("value3", response.getAttributeValue("single_value"));
-        assertEquals("olds@vmware.com", response.getAttributeValue(EMAIL));
         assertEquals("olds@vmware.com", response.getEmail());
-
-        assertEquals("Dale", response.getAttributeValue(GIVEN_NAME));
         assertEquals("Dale", response.getGivenName());
-
-        assertEquals("Olds", response.getAttributeValue(FAMILY_NAME));
         assertEquals("Olds", response.getFamilyName());
-
-        assertNull(response.getAttributeValue(NAME));
         assertEquals("Dale Olds", response.getFullName());
-
-        assertEquals("8505551234", response.getAttributeValue(PHONE_NUMBER));
         assertEquals("8505551234", response.getPhoneNumber());
-
-        assertNull(response.getAttributeValue(SUB));
         assertEquals("12345", response.getUserId());
+        assertEquals("12345", response.getSub());
+        assertEquals("olds", response.getUserName());
+        assertEquals(true, response.isEmailVerified());
 
-        assertEquals("olds", response.getAttributeValue(USER_NAME));
-        assertEquals("olds", response.getUsername());
+        assertThat(
+            response.getUserAttributes().get("Key 1"),
+            hasItems(CoreMatchers.is("Val 11"), CoreMatchers.is("Val 12"))
+        );
+        assertThat(
+            response.getUserAttributes().get("Key 2"),
+            hasItems(CoreMatchers.is("Val 21"), CoreMatchers.is("Val 22"))
+        );
 
-        assertEquals(1000L, response.getAttributeValue(PREVIOUS_LOGON_TIME));
-
+        assertThat(
+            response.getRoles(),
+            hasItems(
+                CoreMatchers.is("role12"),
+                CoreMatchers.is("role54"),
+                CoreMatchers.is("role134"),
+                CoreMatchers.is("role812")
+            )
+        );
+        assertEquals(Long.valueOf(1000L), response.previousLogonSuccess);
     }
 
     @Test

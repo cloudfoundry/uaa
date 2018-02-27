@@ -429,7 +429,7 @@ public class OIDCLoginIT {
 
             UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
 
-            Map<String,List<String>> userAttributeMap = (Map<String,List<String>>) userInfo.getAttributeValue(USER_ATTRIBUTES);
+            Map<String, List<String>> userAttributeMap = userInfo.getUserAttributes();
             assertNotNull(userAttributeMap);
             List<String> clientIds = userAttributeMap.get("the_client_id");
             assertNotNull(clientIds);

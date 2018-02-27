@@ -964,7 +964,7 @@ public class SamlLoginIT {
 
         UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
 
-        Map<String,List<String>> userAttributeMap = (Map<String,List<String>>) userInfo.getAttributeValue(USER_ATTRIBUTES);
+        Map<String,List<String>> userAttributeMap = userInfo.getUserAttributes();
         List<String> costCenterData = userAttributeMap.get(COST_CENTERS);
         List<String> managerData = userAttributeMap.get(MANAGERS);
         assertThat(costCenterData, containsInAnyOrder(DENVER_CO));
