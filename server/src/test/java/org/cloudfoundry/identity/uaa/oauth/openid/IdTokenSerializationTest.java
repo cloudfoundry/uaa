@@ -11,10 +11,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 
@@ -36,7 +37,7 @@ public class IdTokenSerializationTest {
 
         DateTimeUtils.setCurrentMillisFixed(1000L);
 
-        idToken = new IdToken("sub", "aud", "iss", DateTime.now().toDate(), DateTime.now().toDate(), DateTime.now().toDate(), amr, acr, "azp", "givenname", "familyname", 1123l, "123", new HashSet<>(), new HashMap<>());
+        idToken = new IdToken("sub", newArrayList("aud"), "iss", DateTime.now().toDate(), DateTime.now().toDate(), DateTime.now().toDate(), amr, acr, "azp", "givenname", "familyname", 1123l, "123", new HashSet<>(), new HashMap<>(), true, "nonce");
     }
 
     @After
@@ -55,14 +56,17 @@ public class IdTokenSerializationTest {
         assertThat(idTokenJsonString, hasJsonPath("phone_number"));
         assertThat(idTokenJsonString, hasJsonPath("user_attributes"));
         assertThat(idTokenJsonString, hasJsonPath("previous_logon_time", is(1123)));
-        assertThat(idTokenJsonString, hasJsonPath("iat", is(1000)));
-        assertThat(idTokenJsonString, hasJsonPath("exp", is(1000)));
-        assertThat(idTokenJsonString, hasJsonPath("auth_time", is(1000)));
+        assertThat(idTokenJsonString, hasJsonPath("iat", is(1)));
+        assertThat(idTokenJsonString, hasJsonPath("exp", is(1)));
+        assertThat(idTokenJsonString, hasJsonPath("auth_time", is(1)));
+        assertThat(idTokenJsonString, hasJsonPath("scope", hasItem("openid")));
+        assertThat(idTokenJsonString, hasJsonPath("email_verified", is(true)));
+        assertThat(idTokenJsonString, hasJsonPath("nonce", is("nonce")));
     }
 
     @Test
     public void testSerializingIdToken_omitNullValues() {
-        idToken = new IdToken("sub", "aud", "iss", DateTime.now().toDate(), DateTime.now().toDate(), DateTime.now().toDate(), null, null, "azp", null, null, 1123l, null, new HashSet<>(), new HashMap<>());
+        idToken = new IdToken("sub", newArrayList("aud"), "iss", DateTime.now().toDate(), DateTime.now().toDate(), DateTime.now().toDate(), null, null, "azp", null, null, 1123l, null, new HashSet<>(), new HashMap<>(), null, null);
 
         String idTokenJsonString = JsonUtils.writeValueAsString(idToken);
 

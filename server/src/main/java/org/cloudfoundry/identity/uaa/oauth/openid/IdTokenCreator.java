@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.joda.time.DateTime;
-import org.springframework.util.MultiValueMap;
 
 import java.net.URISyntaxException;
 import java.util.Date;
@@ -13,16 +12,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
@@ -65,7 +67,7 @@ public class IdTokenCreator {
 
         return new IdToken(
             getIfNotExcluded(userId, USER_ID),
-            getIfNotExcluded(clientId, AUD),
+            getIfNotExcluded(newArrayList(clientId), AUD),
             getIfNotExcluded(issuerUrl, ISS),
             getIfNotExcluded(expiryDate, EXP),
             getIfNotExcluded(issuedAt, IAT),
@@ -78,7 +80,9 @@ public class IdTokenCreator {
             getIfNotExcluded(uaaUser.getPreviousLogonTime(), PREVIOUS_LOGON_TIME),
             getIfNotExcluded(phoneNumber, PHONE_NUMBER),
             getIfNotExcluded(roles, ROLES),
-            getIfNotExcluded(userAttributes, USER_ATTRIBUTES));
+            getIfNotExcluded(userAttributes, USER_ATTRIBUTES),
+            getIfNotExcluded(uaaUser.isVerified(), EMAIL_VERIFIED),
+            getIfNotExcluded(userAuthenticationData.nonce, NONCE));
     }
 
     private String getIfScopeContainsProfile(String value, Set<String> scopes) {

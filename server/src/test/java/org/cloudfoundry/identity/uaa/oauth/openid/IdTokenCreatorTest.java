@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -56,7 +57,7 @@ public class IdTokenCreatorTest {
     private Set<String> roles;
     private Set<String> scopes;
     private MultiValueMap<String, String> userAttributes;
-
+    private String nonce;
     private UserAuthenticationData userAuthenticationData;
     private Set<String> excludedClaims;
 
@@ -89,6 +90,8 @@ public class IdTokenCreatorTest {
         userAttributes.add("k1", "v12");
         userAttributes.add("k2", "v21");
 
+        nonce = "becreative";
+
         scopes = new HashSet<String>() {{
             //add(UaaTokenServices.OPEN_ID);
             add("openid");
@@ -105,6 +108,7 @@ public class IdTokenCreatorTest {
             .withId("id")
             .withUsername("username")
             .withPreviousLogonSuccess(previousLogonTime)
+            .withVerified(true)
         );
 
         DateTimeUtils.setCurrentMillisFixed(1l);
@@ -125,7 +129,8 @@ public class IdTokenCreatorTest {
             acr,
             scopes,
             roles,
-            userAttributes);
+            userAttributes,
+            nonce);
         excludedClaims = new HashSet<>();
 
         tokenCreator = new IdTokenCreator(uaaUrl, tokenValidityResolver, uaaUserDatabase, excludedClaims);
@@ -148,7 +153,7 @@ public class IdTokenCreatorTest {
 
         assertThat(idToken, is(notNullValue()));
         assertThat(idToken.sub, is(userId));
-        assertThat(idToken.aud, is(clientId));
+        assertThat(idToken.aud, hasItem(clientId));
         assertThat(idToken.iss, is(issuerUrl));
         assertThat(idToken.exp, is(expDate));
         assertThat(idToken.iat, is(iatDate));
@@ -169,9 +174,16 @@ public class IdTokenCreatorTest {
         assertThat(idToken.phoneNumber, is(phoneNumber));
         assertThat(idToken.roles, is(roles));
         assertThat(idToken.userAttributes, is(userAttributes));
-        assertThat(idToken.scope, is("openid"));
+        assertThat(idToken.scope, hasItem("openid"));
+        assertThat(idToken.emailVerified, is(true));
+        assertThat(idToken.nonce, is(nonce));
+    }
 
-        // TODO EMAIL_VERIFIED <----- this story
+    @Test
+    public void create_includesEmailVerified() {
+        user.setVerified(false);
+        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        assertThat(idToken.emailVerified, is(false));
     }
 
     @Test
@@ -201,7 +213,7 @@ public class IdTokenCreatorTest {
             acr,
             scopes,
             null,
-            userAttributes);
+            userAttributes, nonce);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -226,7 +238,7 @@ public class IdTokenCreatorTest {
             acr,
             scopes,
             roles,
-            null);
+            null, nonce);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -261,6 +273,8 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.PHONE_NUMBER);
         excludedClaims.add(ClaimConstants.ROLES);
         excludedClaims.add(ClaimConstants.USER_ATTRIBUTES);
+        excludedClaims.add(ClaimConstants.EMAIL_VERIFIED);
+        excludedClaims.add(ClaimConstants.NONCE);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -279,5 +293,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.phoneNumber, is(nullValue()));
         assertThat(idToken.roles, is(nullValue()));
         assertThat(idToken.userAttributes, is(nullValue()));
+        assertThat(idToken.emailVerified, is(nullValue()));
+        assertThat(idToken.nonce, is(nullValue()));
     }
 }

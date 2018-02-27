@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -12,11 +13,10 @@ import java.util.Set;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class IdToken {
     public final String sub;
-    public final String aud;
+    public final List<String> aud;
     public final String iss;
     public final Date exp;
     public final Date iat;
-    @JsonProperty("auth_time")
     public final Date authTime;
     public final Set<String> amr;
     public final Set<String> acr;
@@ -32,10 +32,13 @@ public class IdToken {
     public final Set<String> roles;
     @JsonProperty("user_attributes")
     public final Map<String, List<String>> userAttributes;
-    public final String scope = "openid";
+    public final List<String> scope = ImmutableList.of("openid");
+    @JsonProperty("email_verified")
+    public final Boolean emailVerified;
+    public final String nonce;
 
     public IdToken(String sub,
-                   String aud,
+                   List<String> aud,
                    String iss,
                    Date exp,
                    Date iat,
@@ -48,7 +51,9 @@ public class IdToken {
                    Long previousLogonTime,
                    String phoneNumber,
                    Set<String> roles,
-                   Map<String, List<String>> userAttributes) {
+                   Map<String, List<String>> userAttributes,
+                   Boolean emailVerified,
+                   String nonce) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
@@ -64,6 +69,8 @@ public class IdToken {
         this.phoneNumber = phoneNumber;
         this.roles = roles;
         this.userAttributes = userAttributes;
+        this.emailVerified = emailVerified;
+        this.nonce = nonce;
     }
 
     @JsonProperty("acr")
@@ -73,4 +80,18 @@ public class IdToken {
         return acrMap;
     }
 
+    @JsonProperty("exp")
+    public Long getExpInSeconds() {
+        return exp.getTime() / 1000;
+    }
+
+    @JsonProperty("iat")
+    public Long getIatInSeconds() {
+        return iat.getTime() / 1000;
+    }
+
+    @JsonProperty("auth_time")
+    public Long getAuthTimeInSeconds() {
+        return authTime.getTime() / 1000;
+    }
 }
