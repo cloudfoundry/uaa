@@ -24,6 +24,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VER
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
@@ -32,6 +33,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 
 public class IdTokenCreator {
     private String issuerUrl;
@@ -87,7 +89,8 @@ public class IdTokenCreator {
             getIfNotExcluded(userAuthenticationData.nonce, NONCE),
             getIfNotExcluded(uaaUser.getEmail(), EMAIL),
             getIfNotExcluded(clientId, CID),
-            userAuthenticationData.grantType);
+            getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
+            getIfNotExcluded(uaaUser.getUsername(), USER_NAME));
     }
 
     private String getIfScopeContainsProfile(String value, Set<String> scopes) {

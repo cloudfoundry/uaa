@@ -37,7 +37,7 @@ public class IdTokenSerializationTest {
 
         DateTimeUtils.setCurrentMillisFixed(1000L);
 
-        idToken = new IdToken("sub", newArrayList("aud"), "iss", DateTime.now().toDate(), DateTime.now().toDate(), DateTime.now().toDate(), amr, acr, "azp", "givenname", "familyname", 1123l, "123", new HashSet<>(), new HashMap<>(), true, "nonce", "email", "client_id", "grant_type");
+        idToken = new IdToken("sub", newArrayList("aud"), "iss", DateTime.now().toDate(), DateTime.now().toDate(), DateTime.now().toDate(), amr, acr, "azp", "givenname", "familyname", 1123l, "123", new HashSet<>(), new HashMap<>(), true, "nonce", "email", "client_id", "grant_type", "username");
     }
 
     @After
@@ -66,11 +66,14 @@ public class IdTokenSerializationTest {
         assertThat(idTokenJsonString, hasJsonPath("cid", is("client_id")));
         assertThat(idTokenJsonString, hasJsonPath("user_id", is("sub")));
         assertThat(idTokenJsonString, hasJsonPath("grant_type", is("grant_type")));
+
+        //TODO: username
+        assertThat(idTokenJsonString, hasJsonPath("user_name", is("username")));
     }
 
     @Test
     public void testSerializingIdToken_omitNullValues() {
-        idToken = new IdToken("sub", newArrayList("aud"), "iss", DateTime.now().toDate(), DateTime.now().toDate(), null, null, null, "azp", null, null, 1123l, null, new HashSet<>(), new HashMap<>(), null, null, "", "", null);
+        idToken = new IdToken("sub", newArrayList("aud"), "iss", DateTime.now().toDate(), DateTime.now().toDate(), null, null, null, "azp", null, null, 1123l, null, new HashSet<>(), new HashMap<>(), null, null, "", "", null, null);
 
         String idTokenJsonString = JsonUtils.writeValueAsString(idToken);
 

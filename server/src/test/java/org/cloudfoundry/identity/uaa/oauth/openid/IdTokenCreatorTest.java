@@ -61,6 +61,7 @@ public class IdTokenCreatorTest {
     private UserAuthenticationData userAuthenticationData;
     private Set<String> excludedClaims;
     private String grantType;
+    private String userName;
 
     @Before
     public void setup() throws Exception {
@@ -102,6 +103,7 @@ public class IdTokenCreatorTest {
             add("user_attributes");
         }};
 
+        userName = "username";
         user = new UaaUser(new UaaUserPrototype()
             .withEmail(email)
             .withGivenName(givenName)
@@ -109,7 +111,7 @@ public class IdTokenCreatorTest {
             .withPhoneNumber(phoneNumber)
             .withId("id")
             .withEmail("spongebob@krustykrab.com")
-            .withUsername("username")
+            .withUsername(userName)
             .withPreviousLogonSuccess(previousLogonTime)
             .withVerified(true)
         );
@@ -184,6 +186,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.email, is("spongebob@krustykrab.com"));
         assertThat(idToken.clientId, is(clientId));
         assertThat(idToken.grantType, is(grantType));
+        assertThat(idToken.userName, is(userName));
     }
 
     @Test
@@ -286,6 +289,8 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.NONCE);
         excludedClaims.add(ClaimConstants.EMAIL);
         excludedClaims.add(ClaimConstants.CID);
+        excludedClaims.add(ClaimConstants.GRANT_TYPE);
+        excludedClaims.add(ClaimConstants.USER_NAME);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -308,5 +313,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.nonce, is(nullValue()));
         assertThat(idToken.email, is(nullValue()));
         assertThat(idToken.clientId, is(nullValue()));
+        assertThat(idToken.grantType, is(nullValue()));
+        assertThat(idToken.userName, is(nullValue()));
     }
 }
