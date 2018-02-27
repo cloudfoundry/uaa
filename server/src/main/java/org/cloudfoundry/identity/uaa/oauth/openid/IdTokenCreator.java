@@ -9,6 +9,8 @@ import org.springframework.util.MultiValueMap;
 
 import java.net.URISyntaxException;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
@@ -55,7 +57,7 @@ public class IdTokenCreator {
         UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
 
         Set<String> roles = buildRoles(userAuthenticationData);
-        MultiValueMap<String, String> userAttributes = buildUserAttributes(userAuthenticationData);
+        Map<String, List<String>> userAttributes = buildUserAttributes(userAuthenticationData);
 
         String givenName = getIfScopeContainsProfile(uaaUser.getGivenName(), userAuthenticationData.scopes);
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);
@@ -87,7 +89,7 @@ public class IdTokenCreator {
         return this.excludedClaims.contains(excludedKey) ? null : value;
     }
 
-    private MultiValueMap<String, String> buildUserAttributes(UserAuthenticationData userAuthenticationData) {
+    private Map<String, List<String>> buildUserAttributes(UserAuthenticationData userAuthenticationData) {
         if (!userAuthenticationData.scopes.contains("user_attributes")) {
             return null;
         }

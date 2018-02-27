@@ -39,6 +39,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -92,6 +94,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
 import static java.util.Collections.emptyMap;
@@ -475,17 +478,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String token = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
-        populateIdToken(accessToken,
-                        jwtAccessToken,
-                        requestedScopes,
-                        responseTypes,
-                        clientId,
-                        forceIdTokenCreation,
-                        externalGroupsForIdToken,
-                        user,
-                        userAttributesForIdToken,
-                        authenticationMethods,
-                        authNContextClassRef);
+
+        if (forceIdTokenCreation || (requestedScopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN))) {
+            TokenValidityResolver validityResolver = new TokenValidityResolver(clientDetailsService, getTokenPolicy().getAccessTokenValidity());
+            IdTokenCreator idTokenCreator = new IdTokenCreator(issuer, validityResolver, userDatabase, excludedClaims);
+
+            String idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, new UserAuthenticationData(userAuthenticationTime, authenticationMethods, authNContextClassRef, requestedScopes, externalGroupsForIdToken, userAttributesForIdToken)));
+            String encodedIdTokenContent = JwtHelper.encode(idTokenContent, KeyInfo.getActiveKey().getSigner()).getEncoded();
+            accessToken.setIdTokenValue(encodedIdTokenContent);
+        }
+
         publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
 
         return accessToken;
@@ -496,67 +498,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
     }
 
-    private void populateIdToken(CompositeAccessToken token,
-                                 Map<String, ?> accessTokenValues,
-                                 Set<String> scopes,
-                                 Set<String> responseTypes,
-                                 String aud,
-                                 boolean forceIdTokenCreation,
-                                 Set<String> externalGroupsForIdToken,
-                                 UaaUser user,
-                                 Map<String, List<String>> userAttributesForIdToken,
-                                 Set<String> authenticationMethods,
-                                 Set<String> authNContextClassRef) {
-        if (forceIdTokenCreation || (scopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN))) {
-            try {
-                Map<String, Object> clone = new HashMap<>(accessTokenValues);
-                clone.remove(AUTHORITIES);
-                Set<String> idTokenScopes = new HashSet<>();
-                for (String sc : scopes) {
-                    if (validIdTokenScopes!=null && validIdTokenScopes.contains(sc)) {
-                        idTokenScopes.add(sc);
-                    }
-                }
-                if (authenticationMethods != null) {
-                    clone.put(AMR, authenticationMethods);
-                }
-                if (authNContextClassRef != null && authNContextClassRef.size() > 0) {
-                    Map<String, Set<String>> acrValues = new HashMap<>();
-                    acrValues.put("values", authNContextClassRef);
-                    clone.put(ACR, acrValues);
-                }
-                clone.put(SCOPE, idTokenScopes);
-
-                clone.put(PREVIOUS_LOGON_TIME, user.getPreviousLogonTime());
-                clone.put(AUD, new HashSet(Arrays.asList(aud)));
-
-                if (scopes.contains(ROLES) && (externalGroupsForIdToken != null && !externalGroupsForIdToken.isEmpty())) {
-                    clone.put(ROLES, externalGroupsForIdToken);
-                }
-
-                if (scopes.contains(USER_ATTRIBUTES) && userAttributesForIdToken!=null ) {
-                    clone.put(USER_ATTRIBUTES, userAttributesForIdToken);
-                }
-
-                if(scopes.contains(PROFILE) && user != null) {
-                    String givenName = user.getGivenName();
-                    if(givenName != null) clone.put(GIVEN_NAME, givenName);
-
-                    String familyName = user.getFamilyName();
-                    if(familyName != null) clone.put(FAMILY_NAME, familyName);
-
-                    String phoneNumber = user.getPhoneNumber();
-                    if(phoneNumber != null) clone.put(PHONE_NUMBER, phoneNumber);
-                }
-
-                String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
-                token.setIdTokenValue(encoded);
-            } catch (JsonUtils.JsonUtilException e) {
-                throw new IllegalStateException("Cannot convert ID token to JSON", e);
-            }
-        }
-    }
 
     private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token,
                                                 String userId,
