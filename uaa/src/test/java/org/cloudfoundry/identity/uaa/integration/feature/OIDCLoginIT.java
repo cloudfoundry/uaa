@@ -83,7 +83,8 @@ import static org.junit.Assert.assertTrue;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class OIDCLoginIT {
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Rule
@@ -160,7 +161,7 @@ public class OIDCLoginIT {
         config.setTokenUrl(new URL(urlBase + "/oauth/token"));
         config.setTokenKeyUrl(new URL(urlBase + "/token_key"));
         config.setIssuer(urlBase + "/oauth/token");
-        config.setUserInfoUrl(new URL(urlBase+"/userinfo"));
+        config.setUserInfoUrl(new URL(urlBase + "/userinfo"));
 
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
@@ -199,7 +200,7 @@ public class OIDCLoginIT {
 
     public static boolean doesSupportZoneDNS() {
         try {
-            return Arrays.equals(Inet4Address.getByName("oidcloginit.localhost").getAddress(), new byte[] {127,0,0,1});
+            return Arrays.equals(Inet4Address.getByName("oidcloginit.localhost").getAddress(), new byte[]{127, 0, 0, 1});
         } catch (UnknownHostException e) {
             return false;
         }
@@ -212,7 +213,7 @@ public class OIDCLoginIT {
     }
 
     private void doLogout(String zoneUrl) {
-        for (String url : Arrays.asList("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout", baseUrl + "/logout.do", zoneUrl+"/logout.do"))  {
+        for (String url : Arrays.asList("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout", baseUrl + "/logout.do", zoneUrl + "/logout.do")) {
             webDriver.get(url);
             webDriver.manage().deleteAllCookies();
         }
@@ -292,7 +293,7 @@ public class OIDCLoginIT {
 
     @Test
     public void successfulLoginWithOIDCProvider_MultiKeys() throws Exception {
-        identityProvider.getConfig().setTokenKeyUrl(new URL(baseUrl+"/token_keys"));
+        identityProvider.getConfig().setTokenKeyUrl(new URL(baseUrl + "/token_keys"));
         updateProvider();
         validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
     }
@@ -331,7 +332,7 @@ public class OIDCLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         webDriver.get(baseUrl);
-        Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+        Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
 
         ServerRunning serverRunning = ServerRunning.isRunning();
         serverRunning.setHostName("localhost");
@@ -342,7 +343,7 @@ public class OIDCLoginIT {
         client.setAutoApproveScopes(Collections.singletonList("true"));
         IntegrationTestUtils.createClient(adminToken, baseUrl, client);
 
-        Map<String,String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
+        Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
             UaaTestAccounts.standard(serverRunning),
             clientId,
             "clientsecret",
@@ -358,7 +359,8 @@ public class OIDCLoginIT {
         assertNotNull(idToken);
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
         String expectedUsername = (String) claims.get(SUB);
 
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret());
@@ -399,31 +401,32 @@ public class OIDCLoginIT {
             assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
-            Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+            Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
 
             ServerRunning serverRunning = ServerRunning.isRunning();
-            serverRunning.setHostName(zone.getSubdomain()+".localhost");
+            serverRunning.setHostName(zone.getSubdomain() + ".localhost");
 
-            Map<String,String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
-                                                                                                         UaaTestAccounts.standard(serverRunning),
-                                                                                                         zoneClient.getClientId(),
-                                                                                                         "secret",
-                                                                                                         null,
-                                                                                                         null,
-                                                                                                         "token id_token",
-                                                                                                         cookie.getValue(),
-                                                                                                         null,
-                                                                                                         false);
+            Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                zoneClient.getClientId(),
+                "secret",
+                null,
+                null,
+                "token id_token",
+                cookie.getValue(),
+                null,
+                false);
 
             //validate that we have an ID token, and that it contains costCenter and manager values
             String idToken = authCodeTokenResponse.get("id_token");
             assertNotNull(idToken);
 
             Jwt idTokenClaims = JwtHelper.decode(idToken);
-            Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+            });
 
             assertNotNull("id_token should contain ACR claim", claims.get(ClaimConstants.ACR));
-            Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
+            Map<String, Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
             assertNotNull("acr claim should contain values attribute", acr.get("values"));
             assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
 
