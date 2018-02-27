@@ -14,6 +14,7 @@ public class UserAuthenticationData {
     public final Map<String, List<String>> userAttributes;
     public final String nonce;
     public final String grantType;
+    public final String jti;
 
     public UserAuthenticationData(Date time,
                                   Set<String> methods,
@@ -22,7 +23,8 @@ public class UserAuthenticationData {
                                   Set<String> roles,
                                   Map<String, List<String>> userAttributes,
                                   String nonce,
-                                  String grantType) {
+                                  String grantType,
+                                  String jti) {
         this.time = time;
         this.methods = methods;
         this.contextClassRef = contextClassRef;
@@ -31,6 +33,7 @@ public class UserAuthenticationData {
         this.userAttributes = userAttributes;
         this.nonce = nonce;
         this.grantType = grantType;
+        this.jti = jti;
     }
 }
 

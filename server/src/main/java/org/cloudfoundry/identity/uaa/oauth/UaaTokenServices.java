@@ -252,9 +252,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UaaUser user = userDatabase.retrieveUserById(userid);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
-        Integer refreshTokenIssuedAt = (Integer) claims.get(IAT);
-        long refreshTokenIssueDate = refreshTokenIssuedAt.longValue() * 1000l;
-
         Integer refreshTokenExpiry = (Integer) claims.get(EXP);
         long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000l;
 
@@ -434,7 +431,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             clientId,
             resourceIds,
             grantType,
-            refreshToken,
             revocableHashSignature,
             revocable
         );
@@ -455,7 +451,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 externalGroupsForIdToken,
                 userAttributesForIdToken,
                 nonce,
-                grantType);
+                grantType,
+                tokenId);
+
             String idTokenContent = null;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, authenticationData));
@@ -486,7 +484,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String clientId,
                                                 Set<String> resourceIds,
                                                 String grantType,
-                                                String refreshToken,
                                                 String revocableHashSignature,
                                                 boolean revocable) {
 
@@ -854,7 +851,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean revocable,
         Map<String, Object> externalAttributes) {
 
-        Map<String, Object> response = new LinkedHashMap<String, Object>();
+        Map<String, Object> response = new LinkedHashMap<>();
 
         response.put(JTI, tokenId);
         response.put(SUB, user.getId());

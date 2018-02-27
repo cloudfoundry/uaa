@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
@@ -31,7 +32,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAM
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
@@ -108,7 +111,9 @@ public class IdTokenCreator {
             getIfNotExcluded(clientId, CID),
             getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
             getIfNotExcluded(uaaUser.getUsername(), USER_NAME),
-            getIfNotExcluded(IdentityZoneHolder.get().getId(), ZONE_ID));
+            getIfNotExcluded(IdentityZoneHolder.get().getId(), ZONE_ID),
+            getIfNotExcluded(uaaUser.getOrigin(), ORIGIN),
+            getIfNotExcluded(userAuthenticationData.jti, JTI));
     }
 
     private String getIfScopeContainsProfile(String value, Set<String> scopes) {

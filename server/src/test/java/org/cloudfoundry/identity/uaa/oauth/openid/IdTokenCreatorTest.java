@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
@@ -25,6 +26,7 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
@@ -65,6 +67,8 @@ public class IdTokenCreatorTest {
     private String grantType;
     private String userName;
     private String zoneId;
+    private String origin;
+    private String jti;
 
     @Before
     public void setup() throws Exception {
@@ -73,6 +77,8 @@ public class IdTokenCreatorTest {
         clientId = "clientId";
         userId = "userId";
         zoneId = "zoneId";
+        jti = "accessTokenId";
+
         expDate = new Date(100_000);
         authTime = new Date(500);
         amr = new HashSet<String>() {{
@@ -100,14 +106,14 @@ public class IdTokenCreatorTest {
         grantType = "password";
 
         scopes = new HashSet<String>() {{
-            //add(UaaTokenServices.OPEN_ID);
             add("openid");
             add("roles");
             add("profile");
             add("user_attributes");
         }};
-
+        origin = "user-origin";
         userName = "username";
+
         user = new UaaUser(new UaaUserPrototype()
             .withEmail(email)
             .withGivenName(givenName)
@@ -118,6 +124,7 @@ public class IdTokenCreatorTest {
             .withUsername(userName)
             .withPreviousLogonSuccess(previousLogonTime)
             .withVerified(true)
+            .withOrigin(origin)
         );
 
         DateTimeUtils.setCurrentMillisFixed(1l);
@@ -142,7 +149,8 @@ public class IdTokenCreatorTest {
             roles,
             userAttributes,
             nonce,
-            grantType);
+            grantType,
+            jti);
         excludedClaims = new HashSet<>();
 
         tokenCreator = new IdTokenCreator(uaaUrl, tokenValidityResolver, uaaUserDatabase, excludedClaims);
@@ -188,6 +196,8 @@ public class IdTokenCreatorTest {
         assertThat(idToken.grantType, is(grantType));
         assertThat(idToken.userName, is(userName));
         assertThat(idToken.zid, is(zoneId));
+        assertThat(idToken.origin, is(origin));
+        assertThat(idToken.jti, is("accessTokenId"));
     }
 
     @Test
@@ -226,7 +236,8 @@ public class IdTokenCreatorTest {
             null,
             userAttributes,
             nonce,
-            grantType);
+            grantType,
+            jti);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -251,7 +262,10 @@ public class IdTokenCreatorTest {
             acr,
             scopes,
             roles,
-            null, nonce, grantType);
+            null,
+            nonce,
+            grantType,
+            jti);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -293,6 +307,8 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.GRANT_TYPE);
         excludedClaims.add(ClaimConstants.USER_NAME);
         excludedClaims.add(ClaimConstants.ZONE_ID);
+        excludedClaims.add(ClaimConstants.ORIGIN);
+        excludedClaims.add(ClaimConstants.JTI);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -318,6 +334,8 @@ public class IdTokenCreatorTest {
         assertThat(idToken.grantType, is(nullValue()));
         assertThat(idToken.userName, is(nullValue()));
         assertThat(idToken.zid, is(nullValue()));
+        assertThat(idToken.origin, is(nullValue()));
+        assertThat(idToken.jti, is(nullValue()));
     }
 
     @Test(expected = IdTokenCreationException.class)

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -15,6 +14,7 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
@@ -62,6 +62,8 @@ public class IdToken {
     @JsonProperty(USER_NAME)
     public final String userName;
     public final String zid;
+    public final String origin;
+    public final String jti;
 
     public IdToken(String sub,
                    List<String> aud,
@@ -84,7 +86,9 @@ public class IdToken {
                    String clientId,
                    String grantType,
                    String userName,
-                   String zid) {
+                   String zid,
+                   String origin,
+                   String jti) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
@@ -107,6 +111,8 @@ public class IdToken {
         this.grantType = grantType;
         this.userName = userName;
         this.zid = zid;
+        this.origin = origin;
+        this.jti = jti;
     }
 
     @JsonProperty(ACR)
@@ -117,6 +123,11 @@ public class IdToken {
         HashMap<String, Set<String>> acrMap = new HashMap<>();
         acrMap.put("values", acr);
         return acrMap;
+    }
+
+    @JsonProperty(CLIENT_ID)
+    public String getClientId() {
+        return clientId;
     }
 
     @JsonProperty(EXP)

@@ -59,7 +59,9 @@ public class IdTokenSerializationTest {
             "client_id",
             "grant_type",
             "username",
-            "myzid");
+            "myzid",
+            "origin",
+            "some-uuid");
     }
 
     @After
@@ -87,10 +89,13 @@ public class IdTokenSerializationTest {
         assertThat(idTokenJsonString, hasJsonPath("nonce", is("nonce")));
         assertThat(idTokenJsonString, hasJsonPath("email", is("email")));
         assertThat(idTokenJsonString, hasJsonPath("cid", is("client_id")));
+        assertThat(idTokenJsonString, hasJsonPath("client_id", is("client_id")));
         assertThat(idTokenJsonString, hasJsonPath("user_id", is("sub")));
         assertThat(idTokenJsonString, hasJsonPath("grant_type", is("grant_type")));
         assertThat(idTokenJsonString, hasJsonPath("user_name", is("username")));
         assertThat(idTokenJsonString, hasJsonPath("zid", is("myzid")));
+        assertThat(idTokenJsonString, hasJsonPath("origin", is("origin")));
+        assertThat(idTokenJsonString, hasJsonPath("jti", is("some-uuid")));
     }
 
     @Test
@@ -117,6 +122,8 @@ public class IdTokenSerializationTest {
             "",
             null,
             null,
+            null,
+            null,
             null);
 
         String idTokenJsonString = JsonUtils.writeValueAsString(idToken);
@@ -128,5 +135,7 @@ public class IdTokenSerializationTest {
         assertThat(idTokenJsonString, hasNoJsonPath("amr"));
         assertThat(idTokenJsonString, hasNoJsonPath("acr"));
         assertThat(idTokenJsonString, hasNoJsonPath("zid"));
+        assertThat(idTokenJsonString, hasNoJsonPath("origin"));
+        assertThat(idTokenJsonString, hasNoJsonPath("jti"));
     }
 }
