@@ -24,7 +24,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.openid.IdToken;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -154,7 +153,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private ApplicationEventPublisher applicationEventPublisher;
 
-    private List<String> validIdTokenScopes = Arrays.asList("openid");
     private TokenPolicy tokenPolicy;
 
     private RevocableTokenProvisioning tokenProvisioning;
@@ -164,6 +162,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private boolean restrictRefreshGrant;
 
     private UaaTokenEnhancer uaaTokenEnhancer = null;
+    private IdTokenCreator idTokenCreator;
 
     public Set<String> getExcludedClaims() {
         return excludedClaims;
@@ -171,10 +170,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setExcludedClaims(Set<String> excludedClaims) {
         this.excludedClaims = excludedClaims;
-    }
-
-    public void setValidIdTokenScopes(List<String> validIdTokenScopes) {
-        this.validIdTokenScopes = validIdTokenScopes;
     }
 
     public RevocableTokenProvisioning getTokenProvisioning() {
@@ -471,7 +466,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         if (forceIdTokenCreation || (requestedScopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN))) {
             TokenValidityResolver validityResolver = new TokenValidityResolver(clientDetailsService, getTokenPolicy().getAccessTokenValidity());
-            IdTokenCreator idTokenCreator = new IdTokenCreator(issuer, validityResolver, userDatabase, excludedClaims);
 
             UserAuthenticationData authenticationData = new UserAuthenticationData(userAuthenticationTime,
                 authenticationMethods,
@@ -1229,5 +1223,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setRestrictRefreshGrant(boolean restrictRefreshGrant) {
         this.restrictRefreshGrant = restrictRefreshGrant;
+    }
+
+    public void setIdTokenCreator(IdTokenCreator idTokenCreator) {
+        this.idTokenCreator = idTokenCreator;
     }
 }
