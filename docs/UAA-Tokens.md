@@ -177,6 +177,11 @@ Wild card scopes have been available since [UAA version 1.8.0](https://github.co
 
 ## Token enhancers
 
-```UaaTokenEnhancer``` is an interface which can be used to enhance access and refresh tokens with custom attributes. 
-You may plug-in a ```UaaTokenEnhancer``` into the bean ```UaaTokenServices```. Value returned by ```getExternalAttributes``` will be passed to 
-```setAdditionalInformation``` of the token object.
+```UaaTokenEnhancer``` is an interface which can be used to enhance access and refresh tokens with custom attributes. You may plug-in a ```UaaTokenEnhancer``` into the bean ```UaaTokenServices```. Values returned by methods
+
+  * ```getExternalAttributes```
+  * ```enhance```
+
+will be passed to ```setAdditionalInformation``` of the token object.
+The interface method ```enhance``` is the successor of ```getExternalAttributes``` and can be used as replacement.
+
