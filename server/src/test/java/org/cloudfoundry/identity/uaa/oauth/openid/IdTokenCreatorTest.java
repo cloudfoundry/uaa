@@ -124,7 +124,7 @@ public class IdTokenCreatorTest {
         iatDate = DateTime.now().toDate();
 
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
-        when(tokenValidityResolver.resolveAccessTokenValidity(clientId)).thenReturn(expDate);
+        when(tokenValidityResolver.resolve(clientId)).thenReturn(expDate);
 
         PowerMockito.mockStatic(UaaTokenUtils.class);
         when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn(issuerUrl);

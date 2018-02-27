@@ -60,7 +60,7 @@ public class IdTokenCreator {
     public IdToken create(String clientId,
                           String userId,
                           UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
-        Date expiryDate = tokenValidityResolver.resolveAccessTokenValidity(clientId);
+        Date expiryDate = tokenValidityResolver.resolve(clientId);
         Date issuedAt = DateTime.now().toDate();
 
         UaaUser uaaUser;

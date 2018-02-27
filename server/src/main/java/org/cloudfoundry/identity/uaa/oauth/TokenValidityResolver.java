@@ -1,52 +1,33 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
 
 import java.util.Date;
 
 import static java.util.Optional.ofNullable;
 
 public class TokenValidityResolver {
-    private final Log logger = LogFactory.getLog(getClass());
     public static final int DEFAULT_TO_GLOBAL_POLICY = -1;
-    private ClientDetailsService clientDetailsService;
-    private int globalAccessTokenValiditySeconds;
+    private int globalTokenValiditySeconds;
+    private ClientTokenValidity clientTokenValidity;
 
-    public TokenValidityResolver(ClientDetailsService clientDetailsService,
-                                 int globalAccessTokenValiditySeconds) {
-        this.clientDetailsService = clientDetailsService;
-        this.globalAccessTokenValiditySeconds = globalAccessTokenValiditySeconds;
+    public TokenValidityResolver(ClientTokenValidity clientTokenValidity,
+                                 int globalTokenValiditySeconds) {
+        this.clientTokenValidity = clientTokenValidity;
+        this.globalTokenValiditySeconds = globalTokenValiditySeconds;
     }
 
-    public Date resolveAccessTokenValidity(String clientId) {
+    public Date resolve(String clientId) {
         Integer tokenValiditySeconds = ofNullable(
-            getClientAccessTokenValiditySeconds(clientId)
+            clientTokenValidity.getValiditySeconds(clientId)
         ).orElse(
-            IdentityZoneHolder.get().getConfig().getTokenPolicy().getAccessTokenValidity()
+            clientTokenValidity.getZoneValiditySeconds()
         );
 
         if (tokenValiditySeconds == DEFAULT_TO_GLOBAL_POLICY) {
-            tokenValiditySeconds = globalAccessTokenValiditySeconds;
+            tokenValiditySeconds = globalTokenValiditySeconds;
         }
 
         return DateTime.now().plusSeconds(tokenValiditySeconds).toDate();
-    }
-
-    private Integer getClientAccessTokenValiditySeconds(String clientId) {
-        ClientDetails clientDetails;
-        try {
-            clientDetails = clientDetailsService.loadClientByClientId(clientId);
-        } catch (ClientRegistrationException e) {
-            logger.info("Could not load details for client " + clientId, e);
-            return null;
-        }
-        return clientDetails.getAccessTokenValiditySeconds();
-
     }
 }

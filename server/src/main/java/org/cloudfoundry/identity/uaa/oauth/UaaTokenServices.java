@@ -39,8 +39,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
@@ -70,7 +68,6 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
@@ -164,7 +161,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private UaaTokenEnhancer uaaTokenEnhancer = null;
     private IdTokenCreator idTokenCreator;
-    private TokenValidityResolver tokenValidityResolver;
+    private TokenValidityResolver accessTokenValidityResolver;
+    private TokenValidityResolver refreshTokenValidityResolver;
 
     public Set<String> getExcludedClaims() {
         return excludedClaims;
@@ -341,16 +339,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     }
 
-    private int getZoneAccessTokenValidity() {
-        IdentityZone zone = IdentityZoneHolder.get();
-        IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneAccessTokenValidity = getTokenPolicy().getAccessTokenValidity();
-        if (definition != null) {
-            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : getTokenPolicy().getAccessTokenValidity();
-        }
-        return zoneAccessTokenValidity;
-    }
-
     private void checkForApproval(String userid,
                                   String clientId,
                                   Collection<String> requestedScopes,
@@ -408,7 +396,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                    Set<String> authenticationMethods,
                                                    Set<String> authNContextClassRef) throws AuthenticationException {
         CompositeAccessToken accessToken = new CompositeAccessToken(tokenId);
-        accessToken.setExpiration(tokenValidityResolver.resolveAccessTokenValidity(clientId));
+        accessToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
         accessToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
 
         if (null == requestedScopes || requestedScopes.size() == 0) {
@@ -814,9 +802,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
             .getOAuth2Request().getRequestParameters().get("authorities"));
 
-        int validitySeconds = getRefreshTokenValiditySeconds(authentication.getOAuth2Request());
-        ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(tokenId,
-                                                                                 new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
+        Date validitySeconds = refreshTokenValidityResolver.resolve(authentication.getOAuth2Request().getClientId());
+        ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(tokenId, validitySeconds);
 
         Map<String,Object> externalAttributes = null;
         if (uaaTokenEnhancer != null) {
@@ -937,29 +924,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    /**
-     * The refresh token validity period in seconds
-     *
-     * @param authorizationRequest the current authorization request
-     * @return the refresh token validity period in seconds
-     */
-    protected int getRefreshTokenValiditySeconds(OAuth2Request authorizationRequest) {
-        ClientDetails client = clientDetailsService.loadClientByClientId(authorizationRequest.getClientId(), IdentityZoneHolder.get().getId());
-        Integer validity = client.getRefreshTokenValiditySeconds();
-        if (validity != null) {
-            return validity;
-        }
-
-        IdentityZone zone = IdentityZoneHolder.get();
-        IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneRefreshTokenValidity = getTokenPolicy().getRefreshTokenValidity();
-        if (definition != null) {
-            zoneRefreshTokenValidity = (definition.getTokenPolicy().getRefreshTokenValidity() != -1) ? definition.getTokenPolicy().getRefreshTokenValidity() : tokenPolicy.getRefreshTokenValidity();
-        }
-
-        return zoneRefreshTokenValidity;
-    }
-
     @Override
     public void afterPropertiesSet() throws URISyntaxException {
         Assert.notNull(clientDetailsService, "clientDetailsService must be set");
@@ -983,7 +947,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         accessToken = tokenValidation.getJwt().getEncoded();
 
         // Check token expiry
-        Integer expiration = (Integer) claims.get(EXP);
+        Long expiration = Long.valueOf(claims.get(EXP).toString());
         if (expiration != null && new Date(expiration * 1000l).before(new Date())) {
             throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000l));
         }
@@ -1048,7 +1012,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Expiry is verified by check_token
         CompositeAccessToken token = new CompositeAccessToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
-        Integer exp = (Integer) claims.get(EXP);
+        Long exp = Long.valueOf(claims.get(EXP).toString());
         if (null != exp) {
             token.setExpiration(new Date(exp.longValue() * 1000l));
         }
@@ -1223,7 +1187,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.idTokenCreator = idTokenCreator;
     }
 
-    public void setTokenValidityResolver(TokenValidityResolver tokenValidityResolver) {
-        this.tokenValidityResolver = tokenValidityResolver;
+    public void setAccessTokenValidityResolver(TokenValidityResolver accessTokenValidityResolver) {
+        this.accessTokenValidityResolver = accessTokenValidityResolver;
+    }
+
+    public void setRefreshTokenValidityResolver(TokenValidityResolver refreshTokenValidityResolver) {
+        this.refreshTokenValidityResolver = refreshTokenValidityResolver;
     }
 }

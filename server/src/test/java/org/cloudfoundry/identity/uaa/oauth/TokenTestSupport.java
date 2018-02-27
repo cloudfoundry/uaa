@@ -264,10 +264,12 @@ public class TokenTestSupport {
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
-        TokenValidityResolver validityResolver = new TokenValidityResolver(clientDetailsService, 1234);
-        IdTokenCreator idTokenCreator = new IdTokenCreator(DEFAULT_ISSUER, validityResolver, userDatabase, new HashSet<>());
+        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234);
+        IdTokenCreator idTokenCreator = new IdTokenCreator(DEFAULT_ISSUER, accessTokenValidityResolver, userDatabase, new HashSet<>());
         tokenServices.setIdTokenCreator(idTokenCreator);
-        tokenServices.setTokenValidityResolver(validityResolver);
+        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345);
+        tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);
+        tokenServices.setRefreshTokenValidityResolver(refreshTokenValidityResolver);
         tokenServices.afterPropertiesSet();
     }
 

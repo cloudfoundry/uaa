@@ -506,18 +506,30 @@
         <property name="maxExpirationRuntime" value="${delete.expirationRunTime:2500}"/>
     </bean>
 
-    <bean id="tokenValidityResolver" class="org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver">
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="globalAccessTokenValiditySeconds" value="${jwt.token.policy.global.accessTokenValiditySeconds:43200}"/>
+    <bean id="clientAccessTokenValidity" class="org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity">
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
     </bean>
+    <bean id="accessTokenValidityResolver" class="org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver">
+        <constructor-arg name="clientTokenValidity" ref="clientAccessTokenValidity"/>
+        <constructor-arg name="globalTokenValiditySeconds" value="${jwt.token.policy.global.accessTokenValiditySeconds:43200}"/>
+    </bean>
+
+    <bean id="clientRefreshTokenValidity" class="org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity">
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
+    </bean>
+    <bean id="refreshTokenValidityResolver" class="org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver">
+        <constructor-arg name="clientTokenValidity" ref="clientRefreshTokenValidity"/>
+        <constructor-arg name="globalTokenValiditySeconds" value="${jwt.token.policy.global.refreshTokenValiditySeconds:2592000}"/>
+    </bean>
+
 
     <bean id="idTokenCreator" class="org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator">
         <constructor-arg name="issuerUrlBase" value="${issuer.uri}"/>
-        <constructor-arg name="tokenValidityResolver" ref="tokenValidityResolver"/>
+        <constructor-arg name="tokenValidityResolver" ref="accessTokenValidityResolver"/>
         <constructor-arg name="uaaUserDatabase" ref="userDatabase"/>
         <constructor-arg name="excludedClaims" ref="excludedClaims"/>
-
     </bean>
+
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="idTokenCreator" ref="idTokenCreator"/>
@@ -528,7 +540,8 @@
         <property name="excludedClaims" ref="excludedClaims"/>
         <property name="tokenProvisioning" ref="revocableTokenProvisioning"/>
         <property name="restrictRefreshGrant" value="${jwt.token.refresh.restrict_grant:false}"/>
-        <property name="tokenValidityResolver" ref="tokenValidityResolver" />
+        <property name="accessTokenValidityResolver" ref="accessTokenValidityResolver" />
+        <property name="refreshTokenValidityResolver" ref="refreshTokenValidityResolver" />
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">

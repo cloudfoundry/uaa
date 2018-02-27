@@ -117,7 +117,7 @@ public class IdTokenSerializationTest {
             "",
             null,
             null,
-            "");
+            null);
 
         String idTokenJsonString = JsonUtils.writeValueAsString(idToken);
 
