@@ -509,7 +509,7 @@
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
         <property name="userDatabase" ref="userDatabase" />
-        <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
+        <property name="issuer" value="${issuer.uri}" />
         <property name="approvalStore" ref="approvalStore" />
         <property name="tokenPolicy" ref="globalTokenPolicy" />
         <property name="excludedClaims" ref="excludedClaims"/>
