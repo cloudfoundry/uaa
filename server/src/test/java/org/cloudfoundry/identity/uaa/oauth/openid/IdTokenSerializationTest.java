@@ -81,6 +81,7 @@ public class IdTokenSerializationTest {
         assertThat(idTokenJsonString, hasJsonPath("iat", is(1)));
         assertThat(idTokenJsonString, hasJsonPath("exp", is(1)));
         assertThat(idTokenJsonString, hasJsonPath("auth_time", is(1)));
+        assertThat(idTokenJsonString, hasNoJsonPath("authTime"));
         assertThat(idTokenJsonString, hasJsonPath("scope", hasItem("openid")));
         assertThat(idTokenJsonString, hasJsonPath("email_verified", is(true)));
         assertThat(idTokenJsonString, hasJsonPath("nonce", is("nonce")));

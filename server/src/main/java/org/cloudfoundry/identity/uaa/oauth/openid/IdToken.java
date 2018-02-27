@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +34,7 @@ public class IdToken {
     public final String iss;
     public final Date exp;
     public final Date iat;
+    @JsonIgnore
     public final Date authTime;
     public final Set<String> amr;
     public final Set<String> acr;
