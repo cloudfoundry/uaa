@@ -286,9 +286,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         getAutoApprovedScopes(grantType, tokenScopes, client)
         );
 
-        // if we have reached so far, issue an access token
-        Integer validity = client.getAccessTokenValiditySeconds();
-
         String nonce = (String) claims.get(NONCE);
 
         @SuppressWarnings("unchecked")
