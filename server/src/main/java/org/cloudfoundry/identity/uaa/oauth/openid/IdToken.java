@@ -36,6 +36,7 @@ public class IdToken {
     @JsonProperty("email_verified")
     public final Boolean emailVerified;
     public final String nonce;
+    public final String email;
 
     public IdToken(String sub,
                    List<String> aud,
@@ -53,7 +54,8 @@ public class IdToken {
                    Set<String> roles,
                    Map<String, List<String>> userAttributes,
                    Boolean emailVerified,
-                   String nonce) {
+                   String nonce,
+                   String email) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
@@ -71,10 +73,14 @@ public class IdToken {
         this.userAttributes = userAttributes;
         this.emailVerified = emailVerified;
         this.nonce = nonce;
+        this.email = email;
     }
 
     @JsonProperty("acr")
     public Map<String, Set<String>> getAcr() {
+        if (acr == null) {
+            return null;
+        }
         HashMap<String, Set<String>> acrMap = new HashMap<>();
         acrMap.put("values", acr);
         return acrMap;
@@ -92,6 +98,9 @@ public class IdToken {
 
     @JsonProperty("auth_time")
     public Long getAuthTimeInSeconds() {
+        if (authTime == null) {
+            return null;
+        }
         return authTime.getTime() / 1000;
     }
 }

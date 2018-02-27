@@ -18,6 +18,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
@@ -82,7 +83,8 @@ public class IdTokenCreator {
             getIfNotExcluded(roles, ROLES),
             getIfNotExcluded(userAttributes, USER_ATTRIBUTES),
             getIfNotExcluded(uaaUser.isVerified(), EMAIL_VERIFIED),
-            getIfNotExcluded(userAuthenticationData.nonce, NONCE));
+            getIfNotExcluded(userAuthenticationData.nonce, NONCE),
+            getIfNotExcluded(uaaUser.getEmail(), EMAIL));
     }
 
     private String getIfScopeContainsProfile(String value, Set<String> scopes) {

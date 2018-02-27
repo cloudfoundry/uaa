@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.account;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -62,6 +61,7 @@ public class UserInfoResponse {
     @JsonProperty(EMAIL_VERIFIED)
     public boolean emailVerified;
 
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     @JsonProperty(PREVIOUS_LOGON_TIME)
     public Long previousLogonSuccess;
 

@@ -106,6 +106,7 @@ public class IdTokenCreatorTest {
             .withFamilyName(familyName)
             .withPhoneNumber(phoneNumber)
             .withId("id")
+            .withEmail("spongebob@krustykrab.com")
             .withUsername("username")
             .withPreviousLogonSuccess(previousLogonTime)
             .withVerified(true)
@@ -177,6 +178,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.scope, hasItem("openid"));
         assertThat(idToken.emailVerified, is(true));
         assertThat(idToken.nonce, is(nonce));
+        assertThat(idToken.email, is("spongebob@krustykrab.com"));
     }
 
     @Test
@@ -275,6 +277,7 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.USER_ATTRIBUTES);
         excludedClaims.add(ClaimConstants.EMAIL_VERIFIED);
         excludedClaims.add(ClaimConstants.NONCE);
+        excludedClaims.add(ClaimConstants.EMAIL);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -295,5 +298,6 @@ public class IdTokenCreatorTest {
         assertThat(idToken.userAttributes, is(nullValue()));
         assertThat(idToken.emailVerified, is(nullValue()));
         assertThat(idToken.nonce, is(nullValue()));
+        assertThat(idToken.email, is(nullValue()));
     }
 }
