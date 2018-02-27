@@ -60,6 +60,7 @@ public class IdTokenCreatorTest {
     private String nonce;
     private UserAuthenticationData userAuthenticationData;
     private Set<String> excludedClaims;
+    private String grantType;
 
     @Before
     public void setup() throws Exception {
@@ -91,6 +92,7 @@ public class IdTokenCreatorTest {
         userAttributes.add("k2", "v21");
 
         nonce = "becreative";
+        grantType = "password";
 
         scopes = new HashSet<String>() {{
             //add(UaaTokenServices.OPEN_ID);
@@ -131,7 +133,8 @@ public class IdTokenCreatorTest {
             scopes,
             roles,
             userAttributes,
-            nonce);
+            nonce,
+            grantType);
         excludedClaims = new HashSet<>();
 
         tokenCreator = new IdTokenCreator(uaaUrl, tokenValidityResolver, uaaUserDatabase, excludedClaims);
@@ -179,6 +182,8 @@ public class IdTokenCreatorTest {
         assertThat(idToken.emailVerified, is(true));
         assertThat(idToken.nonce, is(nonce));
         assertThat(idToken.email, is("spongebob@krustykrab.com"));
+        assertThat(idToken.clientId, is(clientId));
+        assertThat(idToken.grantType, is(grantType));
     }
 
     @Test
@@ -215,7 +220,9 @@ public class IdTokenCreatorTest {
             acr,
             scopes,
             null,
-            userAttributes, nonce);
+            userAttributes,
+            nonce,
+            grantType);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -240,7 +247,7 @@ public class IdTokenCreatorTest {
             acr,
             scopes,
             roles,
-            null, nonce);
+            null, nonce, grantType);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -278,6 +285,7 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.EMAIL_VERIFIED);
         excludedClaims.add(ClaimConstants.NONCE);
         excludedClaims.add(ClaimConstants.EMAIL);
+        excludedClaims.add(ClaimConstants.CID);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -299,5 +307,6 @@ public class IdTokenCreatorTest {
         assertThat(idToken.emailVerified, is(nullValue()));
         assertThat(idToken.nonce, is(nullValue()));
         assertThat(idToken.email, is(nullValue()));
+        assertThat(idToken.clientId, is(nullValue()));
     }
 }

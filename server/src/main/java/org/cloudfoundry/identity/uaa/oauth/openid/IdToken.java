@@ -37,6 +37,10 @@ public class IdToken {
     public final Boolean emailVerified;
     public final String nonce;
     public final String email;
+    @JsonProperty("cid")
+    public final String clientId;
+    @JsonProperty("grant_type")
+    public final String grantType;
 
     public IdToken(String sub,
                    List<String> aud,
@@ -55,7 +59,9 @@ public class IdToken {
                    Map<String, List<String>> userAttributes,
                    Boolean emailVerified,
                    String nonce,
-                   String email) {
+                   String email,
+                   String clientId,
+                   String grantType) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
@@ -74,6 +80,8 @@ public class IdToken {
         this.emailVerified = emailVerified;
         this.nonce = nonce;
         this.email = email;
+        this.clientId = clientId;
+        this.grantType = grantType;
     }
 
     @JsonProperty("acr")
@@ -102,5 +110,10 @@ public class IdToken {
             return null;
         }
         return authTime.getTime() / 1000;
+    }
+
+    @JsonProperty("user_id")
+    public String userId() {
+        return sub;
     }
 }

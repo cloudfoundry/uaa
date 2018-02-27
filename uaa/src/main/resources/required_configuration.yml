@@ -1,3 +1,6 @@
+issuer:
+  uri: http://localhost:8080/uaa
+
 login:
   serviceProviderKey: |
     -----BEGIN RSA PRIVATE KEY-----

@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdToken;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -472,7 +473,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             TokenValidityResolver validityResolver = new TokenValidityResolver(clientDetailsService, getTokenPolicy().getAccessTokenValidity());
             IdTokenCreator idTokenCreator = new IdTokenCreator(issuer, validityResolver, userDatabase, excludedClaims);
 
-            String idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, new UserAuthenticationData(userAuthenticationTime, authenticationMethods, authNContextClassRef, requestedScopes, externalGroupsForIdToken, userAttributesForIdToken, nonce)));
+            UserAuthenticationData authenticationData = new UserAuthenticationData(userAuthenticationTime,
+                authenticationMethods,
+                authNContextClassRef,
+                requestedScopes,
+                externalGroupsForIdToken,
+                userAttributesForIdToken,
+                nonce,
+                grantType);
+            String idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, authenticationData));
             String encodedIdTokenContent = JwtHelper.encode(idTokenContent, KeyInfo.getActiveKey().getSigner()).getEncoded();
             accessToken.setIdTokenValue(encodedIdTokenContent);
         }
