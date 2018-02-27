@@ -3,12 +3,28 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class IdToken {
@@ -21,23 +37,23 @@ public class IdToken {
     public final Set<String> amr;
     public final Set<String> acr;
     public final String azp;
-    @JsonProperty("given_name")
+    @JsonProperty(GIVEN_NAME)
     public final String givenName;
-    @JsonProperty("family_name")
+    @JsonProperty(FAMILY_NAME)
     public final String familyName;
-    @JsonProperty("previous_logon_time")
+    @JsonProperty(PREVIOUS_LOGON_TIME)
     public final Long previousLogonTime;
-    @JsonProperty("phone_number")
+    @JsonProperty(PHONE_NUMBER)
     public final String phoneNumber;
     public final Set<String> roles;
-    @JsonProperty("user_attributes")
+    @JsonProperty(USER_ATTRIBUTES)
     public final Map<String, List<String>> userAttributes;
     public final List<String> scope = ImmutableList.of("openid");
-    @JsonProperty("email_verified")
+    @JsonProperty(EMAIL_VERIFIED)
     public final Boolean emailVerified;
     public final String nonce;
     public final String email;
-    @JsonProperty("cid")
+    @JsonProperty(CID)
     public final String clientId;
     @JsonProperty("grant_type")
     public final String grantType;
@@ -84,7 +100,7 @@ public class IdToken {
         this.grantType = grantType;
     }
 
-    @JsonProperty("acr")
+    @JsonProperty(ACR)
     public Map<String, Set<String>> getAcr() {
         if (acr == null) {
             return null;
@@ -94,17 +110,17 @@ public class IdToken {
         return acrMap;
     }
 
-    @JsonProperty("exp")
+    @JsonProperty(EXP)
     public Long getExpInSeconds() {
         return exp.getTime() / 1000;
     }
 
-    @JsonProperty("iat")
+    @JsonProperty(IAT)
     public Long getIatInSeconds() {
         return iat.getTime() / 1000;
     }
 
-    @JsonProperty("auth_time")
+    @JsonProperty(AUTH_TIME)
     public Long getAuthTimeInSeconds() {
         if (authTime == null) {
             return null;
@@ -112,7 +128,7 @@ public class IdToken {
         return authTime.getTime() / 1000;
     }
 
-    @JsonProperty("user_id")
+    @JsonProperty(USER_ID)
     public String userId() {
         return sub;
     }
