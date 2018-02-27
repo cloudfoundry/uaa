@@ -14,13 +14,11 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.account.OpenIdConfiguration;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -56,8 +54,6 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
     private ScimUser user;
     private String userName;
 
-    private UaaTokenServices tokenServices;
-    private Set<String> excludedClaims;
     private List<String> roles;
     private MultiValueMap<String, String> userAttributes;
 
@@ -71,10 +67,6 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = utils().createUser(getMockMvc(), adminToken, user);
-
-        tokenServices = getWebApplicationContext().getBean(UaaTokenServices.class);
-        excludedClaims = tokenServices.getExcludedClaims();
-
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
@@ -89,11 +81,6 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
             .setRoles(roles);
 
         getWebApplicationContext().getBean(UaaUserDatabase.class).storeUserInfo(user.getId(), userInfo);
-    }
-
-    @After
-    public void restoreExcludedClaims() {
-        tokenServices.setExcludedClaims(excludedClaims);
     }
 
     @Test
@@ -129,12 +116,6 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
         Map<String, Object> info = getUserInfo("/userinfo", "openid");
         assertNull(info.get(USER_ATTRIBUTES));
         assertNull(info.get(ROLES));
-    }
-
-    @Test
-    public void testGetUserInfoWithoutPIIToken() throws Exception {
-        tokenServices.setExcludedClaims(new HashSet<>(Arrays.asList("user_name", "email")));
-        getUserInfo("/userinfo", "openid");
     }
 
     private Map<String, Object> getUserInfo(String url, String scopes) throws Exception {
