@@ -148,12 +148,6 @@ public class IdTokenCreatorTest {
         DateTimeUtils.setCurrentMillisSystem();
     }
 
-    @Test(expected = RuntimeException.class)
-    public void shouldNotAllowCreatingATokenCreatorIfIssuerUrlIsNotValid() throws URISyntaxException {
-        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenThrow(URISyntaxException.class);
-        new IdTokenCreator(uaaUrl, null, uaaUserDatabase, excludedClaims);
-    }
-
     @Test
     public void create_includesStandardClaims() throws IdTokenCreationException {
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
@@ -323,5 +317,21 @@ public class IdTokenCreatorTest {
         when(uaaUserDatabase.retrieveUserById("missing-user")).thenThrow(UsernameNotFoundException.class);
 
         tokenCreator.create(clientId, "missing-user", userAuthenticationData);
+    }
+
+    @Test
+    public void idToken_containsZonifiedIssuerUrl() throws Exception {
+        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn("http://myzone.localhost:8080/uaa/oauth/token");
+
+        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+
+        assertThat(idToken.iss, is("http://myzone.localhost:8080/uaa/oauth/token"));
+    }
+
+    @Test(expected = IdTokenCreationException.class)
+    public void whenIssuerUrlIsInvalid_throwsRuntimeException() throws Exception {
+        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenThrow(URISyntaxException.class);
+
+        tokenCreator.create(clientId, userId, userAuthenticationData);
     }
 }

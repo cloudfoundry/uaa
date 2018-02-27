@@ -40,23 +40,19 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME
 
 public class IdTokenCreator {
     private final Log logger = LogFactory.getLog(getClass());
-    private String issuerUrl;
+    private String issuerUrlBase;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
     private Set<String> excludedClaims;
 
-    public IdTokenCreator(String issuerUrl,
+    public IdTokenCreator(String issuerUrlBase,
                           TokenValidityResolver tokenValidityResolver,
                           UaaUserDatabase uaaUserDatabase,
                           Set<String> excludedClaims) {
         this.tokenValidityResolver = tokenValidityResolver;
         this.uaaUserDatabase = uaaUserDatabase;
         this.excludedClaims = excludedClaims;
-        try {
-            this.issuerUrl = UaaTokenUtils.constructTokenEndpointUrl(issuerUrl);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        this.issuerUrlBase = issuerUrlBase;
     }
 
     public IdToken create(String clientId,
@@ -79,6 +75,14 @@ public class IdTokenCreator {
         String givenName = getIfScopeContainsProfile(uaaUser.getGivenName(), userAuthenticationData.scopes);
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);
         String phoneNumber = getIfScopeContainsProfile(uaaUser.getPhoneNumber(), userAuthenticationData.scopes);
+
+        String issuerUrl;
+        try {
+            issuerUrl = UaaTokenUtils.constructTokenEndpointUrl(this.issuerUrlBase);
+        } catch (URISyntaxException e) {
+            logger.error("Could not construct the issuer url", e);
+            throw new IdTokenCreationException();
+        }
 
         return new IdToken(
             getIfNotExcluded(userId, USER_ID),
