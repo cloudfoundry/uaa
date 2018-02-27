@@ -12,14 +12,10 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
@@ -32,18 +28,13 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.headers.HeaderDocumentation.responseHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -52,7 +43,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPON
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.STATE;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class AuthorizeEndpointDocs extends InjectedMockContextTest {
@@ -100,43 +90,6 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .andExpect(status().isFound())
             .andDo(document("{ClassName}/{methodName}",
                 requestParameters));
-    }
-
-    @Test
-    @Ignore
-    public void jsonCodeRequestUnapproved() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        SecurityContext securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(principal);
-        session.putValue("SPRING_SECURITY_CONTEXT", securityContext);
-
-        MockHttpServletRequestBuilder get = get("/oauth/authorize")
-            .accept(APPLICATION_JSON)
-            .param(RESPONSE_TYPE, "code")
-            .param(CLIENT_ID, "dashboard")
-            .param(SCOPE, "dashboard.user openid")
-            .param(REDIRECT_URI, "http://redirect.to/app")
-            .session(session);
-
-        Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("Space-delimited list of response types. Here, `code` for requesting an authorization code or `token` for an access token, as per OAuth spec"),
-            clientIdParameter,
-            scopesParameter,
-            redirectParameter
-        );
-
-        Snippet responseFields = responseFields(
-            fieldWithPath("message").description("an explanation of the failed outcome"),
-            fieldWithPath("scopes").description("a list of scopes that need to be approved or denied")
-        );
-
-        getMockMvc().perform(get)
-            .andExpect(status().isOk())
-            .andDo(print())
-            .andExpect(content().string(not(isEmptyOrNullString())))
-            .andDo(document("{ClassName}/{methodName}",
-                requestParameters,
-                responseFields));
     }
 
     @Test
@@ -337,44 +290,6 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 requestParameters)).andReturn();
         String location = mvcResult.getResponse().getHeader("Location");
         Assert.assertThat(location, containsString("id_token="));
-        Assert.assertThat(location, containsString("code="));
-    }
-
-    @Ignore("there is no use for retrieving both an access token and a code in the UAA")
-    @Test
-    public void getIdTokenAndAccessTokenAndCode() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-            new MockMvcUtils.MockSecurityContext(principal)
-        );
-
-        MockHttpServletRequestBuilder get = get("/oauth/authorize")
-            .accept(APPLICATION_FORM_URLENCODED)
-            .param(RESPONSE_TYPE, "token id_token code")
-            .param(CLIENT_ID, "app")
-            .param(SCOPE, "openid")
-            .param(REDIRECT_URI, "http://localhost:8080/app/")
-            .session(session);
-
-        Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("Space-delimited list of response types. Here, `token id_token code`, indicating a request for an (implicitly granted) access token, an ID token, and an authorization code."),
-            clientIdParameter,
-            scopesParameter,
-            redirectParameter
-        );
-
-        Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes access_token, id_token, and code in the reply fragment if successful"));
-
-        MvcResult mvcResult = getMockMvc().perform(get)
-            .andExpect(status().isFound())
-            .andDo(print())
-            .andDo(document("{ClassName}/{methodName}",
-                responseHeaders,
-                requestParameters)).andReturn();
-        String location = mvcResult.getResponse().getHeader("Location");
-        Assert.assertThat(location, containsString("id_token="));
-        Assert.assertThat(location, containsString("access_token="));
         Assert.assertThat(location, containsString("code="));
     }
 }
