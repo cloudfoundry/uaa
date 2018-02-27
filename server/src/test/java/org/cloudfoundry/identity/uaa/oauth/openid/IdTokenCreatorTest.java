@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
@@ -63,6 +64,7 @@ public class IdTokenCreatorTest {
     private Set<String> excludedClaims;
     private String grantType;
     private String userName;
+    private String zoneId;
 
     @Before
     public void setup() throws Exception {
@@ -70,6 +72,7 @@ public class IdTokenCreatorTest {
         uaaUrl = "http://localhost:8080/uaa";
         clientId = "clientId";
         userId = "userId";
+        zoneId = "zoneId";
         expDate = new Date(100_000);
         authTime = new Date(500);
         amr = new HashSet<String>() {{
@@ -125,6 +128,8 @@ public class IdTokenCreatorTest {
 
         PowerMockito.mockStatic(UaaTokenUtils.class);
         when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn(issuerUrl);
+        PowerMockito.mockStatic(IdentityZoneHolder.class);
+        when(IdentityZoneHolder.get()).thenReturn(new IdentityZone() {{ setId(zoneId); }});
 
         uaaUserDatabase = mock(UaaUserDatabase.class);
         when(uaaUserDatabase.retrieveUserById(userId)).thenReturn(user);
@@ -182,6 +187,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.clientId, is(clientId));
         assertThat(idToken.grantType, is(grantType));
         assertThat(idToken.userName, is(userName));
+        assertThat(idToken.zid, is(zoneId));
     }
 
     @Test
@@ -286,6 +292,7 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.CID);
         excludedClaims.add(ClaimConstants.GRANT_TYPE);
         excludedClaims.add(ClaimConstants.USER_NAME);
+        excludedClaims.add(ClaimConstants.ZONE_ID);
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
@@ -310,6 +317,7 @@ public class IdTokenCreatorTest {
         assertThat(idToken.clientId, is(nullValue()));
         assertThat(idToken.grantType, is(nullValue()));
         assertThat(idToken.userName, is(nullValue()));
+        assertThat(idToken.zid, is(nullValue()));
     }
 
     @Test(expected = IdTokenCreationException.class)

@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -37,6 +38,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 
 public class IdTokenCreator {
     private final Log logger = LogFactory.getLog(getClass());
@@ -105,7 +107,8 @@ public class IdTokenCreator {
             getIfNotExcluded(uaaUser.getEmail(), EMAIL),
             getIfNotExcluded(clientId, CID),
             getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
-            getIfNotExcluded(uaaUser.getUsername(), USER_NAME));
+            getIfNotExcluded(uaaUser.getUsername(), USER_NAME),
+            getIfNotExcluded(IdentityZoneHolder.get().getId(), ZONE_ID));
     }
 
     private String getIfScopeContainsProfile(String value, Set<String> scopes) {

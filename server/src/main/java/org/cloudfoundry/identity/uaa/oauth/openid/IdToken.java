@@ -59,6 +59,7 @@ public class IdToken {
     public final String grantType;
     @JsonProperty(USER_NAME)
     public final String userName;
+    public final String zid;
 
     public IdToken(String sub,
                    List<String> aud,
@@ -79,7 +80,9 @@ public class IdToken {
                    String nonce,
                    String email,
                    String clientId,
-                   String grantType, String userName) {
+                   String grantType,
+                   String userName,
+                   String zid) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
@@ -101,6 +104,7 @@ public class IdToken {
         this.clientId = clientId;
         this.grantType = grantType;
         this.userName = userName;
+        this.zid = zid;
     }
 
     @JsonProperty(ACR)
