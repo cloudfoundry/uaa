@@ -164,6 +164,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private UaaTokenEnhancer uaaTokenEnhancer = null;
     private IdTokenCreator idTokenCreator;
+    private TokenValidityResolver tokenValidityResolver;
 
     public Set<String> getExcludedClaims() {
         return excludedClaims;
@@ -307,8 +308,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Set<String> audience = new HashSet<>((ArrayList<String>)claims.get(AUD));
 
-        int zoneAccessTokenValidity = getZoneAccessTokenValidity();
-
         Map<String, Object> additionalRootClaims = new HashMap<>();
         claims.entrySet()
             .stream()
@@ -322,7 +321,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 user.getId(),
                 user,
                 (claims.get(AUTH_TIME) != null) ? new Date(((Long) claims.get(AUTH_TIME)) * 1000l) : null,
-                validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 null,
                 requestedScopes,
                 clientId,
@@ -395,7 +393,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                    String userId,
                                                    UaaUser user,
                                                    Date userAuthenticationTime,
-                                                   int validitySeconds,
                                                    Collection<GrantedAuthority> clientScopes,
                                                    Set<String> requestedScopes,
                                                    String clientId,
@@ -414,7 +411,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                    Set<String> authenticationMethods,
                                                    Set<String> authNContextClassRef) throws AuthenticationException {
         CompositeAccessToken accessToken = new CompositeAccessToken(tokenId);
-        accessToken.setExpiration(new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
+        accessToken.setExpiration(tokenValidityResolver.resolveAccessTokenValidity(clientId));
         accessToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
 
         if (null == requestedScopes || requestedScopes.size() == 0) {
@@ -466,8 +463,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         accessToken.setValue(token);
 
         if (forceIdTokenCreation || (requestedScopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN))) {
-            TokenValidityResolver validityResolver = new TokenValidityResolver(clientDetailsService, getTokenPolicy().getAccessTokenValidity());
-
             UserAuthenticationData authenticationData = new UserAuthenticationData(userAuthenticationTime,
                 authenticationMethods,
                 authNContextClassRef,
@@ -647,9 +642,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             wasIdTokenRequestedThroughAuthCodeScopeParameter = true;
         }
 
-        int zoneAccessTokenValidity = getZoneAccessTokenValidity();
-
-        Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
 
         Map<String,Object> additionalRootClaims = new HashMap<>();
@@ -664,7 +656,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userId,
                 user,
                 userAuthenticationTime,
-                validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 clientScopes,
                 modifiableUserScopes,
                 clientId,
@@ -1233,5 +1224,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setIdTokenCreator(IdTokenCreator idTokenCreator) {
         this.idTokenCreator = idTokenCreator;
+    }
+
+    public void setTokenValidityResolver(TokenValidityResolver tokenValidityResolver) {
+        this.tokenValidityResolver = tokenValidityResolver;
     }
 }

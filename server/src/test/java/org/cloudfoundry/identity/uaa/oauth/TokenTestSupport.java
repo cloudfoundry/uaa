@@ -267,6 +267,7 @@ public class TokenTestSupport {
         TokenValidityResolver validityResolver = new TokenValidityResolver(clientDetailsService, 1234);
         IdTokenCreator idTokenCreator = new IdTokenCreator(DEFAULT_ISSUER, validityResolver, userDatabase, new HashSet<>());
         tokenServices.setIdTokenCreator(idTokenCreator);
+        tokenServices.setTokenValidityResolver(validityResolver);
         tokenServices.afterPropertiesSet();
     }
 

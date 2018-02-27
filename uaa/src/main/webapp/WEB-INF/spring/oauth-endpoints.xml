@@ -528,6 +528,7 @@
         <property name="excludedClaims" ref="excludedClaims"/>
         <property name="tokenProvisioning" ref="revocableTokenProvisioning"/>
         <property name="restrictRefreshGrant" value="${jwt.token.refresh.restrict_grant:false}"/>
+        <property name="tokenValidityResolver" value="tokenValidityResolver" />
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">
