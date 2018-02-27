@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -475,7 +476,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userAttributesForIdToken,
                 nonce,
                 grantType);
-            String idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, authenticationData));
+            String idTokenContent = null;
+            try {
+                idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, authenticationData));
+            } catch (IdTokenCreationException e) {
+                e.printStackTrace();
+                throw new UnsupportedOperationException();
+            }
             String encodedIdTokenContent = JwtHelper.encode(idTokenContent, KeyInfo.getActiveKey().getSigner()).getEncoded();
             accessToken.setIdTokenValue(encodedIdTokenContent);
         }

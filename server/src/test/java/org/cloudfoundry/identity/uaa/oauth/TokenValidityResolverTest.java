@@ -13,6 +13,7 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Date;
@@ -66,6 +67,24 @@ public class TokenValidityResolverTest {
         when(IdentityZoneHolder.get()).thenReturn(zone);
 
         when(clientDetailsService.loadClientByClientId("clientId")).thenReturn(new BaseClientDetails());
+
+        Date validity = resolver.resolveAccessTokenValidity("clientId");
+
+        assertThat(validity.getTime(), is(51_000l));
+    }
+
+    @Test
+    public void whenClientIdNotFound_defaultsToZoneConfiguration() {
+        PowerMockito.mockStatic(IdentityZoneHolder.class);
+        IdentityZone zone = new IdentityZone();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setAccessTokenValidity(50);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        when(IdentityZoneHolder.get()).thenReturn(zone);
+
+        when(clientDetailsService.loadClientByClientId("clientId")).thenThrow(ClientRegistrationException.class);
 
         Date validity = resolver.resolveAccessTokenValidity("clientId");
 

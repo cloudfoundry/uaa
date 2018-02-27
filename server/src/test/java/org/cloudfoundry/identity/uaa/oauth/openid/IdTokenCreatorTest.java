@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -154,7 +155,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_includesStandardClaims() {
+    public void create_includesStandardClaims() throws IdTokenCreationException {
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
         assertThat(idToken, is(notNullValue()));
@@ -170,7 +171,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_includesAdditionalClaims() {
+    public void create_includesAdditionalClaims() throws IdTokenCreationException {
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
         assertThat(idToken, is(notNullValue()));
@@ -190,14 +191,14 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_includesEmailVerified() {
+    public void create_includesEmailVerified() throws IdTokenCreationException {
         user.setVerified(false);
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
         assertThat(idToken.emailVerified, is(false));
     }
 
     @Test
-    public void create_doesntPopulateRolesWhenScopeDoesntContainRoles() {
+    public void create_doesntPopulateRolesWhenScopeDoesntContainRoles() throws IdTokenCreationException {
         scopes.clear();
         scopes.add("openid");
 
@@ -207,7 +208,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_setsRolesToNullIfThereAreNoRoles() {
+    public void create_setsRolesToNullIfThereAreNoRoles() throws IdTokenCreationException {
         roles.clear();
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
@@ -216,7 +217,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_setsRolesToNullIfRolesAreNull() {
+    public void create_setsRolesToNullIfRolesAreNull() throws IdTokenCreationException {
         userAuthenticationData = new UserAuthenticationData(
             authTime,
             amr,
@@ -233,7 +234,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_doesntPopulateUserAttributesWhenScopeDoesntContainUserAttributes() {
+    public void create_doesntPopulateUserAttributesWhenScopeDoesntContainUserAttributes() throws IdTokenCreationException {
         scopes.clear();
         scopes.add("openid");
 
@@ -243,7 +244,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_doesntSetUserAttributesIfTheyAreNull() {
+    public void create_doesntSetUserAttributesIfTheyAreNull() throws IdTokenCreationException {
         userAuthenticationData = new UserAuthenticationData(
             authTime,
             amr,
@@ -258,7 +259,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_doesntPopulateNamesAndPhone_whenNoProfileScopeGiven() {
+    public void create_doesntPopulateNamesAndPhone_whenNoProfileScopeGiven() throws IdTokenCreationException {
         scopes.remove("profile");
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
@@ -269,7 +270,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_doesntIncludesExcludedClaims() {
+    public void create_doesntIncludesExcludedClaims() throws IdTokenCreationException {
         excludedClaims.add(ClaimConstants.USER_ID);
         excludedClaims.add(ClaimConstants.AUD);
         excludedClaims.add(ClaimConstants.ISS);
@@ -315,5 +316,12 @@ public class IdTokenCreatorTest {
         assertThat(idToken.clientId, is(nullValue()));
         assertThat(idToken.grantType, is(nullValue()));
         assertThat(idToken.userName, is(nullValue()));
+    }
+
+    @Test(expected = IdTokenCreationException.class)
+    public void whenUserIdNotFound_throwsException() throws Exception {
+        when(uaaUserDatabase.retrieveUserById("missing-user")).thenThrow(UsernameNotFoundException.class);
+
+        tokenCreator.create(clientId, "missing-user", userAuthenticationData);
     }
 }

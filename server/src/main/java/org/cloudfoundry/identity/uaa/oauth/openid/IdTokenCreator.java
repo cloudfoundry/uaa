@@ -1,10 +1,13 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.joda.time.DateTime;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.net.URISyntaxException;
 import java.util.Date;
@@ -36,6 +39,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 
 public class IdTokenCreator {
+    private final Log logger = LogFactory.getLog(getClass());
     private String issuerUrl;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
@@ -57,10 +61,17 @@ public class IdTokenCreator {
 
     public IdToken create(String clientId,
                           String userId,
-                          UserAuthenticationData userAuthenticationData) {
+                          UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
         Date expiryDate = tokenValidityResolver.resolveAccessTokenValidity(clientId);
         Date issuedAt = DateTime.now().toDate();
-        UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
+
+        UaaUser uaaUser;
+        try {
+            uaaUser = uaaUserDatabase.retrieveUserById(userId);
+        } catch (UsernameNotFoundException e) {
+            logger.error("Could not create ID token for unknown user " + userId, e);
+            throw new IdTokenCreationException();
+        }
 
         Set<String> roles = buildRoles(userAuthenticationData);
         Map<String, List<String>> userAttributes = buildUserAttributes(userAuthenticationData);
