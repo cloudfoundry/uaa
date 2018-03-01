@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareSamlSecurityConfiguration;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -28,6 +29,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class ZoneAwareIdpMetadataGenerator extends IdpMetadataGenerator {
+
+    ZoneAwareSamlSecurityConfiguration securityConfiguration;
 
     @Override
     public boolean isAssertionsSigned() {
@@ -49,6 +52,7 @@ public class ZoneAwareIdpMetadataGenerator extends IdpMetadataGenerator {
     public IdpExtendedMetadata generateExtendedMetadata() {
         IdpExtendedMetadata metadata = super.generateExtendedMetadata();
         metadata.setAlias(UaaUrlUtils.getSubdomain() + metadata.getAlias());
+        metadata.setSigningAlgorithm(securityConfiguration.getSignatureAlgorithmURI("RSA"));
         return metadata;
     }
 
@@ -93,6 +97,14 @@ public class ZoneAwareIdpMetadataGenerator extends IdpMetadataGenerator {
         EntityDescriptor result = super.generateMetadata();
         result.setID(SAMLUtil.getNCNameString(result.getEntityID()));
         return result;
+    }
+
+    public ZoneAwareSamlSecurityConfiguration getSecurityConfiguration() {
+        return securityConfiguration;
+    }
+
+    public void setSecurityConfiguration(ZoneAwareSamlSecurityConfiguration securityConfiguration) {
+        this.securityConfiguration = securityConfiguration;
     }
 
     @Override

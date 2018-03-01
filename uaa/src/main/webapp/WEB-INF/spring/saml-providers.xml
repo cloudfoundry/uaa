@@ -93,11 +93,12 @@
 
         <bean id="zoneAwareMetadataGenerator" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator">
             <property name="extendedMetadata" ref="extendedMetaData"/>
-            <property name="requestSigned" value="${login.saml.signRequest:true}" />
+            <property name="requestSigned" value="${login.saml.signRequest:true}"/>
             <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:true}" />
             <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
             <property name="entityId" ref="samlEntityID" />
             <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
+            <property name="securityConfiguration" ref="zoneAwareSamlSecurityConfiguration"/>
         </bean>
 
         <!-- Filter automatically generates default SP metadata -->
