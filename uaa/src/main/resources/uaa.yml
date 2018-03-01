@@ -106,7 +106,6 @@
 #    iW6F91XDTVtAMtDTJwIDAQABMA0GCSqGSIb3DQEBBQUAA0EATFGpEIprKYcnc+JuNcSQ8v2P2J7e
 #    lQ23NhTaljASF0g8AZ7SZEItU8JFYqf/KnNJ7FPwo4LbMbr7Zg6BRKBvnQ==
 #    -----END CERTIFICATE-----'
-#    sslCertificateAlias: ldaps
 #    tls: <none | simple | external>
 #  externalGroupsWhitelist:
 #    - admin
@@ -374,7 +373,6 @@ oauth:
 #  redirect:
 #    url: /login
 #    parameter:
-#      disable: false
 #      whitelist:
 #        - https://url1.domain1.com/logout-success
 #        - https://url2.domain2.com/logout-success
@@ -412,6 +410,16 @@ login:
   url: http://localhost:8080/uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
+
+#  mfa:
+#    enabled: true
+#    providerName: customProviderName
+#    providers:
+#      customProviderName:
+#        type: google-authenticator
+#        config:
+#          issuer: "custom issuer"
+#          providerDescription: "Default authenticator for uaa zone"
 
   # SAML Key Configuration
   # The location and credentials of the certificate for this SP
@@ -589,6 +597,25 @@ uaa:
     url: http://localhost:8080/uaa/approvals
   login:
     url: http://localhost:8080/uaa/authenticate
+  limitedFunctionality:
+    enabled: false
+    whitelist:
+      endpoints:
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token/**
+        - /login/**
+        - /login.do
+        - /logout/**
+        - /logout.do
+        - /saml/**
+        - /autologin/**
+        - /authenticate/**
+        - /idp_discovery/**
+      methods:
+        - GET
+        - HEAD
+        - OPTIONS
 
 # Google Analytics
 #analytics:

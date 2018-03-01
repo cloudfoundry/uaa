@@ -239,7 +239,7 @@ public class EmailChangeEmailServiceTest {
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
 
-        doThrow(new NoSuchClientException("no such client")).when(clientDetailsService).loadClientByClientId("invalid-client");
+        doThrow(new NoSuchClientException("no such client")).when(clientDetailsService).loadClientByClientId("invalid-client", "uaa");
         Map<String, String> response = null;
         try {
             response = emailChangeEmailService.completeVerification("the_secret_code");
@@ -280,7 +280,7 @@ public class EmailChangeEmailServiceTest {
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
 
-        when(clientDetailsService.loadClientByClientId(clientId)).thenReturn(clientDetails);
+        when(clientDetailsService.loadClientByClientId(clientId, "uaa")).thenReturn(clientDetails);
 
         Map<String, String> response = emailChangeEmailService.completeVerification("the_secret_code");
 

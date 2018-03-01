@@ -75,8 +75,8 @@ public class PeriodLockoutPolicyTests {
     public void loginIsDeniedIfAllowedFailuresIsExceeded() {
         String zoneId = IdentityZoneHolder.get().getId();
         when(as.find(eq("1"), anyLong(), eq(zoneId))).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId())
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId(), null, null),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId(), null, null)
                         ));
 
         policyRetriever.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
@@ -87,9 +87,9 @@ public class PeriodLockoutPolicyTests {
     public void loginIsAllowedIfSuccessfulLoginIntercedesExcessiveFailures() {
         String zoneId = IdentityZoneHolder.get().getId();
         when(as.find(eq("1"), anyLong(), eq(zoneId))).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
-                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 2, IdentityZone.getUaa().getId()),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 3, IdentityZone.getUaa().getId())
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId(), null, null),
+                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 2, IdentityZone.getUaa().getId(), null, null),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 3, IdentityZone.getUaa().getId(), null, null)
                         ));
 
         policy.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
@@ -100,9 +100,9 @@ public class PeriodLockoutPolicyTests {
     public void loginIsAllowedWithExcessiveFailuresIfLockoutPeriodHasElapsed() {
         String zoneId = IdentityZoneHolder.get().getId();
         when(as.find(eq("1"), anyLong(), eq(zoneId))).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5001, IdentityZone.getUaa().getId()),
-                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 5002, IdentityZone.getUaa().getId()),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5003, IdentityZone.getUaa().getId())
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5001, IdentityZone.getUaa().getId(), null, null),
+                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 5002, IdentityZone.getUaa().getId(), null, null),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5003, IdentityZone.getUaa().getId(), null, null)
                         ));
 
         policy.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
@@ -115,8 +115,8 @@ public class PeriodLockoutPolicyTests {
     public void loginIsAllowedIfAllowedFailuresIsNotExceeded() {
         String zoneId = IdentityZoneHolder.get().getId();
         when(as.find(eq("1"), anyLong(), eq(zoneId))).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId())
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId(), null, null),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId(), null, null)
                         ));
 
         policy.getDefaultLockoutPolicy().setLockoutAfterFailures(3);
@@ -127,8 +127,8 @@ public class PeriodLockoutPolicyTests {
     public void testUseLockoutPolicyFromDbIfPresent() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
         when(as.find(eq("1"), anyLong(), eq(zoneId))).thenReturn(Arrays.asList(
-            new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
-            new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId())
+            new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId(), null, null),
+            new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId(), null, null)
         ));
         LockoutPolicy lockoutPolicy = new LockoutPolicy();
         lockoutPolicy.setLockoutAfterFailures(2);

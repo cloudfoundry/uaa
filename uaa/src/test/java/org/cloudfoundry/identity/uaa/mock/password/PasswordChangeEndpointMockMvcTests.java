@@ -32,7 +32,6 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -128,7 +127,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
 
         MockHttpSession afterPasswordChange = (MockHttpSession) getMockMvc().perform(post("/change_password.do")
             .session(afterLoginSession)
-            .with(csrf())
+            .with(cookieCsrf())
             .accept(TEXT_HTML_VALUE)
             .param("current_password", "secr3T")
             .param("new_password", "secr3T1")
@@ -181,7 +180,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
 
         MockHttpSession afterPasswordChange = (MockHttpSession) getMockMvc().perform(post("/change_password.do")
             .session(afterLoginSessionA)
-            .with(csrf())
+            .with(cookieCsrf())
             .accept(TEXT_HTML_VALUE)
             .param("current_password", "secr3T")
             .param("new_password", "secr3T1")

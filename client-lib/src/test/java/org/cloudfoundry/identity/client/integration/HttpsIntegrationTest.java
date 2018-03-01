@@ -36,19 +36,19 @@ import static org.junit.Assert.fail;
 
 public class HttpsIntegrationTest {
 
-    public static String uaaURI = "https://login.uaa-acceptance.cf-app.com";
+    public static String uaaURI = "https://login.oms.identity.team";
 
     private UaaContextFactory factory;
 
     @Rule
-    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(uaaURI, false);
+    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(uaaURI);
     private String clientId;
     private String clientSecret;
     private String redirectUri;
 
     @Before
     public void setUp() throws Exception {
-        redirectUri = "https://uaa.uaa-acceptance.cf-app.com";
+        redirectUri = "https://uaa.oms.identity.team";
         clientId = "xxx";
         clientSecret = "xxx";
         factory =

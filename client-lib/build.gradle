@@ -1,13 +1,11 @@
-Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
-
 description = 'CloudFoundry Identity Client Library Jar'
 
 dependencies {
-  compile identityModel
+  compile project(':cloudfoundry-identity-model')
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   testCompile group: 'junit', name: 'junit', version: parent.junitVersion
-  testCompile identityModel.configurations.testCompile.dependencies
-  testCompile identityModel.sourceSets.test.output
+  testCompile project(':cloudfoundry-identity-model').configurations.testCompile.dependencies
+  testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 }
 
 processResources {

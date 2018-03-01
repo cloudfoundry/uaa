@@ -28,6 +28,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -284,7 +285,7 @@ public class UaaContextFactory {
         MultiValueMap<String,String> form = new LinkedMultiValueMap<>();
         form.add(OAuth2Utils.CLIENT_ID, request.getClientId());
         form.add("client_secret", request.getClientSecret());
-        form.add(OAuth2Utils.GRANT_TYPE, "urn:ietf:params:oauth:grant-type:saml2-bearer");
+        form.add(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_SAML2_BEARER);
         form.add("assertion", request.getAuthCodeAPIToken());
 
         ResponseEntity<CompositeAccessToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeAccessToken.class);

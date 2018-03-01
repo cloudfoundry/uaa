@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -50,6 +51,7 @@ import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.hamcrest.Matcher;
@@ -134,6 +136,8 @@ public class ScimUserEndpointsTests {
 
     private JdbcScimUserProvisioning dao;
 
+    private JdbcUserGoogleMfaCredentialsProvisioning mfaCredentialsProvisioning;
+
     private JdbcIdentityProviderProvisioning identityProviderProvisioning;
 
     private JdbcScimGroupMembershipManager mm;
@@ -179,6 +183,9 @@ public class ScimUserEndpointsTests {
         dao.setQueryConverter(filterConverter);
 
         identityProviderProvisioning = Mockito.mock(JdbcIdentityProviderProvisioning.class);
+
+        mfaCredentialsProvisioning = Mockito.mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
+        endpoints.setMfaCredentialsProvisioning(mfaCredentialsProvisioning);
 
         endpoints.setScimUserProvisioning(dao);
         endpoints.setIdentityProviderProvisioning(identityProviderProvisioning);
@@ -1169,5 +1176,30 @@ public class ScimUserEndpointsTests {
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
 
         assertEquals(OriginKeys.UAA, createdUser.getOrigin());
+    }
+
+    @Test
+    public void testDeleteMfaRegistration() {
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        endpoints.deleteMfaRegistration(dale.getId());
+
+        verify(mfaCredentialsProvisioning).delete(dale.getId());
+    }
+
+    @Test(expected = ScimResourceNotFoundException.class)
+    public void testDeleteMfaRegistrationUserDoesNotExist() {
+        endpoints.deleteMfaRegistration("invalidUserId");
+    }
+
+    @Test
+    public void testDeleteMfaRegistrationNoMfaConfigured() {
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        endpoints.deleteMfaRegistration(dale.getId());
+    }
+
+    @Test
+    public void testDeleteMfaRegistrationMfaNotEnabledInZone() {
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
+        endpoints.deleteMfaRegistration(dale.getId());
     }
 }

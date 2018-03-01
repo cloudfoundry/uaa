@@ -87,7 +87,7 @@ public class ProfileControllerTests extends TestClassNullifier {
     WebApplicationContext webApplicationContext;
 
     @Autowired
-    ClientDetailsService clientDetailsService;
+    ClientServicesExtension clientDetailsService;
 
     @Autowired
     ApprovalStore approvalStore;
@@ -134,11 +134,11 @@ public class ProfileControllerTests extends TestClassNullifier {
 
         BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
-        Mockito.when(clientDetailsService.loadClientByClientId("app")).thenReturn(appClient);
+        Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
 
         BaseClientDetails otherClient = new BaseClientDetails("other-client","thing","thing.read,thing.write","authorization_code", "");
         otherClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
-        Mockito.when(clientDetailsService.loadClientByClientId("other-client")).thenReturn(otherClient);
+        Mockito.when(clientDetailsService.loadClientByClientId("other-client", "uaa")).thenReturn(otherClient);
     }
 
     @After
@@ -154,7 +154,7 @@ public class ProfileControllerTests extends TestClassNullifier {
     @Test
     public void testGetProfileNoAppName() throws Exception {
         BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
-        Mockito.when(clientDetailsService.loadClientByClientId("app")).thenReturn(appClient);
+        Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
         testGetProfile("app");
     }
 

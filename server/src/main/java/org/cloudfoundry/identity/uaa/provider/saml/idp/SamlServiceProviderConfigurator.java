@@ -14,19 +14,30 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
-import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.provider.saml.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.apache.commons.httpclient.params.HttpClientParams;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.utils.URIBuilder;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.NameIDType;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
@@ -36,13 +47,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.util.*;
 
 /**
  * Holds internal state of available SAML Service Providers.
@@ -224,17 +228,7 @@ public class SamlServiceProviderConfigurator {
 
     protected ExtendedMetadataDelegate configureURLMetadata(SamlServiceProvider provider)
             throws MetadataProviderException {
-        ProtocolSocketFactory socketFactory = null;
         SamlServiceProviderDefinition def = provider.getConfig().clone();
-        if (def.getMetaDataLocation().startsWith("https")) {
-            try {
-                socketFactory = new EasySSLProtocolSocketFactory();
-            } catch (GeneralSecurityException | IOException e) {
-                throw new MetadataProviderException("Error instantiating SSL/TLS socket factory.", e);
-            }
-        } else {
-            socketFactory = new DefaultProtocolSocketFactory();
-        }
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setAlias(provider.getEntityId());
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
@@ -249,7 +243,6 @@ public class SamlServiceProviderConfigurator {
         } catch (URISyntaxException e) {
             throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);
         }
-        fixedHttpMetaDataProvider.setSocketFactory(socketFactory);
         byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata();
         def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
         return configureXMLMetadata(provider);

@@ -102,7 +102,7 @@ public class IdpSamlContextProviderImpl extends SAMLContextProviderImpl {
             context.setLocalEntityRole(localEntityRole);
 
         } else { // Defaults
-            context.setLocalEntityId(((IdpMetadataManager)metadata).getHostedIdpName());
+            context.setLocalEntityId(metadata.getDefaultIDP());
             context.setLocalEntityRole(IDPSSODescriptor.DEFAULT_ELEMENT_NAME);
         }
 

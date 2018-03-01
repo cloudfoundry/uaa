@@ -1,0 +1,1 @@
+ALTER TABLE mfa_providers ADD UNIQUE KEY `idx_mfa_unique_name` (`identity_zone_id`,`name`);

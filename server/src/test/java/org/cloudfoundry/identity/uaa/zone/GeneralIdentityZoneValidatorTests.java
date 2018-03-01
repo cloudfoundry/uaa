@@ -25,7 +25,7 @@ public class GeneralIdentityZoneValidatorTests {
             reset(zoneConfigurationValidator);
             when(zoneConfigurationValidator.validate(any(), any())).thenReturn(config);
             validator.validate(zone, mode);
-            verify(zoneConfigurationValidator, times(1)).validate(same(config), same(mode));
+            verify(zoneConfigurationValidator, times(1)).validate(same(zone), same(mode));
         }
     }
 }

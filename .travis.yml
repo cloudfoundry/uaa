@@ -8,6 +8,7 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=default
@@ -16,10 +17,20 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=sqlserver,default
         - TEST_COMMAND=cloudfoundry-identity-server:test
+    - os: linux
+      dist: trusty
+      jdk: oraclejdk8
+      sudo: required
+      group: deprecated-2017Q4
+      language: java
+      env:
+        - TESTENV=default
+        - TEST_COMMAND=jasmineTest
     - os: linux
       dist: trusty
       jdk: oraclejdk8
@@ -32,6 +43,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - mysql
@@ -42,6 +54,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - postgresql
@@ -52,6 +65,7 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=ldap,default
@@ -60,6 +74,7 @@ matrix:
       dist: trusty
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=default
@@ -68,6 +83,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - mysql
@@ -78,6 +94,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       services:
         - postgresql
@@ -88,6 +105,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=ldap,default
@@ -96,6 +114,7 @@ matrix:
       dist: precise
       jdk: oraclejdk8
       sudo: required
+      group: deprecated-2017Q4
       language: java
       env:
         - TESTENV=default
@@ -114,6 +133,10 @@ cache:
   apt: true
   directories:
   - $HOME/.gradle
+
+branches:
+  except:
+  - ci-passed
 
 before_install:
 - ulimit -c
@@ -153,6 +176,8 @@ install:
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 - sudo apt-get -qy install lsof
+- nvm install node
+- nvm use node
 script:
 - sudo lsof -i :33389 || echo "Nothing listening on port 33389"
 - sudo lsof -i :33636 || echo "Nothing listening on port 33636"
@@ -164,18 +189,6 @@ after_success:
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
 - /bin/df -h
 - /usr/bin/du -sh *
-#- python scripts/travis/travis_after_all.py
-#- export $(cat .to_export_back)
-#- ! "if [ \"$BUILD_LEADER\" = \"YES\" ]; then\n  if [ \"$BUILD_AGGREGATE_STATUS\"
-#  = \"others_succeeded\" ]; then\n    echo \"All Succeeded!\"\n else\n    echo \"Some Failed\"\n  fi\nfi\n"
-#after_failure:
-#- python scripts/travis/travis_after_all.py
-#- export $(cat .to_export_back)
-#- ! "if [ \"$BUILD_LEADER\" = \"YES\" ]; then\n  if [ \"$BUILD_AGGREGATE_STATUS\"
-#  = \"others_failed\" ]; then\n    echo \"All Failed\"\n  else\n    echo \"Some Failed\"\n
-#  \ fi\nfi\n"
-#after_script:
-#- echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS
 
 after_failure:
 - /bin/df -h

@@ -73,12 +73,6 @@ public class HealthzShouldNotBeProtectedMockMvcTests extends InjectedMockContext
         getMockMvc().perform(get)
             .andExpect(status().is3xxRedirection());
 
-        //non ui gets bad request
-        get = get("/saml/metadata")
-            .accept(MediaType.ALL);
-
-        getMockMvc().perform(get)
-            .andExpect(status().isBadRequest());
     }
 
     @Test

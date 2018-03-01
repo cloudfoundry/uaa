@@ -39,7 +39,7 @@ public class IdentityZoneConfigurationIntegrationTest {
     private UaaContextFactory factory;
 
     @Rule
-    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(UAA_URI, false);
+    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(UAA_URI);
 
     @Before
     public void setUp() throws Exception {

@@ -22,6 +22,10 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
 
+    <bean id="sessionIdleTimeoutSetter" class="org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter">
+        <property name="timeout" value="${servlet.idle-timeout:1800}"/>
+    </bean>
+
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="expiringTimeMillis" value="600000"/>
         <constructor-arg name="maxEntries" value="10000"/>
@@ -35,7 +39,17 @@
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
-    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator" />
+    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
+        <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
+    </bean>
+
+    <bean id ="identityZoneConfigValidator" class ="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
+        <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
+    </bean>
+
+    <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
+        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
+    </bean>
 
     <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
         <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>
@@ -90,15 +104,18 @@
     <!--<sec:http pattern="/login" security="none" />-->
     <sec:http name="secFilterOpen08" pattern="/error" security="none" />
     <sec:http name="secFilterOpen11" pattern="/email_sent" security="none" />
-    <sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />
+
     <sec:http name="secFilterOpen13" pattern="/accounts/email_sent" security="none" />
     <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none" />
     <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
     <sec:http name="secFilterOpen18" pattern="/session" security="none" />
+    <sec:http name="secFilterOpen21" pattern="/session_management" security="none" />
     <sec:http name="secFilterWellKnownOpen19" pattern="/oauth/token/.well-known/openid-configuration" security="none" />
     <sec:http name="secFilterWellKnownOpen20" pattern="/.well-known/openid-configuration" security="none" />
+    <!--<sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />-->
+    <!--<sec:http name="secFilterIdpDiscovery21" pattern="/login/idp_discovery" security="none" create-session="ifRequired"/>-->
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
@@ -230,11 +247,13 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}" />
                 <entry value-ref="corsFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}" />
+                <entry value-ref="limitedModeUaaFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}" />
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -259,7 +278,10 @@
         <constructor-arg value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
 
-    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter"/>
+    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
+        <property name="enabled" value="${metrics.enabled:true}"/>
+        <property name="perRequestMetrics" value="${metrics.perRequestMetrics:false}"/>
+    </bean>
 
     <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
@@ -346,6 +368,7 @@
     <import resource="spring/login-server-security.xml" />
     <import resource="spring/oauth-endpoints.xml" />
     <import resource="spring/scim-endpoints.xml" />
+    <import resource="spring/mfa-endpoints.xml" />
     <import resource="spring/multitenant-endpoints.xml" />
     <import resource="spring/approvals-endpoints.xml" />
     <import resource="spring/client-admin-endpoints.xml" />
@@ -393,9 +416,10 @@
 
     <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
-    <import resource="classpath:spring/login-ui.xml"/>
-    <import resource="spring/saml-idp.xml"/>
+
     <import resource="spring/saml-providers.xml"/>
+    <import resource="spring/saml-idp.xml"/>
+    <import resource="classpath:spring/login-ui.xml"/>
 
     <!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
     <!--<sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"-->
@@ -405,7 +429,14 @@
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
-    <bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+    <bean id="passwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+
+    <bean id="bcryptPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.LowConcurrencyPasswordEncoder">
+        <constructor-arg name="delegate"  ref="passwdEncoder"/>
+        <constructor-arg name="timeoutMs" value="${system.bcrypt.timeout:5000}"/>
+        <constructor-arg name="enabled" value="${system.bcrypt.protected:false}"/>
+        <constructor-arg name="environment" ref="runtimeEnvironment" />
+    </bean>
 
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
         <property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
@@ -473,9 +504,12 @@
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
         <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
         <property name="globalLinks" ref="globalLinks"/>
+        <property name="mfaChecker" ref="mfaChecker"/>
     </bean>
 
-    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
+    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint">
+        <constructor-arg name="sleepTime" value="${uaa.shutdown.sleep:-1}"/>
+    </bean>
 
     <context:annotation-config />
 
@@ -489,18 +523,19 @@
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="bootstrapMetaDataProviders"/>
         <property name="oauthIdpDefinitions" ref="oauthIdpDefinitions"/>
+        <property name="originsToDelete" value="#{@config['delete']==null ? null : @config['delete']['identityProviders']}" />
     </bean>
 
-    <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean">
+    <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean">
         <constructor-arg name="definitions"
                   value="#{@config['login']==null ? null :
                            @config['login']['oauth']==null ? null :
                            @config['login']['oauth']['providers']}"/>
     </bean>
 
-    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getOauthIdpDefinitions" />
+    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getProviders" />
 
-    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
+    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap" depends-on="mfaProviderBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
@@ -528,7 +563,10 @@
                   value="#{@config['login']==null ? null :
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
+        <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
+        <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
+        <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
@@ -537,8 +575,9 @@
         <property name="origin" value="ldap"/>
     </bean>
 
-    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.UserAuthenticationSuccessListener">
+    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.AuthenticationSuccessListener">
         <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <constructor-arg name="checker" ref="mfaChecker"/>
     </bean>
 
     <bean id="autologinAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">
@@ -547,5 +586,18 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
+    <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
+        <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
+        <property name="permittedEndpoints"
+                  value="#{@config['uaa']==null ? null :
+                           @config['uaa']['limitedFunctionality']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']['endpoints']}"/>
+        <property name="permittedMethods"
+                  value="#{@config['uaa']==null ? null :
+                           @config['uaa']['limitedFunctionality']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
+                           @config['uaa']['limitedFunctionality']['whitelist']['methods']}"/>
+    </bean>
 
 </beans>

@@ -18,7 +18,7 @@ package org.cloudfoundry.identity.uaa.zone.event;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +40,7 @@ public class IdentityProviderModifiedEventTest {
     @Before
     public void setup() {
         String origin = "idp-mock-saml-"+new RandomValueStringGenerator().generate();
-        String metadata = String.format(BootstrapSamlIdentityProviderConfiguratorTests.xmlWithoutID, "http://localhost:9999/metadata/"+origin);
+        String metadata = String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://localhost:9999/metadata/"+origin);
         provider = new IdentityProvider<>();
         provider.setId("id");
         provider.setActive(true);

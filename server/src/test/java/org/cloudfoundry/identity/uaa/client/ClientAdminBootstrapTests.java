@@ -286,7 +286,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         verify(clientRegistrationService).addClientDetails(expectedAdd, IdentityZoneHolder.get().getId());
         BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
         expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
-        verify(clientRegistrationService).updateClientDetails(expectedUpdate);
+        verify(clientRegistrationService).updateClientDetails(expectedUpdate, "uaa");
     }
 
     @Test

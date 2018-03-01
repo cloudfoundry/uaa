@@ -1,3 +1,4 @@
+
 ---
 analytics:
   code: some-code
@@ -51,13 +52,17 @@ database:
   #password:
 
 delete:
+  expirationRunTime: 3000
+  identityProviders:
+    - delete-discovery-provider
+    - delete.local
   clients:
     - client-should-not-exist-1
     - client-should-not-exist-2
-
   users:
     - delete-user-1
     - delete-user-2
+
 disableInternalAuth: true
 disableInternalUserManagement: true
 issuer:
@@ -89,6 +94,7 @@ jwt:
       unique: true
     revocable: true
 ldap:
+  override: false
   addShadowUserOnLogin: false
   base:
     password: password
@@ -187,6 +193,19 @@ login:
         relyingPartySecret: secret
         showLinkText: true
         type: oidc1.0
+      delete-discovery-provider:
+        discoveryUrl: https://accounts.google.com/.well-known/openid-configuration
+        relyingPartyId: uaa
+        relyingPartySecret: secret
+        showLinkText: true
+        type: oidc1.0
+  mfa:
+    providers:
+      mfaprovider1:
+        type: google-authenticator
+        config:
+          providerDescription: all-properties-set-description
+          issuer: google.com
 
   prompt:
     password:
@@ -404,8 +423,28 @@ login:
         nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
         showSamlLoginLink: true
         skipSslValidation: true
+      delete.local:
+        assertionConsumerIndex: 0
+        idpMetadata: |
+          <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+            A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+            MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+            Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+            VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+            BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+            AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+            WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+            Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+            3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+            vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+            GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+        linkText: This one will be deleted
+        nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+        showSamlLoginLink: true
+        skipSslValidation: true
     signatureAlgorithm: SHA256
     wantAssertionSigned: false
+    disableInResponseToCheck: true
     signRequest: false
   selfServiceLinksEnabled: false
   url: https://login.some.test.domain.com:555/uaa
@@ -418,7 +457,7 @@ logout:
       - https://url2.domain2.com/logout-success
     url: /configured_login
 notifications:
-  url: https://notifications.uaa-acceptance.cf-app.com
+  url: https://notifications.oms.identity.team
 oauth:
   client:
     encoder_cache: false
@@ -556,6 +595,7 @@ servlet:
     name: cookiemonster
     path: /the/path/to/the/jar
     secure: true
+  idle-timeout: 300
 smtp:
   auth: true
   from_address: test@example.com
@@ -564,6 +604,24 @@ smtp:
   starttls: true
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
+  shutdown:
+    sleep: 5000
+  limitedFunctionality:
+    statusFile: /tmp/uaa-test-limited-mode-status-file.txt
+    whitelist:
+      endpoints:
+        - /other-url/**
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token
+        - /login/**
+        - /logout/**
+        - /saml/**
+      methods:
+        - CONNECT
+        - GET
+        - HEAD
+        - OPTIONS
 zones:
   internal:
     hostnames:
@@ -571,3 +629,6 @@ zones:
     - host2
     - test3.localhost
     - test4.localhost
+metrics:
+  enabled: false
+  perRequestMetrics: true

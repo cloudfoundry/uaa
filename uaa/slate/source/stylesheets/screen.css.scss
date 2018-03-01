@@ -2,6 +2,7 @@
 @import 'normalize';
 @import 'variables';
 @import 'icon-font';
+@import 'dropdown';
 
 /*
 Copyright 2008-2013 Concur Technologies, Inc.
@@ -425,6 +426,10 @@ html, body {
 
     td {
       padding: 10px;
+      min-width: 65px;
+    }
+    td:first-child {
+      min-width: 100px;
     }
 
     tr:last-child {

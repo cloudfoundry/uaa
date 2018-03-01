@@ -15,22 +15,28 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+
 /**
  * Calculates the time that a server is idle (no requests processing)
  * The idle time calculator starts as soon as this object is created.
  */
 public class IdleTimer {
 
-    private int inflightRequests = 0;
+    TimeService timeService = new TimeServiceImpl();
+
+    private long inflightRequests = 0;
     private long idleTime = 0;
-    private long lastIdleStart = System.currentTimeMillis();
-    private final long startTime = System.currentTimeMillis();
+
+    private long lastIdleStart = timeService.getCurrentTimeMillis();
+    private final long startTime = timeService.getCurrentTimeMillis();
     private long requestCount = 0;
 
     public synchronized void endRequest() {
-        switch (--inflightRequests) {
+        switch ((int) --inflightRequests) {
             case 0:
-                lastIdleStart = System.currentTimeMillis();
+                lastIdleStart = timeService.getCurrentTimeMillis();
                 break;
             case -1:
                 throw new IllegalStateException("Illegal end request invocation, no request in flight");
@@ -41,33 +47,40 @@ public class IdleTimer {
     }
 
     public synchronized void startRequest() {
-        switch (++inflightRequests) {
+        switch ((int) ++inflightRequests) {
             case 1:
-                idleTime += (System.currentTimeMillis() - lastIdleStart);
+                idleTime += (timeService.getCurrentTimeMillis() - lastIdleStart);
                 break;
             default:
                 break;
         }
 
+
+
     }
 
-    public int getInflightRequests() {
+
+    public long getInflightRequests() {
         return inflightRequests;
     }
 
     public synchronized long getIdleTime() {
         if (inflightRequests == 0) {
-            return (System.currentTimeMillis() - lastIdleStart) + idleTime;
+            return (timeService.getCurrentTimeMillis() - lastIdleStart) + idleTime;
         } else {
             return idleTime;
         }
     }
 
-    public long getRequestCount() {
+    public long getRunTime() {
+        return timeService.getCurrentTimeMillis() - startTime;
+    }
+
+    protected long getRequestCount() {
         return requestCount;
     }
 
-    public long getRunTime() {
-        return System.currentTimeMillis() - startTime;
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 }

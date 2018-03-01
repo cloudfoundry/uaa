@@ -38,8 +38,7 @@ public class DefaultIntegrationTestConfig {
 
     @Bean
     public IntegrationTestRule integrationTestRule(@Value("${integration.test.uaa_url}") String baseUrl, Environment environment) {
-        boolean forceIntegrationTests = environment.getProperty("forceIntegrationTests") != null;
-        return new IntegrationTestRule(baseUrl, forceIntegrationTests);
+        return new IntegrationTestRule(baseUrl);
     }
 
     @Bean

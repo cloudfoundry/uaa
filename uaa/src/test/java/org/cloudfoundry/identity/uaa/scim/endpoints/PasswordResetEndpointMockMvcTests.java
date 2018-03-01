@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,7 +51,6 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -183,7 +183,17 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .param("email", email)
             .param("password", "newpass")
             .param("password_confirmation", "newpass")
-            .with(csrf());
+            .with(cookieCsrf());
+
+        getMockMvc().perform(post)
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl(getWebApplicationContext().getServletContext().getContextPath() +"/login?success=password_reset&form_redirect_uri=http://localhost:8080/app/"));
+
+        post = post("/login.do")
+            .param("username", user.getUserName())
+            .param("password", "newpass")
+            .param("form_redirect_uri", "http://localhost:8080/app/")
+            .with(cookieCsrf());
 
         getMockMvc().perform(post)
             .andExpect(status().is3xxRedirection())
@@ -295,6 +305,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .contentType(APPLICATION_JSON)
             .param("client_id", clientId)
             .param("redirect_uri", redirectUri)
+            .param("response_type", "code")
             .content(user.getUserName())
             .accept(APPLICATION_JSON);
 

@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
@@ -49,9 +48,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
@@ -63,7 +60,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -168,9 +164,9 @@ public class LoginIT {
         webDriver.get(zoneUrl);
         webDriver.manage().deleteAllCookies();
         webDriver.navigate().refresh();
-            assertEquals("test banner", webDriver.findElement(By.cssSelector(".login-header span")).getText());
-        assertEquals("rgba(68, 68, 68, 1)", webDriver.findElement(By.cssSelector(".login-header")).getCssValue("background-color"));
-        assertEquals("rgba(17, 17, 17, 1)", webDriver.findElement(By.cssSelector(".login-header span")).getCssValue("color"));
+        assertEquals("test banner", webDriver.findElement(By.cssSelector(".banner-header span")).getText());
+        assertEquals("rgba(68, 68, 68, 1)", webDriver.findElement(By.cssSelector(".banner-header")).getCssValue("background-color"));
+        assertEquals("rgba(17, 17, 17, 1)", webDriver.findElement(By.cssSelector(".banner-header span")).getCssValue("color"));
 
         String base64Val = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAATBJREFUeNqk008og3Ecx/HNnrJSu63kIC5qKRe7KeUiOSulTHJUTrsr0y5ycFaEgyQXElvt5KDYwU0uO2hSUy4KoR7v7/qsfmjPHvzq1e/XU8/39/3zPFHf9yP/WV7jED24nGRbxDFWUAsToM05zyKFLG60d/wmQBxWzwyOlMU1phELEyCmtPeRQRoVbKOM0VYB6q0QW+3IYQpJFFDEYFCAiMqwNY857Ko3SxjGBTbRXb+xMUamcMbWh148YwJvOHSCdyqTAdxZo72ADGwKT98C9CChcxUPQSVYLz50toae4Fy9WcAISl7AiN/RhS1N5RV5rOLxx5eom90pvGAI/VjHMm6bfspK18a1gXvsqM41XDVL052C1Tim56cYd/rR+mdSrXGluxfm5S8Z/HV9CjAAvQZLXoa5mpgAAAAASUVORK5CYII=";
         banner.setLogo(base64Val);
@@ -178,8 +174,8 @@ public class LoginIT {
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
         webDriver.get(zoneUrl);
 
-        assertEquals("data:image/png;base64," + base64Val, webDriver.findElement(By.cssSelector(".login-header img")).getAttribute("src"));
-        assertEquals(2, webDriver.findElement(By.cssSelector(".login-header")).findElements(By.xpath(".//*")).size());
+        assertEquals("data:image/png;base64," + base64Val, webDriver.findElement(By.cssSelector(".banner-header img")).getAttribute("src"));
+        assertEquals(2, webDriver.findElement(By.cssSelector(".banner-header")).findElements(By.xpath(".//*")).size());
     }
 
     @Test
@@ -203,7 +199,7 @@ public class LoginIT {
         webDriver.get(zoneUrl);
         webDriver.manage().deleteAllCookies();
         webDriver.navigate().refresh();
-        assertEquals(0, webDriver.findElements(By.cssSelector(".login-header")).size());
+        assertEquals(0, webDriver.findElements(By.cssSelector(".banner-header")).size());
     }
 
     @Test
@@ -224,7 +220,7 @@ public class LoginIT {
 
     @Test
     public void testNoZoneFound() throws Exception {
-        assumeTrue("Expected testzone1/2/3/4/doesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assertTrue("Expected testzone1/2/3/4/doesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         webDriver.get(baseUrl.replace("localhost","testzonedoesnotexist.localhost") + "/login");
         assertEquals("The subdomain does not map to a valid identity zone.",webDriver.findElement(By.tagName("p")).getText());
     }
@@ -279,8 +275,8 @@ public class LoginIT {
             HttpMethod.POST,
             new HttpEntity<>(body, headers),
             String.class);
-        assertEquals(HttpStatus.FORBIDDEN, loginResponse.getStatusCode());
-        assertTrue("CSRF message should be shown", loginResponse.getBody().contains("Invalid login attempt, request does not meet our security standards, please try again."));
+        assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
+        assertTrue("CSRF message should be shown", loginResponse.getHeaders().getFirst("Location").contains("invalid_login_request"));
     }
 
     @Test
@@ -360,12 +356,12 @@ public class LoginIT {
         String zoneUrl = createDiscoveryZone();
 
         String userEmail = createAnotherUser(zoneUrl);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl);
 
         loginThroughDiscovery(userEmail, USER_PASSWORD);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
 
         webDriver.get(zoneUrl);
         assertEquals("Sign in to another account", webDriver.findElement(By.cssSelector("div.action a")).getText());
@@ -380,11 +376,11 @@ public class LoginIT {
         String zoneUrl = createDiscoveryZone();
 
         String userEmail = createAnotherUser(zoneUrl);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl);
 
         loginThroughDiscovery(userEmail, USER_PASSWORD);
-        webDriver.get(zoneUrl + "/logout");
+        webDriver.get(zoneUrl + "/logout.do");
 
         webDriver.get(zoneUrl);
         assertEquals(userEmail, webDriver.findElement(By.className("email-address")).getText());
@@ -448,20 +444,7 @@ public class LoginIT {
     }
 
     private String createAnotherUser(String url) {
-        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
-
-        webDriver.get(url + "/create_account");
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys(USER_PASSWORD);
-        webDriver.findElement(By.name("password_confirmation")).sendKeys(USER_PASSWORD);
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
-
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        receivedEmail.remove();
-        webDriver.get(testClient.extractLink(message.getBody()));
-
-        return userEmail;
+        return IntegrationTestUtils.createAnotherUser(webDriver, USER_PASSWORD, simpleSmtpServer, url, testClient);
     }
 
     private String createDiscoveryZone() {

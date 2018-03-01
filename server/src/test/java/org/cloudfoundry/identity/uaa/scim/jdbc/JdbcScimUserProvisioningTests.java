@@ -370,7 +370,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private String createOtherIdentityProvider(String origin, String zoneId) {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin, zoneId);
-        return providerDb.create(identityProvider).getId();
+        return providerDb.create(identityProvider, IdentityZoneHolder.get().getId()).getId();
     }
 
     @Test

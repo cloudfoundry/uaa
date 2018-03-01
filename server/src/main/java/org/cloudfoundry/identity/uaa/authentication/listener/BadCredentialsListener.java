@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,7 +24,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 /**
  * Spring {@code ApplicationListener} which picks up the listens for Spring
  * Security events and relays them.
- * 
+ *
  * @author Dave Syer
  */
 public class BadCredentialsListener implements ApplicationListener<AuthenticationFailureBadCredentialsEvent>,

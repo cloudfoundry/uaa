@@ -1,10 +1,8 @@
 description = 'CloudFoundry Identity Server JAR'
 
-Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
-
 dependencies {
 
-  compile(identityModel)
+  compile project(':cloudfoundry-identity-model')
 
   compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
@@ -13,6 +11,7 @@ dependencies {
   compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
 
   compile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
+  compile group: 'com.google.zxing', name: 'javase', version: parent.zxingVersion
 
   compile group: 'org.springframework', name: 'spring-beans', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion
@@ -28,21 +27,33 @@ dependencies {
   compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
     exclude(module: 'opensaml')
   }
-  compile(group: 'org.opensaml', name: 'opensaml', version: '2.6.6') {
+  compile(group: 'org.opensaml', name: 'opensaml', version: openSamlVersion) {
     exclude(module: 'bcprov-jdk15on')
     exclude(group: 'org.slf4j', module: 'log4j-over-slf4j')
     exclude(group: 'org.owasp.esapi', module: 'esapi')
     exclude(group: 'ca.juliusdavies', module: 'not-yet-commons-ssl')
+    exclude(group: "org.apache.velocity", module: 'velocity')
   }
+  compile group: 'org.apache.santuario', name: 'xmlsec', version: parent.openSamlXmlSec
+  compile group: 'org.apache.velocity', name: 'velocity-engine-core', version: '2.0'
+
+  compile (group:'org.owasp.esapi', name:'esapi', version:parent.esapiVersion) {
+    exclude(group: 'xalan', module: 'xalan')
+    exclude(group: 'commons-beanutils', module: 'commons-beanutils-core')
+    exclude(group: 'commons-fileupload', module: 'commons-fileupload')
+    exclude(group: 'org.owasp.antisamy', module: 'antisamy')
+  }
+  compile group: 'commons-fileupload', name: 'commons-fileupload', version: parent.commonsFileuploadVersion
+  compile group: 'commons-beanutils', name: 'commons-beanutils', version: parent.commonsBeanUtilsVersion
+  compile group: 'org.owasp.antisamy', name: 'antisamy', version: parent.antisamyVersion
+  compile group: 'xalan', name: 'xalan', version:parent.xalanVersion
+  compile files('lib/not-yet-commons-ssl-0.3.17.jar')
+
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
     exclude(module: 'jackson-mapper-asl')
     exclude(module: 'spring-security-web')
   }
-
-  compile files('lib/not-yet-commons-ssl-0.3.17.jar')
-
-  compile group:'org.owasp.esapi', name:'esapi', version:parent.esapiVersion
 
   compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bcprovVersion
   compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bcpkixVersion
@@ -81,6 +92,8 @@ dependencies {
 
   compile group: 'org.passay', name: 'passay', version: parent.passayVersion
 
+  compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
+
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
@@ -95,6 +108,9 @@ dependencies {
   testCompile (group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion){
     exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
   }
+  testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: parent.powermockVersion
+  testCompile group: 'org.powermock', name: 'powermock-api-mockito2', version: parent.powermockVersion
+
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion

@@ -29,10 +29,17 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUserInZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.updateIdentityZone;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -46,7 +53,9 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
+import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.VARIES;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -63,24 +72,32 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
 
-    private String requestBody;
+    private SamlServiceProvider requestBody;
     private static final String ENABLE_IDP_INITIATED_SSO = "When set to true, default is false, the service provider supports IDP initiated SSO at the endpoint /saml/idp/initiate?sp=sp_entity_id";
 
     private Snippet pathParameters = pathParameters(
         parameterWithName("id").description("Unique ID of the service provider")
     );
 
+    private String STATIC_ATTRIBUTES_DESC = "A map of static attributes that will be sent with every assertion.\nThe key is the name of the attribute and the value is the attribute value. If the value is a list, multiple attribute values will be sent with the same named attribute.\nCurrently only `xs:string` type values are supported.";
+
     private Snippet requestFields = requestFields(
         fieldWithPath("name").type(STRING).attributes(key("constraints").value("Required")).description("Human readable name for the SAML SP."),
         fieldWithPath("entityId").type(STRING).attributes(key("constraints").value("Optional")).description("If provided, it should match the entityId in the SP metadata."),
         fieldWithPath("active").type(BOOLEAN).attributes(key("constraints").value("Optional")).description("Defaults to true"),
+        fieldWithPath("id").type(VARIES).ignored().attributes(key("constraints").value("Optional")).description("Will be automatically generated during a create"),
+        fieldWithPath("version").type(NUMBER).ignored().attributes(key("constraints").value("Optional")).description("Ignored. No version check performed"),
+        fieldWithPath("created").type(STRING).ignored().attributes(key("constraints").value("Optional")).description("Ignored. Automatically updated on the server."),
+        fieldWithPath("lastModified").type(STRING).ignored().attributes(key("constraints").value("Optional")).description("Ignored. Automatically updated on the server."),
+        fieldWithPath("identityZoneId").type(STRING).ignored().attributes(key("constraints").value("Optional")).description("Ignored. Automatically updated on the server."),
         fieldWithPath("config").type(STRING).attributes(key("constraints").value("Required")).description("Contains metaDataLocation and metadataTrustCheck fields as json fields."),
         fieldWithPath("config.metaDataLocation").type(STRING).attributes(key("constraints").value("Required")).description("The SAML SP Metadata - either an XML string or a URL that").optional(),
         fieldWithPath("config.attributeMappings.given_name").type(STRING).attributes(key("constraints").value("Optional")).description("Map given_name value within UAA to a specified assertion in the SAML response.").optional(),
         fieldWithPath("config.attributeMappings.family_name").type(STRING).attributes(key("constraints").value("Optional")).description("Map family_name value within UAA to a specified assertion in the SAML response").optional(),
         fieldWithPath("config.attributeMappings.phone_number").type(STRING).attributes(key("constraints").value("Optional")).description("Map phone_number value within UAA to a specified assertion in the SAML response.").optional(),
         fieldWithPath("config.metadataTrustCheck").type(BOOLEAN).attributes(key("constraints").value("Optional")).description("Determines whether UAA should validate the SAML SP metadata.").optional(),
-        fieldWithPath("config.enableIdpInitiatedSso").type(BOOLEAN).description(ENABLE_IDP_INITIATED_SSO).attributes(key("constraints").value("Optional")).optional()
+        fieldWithPath("config.enableIdpInitiatedSso").type(BOOLEAN).description(ENABLE_IDP_INITIATED_SSO).attributes(key("constraints").value("Optional")).optional(),
+        fieldWithPath("config.staticCustomAttributes").type(OBJECT).description(STATIC_ATTRIBUTES_DESC).attributes(key("constraints").value("Optional")).optional()
     );
     private Snippet responseFields = responseFields(
         fieldWithPath("id").type(STRING).description("Unique identifier for this provider - GUID generated by the UAA."),
@@ -97,19 +114,21 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         fieldWithPath("config.attributeMappings.given_name").type(STRING).description("Map given_name value within UAA to a specified assertion in the SAML response.").optional(),
         fieldWithPath("config.attributeMappings.family_name").type(STRING).description("Map family_name value within UAA to a specified assertion in the SAML response").optional(),
         fieldWithPath("config.attributeMappings.phone_number").type(STRING).description("Map phone_number value within UAA to a specified assertion in the SAML response.").optional(),
-        fieldWithPath("config.enableIdpInitiatedSso").type(BOOLEAN).description(ENABLE_IDP_INITIATED_SSO).attributes(key("constraints").value("Optional")).optional()
+        fieldWithPath("config.enableIdpInitiatedSso").type(BOOLEAN).description(ENABLE_IDP_INITIATED_SSO).attributes(key("constraints").value("Optional")).optional(),
+        fieldWithPath("config.staticCustomAttributes").type(OBJECT).description(STATIC_ATTRIBUTES_DESC).attributes(key("constraints").value("Optional")).optional()
     );
 
-    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id.");
-    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
     private String spEntityID;
+    private Map<String, Object> staticAttributes = new HashMap<>();
 
     @Before
     public void setup() throws Exception {
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
         String name = generator.generate();
         spEntityID = name + ".cloudfoundry-saml-login";
-        requestBody = "{\n" +
+        String value = "{\n" +
             "  \"name\" : \"" + name + "\",\n" +
             "  \"entityId\" : \"" + spEntityID + "\",\n" +
             "  \"active\" : true,\n" +
@@ -118,14 +137,18 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
             ",\\\"attributeMappings\\\" : { \\\"given_name\\\" : \\\"firstname\\\", \\\"family_name\\\" : \\\"lastname\\\", \\\"phone_number\\\" : \\\"phone\\\" }" +
             "}\"" +
             "}";
+        requestBody = JsonUtils.readValue(value, SamlServiceProvider.class);
+        staticAttributes.put("organization-name", "The Demo Org");
+        staticAttributes.put("organization-emails", Arrays.asList("contact@demoorg.com", "info@demo.org"));
+        requestBody.getConfig().setStaticCustomAttributes(staticAttributes);
     }
 
     @Test
     public void createServiceProvider() throws Exception {
-        getMockMvc().perform(post("/saml/service-providers")
+        String json = getMockMvc().perform(post("/saml/service-providers")
                                  .header("Authorization", "Bearer " + adminToken)
                                  .contentType(APPLICATION_JSON)
-                                 .content(requestBody)
+                                 .content(writeValueAsString(requestBody))
         ).andExpect(status().isCreated())
             .andDo(document("{ClassName}/{methodName}",
                             preprocessRequest(prettyPrint()),
@@ -136,7 +159,13 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
                                 IDENTITY_ZONE_SUBDOMAIN_HEADER
                             ),
                             requestFields,
-                            responseFields));
+                            responseFields))
+            .andReturn().getResponse().getContentAsString();
+        SamlServiceProvider provider = JsonUtils.readValue(json, SamlServiceProvider.class);
+        assertNotNull(provider.getConfig());
+        assertNotNull(provider.getConfig().getStaticCustomAttributes());
+        assertEquals(2, provider.getConfig().getStaticCustomAttributes().size());
+        assertEquals(staticAttributes, provider.getConfig().getStaticCustomAttributes());
     }
 
     public IdentityZone createZone() throws Exception {
@@ -158,7 +187,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
                                  .header("Authorization", "Bearer " + adminToken)
                                  .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getSubdomain())
                                  .contentType(APPLICATION_JSON)
-                                 .content(requestBody)
+                                 .content(writeValueAsString(requestBody))
 
         ).andExpect(status().isCreated());
 
@@ -190,14 +219,15 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         MockHttpServletResponse response = getMockMvc().perform(post("/saml/service-providers")
                                                                     .header("Authorization", "Bearer " + adminToken)
                                                                     .contentType(APPLICATION_JSON)
-                                                                    .content(requestBody)
+                                                                    .content(writeValueAsString(requestBody))
         ).andReturn().getResponse();
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(response.getContentAsString(), SamlServiceProvider.class);
 
-        getMockMvc().perform(put("/saml/service-providers/{id}", samlServiceProvider.getId())
+        staticAttributes.put("portal-id","346-asd-3412");
+        String json = getMockMvc().perform(put("/saml/service-providers/{id}", samlServiceProvider.getId())
                                  .header("Authorization", "Bearer " + adminToken)
                                  .contentType(APPLICATION_JSON)
-                                 .content(requestBody)
+                                 .content(writeValueAsString(requestBody))
         ).andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}",
                             preprocessRequest(prettyPrint()),
@@ -209,7 +239,13 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
                                 IDENTITY_ZONE_SUBDOMAIN_HEADER
                             ),
                             requestFields,
-                            responseFields));
+                            responseFields))
+            .andReturn().getResponse().getContentAsString();
+        SamlServiceProvider provider = JsonUtils.readValue(json, SamlServiceProvider.class);
+        assertNotNull(provider.getConfig());
+        assertNotNull(provider.getConfig().getStaticCustomAttributes());
+        assertEquals(3, provider.getConfig().getStaticCustomAttributes().size());
+        assertEquals(staticAttributes, provider.getConfig().getStaticCustomAttributes());
     }
 
     @Test
@@ -217,7 +253,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         MockHttpServletResponse response = getMockMvc().perform(post("/saml/service-providers")
                                                                     .header("Authorization", "Bearer " + adminToken)
                                                                     .contentType(APPLICATION_JSON)
-                                                                    .content(requestBody)
+                                                                    .content(writeValueAsString(requestBody))
         ).andReturn().getResponse();
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(response.getContentAsString(), SamlServiceProvider.class);
 
@@ -255,7 +291,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         getMockMvc().perform(post("/saml/service-providers")
                                  .header("Authorization", "Bearer " + adminToken)
                                  .contentType(APPLICATION_JSON)
-                                 .content(requestBody)
+                                 .content(writeValueAsString(requestBody))
         ).andReturn().getResponse();
 
         getMockMvc().perform(get("/saml/service-providers")
@@ -276,7 +312,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         MockHttpServletResponse createdResponse = getMockMvc().perform(MockMvcRequestBuilders.post("/saml/service-providers")
                                                                            .header("Authorization", "Bearer " + adminToken)
                                                                            .contentType(APPLICATION_JSON)
-                                                                           .content(requestBody)
+                                                                           .content(writeValueAsString(requestBody))
         ).andReturn().getResponse();
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(createdResponse.getContentAsString(), SamlServiceProvider.class);
 
