@@ -82,7 +82,9 @@ pipeline {
                     popd
 
                     pushd uaa
-                        ./gradlew pushUaaImage --continue -x javadoc
+                        APP_VERSION=$(grep 'version' gradle.properties | sed 's/version=//')
+                        docker login $DOCKER_REPO_URL -u $DOCKER_REPO_USER -p $DOCKER_REPO_USER_PW
+                        docker push ${DOCKER_REPO_URL}/uaa:${APP_VERSION}
                     popd
                 '''
             }
