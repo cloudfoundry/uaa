@@ -43,6 +43,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class InjectedMockContextTest implements Contextable {
 
+    protected RandomValueStringGenerator generator = new RandomValueStringGenerator(12) {
+        @Override
+        public String generate() {
+            return super.generate().toLowerCase();
+        }
+    };
+
     @ClassRule
     public static SkipWhenNotRunningInSuiteRule skip = new SkipWhenNotRunningInSuiteRule();
 

@@ -31,4 +31,8 @@ public class SamlUserAuthority implements GrantedAuthority {
         return authority;
     }
 
+    @Override
+    public String toString() {
+        return authority;
+    }
 }

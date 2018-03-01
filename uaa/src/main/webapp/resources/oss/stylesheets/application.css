@@ -8626,8 +8626,12 @@ h2 {
   position: relative;
   text-align: center; }
 .island .island-content {
-  width: 196px;
-  margin: 0 auto; }
+  width: 216px;
+  margin: 0 auto;
+}
+.island .island-content .alert {
+  text-align: center;
+}
 
 .island-landscape {
   border: 1px solid #e0e4e5;

@@ -15,7 +15,10 @@ package org.cloudfoundry.identity.uaa.util;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.Set;
@@ -27,10 +30,26 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
 
+@RunWith(Parameterized.class)
 public class CachingPasswordEncoderTest  {
+
+    private static RuntimeEnvironment environment = new RuntimeEnvironment();
+
+    @Parameterized.Parameters(name = "{index}: {0}")
+    public static Object[][] parameters() {
+        return new Object[][] {
+            {new BCryptPasswordEncoder()},
+            {new LowConcurrencyPasswordEncoder(new BCryptPasswordEncoder(), 30000, true, environment)}
+        };
+    }
 
     CachingPasswordEncoder cachingPasswordEncoder;
     private String password;
+    private PasswordEncoder delegate;
+
+    public CachingPasswordEncoderTest(PasswordEncoder delegate) {
+        this.delegate = delegate;
+    }
 
     @Before
     public void setUp() throws Exception {

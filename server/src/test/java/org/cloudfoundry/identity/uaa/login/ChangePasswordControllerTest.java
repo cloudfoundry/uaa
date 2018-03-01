@@ -12,24 +12,34 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.ChangePasswordController;
 import org.cloudfoundry.identity.uaa.account.ChangePasswordService;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Arrays;
-
+import static java.util.Arrays.asList;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -45,6 +55,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ChangePasswordControllerTest extends TestClassNullifier {
     private MockMvc mockMvc;
     private ChangePasswordService changePasswordService;
+    private UaaAuthentication authentication;
+    private List<String> authMethods;
 
     @Before
     public void setUp() throws Exception {
@@ -57,11 +69,13 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
                 .setViewResolvers(getResolver())
                 .build();
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-            "bob",
-            "secret",
-            Arrays.asList(UaaAuthority.UAA_USER)
+        authentication = new UaaAuthentication(
+            new UaaPrincipal("id", "bob", "bob@bob.bob", UAA, null, getUaa().getId()),
+            asList(UaaAuthority.UAA_USER),
+            new UaaAuthenticationDetails(false, null, UAA, "12345")
         );
+        authMethods = asList("pwd", "mfa", "otp");
+        authentication.setAuthenticationMethods(new LinkedHashSet<>(authMethods));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -86,6 +100,9 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
                 .andExpect(redirectedUrl("profile"));
 
         verify(changePasswordService).changePassword("bob", "secret", "new secret");
+        Authentication afterAuth = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(((UaaAuthentication)afterAuth).getAuthenticationMethods(), containsInAnyOrder(authMethods.toArray()));
+        assertSame(authentication, afterAuth);
     }
 
     @Test
@@ -101,7 +118,7 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void changePassword_PasswordPolicyViolationReported() throws Exception {
-        doThrow(new InvalidPasswordException(Arrays.asList("Msg 2b", "Msg 1b"))).when(changePasswordService).changePassword("bob", "secret", "new secret");
+        doThrow(new InvalidPasswordException(asList("Msg 2b", "Msg 1b"))).when(changePasswordService).changePassword("bob", "secret", "new secret");
 
         MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "new secret");
         mockMvc.perform(post)

@@ -32,10 +32,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Dave Syer
  */
 @ManagedResource
-//(
-//    objectName="cloudfoundry.identity:name=UaaAudit",
-//    description = "UAA Audit Metrics"
-//)
+(
+    objectName="cloudfoundry.identity:name=UaaAudit",
+    description = "UAA Audit Metrics"
+)
 public class LoggingAuditService implements UaaAuditService {
 
     private Log logger = LogFactory.getLog(LoggingAuditService.class);
@@ -111,8 +111,8 @@ public class LoggingAuditService implements UaaAuditService {
     @Override
     public void log(AuditEvent auditEvent, String zoneId) {
         updateCounters(auditEvent);
-        log(String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s]", auditEvent.getType().name(), auditEvent.getData(),
-                        auditEvent.getPrincipalId(), auditEvent.getOrigin(), auditEvent.getIdentityZoneId()));
+        log(String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s], authenticationType=[%s]", auditEvent.getType().name(), auditEvent.getData(),
+                        auditEvent.getPrincipalId(), auditEvent.getOrigin(), auditEvent.getIdentityZoneId(), auditEvent.getAuthenticationType()));
     }
 
     private void updateCounters(AuditEvent auditEvent) {

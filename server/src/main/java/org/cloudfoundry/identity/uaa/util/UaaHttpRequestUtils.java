@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.NoConnectionReuseStrategy;
@@ -58,6 +59,7 @@ public abstract class UaaHttpRequestUtils {
             .setRedirectStrategy(new DefaultRedirectStrategy());
         if (skipSslValidation) {
             builder.setSslcontext(getNonValidatingSslContext());
+            builder.setSSLHostnameVerifier(new NoopHostnameVerifier());
         }
         builder.setConnectionReuseStrategy(NoConnectionReuseStrategy.INSTANCE);
         return builder;

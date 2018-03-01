@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredExcept
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 
 import javax.servlet.ServletException;
@@ -27,21 +28,20 @@ import java.io.IOException;
 import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
 
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
-    private AuthenticationFailureHandler delegate;
+    private ExceptionMappingAuthenticationFailureHandler delegate;
 
-    public UaaAuthenticationFailureHandler(AuthenticationFailureHandler delegate) {
+    public UaaAuthenticationFailureHandler(ExceptionMappingAuthenticationFailureHandler delegate) {
         this.delegate = delegate;
     }
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        if(exception != null && exception instanceof PasswordChangeRequiredException) {
-            request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
-            addCookie(response, request.getContextPath());
-            response.sendRedirect(request.getContextPath()+"/force_password_change");
-            return;
-        }
         addCookie(response, request.getContextPath());
+        if(exception != null) {
+            if (exception instanceof PasswordChangeRequiredException) {
+                request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
+            }
+        }
         if (delegate!=null) {
             delegate.onAuthenticationFailure(request, response, exception);
         }

@@ -7,6 +7,9 @@
   <div th:if="${param.error}" class="alert alert-error u-mb++">
     <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
   </div>
+  <div th:if="${param.success}" class="alert alert-success mbxl">
+    <p th:text="#{'login.' + ${param.success}}">Success Message</p>
+  </div>
 
   <div class="choose">
     <ul class="list-group">

@@ -14,12 +14,11 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.test.UnlessProfileActive;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,16 +27,19 @@ import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -70,6 +72,7 @@ public class ResetPasswordIT {
     private String email;
 
     private String scimClientId;
+    private String authCodeClientId;
 
     @Before
     @After
@@ -88,12 +91,16 @@ public class ResetPasswordIT {
         SecureRandom secureRandom = new SecureRandom();
 
         scimClientId = "scim" + secureRandom.nextInt();
+        authCodeClientId = "auth_code_" + secureRandom.nextInt();
         username = "user" + secureRandom.nextInt();
         email = username + "@example.com";
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
         testClient.createScimClient(adminAccessToken, scimClientId);
-
+        BaseClientDetails authCodeClient = new BaseClientDetails(authCodeClientId, "oauth", "uaa.user", "authorization_code,refresh_token", null, "https://www.google.com");
+        authCodeClient.setClientSecret("scimsecret");
+        authCodeClient.setAutoApproveScopes(Arrays.asList(new String[] {"uaa.user"}));
+        IntegrationTestUtils.createClient(adminAccessToken, baseUrl, authCodeClient);
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
         testClient.createUser(scimAccessToken, username, email, "secr3T", true);
     }
@@ -113,9 +120,7 @@ public class ResetPasswordIT {
     public void resettingAPasswordWithPrimaryEmail() throws Exception {
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-
         beginPasswordReset(email);
-
 
         assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
     }
@@ -142,17 +147,62 @@ public class ResetPasswordIT {
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
-
         assertFalse(contains(link, "@"));
         assertFalse(contains(link, "%40"));
         webDriver.get(link);
+
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-        webDriver.findElement(By.tagName("body"));
+
+        assertEquals(baseUrl + "/login?success=password_reset&form_redirect_uri=https://www.google.com", webDriver.getCurrentUrl());
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Password reset successful"));
+        webDriver.findElement(By.name("username")).sendKeys(username);
+        webDriver.findElement(By.name("password")).sendKeys("new_password");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertEquals("https://www.google.com/", webDriver.getCurrentUrl());
+    }
+
+    @Test
+    public void testNotAutoLoginAfterResetPassword() {
+        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + authCodeClientId + "&redirect_uri=https://www.google.com&grant_type=authorization_code&response_type=code");
+//        webDriver.get();
+        webDriver.findElement(By.linkText("Reset password")).click();
+        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+
+        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
+
+        webDriver.findElement(By.name("username")).sendKeys(username);
+        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
+        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+
+        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        receivedEmail.remove();
+        assertEquals(email, message.getHeaderValue("To"));
+        assertThat(message.getBody(), containsString("Reset your password"));
+
+        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+
+        // Click link in email
+        String link = testClient.extractLink(message.getBody());
+        assertFalse(contains(link, "@"));
+        assertFalse(contains(link, "%40"));
+        webDriver.get(link);
+
+        webDriver.findElement(By.name("password")).sendKeys("new_password");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+
+        assertEquals(baseUrl + "/login?success=password_reset", webDriver.getCurrentUrl());
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Password reset successful"));
+        webDriver.findElement(By.name("username")).sendKeys(username);
+        webDriver.findElement(By.name("password")).sendKeys("new_password");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        assertThat(webDriver.getCurrentUrl(), startsWith("https://www.google.com/?code="));
     }
 
     @Test
@@ -252,16 +302,13 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
-        
-        // Log out and back in with new password
-        tearDown();
+        assertThat(webDriver.getCurrentUrl(), is(baseUrl + "/login?success=password_reset"));
 
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("You should not see this page. Set up your redirect URI."));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page. Set up your redirect URI."));
     }
 
 }

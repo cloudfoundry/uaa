@@ -25,9 +25,13 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.TimeBasedExpiringValueMap;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -53,9 +57,11 @@ import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.util.StringUtils.hasText;
 
-public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManager {
+public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManager, InitializingBean {
 
     private JdbcTemplate jdbcTemplate;
+
+    private TimeService timeService = new TimeServiceImpl();
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -97,6 +103,13 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     private ScimGroupMemberRowMapper rowMapper;
 
+    private TimeBasedExpiringValueMap<String, ScimGroup> defaultGroupCache = new TimeBasedExpiringValueMap<>(timeService);;
+
+    @Override
+    public void afterPropertiesSet() {
+        defaultGroupCache = new TimeBasedExpiringValueMap<>(timeService);
+    }
+
     public Set<ScimGroup> getDefaultUserGroups(String zoneId) {
         //TODO - replicates previous behavior where groups are automatically created here
         if (!hasText(zoneId)) {
@@ -109,9 +122,20 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         }
         return zoneDefaultGroups
             .stream()
-            .map(groupName -> groupProvisioning.createOrGet(new ScimGroup(null, groupName, zoneId), zoneId))
+            .map(groupName -> createOrGetGroup(groupName, zoneId))
             .collect(toSet());
     }
+
+    public ScimGroup createOrGetGroup(String displayName, String zoneId) {
+        String key = zoneId + displayName;
+        ScimGroup group = defaultGroupCache.get(key);
+        if (group == null) {
+            group = groupProvisioning.createOrGet(new ScimGroup(null, displayName, zoneId), zoneId);
+            defaultGroupCache.put(key, group);
+        }
+        return group;
+    }
+
 
     public void setZoneProvisioning(IdentityZoneProvisioning zoneProvisioning) {
         this.zoneProvisioning = zoneProvisioning;
@@ -123,6 +147,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     public void setScimGroupProvisioning(ScimGroupProvisioning groupProvisioning) {
         this.groupProvisioning = groupProvisioning;
+    }
+
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 
     public JdbcScimGroupMembershipManager(JdbcTemplate jdbcTemplate) {

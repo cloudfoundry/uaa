@@ -32,7 +32,7 @@ public class SamlRedirectUtilsTest {
                 .setLinkText("link text")
                 .setZoneId(IdentityZone.getUaa().getId());
 
-        String url = SamlRedirectUtils.getIdpRedirectUrl(definition, "login.uaa-acceptance.cf-app.com");
-        Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=login.uaa-acceptance.cf-app.com&idp=simplesamlphp-url&isPassive=true", url);
+        String url = SamlRedirectUtils.getIdpRedirectUrl(definition, "login.oms.identity.team");
+        Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=login.oms.identity.team&idp=simplesamlphp-url&isPassive=true", url);
     }
 }

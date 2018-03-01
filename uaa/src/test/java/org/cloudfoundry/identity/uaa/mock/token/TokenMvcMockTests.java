@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -66,7 +67,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensaml.xml.ConfigurationException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
@@ -120,9 +120,6 @@ import java.util.Collections;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.AUTHORIZATION_CODE;
@@ -156,7 +153,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
@@ -185,7 +181,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     private String BADSECRET = "badsecret";
     private TestClient testClient;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private MockEnvironment mockEnvironment;
     private static SamlTestUtils samlTestUtils = new SamlTestUtils();
     private boolean allowQueryString;
@@ -440,6 +436,15 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         doPasswordGrant(username, SECRET, clientId, SECRET, status().isOk());
     }
 
+    @Test
+    public void password_grant() throws Exception {
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user";
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        assertEquals(1, getWebApplicationContext().getBean(JdbcTemplate.class).update("UPDATE users SET passwd_change_required = ? WHERE ID = ?", true, user.getId()));
+        doPasswordGrant(username, SECRET, "cf", "", status().is4xxClientError());
+    }
+
 
     @Test
     public void test_logon_timestamps_with_password_grant() throws Exception {
@@ -522,7 +527,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map<String, String> error = (JsonUtils.readValue(response, new TypeReference<Map<String, String>>() {}));
         String error_description = error.get("error_description");
         assertNotNull(error_description);
-        assertEquals("User password needs to be changed", error_description);
+        assertEquals("password change required", error_description);
 
     }
 
@@ -686,7 +691,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String fullPath = "/uaa/oauth/token/alias/"+subdomain+".cloudfoundry-saml-login";
         String origin = subdomain + ".cloudfoundry-saml-login";
 
-        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
+                                                                                                           getMockMvc(),
+                                                                                                           getWebApplicationContext(),
+                                                                                                           null,
+                                                                                                           false);
 
         //create an actual IDP, so we can fetch metadata
         String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
@@ -701,7 +710,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         provider.setOriginKey(origin);
 
         IdentityZoneHolder.set(zone.getIdentityZone());
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider, provider.getIdentityZoneId());
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
@@ -731,7 +740,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .accept(APPLICATION_JSON)
             .header(HOST, host)
             .contentType(APPLICATION_FORM_URLENCODED)
-            .param("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer")
+            .param("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER)
             .param("client_id", clientId)
             .param("client_secret", "secret")
             .param("assertion",assertion);
@@ -757,7 +766,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String idpOrigin = subdomain + ".cloudfoundry-saml-login";
 
         //create an zone - that zone will be our IDP
-        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(),null);
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
+                                                                                                           getMockMvc(),
+                                                                                                           getWebApplicationContext(),
+                                                                                                           null,
+                                                                                                           false);
         //create an actual IDP, so we can fetch metadata
         String spMetadata = MockMvcUtils.getSPMetadata(getMockMvc(), null);
         String idpMetadata = MockMvcUtils.getIDPMetaData(getMockMvc(), subdomain);
@@ -772,7 +785,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         provider.setOriginKey(idpOrigin);
 
         IdentityZoneHolder.clear();
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider);
+        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(provider, provider.getIdentityZoneId());
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
@@ -1040,12 +1053,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
                 .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
             .andExpect(status().isFound())
-            .andExpect(cookie().maxAge("Current-User", 0))
             .andReturn();
 
         String url = result.getResponse().getHeader("Location");
-        assertEquals(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "login_required"), url);
-
+        assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "login_required")));
     }
 
     @Test
@@ -3590,298 +3601,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andExpect(status().isOk());
     }
 
-
-    @Test
-    public void revokeOwnJWToken() throws Exception {
-        IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
-        defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
-        identityZoneProvisioning.update(defaultZone);
-
-        try {
-            BaseClientDetails client = new BaseClientDetails(
-                generator.generate(),
-                "",
-                "openid",
-                "client_credentials,password",
-                "clients.write",
-                 "http://redirect.uri");
-            client.setClientSecret("secret");
-            createClient(getMockMvc(), adminToken, client);
-
-            //this is the token we will revoke
-            String clientToken =
-                    getClientCredentialsOAuthAccessToken(
-                            getMockMvc(),
-                            client.getClientId(),
-                            client.getClientSecret(),
-                            null,
-                            null
-                    );
-
-            Jwt jwt = JwtHelper.decode(clientToken);
-            Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
-            String jti = (String) claims.get("jti");
-
-            getMockMvc().perform(delete("/oauth/token/revoke/" + jti)
-                    .header("Authorization", "Bearer " + clientToken))
-                    .andExpect(status().isOk());
-
-            tokenProvisioning.retrieve(jti, IdentityZoneHolder.get().getId());
-        } catch (EmptyResultDataAccessException e) {
-        } finally {
-            defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
-            identityZoneProvisioning.update(defaultZone);
-        }
-    }
-
-    @Test
-    public void revokeOtherClientToken() throws Exception {
-        String resourceClientId = generator.generate();
-        BaseClientDetails resourceClient = new BaseClientDetails(
-                resourceClientId,
-                "",
-                "uaa.resource",
-                "client_credentials,password",
-                "uaa.resource",
-                "http://redirect.uri");
-        resourceClient.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, resourceClient);
-
-        BaseClientDetails client = new BaseClientDetails(
-            generator.generate(),
-            "",
-            "openid",
-            "client_credentials,password",
-            "tokens.revoke",
-             "http://redirect.uri");
-        client.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, client);
-
-        //this is the token we will revoke
-        String revokeAccessToken =
-                getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
-                        client.getClientId(),
-                        client.getClientSecret(),
-                        "tokens.revoke",
-                        null,
-                        false
-                );
-
-        String tokenToBeRevoked =
-                getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
-                        resourceClientId,
-                        resourceClient.getClientSecret(),
-                        null,
-                        null,
-                        true
-                );
-
-        getMockMvc().perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
-                .header("Authorization", "Bearer " + revokeAccessToken))
-                .andExpect(status().isOk());
-
-
-        try {
-            tokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
-            fail("Token should have been deleted");
-        } catch (EmptyResultDataAccessException e) {
-            //expected
-        }
-    }
-
-    @Test
-    public void revokeOtherClientTokenForbidden() throws Exception {
-        String resourceClientId = generator.generate();
-        BaseClientDetails resourceClient = new BaseClientDetails(
-                resourceClientId,
-                "",
-                "uaa.resource",
-                "client_credentials,password",
-                "uaa.resource",
-                "http://redirect.uri");
-        resourceClient.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, resourceClient);
-
-        BaseClientDetails client = new BaseClientDetails(
-            generator.generate(),
-            "",
-            "openid",
-            "client_credentials,password",
-            null,
-            "http://redirect.uri");
-        client.setClientSecret("secret");
-        createClient(getMockMvc(), adminToken, client);
-
-        //this is the token we will revoke
-        String revokeAccessToken =
-                getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
-                        client.getClientId(),
-                        client.getClientSecret(),
-                        null,
-                        null,
-                        false
-                );
-
-        String tokenToBeRevoked =
-                getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
-                        resourceClientId,
-                        resourceClient.getClientSecret(),
-                        null,
-                        null,
-                        true
-                );
-
-        getMockMvc().perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
-                .header("Authorization", "Bearer " + revokeAccessToken))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    public void revokeOpaqueTokenWithOpaqueToken() throws Exception {
-        ScimUser scimUser = setUpUser("testUser" + generator.generate());
-
-        String opaqueUserToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", scimUser.getUserName(), "secret", null);
-
-        getMockMvc().perform(delete("/oauth/token/revoke/" + opaqueUserToken)
-                .header("Authorization", "Bearer " + opaqueUserToken))
-                .andExpect(status().isOk());
-
-        try {
-            tokenProvisioning.retrieve(opaqueUserToken, IdentityZoneHolder.get().getId());
-        } catch (EmptyResultDataAccessException e) {
-        }
-    }
-
-    @Test
-    public void test_Revoke_Client_And_User_Tokens() throws Exception {
-        BaseClientDetails client = getAClientWithClientsRead();
-        BaseClientDetails otherClient = getAClientWithClientsRead();
-
-        //this is the token we will revoke
-        String readClientsToken =
-            getClientCredentialsOAuthAccessToken(
-                getMockMvc(),
-                client.getClientId(),
-                client.getClientSecret(),
-                null,
-                null
-            );
-
-        //this is the token from another client
-        String otherReadClientsToken =
-            getClientCredentialsOAuthAccessToken(
-                getMockMvc(),
-                otherClient.getClientId(),
-                otherClient.getClientSecret(),
-                null,
-                null
-            );
-
-        //ensure our token works
-        getMockMvc().perform(
-            get("/oauth/clients")
-            .header("Authorization", "Bearer "+readClientsToken)
-        ).andExpect(status().isOk());
-
-        //ensure we can't get to the endpoint without authentication
-        getMockMvc().perform(
-            get("/oauth/token/revoke/client/"+client.getClientId())
-        ).andExpect(status().isUnauthorized());
-
-        //ensure we can't get to the endpoint without correct scope
-        getMockMvc().perform(
-            get("/oauth/token/revoke/client/"+client.getClientId())
-                .header("Authorization", "Bearer "+otherReadClientsToken)
-        ).andExpect(status().isForbidden());
-
-        //ensure that we have the correct error for invalid client id
-        getMockMvc().perform(
-            get("/oauth/token/revoke/client/notfound"+ generator.generate())
-                .header("Authorization", "Bearer "+adminToken)
-        ).andExpect(status().isNotFound());
-
-        //we revoke the tokens for that client
-        getMockMvc().perform(
-            get("/oauth/token/revoke/client/"+client.getClientId())
-            .header("Authorization", "Bearer "+adminToken)
-        ).andExpect(status().isOk());
-
-        //we should fail attempting to use the token
-        getMockMvc().perform(
-            get("/oauth/clients")
-                .header("Authorization", "Bearer "+readClientsToken)
-        )
-            .andExpect(status().isUnauthorized())
-            .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
-
-
-        ScimUser user = new ScimUser(null,
-                                     generator.generate(),
-                                     "Given Name",
-                                     "Family Name");
-        user.setPrimaryEmail(user.getUserName()+"@test.org");
-        user.setPassword("password");
-
-        user = createUser(getMockMvc(), adminToken, user);
-        user.setPassword("password");
-
-        String userInfoToken = getUserOAuthAccessToken(
-            getMockMvc(),
-            client.getClientId(),
-            client.getClientSecret(),
-            user.getUserName(),
-            user.getPassword(),
-            "openid"
-        );
-
-        //ensure our token works
-        getMockMvc().perform(
-            get("/userinfo")
-                .header("Authorization", "Bearer "+userInfoToken)
-        ).andExpect(status().isOk());
-
-        //we revoke the tokens for that user
-        getMockMvc().perform(
-            get("/oauth/token/revoke/user/"+user.getId()+"notfound")
-                .header("Authorization", "Bearer "+adminToken)
-        ).andExpect(status().isNotFound());
-
-
-        //we revoke the tokens for that user
-        getMockMvc().perform(
-            get("/oauth/token/revoke/user/"+user.getId())
-                .header("Authorization", "Bearer "+adminToken)
-        ).andExpect(status().isOk());
-
-        getMockMvc().perform(
-            get("/userinfo")
-                .header("Authorization", "Bearer "+userInfoToken)
-        )
-            .andExpect(status().isUnauthorized())
-            .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
-
-
-    }
-
-    protected BaseClientDetails getAClientWithClientsRead() throws Exception {
-        BaseClientDetails client = new BaseClientDetails(
-            generator.generate(),
-            "",
-            "openid",
-            "client_credentials,password",
-            "clients.read",
-            "http://redirect.uri");
-        client.setClientSecret("secret");
-
-        createClient(getMockMvc(), adminToken, client);
-        return client;
-    }
-
     @Test
     public void testGetClientCredentials_WithAuthoritiesExcluded_ForDefaultIdentityZone() throws Exception {
         Set<String> originalExclude = getWebApplicationContext().getBean(UaaTokenServices.class).getExcludedClaims();
@@ -4027,7 +3746,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         PasswordPolicy passwordPolicy = new PasswordPolicy(6,128,1,1,1,0,6);
         config.setPasswordPolicy(passwordPolicy);
         provider.setConfig(config);
-        identityProviderProvisioning.update(provider);
+        identityProviderProvisioning.update(provider, provider.getIdentityZoneId());
         String clientId = "testclient" + generator.generate();
         String scopes = "cloud_controller.read";
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
@@ -4057,8 +3776,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
-            .andExpect(status().isForbidden())
-            .andExpect(content().string("{\"error\":\"access_denied\",\"error_description\":\"Your current password has expired. Please reset your password.\"}"));
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string("{\"error\":\"unauthorized\",\"error_description\":\"password change required\"}"));
     }
 
     @Test

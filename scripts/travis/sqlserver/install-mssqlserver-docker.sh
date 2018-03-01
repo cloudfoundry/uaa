@@ -5,4 +5,4 @@
 #sudo gpasswd -a $(whoami) docker
 #sudo service docker restart
 
-sudo docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=changemeCHANGEME1234!' -p 1433:1433 -d microsoft/mssql-server-linux
+sudo docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=changemeCHANGEME1234!' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest

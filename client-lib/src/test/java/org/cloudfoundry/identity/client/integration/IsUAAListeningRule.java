@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.client.integration;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Assume;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -26,22 +25,22 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertTrue;
+
 public class IsUAAListeningRule implements TestRule {
     private static Log logger = LogFactory.getLog(IsUAAListeningRule.class);
 
     private static Map<String,Boolean> sharedStatuses = new HashMap<>();
 
     private final String baseUrl;
-    private final boolean forceIntegrationTests;
 
-    public IsUAAListeningRule(String baseUrl, boolean forceIntegrationTests) {
+    public IsUAAListeningRule(String baseUrl) {
         this.baseUrl = baseUrl;
-        this.forceIntegrationTests = forceIntegrationTests;
     }
 
     @Override
     public Statement apply(Statement statement, Description description) {
-        Assume.assumeTrue("Test ignored as the server cannot be reached at " + baseUrl, forceIntegrationTests || getStatus());
+        assertTrue("Test could not reach " + baseUrl, getStatus());
         return statement;
     }
 

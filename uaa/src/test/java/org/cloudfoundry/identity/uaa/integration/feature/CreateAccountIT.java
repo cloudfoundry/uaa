@@ -19,9 +19,7 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,9 +41,10 @@ import static org.apache.commons.lang3.StringUtils.contains;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -98,10 +97,10 @@ public class CreateAccountIT {
         receivedEmail.remove();
         assertEquals(userEmail, message.getHeaderValue("To"));
         String body = message.getBody();
-        Assert.assertThat(body, containsString("Activate your account"));
+        assertThat(body, containsString("Activate your account"));
 
-        Assert.assertEquals("Create your Predix account", webDriver.findElement(By.tagName("h1")).getText());
-        Assert.assertEquals("Please check email for an activation link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        assertEquals("Create your Predix account", webDriver.findElement(By.tagName("h1")).getText());
+        assertEquals("Please check email for an activation link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
         String link = testClient.extractLink(body);
         assertFalse(isEmpty(link));
@@ -109,15 +108,13 @@ public class CreateAccountIT {
         assertFalse(contains(link, "%40"));
 
         webDriver.get(link);
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
-
-        webDriver.get(baseUrl + "/logout");
+        assertThat(webDriver.findElement(By.tagName("h1")).getText(), not(containsString("You should not see this page.")));
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(SECRET);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("You should not see this page."));
     }
 
     @Test
@@ -126,7 +123,7 @@ public class CreateAccountIT {
 
         webDriver.get(baseUrl + "/create_account?client_id=app");
 
-        Assert.assertEquals("Create your Predix account", webDriver.findElement(By.tagName("h1")).getText());
+        assertEquals("Create your Predix account", webDriver.findElement(By.tagName("h1")).getText());
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
@@ -140,7 +137,7 @@ public class CreateAccountIT {
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         receivedEmail.remove();
         assertEquals(userEmail, message.getHeaderValue("To"));
-        Assert.assertThat(message.getBody(), containsString("Activate your account"));
+        assertThat(message.getBody(), containsString("Activate your account"));
 
         assertEquals("Please check email for an activation link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
@@ -148,7 +145,16 @@ public class CreateAccountIT {
         assertFalse(isEmpty(link));
 
         webDriver.get(link);
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("You should not see this page.")));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("You should not see this page.")));
+
+        webDriver.findElement(By.name("username")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(SECRET);
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        // Authorize the app for some scopes
+        assertEquals("Application Authorization", webDriver.findElement(By.cssSelector("h1")).getText());
+        webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
+        assertEquals("Sample Home Page", webDriver.findElement(By.cssSelector("h1")).getText());
     }
 
     @Test
@@ -163,7 +169,7 @@ public class CreateAccountIT {
         webDriver.get(baseUrl + "/");
         webDriver.findElement(By.xpath("//*[text()='Create account']")).click();
 
-        Assert.assertEquals("Create your Predix account", webDriver.findElement(By.tagName("h1")).getText());
+        assertEquals("Create your Predix account", webDriver.findElement(By.tagName("h1")).getText());
 
 
         webDriver.findElement(By.name("email")).sendKeys(userEmail);
@@ -192,7 +198,7 @@ public class CreateAccountIT {
 
             assertEquals("Account sign-up is not required for this email domain. Please login with the identity provider", webDriver.findElement(By.cssSelector(".alert-error")).getText());
             webDriver.findElement(By.xpath("//input[@value='Login with provider']")).click();
-            assertTrue(webDriver.getCurrentUrl().startsWith(oidcProvider.getConfig().getAuthUrl().toString()));
+            assertThat(webDriver.getCurrentUrl(), startsWith(oidcProvider.getConfig().getAuthUrl().toString()));
         } finally {
             IntegrationTestUtils.deleteProvider(adminToken, baseUrl, OriginKeys.UAA, OriginKeys.OIDC10);
         }

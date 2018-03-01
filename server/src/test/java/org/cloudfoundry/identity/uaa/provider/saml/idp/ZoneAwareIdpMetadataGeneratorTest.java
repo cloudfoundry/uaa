@@ -43,6 +43,7 @@ import static org.opensaml.common.xml.SAMLConstants.SAML2_ARTIFACT_BINDING_URI;
 public class ZoneAwareIdpMetadataGeneratorTest {
 
     public static final String ZONE_ID = "zone-id";
+    public static final String ENTITY_ID = "randomID";
     private ZoneAwareIdpMetadataGenerator generator;
     private IdentityZone otherZone;
     private IdentityZoneConfiguration otherZoneDefinition;
@@ -193,5 +194,17 @@ public class ZoneAwareIdpMetadataGeneratorTest {
         );
         assertEquals(SAML2_POST_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(0).getBinding());;
         assertEquals(SAML2_REDIRECT_BINDING_URI, idpSSODescriptor.getSingleSignOnServices().get(1).getBinding());;
+    }
+
+
+    @Test
+    public void entityIDHonored() {
+        IdentityZoneHolder.set(otherZone);
+        //test default entityID generation within zones
+        assertEquals(ZONE_ID + "." + IdentityZoneHolder.getUaaZone().getConfig().getSamlConfig().getEntityID(), generator.getEntityId());
+
+        otherZoneDefinition.getSamlConfig().setEntityID(ENTITY_ID);
+
+        assertEquals(ENTITY_ID, generator.getEntityId());
     }
 }

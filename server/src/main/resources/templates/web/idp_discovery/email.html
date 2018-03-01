@@ -1,37 +1,39 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/pivotal-ui-main">
-    <div layout:fragment="page-content">
-        <div class="email-container-div">
-        <h4 class="txt-c u-mb++ u-mt- email-h4"
-            th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
-          Sign in to continue
-        </h4>
-        <form action="/login/idp_discovery" th:action="@{/login/idp_discovery}" method="post" role="form" _lpchecked="1" class="email-form">
-            <input class="" name="commit" type="submit" value="Next" hidden="true"/>
-            <div th:if="${param.error}" class="alert alert-error u-mb+">
-                <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
-            </div>
-            <div>
-                <div>
-                    <input class="form-control" id="email" name="email" autofocus="true" type="text" placeholder="Email or Username" style="width: 100%;"/>
-                </div>
-                <div class="help-block has-error" style="display: none;">
-                    Please enter your username or email address
-                </div>
-            </div>
-            <div class="form-group">
-                <input class="btn btn-highlight btn-block btn-lg email-form-button" name="commit" type="submit" value="Next"/>
-            </div>
-        </form>
-        <th:block th:if="${smtpEnabled}">
-            <hr class="divider-alternate-1 u-mb++ u-mt+"/>
-            <div class="addl-actions txt-c mtl email-links">
-                <div class="action u-mt++">
-                    <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}">Create account</a>
-                </div>
-            </div>
-        </th:block>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/pui-account-discovery-main">
+<div layout:fragment="page-content">
+    <div class="email-container-div">
+    <h4 class="txt-c u-mb++ u-mt- email-h4" th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
+    Sign in to continue
+    </h4>
+    <form action="/login/idp_discovery" th:action="@{/login/idp_discovery}" method="post" role="form" _lpchecked="1" class="email-form">
+        <input class="" name="commit" type="submit" value="Next" hidden="true"/>
+        <div th:if="${param.error}" class="alert alert-error u-mb+">
+            <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
         </div>
-    </div>
+        <div th:if="${param.success}" class="alert alert-success u-mb+">
+            <p th:text="#{'login.' + ${param.success}}">Success Message</p>
+        </div>
 
+        <div class="form-group email_address_field">
+            <div>
+                <input class="form-control" id="email" name="email" type="text" autofocus="true" placeholder="Email or Username" style="width: 100%;"/>
+            </div>
+            <div class="help-block has-error" style="display: none;">
+                Please enter your username or email address
+            </div>
+        </div>
+        <div class="form-group">
+            <input class="btn btn-highlight btn-block btn-lg email-form-button" name="commit" type="submit" value="Next"/>
+        </div>
+    </form>
+    <th:block th:if="${linkCreateAccountShow}">
+        <hr class="divider-alternate-1 u-mb++ u-mt+"/>
+        <div class="addl-actions txt-c mtl email-links">
+            <div class="action">
+                <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}">Create account</a>
+            </div>
+        </div>
+    </th:block>
+    </div>
+</div>
 </html>

@@ -50,7 +50,6 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
 
     public void setSavedAccountOptionCookie(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IllegalArgumentException {
         Object principal = authentication.getPrincipal();
-
         if(!(principal instanceof UaaPrincipal)) {
             throw new IllegalArgumentException("Unrecognized authentication principle.");
         }

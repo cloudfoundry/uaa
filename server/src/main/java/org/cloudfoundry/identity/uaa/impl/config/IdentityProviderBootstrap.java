@@ -13,30 +13,6 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.LdapUtils;
-import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.json.JSONException;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.core.env.AbstractEnvironment;
-import org.springframework.core.env.Environment;
-import org.springframework.dao.EmptyResultDataAccessException;
-
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,21 +20,60 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
+import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
+import org.cloudfoundry.identity.uaa.util.LdapUtils;
+import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.json.JSONException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.core.env.AbstractEnvironment;
+import org.springframework.core.env.Environment;
+import org.springframework.dao.EmptyResultDataAccessException;
+
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
+import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.SYSTEM_AUTHENTICATION;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
 
-public class IdentityProviderBootstrap implements InitializingBean {
+public class IdentityProviderBootstrap
+    implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
+    private static Log logger = LogFactory.getLog(IdentityProviderBootstrap.class);
+
     private IdentityProviderProvisioning provisioning;
-    private List<IdentityProvider> providers = new LinkedList<>();
-    private BootstrapSamlIdentityProviderConfigurator configurator;
-    private Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions;
+    private List<IdentityProviderWrapper> providers = new LinkedList<>();
+    private BootstrapSamlIdentityProviderData configurator;
+    private List<IdentityProviderWrapper> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
     private Environment environment;
     private PasswordPolicy defaultPasswordPolicy;
     private LockoutPolicy defaultLockoutPolicy;
     private boolean disableInternalUserManagement;
+
+    private List<String> originsToDelete = null;
+    private ApplicationEventPublisher publisher;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -73,57 +88,32 @@ public class IdentityProviderBootstrap implements InitializingBean {
         if (oauthIdpDefintions == null) {
             return;
         }
-        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> definition : oauthIdpDefintions.entrySet()) {
-            validateDuplicateAlias(definition.getKey());
-            IdentityProvider provider = new IdentityProvider();
-            if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
-                provider.setType(OriginKeys.OAUTH20);
-            } else if(OIDCIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
-                provider.setType(OriginKeys.OIDC10);
-            } else {
-                throw new IllegalArgumentException("Unknown provider type.");
-            }
-            provider.setOriginKey(definition.getKey());
-            provider.setName("UAA Oauth Identity Provider["+provider.getOriginKey()+"]");
-            provider.setActive(true);
-            try {
-                provider.setConfig(definition.getValue());
-            } catch (JsonUtils.JsonUtilException x) {
-                throw new RuntimeException("Non serializable Oauth config");
-            }
-            providers.add(provider);
+        for (IdentityProviderWrapper wrapper : oauthIdpDefintions) {
+            validateDuplicateAlias(wrapper.getProvider().getOriginKey());
+            providers.add(wrapper);
         }
     }
 
     public void validateDuplicateAlias(String originKey) {
-        for (IdentityProvider provider: providers) {
+        for (IdentityProvider provider: providers.stream().map(IdentityProviderWrapper::getProvider).collect(toList())) {
             if (provider.getOriginKey().equals(originKey)) {
                 throw new IllegalArgumentException("Provider alias " + originKey + " is not unique.");
             }
         }
     }
 
-    public void setSamlProviders(BootstrapSamlIdentityProviderConfigurator configurator) {
+    public void setSamlProviders(BootstrapSamlIdentityProviderData configurator) {
         this.configurator = configurator;
     }
     protected void addSamlProviders() {
         if (configurator==null) {
             return;
         }
-        for (SamlIdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
-            validateDuplicateAlias(def.getIdpEntityAlias());
-            IdentityProvider provider = new IdentityProvider();
-            provider.setType(OriginKeys.SAML);
-            provider.setOriginKey(def.getIdpEntityAlias());
-            provider.setName("UAA SAML Identity Provider["+provider.getOriginKey()+"]");
-            provider.setActive(true);
-            try {
-                provider.setConfig(def);
-            } catch (JsonUtils.JsonUtilException x) {
-                throw new RuntimeException("Non serializable SAML config");
-            }
-            providers.add(provider);
+        for (IdentityProviderWrapper wrapper : configurator.getSamlProviders()) {
+            validateDuplicateAlias(wrapper.getProvider().getOriginKey());
+            providers.add(wrapper);
         }
+
     }
 
     public void setLdapConfig(HashMap<String, Object> ldapConfig) {
@@ -131,20 +121,31 @@ public class IdentityProviderBootstrap implements InitializingBean {
     }
 
     protected void addLdapProvider() {
-        boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(OriginKeys.LDAP);
-        if (ldapConfig != null || ldapProfile) {
-            IdentityProvider provider = new IdentityProvider();
-            provider.setActive(ldapProfile);
-            provider.setOriginKey(OriginKeys.LDAP);
-            provider.setType(OriginKeys.LDAP);
-            provider.setName("UAA LDAP Provider");
-            Map<String,Object> ldap = new HashMap<>();
-            ldap.put(LDAP, ldapConfig);
-            LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
-            provider.setConfig(json);
-            provider.setActive(ldapProfile && json.isConfigured());
-            providers.add(provider);
+        boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(LDAP);
+        //the LDAP provider has to be there
+        //and we activate, deactivate based on the `ldap` profile presence
+        IdentityProvider provider = new IdentityProvider();
+        provider.setActive(ldapProfile);
+        provider.setOriginKey(LDAP);
+        provider.setType(LDAP);
+        provider.setName("UAA LDAP Provider");
+        Map<String,Object> ldap = new HashMap<>();
+        ldap.put(LdapIdentityProviderDefinition.LDAP, ldapConfig);
+        LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
+        provider.setConfig(json);
+        provider.setActive(ldapProfile && json.isConfigured());
+        /*
+          LDAP is a bit tricky. We have a Flyway conversion (2.0.2) that always adds an LDAP provider.
+          So we have to assume that if LDAP config == null, then we should override it
+         */
+        boolean override = ldapConfig == null || ldapConfig.get("override") == null ? true : (boolean) ldapConfig.get("override");
+        if (!override) {
+            IdentityProvider existing = getProviderByOrigin(LDAP, IdentityZone.getUaa().getId());
+            override = existing == null || existing.getConfig() == null;
         }
+        IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
+        wrapper.setOverride(override);
+        providers.add(wrapper);
     }
 
 
@@ -195,8 +196,18 @@ public class IdentityProviderBootstrap implements InitializingBean {
             provider.setName("UAA Keystone Provider");
             provider.setActive(active);
             provider.setConfig(getKeystoneDefinition(keystoneConfig));
-            providers.add(provider);
+            providers.add(new IdentityProviderWrapper(provider));
         }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
+
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        deleteIdentityProviders(IdentityZone.getUaa().getId());
     }
 
     @Override
@@ -210,47 +221,67 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
         String zoneId = IdentityZone.getUaa().getId();
 
-        //deactivate all providers that are no longer present
-        deactivateUnusedProviders(zoneId);
-
-        for (IdentityProvider provider: providers) {
-            IdentityProvider existing = null;
-            try {
-                existing = provisioning.retrieveByOrigin(provider.getOriginKey(), zoneId);
-            }catch (EmptyResultDataAccessException x){
+        for (IdentityProviderWrapper wrapper: providers) {
+            IdentityProvider provider = wrapper.getProvider();
+            if (getOriginsToDelete().contains(provider.getOriginKey())) {
+                //dont process origins slated for deletion
+                continue;
             }
+            IdentityProvider existing = getProviderByOrigin(provider.getOriginKey(), zoneId);
             provider.setIdentityZoneId(zoneId);
             if (existing==null) {
-                provisioning.create(provider);
-            } else {
+                provisioning.create(provider, zoneId);
+            } else if (wrapper.isOverride()) {
                 provider.setId(existing.getId());
                 provider.setCreated(existing.getCreated());
                 provider.setVersion(existing.getVersion());
                 provider.setLastModified(new Date(System.currentTimeMillis()));
-                provisioning.update(provider);
+                provisioning.update(provider, zoneId);
             }
         }
         updateDefaultZoneUaaIDP();
     }
 
-    private void deactivateUnusedProviders(String zoneId) {
-        for (IdentityProvider provider: provisioning.retrieveAll(false, zoneId)) {
-            if (!OriginKeys.UAA.equals(provider.getType())) {
-                if (!isAmongProviders(provider.getOriginKey(), provider.getType())) {
-                    provider.setActive(false);
-                    provisioning.update(provider);
-                }
+    public IdentityProvider getProviderByOrigin(String origin, String zoneId) {
+        try {
+            return provisioning.retrieveByOrigin(origin, zoneId);
+        }catch (EmptyResultDataAccessException x){
+        }
+        return null;
+
+    }
+
+    private void deleteIdentityProviders(String zoneId) {
+        for (String origin : getOriginsToDelete()) {
+            if (!UAA.equals(origin) && !LDAP.equals(origin)) {
+                try {
+                    logger.debug("Attempting to deactivating identity provider:"+origin);
+                    IdentityProvider provider = provisioning.retrieveByOrigin(origin, zoneId);
+                    //delete provider
+                    EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(provider, SYSTEM_AUTHENTICATION);
+                    if (this.publisher!=null) {
+                        publisher.publishEvent(event);
+                        logger.debug("Identity provider deactivated:"+origin);
+                    } else {
+                        logger.warn(
+                            String.format("Unable to delete identity provider with origin '%s', no application publisher",
+                                          origin)
+                        );
+                    }
+
+                } catch (EmptyResultDataAccessException x) {}
             }
         }
     }
 
     protected void updateDefaultZoneUaaIDP() throws JSONException {
-        IdentityProvider internalIDP = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        String zoneId = IdentityZone.getUaa().getId();
+        IdentityProvider internalIDP = provisioning.retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
         internalIDP.setConfig(identityProviderDefinition);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
         internalIDP.setActive(!getBooleanValue(disableInternalAuth, false));
-        provisioning.update(internalIDP);
+        provisioning.update(internalIDP, zoneId);
     }
 
     protected boolean getBooleanValue(String s, boolean defaultValue) {
@@ -259,15 +290,6 @@ public class IdentityProviderBootstrap implements InitializingBean {
         } else {
             return defaultValue;
         }
-    }
-
-    private boolean isAmongProviders(String originKey, String type) {
-        for (IdentityProvider provider: providers) {
-            if (provider.getOriginKey().equals(originKey) && provider.getType().equals(type)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public void setDefaultPasswordPolicy(PasswordPolicy defaultPasswordPolicy) {
@@ -286,7 +308,16 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
-    public void setOauthIdpDefinitions(Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions) {
+    public void setOauthIdpDefinitions(List<IdentityProviderWrapper> oauthIdpDefintions) {
         this.oauthIdpDefintions = oauthIdpDefintions;
     }
+
+    public void setOriginsToDelete(List<String> originsToDelete) {
+        this.originsToDelete = originsToDelete;
+    }
+
+    public List<String> getOriginsToDelete() {
+        return ofNullable(originsToDelete).orElse(emptyList());
+    }
+
 }

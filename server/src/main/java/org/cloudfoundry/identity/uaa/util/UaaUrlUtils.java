@@ -14,15 +14,6 @@
  */
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.util.UriUtils;
-
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -33,6 +24,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -75,12 +76,12 @@ public abstract class UaaUrlUtils {
     }
 
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
-        "^http(\\*|s)?://" +            //URL starts with 'www.' or 'http://' or 'https://' or 'http*://
-        "(.*:.*@)?" +                   //username/password in URL
-        "(([a-zA-Z0-9\\-\\*]+\\.)*" +   //subdomains
-        "[a-zA-Z0-9\\-]+\\.)?" +        //hostname
-        "[a-zA-Z0-9\\-]+" +             //tld
-        "(:[0-9]+)?(/.*|$)"             //port and path
+        "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
+        "(.*:.*@)?" +                    //username/password in URL
+        "(([a-zA-Z0-9\\-\\*\\_]+\\.)*" + //subdomains
+        "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
+        "[a-zA-Z0-9\\-]+" +              //tld
+        "(:[0-9]+)?(/.*|$)"              //port and path
     );
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
@@ -120,7 +121,7 @@ public abstract class UaaUrlUtils {
 
     public static String getBaseURL(HttpServletRequest request) {
         //returns scheme, host and context path
-        //for example http://localhost:8080/uaa or http://login.uaa-acceptance.cf-app.com
+        //for example http://localhost:8080/uaa or http://login.oms.identity.team
         String requestURL = request.getRequestURL().toString();
         return hasText(request.getServletPath()) ?
             requestURL.substring(0, requestURL.lastIndexOf(request.getServletPath())) :
@@ -185,6 +186,13 @@ public abstract class UaaUrlUtils {
         return addSubdomainToUrl(url, getSubdomain());
     }
     public static String addSubdomainToUrl(String url, String subdomain) {
+        if (!hasText(subdomain)) {
+            return url;
+        }
+
+        subdomain = subdomain.trim();
+        subdomain = subdomain.endsWith(".") ? subdomain : subdomain + ".";
+
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
         builder.host(subdomain + builder.build().getHost());
         return builder.build().toUriString();
@@ -193,9 +201,10 @@ public abstract class UaaUrlUtils {
     public static String getSubdomain() {
         String subdomain = IdentityZoneHolder.get().getSubdomain();
         if (hasText(subdomain)) {
-            subdomain += ".";
+            subdomain = subdomain.trim();
+            subdomain = subdomain.endsWith(".") ? subdomain : subdomain + ".";
         }
-        return subdomain.trim();
+        return subdomain;
     }
 
     public static String extractPathVariableFromUrl(int pathParameterIndex, String path) {

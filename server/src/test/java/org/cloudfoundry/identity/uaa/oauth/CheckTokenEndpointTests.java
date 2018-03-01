@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -950,5 +951,60 @@ public class CheckTokenEndpointTests {
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertEquals("client", result.getClientId());
         assertNull(result.getUserId());
+    }
+
+    @Test
+    public void testValidAuthorities() throws Exception {
+        Map<String, String> azAttributes = new HashMap<>();
+        azAttributes.put("external_group", "domain\\group1");
+        azAttributes.put("external_id", "abcd1234");
+        Map<String, Object> azAuthorities = new HashMap<>();
+        azAuthorities.put("az_attr", azAttributes);
+        String azAuthoritiesJson = JsonUtils.writeValueAsString(azAuthorities);
+        Map<String, String> requestParameters = new HashMap<>();
+        requestParameters.put("authorities", azAuthoritiesJson);
+        authorizationRequest.setRequestParameters(requestParameters);
+        authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
+            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        assertEquals(result.getAzAttr(),azAttributes);
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void testInvalidAuthoritiesNested() throws Exception {
+        Map<String, Object> nestedAttributes = new HashMap<>();
+        nestedAttributes.put("nested_group", "true");
+        nestedAttributes.put("nested_id", "1234");
+        Map<String, Object> azAttributes = new HashMap<>();
+        azAttributes.put("external_id", nestedAttributes);
+        Map<String, Object> azAuthorities = new HashMap<>();
+        azAuthorities.put("az_attr", azAttributes);
+        String azAuthoritiesJson = JsonUtils.writeValueAsString(azAuthorities);
+        Map<String, String> requestParameters = new HashMap<>();
+        requestParameters.put("authorities", azAuthoritiesJson);
+        authorizationRequest.setRequestParameters(requestParameters);
+        authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
+            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+    }
+
+    @Test
+    public void testEmptyAuthorities() throws Exception {
+        Map<String, String> azAttributes = new HashMap<>();
+        azAttributes.put("external_group", "domain\\group1");
+        azAttributes.put("external_id", "abcd1234");
+        Map<String, Object> azAuthorities = new HashMap<>();
+        azAuthorities.put("any_attr", azAttributes);
+        String azAuthoritiesJson = JsonUtils.writeValueAsString(azAuthorities);
+        Map<String, String> requestParameters = new HashMap<>();
+        requestParameters.put("authorities", azAuthoritiesJson);
+        authorizationRequest.setRequestParameters(requestParameters);
+        authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
+            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        assertNull(result.getAzAttr());
     }
 }

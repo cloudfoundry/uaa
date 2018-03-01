@@ -127,7 +127,7 @@ public class XOAuthProviderConfiguratorTests {
     private RawXOAuthIdentityProviderDefinition oauth;
 
 
-    private String baseExpect = "https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
+    private String baseExpect = "https://oidc10.oms.identity.team/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
     private String redirectUri;
     private MockHttpServletRequest request;
     XOAuthProviderConfigurator configurator;
@@ -152,9 +152,9 @@ public class XOAuthProviderConfiguratorTests {
         request.setServerPort(8443);
 
         for (AbstractXOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
-            def.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
-            def.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
-            def.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_keys"));
+            def.setAuthUrl(new URL("https://oidc10.oms.identity.team/oauth/authorize"));
+            def.setTokenUrl(new URL("https://oidc10.oms.identity.team/oauth/token"));
+            def.setTokenKeyUrl(new URL("https://oidc10.oms.identity.team/token_keys"));
             def.setScopes(Arrays.asList("openid","password.write"));
             def.setRelyingPartyId("clientId");
             if (def == oidc) {
@@ -262,14 +262,14 @@ public class XOAuthProviderConfiguratorTests {
 
     @Test
     public void retrieveById() {
-        when(provisioning.retrieve(eq(OIDC10))).thenReturn(oidcProvider);
-        when(provisioning.retrieve(eq(OAUTH20))).thenReturn(oauthProvider);
+        when(provisioning.retrieve(eq(OIDC10), anyString())).thenReturn(oidcProvider);
+        when(provisioning.retrieve(eq(OAUTH20), anyString())).thenReturn(oauthProvider);
 
-        assertNotNull(configurator.retrieve(OIDC10));
+        assertNotNull(configurator.retrieve(OIDC10, "id"));
         verify(configurator, times(1)).overlay(eq(config));
 
         reset(configurator);
-        assertNotNull(configurator.retrieve(OAUTH20));
+        assertNotNull(configurator.retrieve(OAUTH20, "id"));
         verify(configurator, never()).overlay(anyObject());
     }
 

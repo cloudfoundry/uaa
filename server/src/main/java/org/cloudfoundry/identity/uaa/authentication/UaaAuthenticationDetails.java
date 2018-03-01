@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.bouncycastle.util.encoders.Base64;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.util.StringUtils;
-
-import javax.servlet.http.HttpServletRequest;
-import java.io.Serializable;
 
 /**
  * Contains additional information about the authentication request which may be
@@ -117,7 +117,7 @@ public class UaaAuthenticationDetails implements Serializable {
             if (sb.length() > 0) {
                 sb.append(", ");
             }
-            sb.append("sessionId=").append(sessionId);
+            sb.append("sessionId=<SESSION>");
         }
         return sb.toString();
     }

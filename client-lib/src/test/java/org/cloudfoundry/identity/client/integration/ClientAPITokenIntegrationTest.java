@@ -53,7 +53,7 @@ public class ClientAPITokenIntegrationTest {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Rule
-    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(uaaURI, false);
+    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(uaaURI);
 
     @Before
     public void setUp() throws Exception {

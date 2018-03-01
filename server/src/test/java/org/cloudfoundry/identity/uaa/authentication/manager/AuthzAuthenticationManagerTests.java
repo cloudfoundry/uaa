@@ -12,17 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
-import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -34,6 +40,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,18 +56,13 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -71,9 +74,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * @author Luke Taylor
- */
+
 public class AuthzAuthenticationManagerTests {
     private AuthzAuthenticationManager mgr;
     private UaaUserDatabase db;
@@ -103,6 +104,11 @@ public class AuthzAuthenticationManagerTests {
         mgr.setOrigin(OriginKeys.UAA);
     }
 
+    @After
+    public void cleanUp() throws Exception {
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
+    }
+
     private UaaUserPrototype getPrototype() {
         String id = new RandomValueStringGenerator().generate();
         return new UaaUserPrototype()
@@ -129,12 +135,12 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
         assertThat(((UaaAuthentication)result).getAuthenticationMethods(), containsInAnyOrder("pwd"));
 
-        ApplicationEvent event = eventCaptor.getValue();
-        assertThat(event, instanceOf(UserAuthenticationSuccessEvent.class));
-        assertEquals("auser", ((UserAuthenticationSuccessEvent)event).getUser().getUsername());
+        List<ApplicationEvent> events = eventCaptor.getAllValues();
+        assertThat(events.get(0), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
+        assertEquals("auser", ((IdentityProviderAuthenticationSuccessEvent)events.get(0)).getUser().getUsername());
     }
 
-    @Test(expected = PasswordExpiredException.class)
+    @Test
     public void unsuccessfulPasswordExpired() throws Exception {
         IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
 
@@ -163,7 +169,9 @@ public class AuthzAuthenticationManagerTests {
             user.getSalt(),
             oneYearAgo);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
-        mgr.authenticate(createAuthRequest("auser", "password"));
+        Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
+        assertTrue(((UaaAuthentication)authentication).isRequiresPasswordChange());
+        assertTrue(authentication.isAuthenticated());
     }
 
     @Test(expected = BadCredentialsException.class)
@@ -188,7 +196,7 @@ public class AuthzAuthenticationManagerTests {
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
 
-        verify(publisher).publishEvent(isA(UserAuthenticationSuccessEvent.class));
+        verify(publisher).publishEvent(isA(IdentityProviderAuthenticationSuccessEvent.class));
     }
 
     @Test
@@ -200,6 +208,7 @@ public class AuthzAuthenticationManagerTests {
         } catch (BadCredentialsException expected) {
         }
 
+        verify(publisher).publishEvent(isA(IdentityProviderAuthenticationFailureEvent.class));
         verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
         verify(db, times(0)).updateLastLogonTime(anyString());
     }
@@ -269,12 +278,12 @@ public class AuthzAuthenticationManagerTests {
 
     @Test
     public void authenticationWhenUserPasswordChangeRequired() throws Exception {
-        exception.expectMessage("User password needs to be changed");
-        exception.expect(PasswordChangeRequiredException.class);
         mgr.setAllowUnverifiedUsers(false);
         user.setPasswordChangeRequired(true);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
-        mgr.authenticate(createAuthRequest("auser", "password"));
+        Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
+        assertTrue(((UaaAuthentication)authentication).isRequiresPasswordChange());
+        assertTrue(authentication.isAuthenticated());
     }
 
     @Test
@@ -290,7 +299,7 @@ public class AuthzAuthenticationManagerTests {
         }
     }
 
-    @Test (expected = PasswordChangeRequiredException.class)
+    @Test
     public void testSystemWidePasswordExpiry() {
         IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
         UaaIdentityProviderDefinition idpDefinition = mock(UaaIdentityProviderDefinition.class);
@@ -300,7 +309,9 @@ public class AuthzAuthenticationManagerTests {
         policy.setPasswordNewerThan(new Date(System.currentTimeMillis() + 1000));
         when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
         when(db.retrieveUserByName("auser",OriginKeys.UAA)).thenReturn(user);
-        mgr.authenticate(createAuthRequest("auser", "password"));
+        Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
+        assertTrue(((UaaAuthentication)authentication).isRequiresPasswordChange());
+        assertTrue(authentication.isAuthenticated());
     }
 
     @Test

@@ -84,10 +84,6 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
             return targetUrl;
         }
 
-        if (super.isAlwaysUseDefaultTargetUrl()) {
-            return getDefaultTargetUrl();
-        }
-
         String defaultTargetUrl = getDefaultTargetUrl();
         if (targetUrl.equals(defaultTargetUrl)) {
             return targetUrl;

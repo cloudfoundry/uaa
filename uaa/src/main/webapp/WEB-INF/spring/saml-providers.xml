@@ -37,7 +37,6 @@
                 <security:filter-chain pattern="/saml/SSO/**" filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter" />
                 <security:filter-chain pattern="/saml/SingleLogout/**" filters="samlLogoutProcessingFilter" />
                 <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery" />
-                <!--<security:filter-chain pattern="/oauth/authorize/**" filters="exceptionTranslationFilter" />-->
             </security:filter-chain-map>
         </bean>
 
@@ -154,6 +153,9 @@
         <bean id="basicContextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" primary="true">
             <property name="metadataResolver" ref="nonCachingSPMetadataCredentialsResolver"/>
             <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
+            <property name="storageFactory">
+                <bean class="org.cloudfoundry.identity.uaa.provider.saml.SamlSessionStorageFactory"/>
+            </property>
         </bean>
 
         <!-- Processing filter for WebSSO profile messages -->
@@ -285,7 +287,7 @@
         <bean class="org.springframework.security.saml.SAMLBootstrap" />
 
         <!-- Initialization of the velocity engine -->
-        <bean id="velocityEngine" class="org.springframework.security.saml.util.VelocityFactory" factory-method="getEngine" />
+        <bean id="velocityEngine" class="org.cloudfoundry.identity.uaa.util.velocity.VelocityFactory" factory-method="getEngine" />
 
         <!-- XML parser pool needed for OpenSAML parsing -->
         <bean id="parserPool" class="org.opensaml.xml.parse.BasicParserPool" scope="singleton" />
@@ -301,7 +303,7 @@
         <property name="contentCache" ref="urlCache"/>
     </bean>
 
-    <bean id="bootstrapMetaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator">
+    <bean id="bootstrapMetaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData">
         <property name="identityProviders" value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}" />
         <property name="legacyIdpMetaData" ref="metaDataUrl"/>
         <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>

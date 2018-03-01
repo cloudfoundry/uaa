@@ -1,22 +1,21 @@
 package org.cloudfoundry.identity.uaa.audit;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.argThat;
-
+import com.ge.predix.audit.sdk.AuditClient;
+import com.ge.predix.audit.sdk.exception.AuditException;
+import com.ge.predix.audit.sdk.message.AuditEnums;
+import com.ge.predix.audit.sdk.message.AuditEventV2;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
-
-import com.ge.predix.audit.sdk.AuditClient;
-import com.ge.predix.audit.sdk.exception.AuditException;
-import com.ge.predix.audit.sdk.message.AuditEnums;
-import com.ge.predix.audit.sdk.message.AuditEventV2;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PredixAuditServiceTest {
@@ -38,7 +37,8 @@ public class PredixAuditServiceTest {
                 .toString() + ": " + DATA;
         AuditEvent auditEvent = new AuditEvent(
                 AuditEventType.ClientAuthenticationFailure, "princialID",
-                "origin", DATA, System.currentTimeMillis(), IDENTITY_ZONE_ID);
+                "origin", DATA, System.currentTimeMillis(), IDENTITY_ZONE_ID,
+                null, null);
         try {
             auditService.log(auditEvent, IDENTITY_ZONE_ID);
             verify(mockAuditClient)
@@ -59,7 +59,8 @@ public class PredixAuditServiceTest {
                 + DATA;
         AuditEvent auditEvent = new AuditEvent(
                 AuditEventType.ClientAuthenticationFailure, "princialID",
-                "origin", DATA, System.currentTimeMillis(), null);
+                "origin", DATA, System.currentTimeMillis(), null,
+                null, null);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
             auditService.log(auditEvent, null);
@@ -82,7 +83,8 @@ public class PredixAuditServiceTest {
                 + DATA;
         AuditEvent auditEvent = new AuditEvent(
                 AuditEventType.ClientAuthenticationFailure, "princialID",
-                "origin", DATA, System.currentTimeMillis(), identityZoneId);
+                "origin", DATA, System.currentTimeMillis(), identityZoneId,
+                null, null);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
             auditService.log(auditEvent, identityZoneId);
@@ -103,7 +105,8 @@ public class PredixAuditServiceTest {
         String expectedData = AuditEventType.EntityDeletedEvent + ": " + data;
         AuditEvent auditEvent = new AuditEvent(
                 AuditEventType.EntityDeletedEvent, "princialID", "origin", data,
-                System.currentTimeMillis(), IDENTITY_ZONE_ID);
+                System.currentTimeMillis(), IDENTITY_ZONE_ID,
+                null, null);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
             auditService.log(auditEvent, IDENTITY_ZONE_ID);
@@ -124,7 +127,8 @@ public class PredixAuditServiceTest {
         String expectedData = AuditEventType.EntityDeletedEvent + ": " + data;
         AuditEvent auditEvent = new AuditEvent(
                 AuditEventType.EntityDeletedEvent, "princialID", "origin", data,
-                System.currentTimeMillis(), IDENTITY_ZONE_ID);
+                System.currentTimeMillis(), IDENTITY_ZONE_ID,
+                null, null);
         when(auditService.getCorrelationId()).thenReturn(CORRELATION_ID);
         try {
             auditService.log(auditEvent, IDENTITY_ZONE_ID);

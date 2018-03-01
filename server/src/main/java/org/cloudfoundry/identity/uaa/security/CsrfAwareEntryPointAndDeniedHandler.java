@@ -41,18 +41,34 @@ public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler,
 
     private static Log logger = LogFactory.getLog(CsrfAwareEntryPointAndDeniedHandler.class);
 
+    private LoginUrlAuthenticationEntryPoint notloggedInCsrfEntryPoint;
+    private LoginUrlAuthenticationEntryPoint loggedInCsrfEntryPoint;
     private LoginUrlAuthenticationEntryPoint loginEntryPoint;
-    private LoginUrlAuthenticationEntryPoint csrfEntryPoint;
 
-    public CsrfAwareEntryPointAndDeniedHandler(String redirectCsrf, String redirectNotLoggedIn) {
+    public CsrfAwareEntryPointAndDeniedHandler(String login, String redirectCsrf, String redirectNotLoggedIn) {
         if (redirectCsrf == null || !redirectCsrf.startsWith("/")) {
+            throw new NullPointerException("Invalid CSRF redirect URL, must start with '/'");
+        }
+        if (login == null || !login.startsWith("/")) {
             throw new NullPointerException("Invalid CSRF redirect URL, must start with '/'");
         }
         if (redirectNotLoggedIn == null || !redirectNotLoggedIn.startsWith("/")) {
             throw new NullPointerException("Invalid login redirect URL, must start with '/'");
         }
-        loginEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectNotLoggedIn);
-        csrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectCsrf);
+        loginEntryPoint = new LoginUrlAuthenticationEntryPoint(login);
+        notloggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectNotLoggedIn);
+        loggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectCsrf)
+        {
+            @Override
+            public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                super.commence(request, response, authException);
+            }
+        };
+        loggedInCsrfEntryPoint.setUseForward(true);
+    }
+    public CsrfAwareEntryPointAndDeniedHandler(String redirectCsrf, String redirectNotLoggedIn) {
+        this("/login", redirectCsrf, redirectNotLoggedIn);
     }
 
     protected boolean isUserLoggedIn() {
@@ -93,10 +109,11 @@ public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler,
 
     protected LoginUrlAuthenticationEntryPoint getLoginUrlAuthenticationEntryPoint(Exception exception) {
         if (exception instanceof MissingCsrfTokenException || exception instanceof InvalidCsrfTokenException) {
-            return csrfEntryPoint;
-        } else if (isUserLoggedIn()) {
-            logger.debug("Redirecting to CSRF endpoint based on error.", exception);
-            return csrfEntryPoint;
+            if (!isUserLoggedIn()) {
+                return notloggedInCsrfEntryPoint;
+            } else {
+                return loggedInCsrfEntryPoint;
+            }
         } else {
             return loginEntryPoint;
         }

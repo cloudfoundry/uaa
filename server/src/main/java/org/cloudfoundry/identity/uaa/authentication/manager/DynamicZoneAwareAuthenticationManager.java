@@ -17,14 +17,16 @@ import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectio
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager.AuthenticationManagerConfiguration;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -36,7 +38,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class DynamicZoneAwareAuthenticationManager implements AuthenticationManager {
+public class DynamicZoneAwareAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
     private final IdentityProviderProvisioning provisioning;
     private final AuthenticationManager internalUaaAuthenticationManager;
@@ -44,6 +46,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
+    private ApplicationEventPublisher eventPublisher;
 
     public DynamicZoneAwareAuthenticationManager(IdentityProviderProvisioning provisioning,
                                                  AuthenticationManager internalUaaAuthenticationManager,
@@ -72,7 +75,11 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
 
         if (uaaProvider.isActive()) {
             AuthenticationManagerConfiguration uaaConfig = new AuthenticationManagerConfiguration(internalUaaAuthenticationManager, null);
-            uaaConfig.setStopIf(AccountNotVerifiedException.class, AuthenticationPolicyRejectionException.class, PasswordChangeRequiredException.class);
+            uaaConfig.setStopIf(
+                AccountNotVerifiedException.class,
+                AuthenticationPolicyRejectionException.class,
+                PasswordChangeRequiredException.class
+            );
             delegates.add(uaaConfig);
         }
 
@@ -122,6 +129,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
             scimGroupExternalMembershipManager,
             scimGroupProvisioning,
             ldapLoginAuthenticationManager);
+        ldapMgr.setApplicationEventPublisher(eventPublisher);
         ldapAuthManagers.putIfAbsent(zone, ldapMgr);
         return ldapAuthManagers.get(zone);
     }
@@ -130,5 +138,10 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         for (Map.Entry<IdentityZone, DynamicLdapAuthenticationManager> entry : ldapAuthManagers.entrySet()) {
             entry.getValue().destroy();
         }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
     }
 }

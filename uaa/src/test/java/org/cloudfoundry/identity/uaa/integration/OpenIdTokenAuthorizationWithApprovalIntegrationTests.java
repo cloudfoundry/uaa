@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -109,8 +108,6 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             public void handleError(ClientHttpResponse response) throws IOException {
             }
         });
-
-        Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
 
         client = (RestTemplate)serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {

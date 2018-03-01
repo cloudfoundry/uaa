@@ -11,6 +11,10 @@
             <div th:if="${param.error}" class="alert alert-error">
                 <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
             </div>
+            <div th:if="${param.success}" class="alert alert-success">
+                <p th:text="#{'login.' + ${param.success}}">Success Message</p>
+            </div>
+
             <input th:each="prompt,iter : ${prompts}"
                    th:name="${prompt.key}"
                    th:type="${prompt.value[0]}"
@@ -31,7 +35,7 @@
         </form>
         </th:block>
         <div class="saml-login">
-            <p th:if="${showLoginLinks==true and fieldUsernameShow}">or Sign in with: </p>
+            <p th:if="${showLoginLinks==true and fieldUsernameShow}">or sign in with: </p>
             <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
                 <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
             </div>

@@ -20,16 +20,6 @@
     font-weight: 600!important;
 }
 
-.login-header {
-    min-height: 2em;
+.alert {
     text-align: center;
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-}
-
-.login-header img {
-    max-width: 100%;
 }

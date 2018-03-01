@@ -24,13 +24,3 @@ dependencies {
   testCompile identityServer.configurations.testCompile.dependencies
   testCompile identityServer.sourceSets.test.output
 }
-
-test {
-  exclude 'org/cloudfoundry/identity/app/integration/*.class'
-}
-
-integrationTest {
-  filter {
-    includeTestsMatching "org.cloudfoundry.identity.app.integration.*"
-  }
-}

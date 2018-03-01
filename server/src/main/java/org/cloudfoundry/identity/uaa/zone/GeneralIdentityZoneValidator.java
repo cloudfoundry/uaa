@@ -29,7 +29,7 @@ public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
     @Override
     public IdentityZone validate(IdentityZone identityZone, Mode mode) throws InvalidIdentityZoneDetailsException {
         try {
-            identityZone.setConfig(configValidator.validate(identityZone.getConfig(), mode));
+            identityZone.setConfig(configValidator.validate(identityZone, mode));
         } catch (InvalidIdentityZoneConfigurationException ex) {
             String configErrorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
             throw new InvalidIdentityZoneDetailsException("The zone configuration is invalid. " + configErrorMessage, ex);
