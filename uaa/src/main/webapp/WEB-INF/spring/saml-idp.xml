@@ -124,6 +124,7 @@
         <property name="entityId" ref="samlIdpEntityID" />
         <property name="samlWebSSOFilter" ref="samlIdpWebSsoProcessingFilter" />
         <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
+        <property name="securityConfiguration" ref="zoneAwareSamlSecurityConfiguration"/>
     </bean>
 
     <bean id="idpExtendedMetaData"

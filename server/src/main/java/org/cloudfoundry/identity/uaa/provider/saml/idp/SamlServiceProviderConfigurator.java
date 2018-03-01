@@ -222,6 +222,7 @@ public class SamlServiceProviderConfigurator {
         extendedMetadata.setAlias(provider.getEntityId());
         ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(configMetadataProvider, extendedMetadata);
         delegate.setMetadataTrustCheck(provider.getConfig().isMetadataTrustCheck());
+        delegate.setMetadataRequireSignature(true);
 
         return delegate;
     }

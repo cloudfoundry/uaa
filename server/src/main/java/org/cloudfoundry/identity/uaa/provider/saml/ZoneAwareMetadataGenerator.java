@@ -25,7 +25,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
 import org.springframework.security.saml.util.SAMLUtil;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,10 +32,13 @@ import java.util.Set;
 
 public class ZoneAwareMetadataGenerator extends MetadataGenerator {
 
+    ZoneAwareSamlSecurityConfiguration securityConfiguration;
+
     @Override
     public ExtendedMetadata generateExtendedMetadata() {
         ExtendedMetadata metadata = super.generateExtendedMetadata();
         metadata.setAlias(UaaUrlUtils.getSubdomain()+metadata.getAlias());
+        metadata.setSigningAlgorithm(securityConfiguration.getSignatureAlgorithmURI("RSA"));
         return metadata;
     }
 
@@ -89,6 +91,15 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
         IdentityZoneConfiguration definition = zone.getConfig();
         return definition!=null ? definition : new IdentityZoneConfiguration();
     }
+
+    public ZoneAwareSamlSecurityConfiguration getSecurityConfiguration() {
+        return securityConfiguration;
+    }
+
+    public void setSecurityConfiguration(ZoneAwareSamlSecurityConfiguration securityConfiguration) {
+        this.securityConfiguration = securityConfiguration;
+    }
+
 
     @Override
     public EntityDescriptor generateMetadata() {
