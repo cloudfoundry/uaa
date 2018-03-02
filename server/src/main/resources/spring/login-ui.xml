@@ -224,6 +224,7 @@
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
         <constructor-arg name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
         <constructor-arg name="checker" ref="mfaChecker"/>
+        <constructor-arg name="logoutMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
     <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"

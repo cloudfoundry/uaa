@@ -125,6 +125,16 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
     }
 
     @Test
+    public void testRedirectToLoginPageAfterClickingBackFromMfaRegistrationPage() throws Exception {
+        redirectToMFARegistration();
+
+        MockHttpServletResponse response = getMockMvc().perform(get("/logout.do")
+          .session(session)).andReturn().getResponse();
+
+        assertTrue(response.getRedirectedUrl().endsWith("/login"));
+    }
+
+    @Test
     public void testGoogleAuthenticatorLoginFlow() throws Exception {
         redirectToMFARegistration();
 

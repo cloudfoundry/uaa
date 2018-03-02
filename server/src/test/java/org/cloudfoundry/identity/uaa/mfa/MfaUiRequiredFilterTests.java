@@ -36,6 +36,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -72,15 +73,18 @@ public class MfaUiRequiredFilterTests {
     private FilterChain chain;
     private MfaUiRequiredFilter filter;
     private IdentityProviderProvisioning providerProvisioning;
+    private AntPathRequestMatcher logoutMatcher;
 
     @Before
     public void setup() throws Exception {
         providerProvisioning = mock(IdentityProviderProvisioning.class);
         requestCache = mock(RequestCache.class);
+        logoutMatcher = new AntPathRequestMatcher("/logout.do");
         filter = new MfaUiRequiredFilter("/login/mfa/**",
                                          "/login/mfa/register",
                                          requestCache,
                                          "/login/mfa/completed",
+                                         logoutMatcher,
                                          new MfaChecker(providerProvisioning));
         spyFilter = spy(filter);
         request = new MockHttpServletRequest();

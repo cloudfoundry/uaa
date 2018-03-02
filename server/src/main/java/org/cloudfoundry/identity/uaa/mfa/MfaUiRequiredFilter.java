@@ -25,6 +25,7 @@ import java.io.IOException;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.AntPathRedirectResolver;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.apache.commons.logging.Log;
@@ -42,6 +43,7 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
 
     private final AntPathRequestMatcher inProgressMatcher;
     private final AntPathRequestMatcher completedMatcher;
+    private final AntPathRequestMatcher logoutMatcher;
     private final String redirect;
     private final RequestCache cache;
     private final MfaChecker checker;
@@ -50,12 +52,14 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
                                String redirect,
                                RequestCache cache,
                                String mfaCompleteUrl,
+                               AntPathRequestMatcher logoutMatcher,
                                MfaChecker checker) {
         inProgressMatcher = new AntPathRequestMatcher(urlFilter);
         this.redirect = redirect;
         this.cache = cache;
         this.completedMatcher = new AntPathRequestMatcher(mfaCompleteUrl);
         this.checker = checker;
+        this.logoutMatcher = logoutMatcher;
     }
 
     @Override
@@ -134,7 +138,7 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
             return MfaNextStep.INVALID_AUTH;
         }
         UaaAuthentication uaaAuth = (UaaAuthentication) a;
-        if (!mfaRequired(uaaAuth.getPrincipal().getOrigin())) {
+        if (!mfaRequired(uaaAuth.getPrincipal().getOrigin()) || logoutInProgress(request)) {
             return MfaNextStep.MFA_NOT_REQUIRED;
         }
 
@@ -164,5 +168,9 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
 
     protected boolean mfaRequired(String origin) {
         return checker.isMfaEnabled(IdentityZoneHolder.get(), origin);
+    }
+
+    private boolean logoutInProgress(HttpServletRequest request) {
+        return logoutMatcher.matches(request);
     }
 }
