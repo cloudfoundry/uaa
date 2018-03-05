@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -261,6 +262,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         EXTERNAL_GROUPS_WHITELIST
     });
 
@@ -298,6 +300,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         EXTERNAL_GROUPS_WHITELIST
     });
 
@@ -320,6 +323,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         LDAP_BIND_USER_DN.ignored(),
         LDAP_USER_SEARCH_BASE.ignored(),
         LDAP_USER_SEARCH_FILTER.ignored(),
@@ -370,6 +374,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         EXTERNAL_GROUPS_WHITELIST
     });
 
@@ -700,6 +705,9 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     public void createLDAPProvider(IdentityProvider<LdapIdentityProviderDefinition> identityProvider,
                                    FieldDescriptor[] fields,
                                    String name) throws Exception {
+        Map<String, Object> attributeMappings = new HashedMap(identityProvider.getConfig().getAttributeMappings());
+        attributeMappings.put(EMAIL_VERIFIED_ATTRIBUTE_NAME, "emailVerified");
+        identityProvider.getConfig().setAttributeMappings(attributeMappings);
         BaseClientDetails admin = new BaseClientDetails(
             "admin",
             null,
