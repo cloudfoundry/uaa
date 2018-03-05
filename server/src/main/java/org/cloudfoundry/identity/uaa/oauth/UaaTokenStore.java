@@ -216,14 +216,16 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         //check if we should expire again
         if ((System.currentTimeMillis()-last) > getExpirationTime()) {
             //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, last+getExpirationTime())) try {
-                JdbcTemplate template = new JdbcTemplate(dataSource);
-                int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
-                logger.debug("[oauth_code] Removed "+expired+" expired entries.");
-                expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()-LEGACY_CODE_EXPIRATION_TIME));
-                logger.debug("[oauth_code] Removed "+expired+" old entries.");
-            } catch (DeadlockLoserDataAccessException e) {
-                logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
+            if (lastClean.compareAndSet(last, last+getExpirationTime())) {
+                try {
+                    JdbcTemplate template = new JdbcTemplate(dataSource);
+                    int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
+                    logger.debug("[oauth_code] Removed "+expired+" expired entries.");
+                    expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()-LEGACY_CODE_EXPIRATION_TIME));
+                    logger.debug("[oauth_code] Removed "+expired+" old entries.");
+                } catch (DeadlockLoserDataAccessException e) {
+                    logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
+                }
             }
         }
 
