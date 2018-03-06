@@ -13,30 +13,14 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import org.apache.http.HttpHost;
+import org.apache.http.client.utils.URIUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.apache.http.HttpHost;
-import org.apache.http.client.utils.URIUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -90,6 +74,21 @@ import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Arrays.stream;
 import static java.util.Collections.EMPTY_SET;
@@ -158,9 +157,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         }
 
         Set<String> responseTypes = authorizationRequest.getResponseTypes();
-        if (!(responseTypes.size() > 0)) {
-            throw new InvalidRequestException("Missing response_type in authorization request");
-        }
         String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
         if (!supported_response_types.containsAll(responseTypes)) {
@@ -190,6 +186,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             if (!isAuthenticated) {
                 throw new InsufficientAuthenticationException(
                   "User must be authenticated with Spring Security before authorization can be completed.");
+            }
+
+            if (!(responseTypes.size() > 0)) {
+                return new ModelAndView(new RedirectView(addQueryParameter(resolvedRedirect, "error","invalid_request")));
             }
 
             authorizationRequest.setRedirectUri(resolvedRedirect);
