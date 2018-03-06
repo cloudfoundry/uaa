@@ -65,11 +65,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -234,13 +235,13 @@ public class OIDCLoginIT {
         assertNotNull(beforeLogin);
         assertNotNull(beforeLogin.getValue());
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(baseUrl));
 
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
         Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
         assertNotNull(afterLogin);
         assertNotNull(afterLogin.getValue());
@@ -304,13 +305,13 @@ public class OIDCLoginIT {
         updateProvider();
         webDriver.get(zoneUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(baseUrl));
 
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl + "/oauth_error?error=There+was+an+error+when+authenticating+against+the+external+identity+provider"));
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl + "/oauth_error?error=There+was+an+error+when+authenticating+against+the+external+identity+provider"));
 
         List<String> cookies = IntegrationTestUtils.getAccountChooserCookies(zoneUrl, webDriver);
         assertThat(cookies, not(Matchers.hasItem(startsWith("Saved-Account-"))));
@@ -389,7 +390,7 @@ public class OIDCLoginIT {
          */
             webDriver.get(zoneUrl + "/login");
             webDriver.findElement(By.linkText("My OIDC Provider")).click();
-            Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(baseUrl));
+            Assert.assertThat(webDriver.getCurrentUrl(), containsString(baseUrl));
 
             webDriver.findElement(By.linkText("SAML Login")).click();
             webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
@@ -398,8 +399,8 @@ public class OIDCLoginIT {
             webDriver.findElement(By.name("password")).sendKeys("saml6");
             webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-            assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
-            assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+            assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
+            assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
             Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
 
@@ -443,6 +444,24 @@ public class OIDCLoginIT {
     }
 
     @Test
+    public void testResponseTypeRequired() throws Exception {
+        BaseClientDetails uaaClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", baseUrl);
+        uaaClient.setClientSecret("secret");
+        uaaClient.setAutoApproveScopes(Collections.singleton("true"));
+        uaaClient = IntegrationTestUtils.createClient(clientCredentialsToken, baseUrl, uaaClient);
+        uaaClient.setClientSecret("secret");
+
+        StringBuilder uriBuilder = new StringBuilder();
+        uriBuilder.append(baseUrl).append("/oauth/authorize").append("?scope=openid&client_id=").append(uaaClient.getClientId()).append("&redirect_uri=").append(baseUrl);
+        webDriver.get(uriBuilder.toString());
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        assertThat(webDriver.getCurrentUrl(), containsString("error=invalid_request"));
+    }
+
+    @Test
     @Ignore("We don't have an azure provider pointint to http://oidcloginit.localhost:8080/uaa anymore")
     public void successful_Azure_Login() throws Exception {
         String userName = "jondoe@cfuaa.onmicrosoft.com";
@@ -457,15 +476,15 @@ public class OIDCLoginIT {
 
         webDriver.findElement(By.linkText("Test Azure Provider")).click();
         String url = "login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/oauth2/authorize";
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(url));
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(url));
 
         webDriver.findElement(By.name("login")).sendKeys(userName);
         webDriver.findElement(By.name("passwd")).sendKeys(password);
         webDriver.findElement(By.name("passwd")).submit();
 
         Thread.sleep(500);
-        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString(zoneUrl));
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
     }
 
 
