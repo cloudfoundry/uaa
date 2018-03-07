@@ -22,7 +22,7 @@ ext {
   junitVersion = '4.12'
   mariaDBClientVersion = '2.2.0'
   mockitoVersion = '2.13.0'
-  powermockVersion = '1.7.0'
+  powermockVersion = '2.0.0-beta.5'
   mssqlVersion = '6.2.2.jre8'
   openSamlVersion = '2.6.6'
   openSamlXmlSec = '1.5.8'
