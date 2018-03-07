@@ -189,7 +189,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             }
 
             if (!(responseTypes.size() > 0)) {
-                return new ModelAndView(new RedirectView(addQueryParameter(resolvedRedirect, "error","invalid_request")));
+                return new ModelAndView(new RedirectView(addQueryParameter(addQueryParameter(resolvedRedirect, "error","invalid_request"), "error_description", "Missing response_type in authorization request")));
             }
 
             authorizationRequest.setRedirectUri(resolvedRedirect);
