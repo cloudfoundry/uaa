@@ -146,12 +146,7 @@ before_script:
   - docker pull "$IMAGE_NAME" || true
 
 script:
-- docker run \
-  -t \
-  -h "testzone1.localhost testzone2.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost" \
-  -v ${PWD}:/root/uaa \
-  $IMAGE_NAME \
-  $TEST_COMMAND "$SPRING_PROFILE"
+- docker run -t -h "testzone1.localhost testzone2.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost" -v ${PWD}:/root/uaa $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
 
 after_success:
 - ./gradlew coveralls
