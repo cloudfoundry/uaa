@@ -74,7 +74,6 @@ allprojects {
     }
 }
 
-//apply plugin: 'com.bmuschko.cargo-base'
 apply plugin: 'com.bmuschko.cargo'
 apply plugin: 'org.flywaydb.flyway'
 apply plugin: 'jacoco'
