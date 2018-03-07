@@ -58,6 +58,7 @@ public class IdentityZoneEndpointsTests {
         );
         endpoints.setValidator((config, mode) -> config);
         when(zoneDao.create(any())).then(invocation -> invocation.getArguments()[0]);
+        IdentityZoneHolder.clear();
     }
 
     @Test

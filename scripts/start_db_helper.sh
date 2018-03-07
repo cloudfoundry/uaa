@@ -27,6 +27,7 @@ function bootDB {
     set -e
     if [ $exitcode -eq 0 ]; then
       echo "connection established to $db"
+      sleep 1
       eval "$initDB"
       return 0
     fi
