@@ -22,5 +22,7 @@ pushd $(dirname $DIR)
   install_ldap_certs
   /etc/init.d/slapd start
   ./scripts/ldap/configure-manifest.sh
+  ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif
+  ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ./uaa/src/main/resources/ldap_init.ldif
   ./gradlew "-Dspring.profiles.active=$TESTENV" jacocoRootReportIntegrationTest
 popd
