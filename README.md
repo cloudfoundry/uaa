@@ -201,9 +201,9 @@ grant, the same as used by a client like CF.
 
 You can run the integration tests with docker
 
-    $ docker run --privileged -t -i --shm-size=1G  -v ~/workspace/uaa:/root/uaa cfidentity/uaa-mysql /root/uaa/scripts/integration-tests.sh mysql,default
-    $ docker run --privileged -t -i --shm-size=1G  -v ~/workspace/uaa:/root/uaa cfidentity/uaa-postgresql /root/uaa/scripts/integration-tests.sh postgresql,default
-    $ docker run --privileged -t -i --shm-size=1G  -v ~/workspace/uaa:/root/uaa cfidentity/uaa-sqlserver /root/uaa/scripts/integration-tests.sh sqlserver,default
+    $ ~/workspace/uaa/run-integration-tests.sh mysql
+    $ ~/workspace/uaa/run-integration-tests.sh postgresql
+    $ ~/workspace/uaa/run-integration-tests.sh sqlserver
   
 will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
@@ -282,19 +282,11 @@ Notice how uaa.url can be converted into an environment variable called UAA_URL
 
 The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 
-To run the unit tests using postgresql:
+To run the unit tests with docker:
 
-    $ docker run --privileged -t -i -v ~/workspace/uaa:/root/uaa cfidentity/uaa-postgresql /root/uaa/scripts/unit-tests.sh postgresql,default
-
-
-To run the unit tests using mysql:
-
-    $ docker run --privileged -t -i -v ~/workspace/uaa:/root/uaa cfidentity/uaa-mysql /root/uaa/scripts/unit-tests.sh mysql,default
-
-
-To run the unit tests using sqlserver:
-
-    $ docker run --privileged -t -i -v ~/workspace/uaa:/root/uaa cfidentity/uaa-sqlserver /root/uaa/scripts/unit-tests.sh sqlserver,default
+    $ ~/workspace/uaa/run-unit-tests.sh mysql
+    $ ~/workspace/uaa/run-unit-tests.sh postgresql
+    $ ~/workspace/uaa/run-unit-tests.sh sqlserver
 
 ## Inventory
 
