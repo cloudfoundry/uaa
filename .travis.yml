@@ -50,7 +50,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-mysql
         - SPRING_PROFILE=mysql,default
-          - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
     - os: linux
       language: java
       services:
