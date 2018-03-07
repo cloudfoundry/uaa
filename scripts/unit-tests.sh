@@ -16,8 +16,9 @@ cat <<EOF >>/etc/hosts
 127.0.0.1 oidcloginit.localhost
 EOF
 
+bootDB "${DB}"
+
 pushd $(dirname $SCRIPT_DIR)
-  bootDB "${DB}"
   install_ldap_certs
   /etc/init.d/slapd start
   ./scripts/ldap/configure-manifest.sh

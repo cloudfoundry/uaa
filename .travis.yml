@@ -10,7 +10,7 @@ matrix:
         - docker
       env:
         - IMAGE_NAME=cfidentity/uaa-generate-docs
-        - TEST_COMMAND=scripts/generate-docs.sh
+        - TEST_COMMAND=/root/uaa/scripts/generate-docs.sh
     - os: linux
       language: java
       services:
@@ -18,7 +18,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-sqlserver
         - SPRING_PROFILE=sqlserver,default
-        - TEST_COMMAND=scripts/unit-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
     - os: linux
       dist: trusty
       jdk: oraclejdk8
@@ -39,7 +39,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-mysql
         - SPRING_PROFILE=mysql,default
-        - TEST_COMMAND=scripts/unit-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
     - os: linux
       language: java
       services:
@@ -47,7 +47,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
         - SPRING_PROFILE=postgres,default
-        - TEST_COMMAND=scripts/unit-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
     - os: linux
       language: java
       services:
@@ -55,7 +55,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
         - SPRING_PROFILE=ldap,default
-        - TEST_COMMAND=scripts/unit-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
     - os: linux
       language: java
       services:
@@ -63,7 +63,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
         - SPRING_PROFILE=default
-        - TEST_COMMAND=scripts/unit-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
 
     - os: linux
       language: java
@@ -72,7 +72,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-mysql
         - SPRING_PROFILE=mysql,default
-        - TEST_COMMAND=scripts/integration-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
     - os: linux
       language: java
       services:
@@ -80,7 +80,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
         - SPRING_PROFILE=postgres,default
-        - TEST_COMMAND=scripts/integration-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
     - os: linux
       language: java
       services:
@@ -88,7 +88,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
         - SPRING_PROFILE=ldap,default
-        - TEST_COMMAND=scripts/integration-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
     - os: linux
       language: java
       services:
@@ -96,7 +96,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
         - SPRING_PROFILE=default
-        - TEST_COMMAND=scripts/integration-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
     - os: linux
       language: java
       services:
@@ -104,7 +104,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-sqlserver
         - SPRING_PROFILE=sqlserver,default
-        - TEST_COMMAND=scripts/integration-tests.sh
+        - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
 
 cache:
   apt: true
@@ -133,7 +133,7 @@ before_script:
   - docker pull "$IMAGE_NAME" || true
 
 script:
-- docker run -t -v ${PWD}:/root/uaa -w="/root/uaa" $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
+- docker run -t -v ${PWD}:/root/uaa $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
 
 after_success:
 #- ./gradlew coveralls

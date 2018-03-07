@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-./gradlew generateDocs
+pushd /root/uaa
+  ./gradlew generateDocs
+popd
