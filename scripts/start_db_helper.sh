@@ -17,7 +17,7 @@ function bootDB {
   elif [ "$db" = "sqlserver" ]; then
     launchDB="(/opt/mssql/bin/sqlservr &> /var/log/sqlserver-boot.log) &"
     testConnection="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'changemeCHANGEME1234!' -d master -Q \"select 'hello'\""
-    initDB="./gradlew -b mssql.gradle createSQLServerUAA"
+    initDB="pushd /root/uaa; ./gradlew -b mssql.gradle createSQLServerUAA; popd"
   else
     echo "skipping database"
     return 0
