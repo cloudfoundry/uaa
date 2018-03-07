@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
-set -xeu
+set -eu
 
 function bootDB {
   db=$1
-  echo "Booting db: ${db}"
 
   if [ "$db" = "postgresql" ]; then
     launchDB="(/docker-entrypoint.sh postgres &> /var/log/postgres-boot.log) &"
@@ -23,15 +22,16 @@ function bootDB {
     return 0
   fi
 
-  echo -n "booting $db"
+  echo -n "Booting $db"
+  set -x
   eval "$launchDB"
   for _ in $(seq 1 60); do
-    set +e
+    set +ex
     eval "$testConnection"
     exitcode=$?
     set -e
     if [ $exitcode -eq 0 ]; then
-      echo "connection established to $db"
+      echo "Connection established to $db"
       sleep 1
       eval "$initDB"
       return 0
@@ -39,6 +39,6 @@ function bootDB {
     echo -n "."
     sleep 1
   done
-  echo "unable to connect to $db"
+  echo "Unable to connect to $db"
   exit 1
 }
