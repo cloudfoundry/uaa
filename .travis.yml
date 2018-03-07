@@ -9,10 +9,9 @@ matrix:
       services:
         - docker
       env:
-        - IMAGE_NAME=cfidentity/uaa-mysql
+        - IMAGE_NAME=cfidentity/uaa-generate-docs
         - SPRING_PROFILE=default
         - TEST_COMMAND=./gradlew generateDocs
-
     - os: linux
       language: java
       services:
@@ -135,7 +134,7 @@ before_script:
   - docker pull "$IMAGE_NAME" || true
 
 script:
-- docker run -t --add-host 'testzone1.localhost:127.0.0.1' --add-host 'testzone2.localhost:127.0.0.1' --add-host 'testzone3.localhost:127.0.0.1' --add-host 'testzone4.localhost:127.0.0.1' --add-host 'testzonedoesnotexist.localhost:127.0.0.1' --add-host 'oidcloginit.localhost:127.0.0.1' -v ${PWD}:/root/uaa $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
+- docker run -t -v ${PWD}:/root/uaa -w="/root/uaa" $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
 
 after_success:
 - ./gradlew coveralls
