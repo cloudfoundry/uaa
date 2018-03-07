@@ -20,26 +20,7 @@ matrix:
       env:
         - IMAGE_NAME=cfidentity/uaa-sqlserver
         - SPRING_PROFILE=sqlserver,default
-        - TEST_COMMAND=./gradlew cloudfoundry-identity-uaa:test
-
-    - os: linux
-      language: java
-      services:
-        - docker
-      env:
-        - IMAGE_NAME=cfidentity/uaa-sqlserver
-        - SPRING_PROFILE=sqlserver,default
-        - TEST_COMMAND=./gradlew cloudfoundry-identity-uaa:test
-
-    - os: linux
-      language: java
-      services:
-        - docker
-      env:
-        - IMAGE_NAME=cfidentity/uaa-sqlserver
-        - SPRING_PROFILE=sqlserver,default
         - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
-
     - os: linux
       dist: trusty
       jdk: oraclejdk8
@@ -118,7 +99,6 @@ matrix:
         - IMAGE_NAME=cfidentity/uaa-postgresql
         - SPRING_PROFILE=default
         - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
-
     - os: linux
       language: java
       services:
