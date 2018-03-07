@@ -13,6 +13,9 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -30,8 +33,6 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -46,7 +47,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +81,9 @@ public class InvitationsIT {
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
+
     @Autowired
     WebDriver webDriver;
 
@@ -96,12 +106,15 @@ public class InvitationsIT {
 
     private String scimToken;
     private String loginToken;
+    private String testInviteEmail;
 
     @Before
     public void setup() throws Exception {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
         screenShootRule.setWebDriver(webDriver);
+
+        testInviteEmail = "testinvite@test.org";
     }
 
     @Before
@@ -115,6 +128,9 @@ public class InvitationsIT {
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.manage().deleteAllCookies();
+
+        webDriver.get("http://localhost:8080/app/");
         webDriver.manage().deleteAllCookies();
     }
 
@@ -189,10 +205,26 @@ public class InvitationsIT {
     @Test
     public void acceptInvitation_for_samlUser() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String email = "testinvite@test.org";
-        String code = createInvitation(email, email, "http://localhost:8080/app/", "simplesamlphp");
 
-        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", email);
+        BaseClientDetails appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
+        printClient(appClient, "app_before");
+
+        appClient.setScope(Lists.newArrayList("cloud_controller.read", "password.write", "scim.userids", "cloud_controller.write", "openid", "organizations.acme"));
+        appClient.setAutoApproveScopes(Lists.newArrayList("openid"));
+        IntegrationTestUtils.updateClient(baseUrl, scimToken, appClient);
+
+        appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
+        printClient(appClient, "app_after");
+
+
+        String code = createInvitation(testInviteEmail, testInviteEmail, "http://localhost:8080/app/", "simplesamlphp");
+
+        appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
+        printClient(appClient, "app_after_invitation");
+        printUser();
+
+
+        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", testInviteEmail);
         IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
@@ -201,12 +233,43 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
         WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
+
+        screenShootRule.debugPage("invitationsItTest", "before_click");
         loginButton.click();
+        screenShootRule.debugPage("invitationsItTest", "after_click");
+
+
         //wait until UAA page has loaded
-        new WebDriverWait(webDriver, 45).until(ExpectedConditions.presenceOfElementLocated(By.id("application_authorization")));
+        webDriver.findElement(By.id("application_authorization"));
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         //webdriver follows redirects so we should be on the UAA authorization page
         assertEquals("user_only_for_invitations_test", acceptedUsername);
+    }
+
+    private void printClient(BaseClientDetails appClient, String description) throws JsonProcessingException {
+        String appClientJson = new ObjectMapper().writeValueAsString(appClient);
+
+        File destinationFile = getDestinationFile(description);
+        Path path = Paths.get(destinationFile.getAbsolutePath());
+        try {
+            Files.write(path, appClientJson.getBytes(), StandardOpenOption.CREATE_NEW);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void printUser() throws JsonProcessingException {
+        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", testInviteEmail);
+        ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
+        String userJson = new ObjectMapper().writeValueAsString(user);
+
+        File destinationFile = getDestinationFile("user_before");
+        Path path = Paths.get(destinationFile.getAbsolutePath());
+        try {
+            Files.write(path, userJson.getBytes(), StandardOpenOption.CREATE_NEW);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -309,5 +372,12 @@ public class InvitationsIT {
         ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();
         return expiringCode.getCode();
+    }
+
+    private File getDestinationFile(String description) {
+        String fileName = description;
+        String home = System.getProperty("user.home");
+        String absoluteFileName = home + "/build/cloudfoundry/uaa/uaa/build/reports/tests/" + fileName;
+        return new File(absoluteFileName);
     }
 }
