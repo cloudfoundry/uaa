@@ -19,15 +19,13 @@ matrix:
         - IMAGE_NAME=cfidentity/uaa-sqlserver
         - SPRING_PROFILE=sqlserver,default
         - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
-#    - os: linux
-#      dist: trusty
-#      jdk: oraclejdk8
-#      sudo: required
-#      group: deprecated-2017Q4
-#      language: java
-#      env:
-#        - TESTENV=default
-#        - TEST_COMMAND=jasmineTest
+    - os: linux
+      language: java
+      services:
+        - docker
+      env:
+        - IMAGE_NAME=cfidentity/uaa-singular
+        - TEST_COMMAND=/root/uaa/scripts/jasmine-tests.sh
     - os: linux
       language: java
       services:
