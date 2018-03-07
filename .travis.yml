@@ -10,7 +10,6 @@ matrix:
         - docker
       env:
         - IMAGE_NAME=cfidentity/uaa-generate-docs
-        - SPRING_PROFILE=default
         - TEST_COMMAND=./gradlew generateDocs
     - os: linux
       language: java
