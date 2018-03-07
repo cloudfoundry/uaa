@@ -43,7 +43,10 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.Statement;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
@@ -70,7 +73,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Arrays;
@@ -78,6 +80,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
@@ -92,6 +95,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -110,6 +114,9 @@ public class SamlLoginIT {
     private static final String SAML_ORIGIN = "simplesamlphp";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
@@ -214,18 +221,14 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-        // We need to verify the last request URL through the HTTP Archive (HAR) log because the redirect
+        // We need to verify the last request URL through the performance log because the redirect
         // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a
         // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
-        Thread.sleep(1000);
-        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
-        LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
 
-        String lastRequestUrl = getRequestUrlFromHarLogEntry(lastLogEntry);
+        List<LogEntry> logEntries = webDriver.manage().logs().get("performance").getAll();
+        List<String> logMessages = logEntries.stream().map(logEntry -> logEntry.getMessage()).collect(Collectors.toList());
 
-        assertThat("Unexpected URL.", lastRequestUrl,
-                Matchers.containsString(redirectUri + "?error=access_denied"
-                        + "&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
+        assertThat(logMessages, hasItem(containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.")));
     }
 
     @Test
@@ -277,18 +280,6 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         assertEquals("No local entity found for alias invalid, verify your configuration.", webDriver.findElement(By.cssSelector("h2")).getText());
-    }
-
-    private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
-            throws IOException {
-
-        Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
-        Map<String, Object> log = (Map<String, Object>) message.get("log");
-        List<Object> entries = (List<Object>) log.get("entries");
-        Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
-        Map<String, Object> request = (Map<String, Object>) lastEntry.get("request");
-        String url = (String) request.get("url");
-        return url;
     }
 
     @Test
@@ -950,7 +941,8 @@ public class SamlLoginIT {
         assertNotNull(idToken);
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
 
         assertNotNull(claims.get(USER_ATTRIBUTES));
         Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(USER_ATTRIBUTES);
@@ -992,10 +984,6 @@ public class SamlLoginIT {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
-        //admin client token - to create users
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
-        );
 
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
 
@@ -1003,7 +991,6 @@ public class SamlLoginIT {
         IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
 
         String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
-        //String idpMetadata = idpMetadataUrl;
 
         String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
 
@@ -1030,7 +1017,7 @@ public class SamlLoginIT {
         provider.setName(idpOrigin);
         provider.setOriginKey(idpOrigin);
 
-        provider = IntegrationTestUtils.createOrUpdateProvider(adminToken,baseUrl,provider);
+        IntegrationTestUtils.createOrUpdateProvider(adminToken, baseUrl, provider);
 
         String clientId = new RandomValueStringGenerator().generate().toLowerCase();
         String username = "saml2bearerUser";
@@ -1077,7 +1064,8 @@ public class SamlLoginIT {
         ResponseEntity<String> response = new RestTemplate().exchange(new URI(spAudienceEndpoint), HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), String.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        Map<String,Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {
+        });
         assertNotNull("Expecting access_token to be present in response", tokenResponse.get("access_token"));
     }
 
@@ -1179,13 +1167,13 @@ public class SamlLoginIT {
         assertNotNull(idToken);
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
 
         assertNotNull(claims.get(USER_ATTRIBUTES));
         assertEquals("marissa6", claims.get(ClaimConstants.USER_NAME));
         assertEquals("marissa6@test.org", claims.get(ClaimConstants.EMAIL));
     }
-
 
 
     @Test
@@ -1326,11 +1314,13 @@ public class SamlLoginIT {
         try {
             webDriver.findElement(By.name("username"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {}
+        } catch (NoSuchElementException x) {
+        }
         try {
             webDriver.findElement(By.name("password"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {}
+        } catch (NoSuchElementException x) {
+        }
         webDriver.get(baseUrl + "/logout.do");
     }
 
@@ -1492,6 +1482,4 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
     }
-
-
 }
