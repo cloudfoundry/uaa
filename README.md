@@ -199,18 +199,13 @@ grant, the same as used by a client like CF.
 
 ## Integration tests
 
-You can run the integration tests with
+You can run the integration tests with docker
 
-    $ ./gradlew integrationTest
+    $ docker run --privileged -t -i --shm-size=1G  -v ~/workspace/uaa:/root/uaa cfidentity/uaa-mysql /root/uaa/scripts/integration-tests.sh mysql,default
+    $ docker run --privileged -t -i --shm-size=1G  -v ~/workspace/uaa:/root/uaa cfidentity/uaa-postgresql /root/uaa/scripts/integration-tests.sh postgresql,default
+    $ docker run --privileged -t -i --shm-size=1G  -v ~/workspace/uaa:/root/uaa cfidentity/uaa-sqlserver /root/uaa/scripts/integration-tests.sh sqlserver,default
   
-will run the integration tests against a uaa server running in a local
-Apache Tomcat instance, so for example the service URL is set to `http://localhost:8080/uaa` (by
-default).  
-  
-You can point the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
-`uaa.yml` where URLs can be changed
-and (if appropriate) set the context root for running the
-server (see below for more detail on that).
+will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
 ### Custom YAML Configuration
 
@@ -289,25 +284,17 @@ The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 
 To run the unit tests using postgresql:
 
-    $ ./gradlew -Dspring.profiles.active=default,postgresql test integrationTest
+    $ docker run --privileged -t -i -v ~/workspace/uaa:/root/uaa cfidentity/uaa-postgresql /root/uaa/scripts/unit-tests.sh postgresql,default
 
-Optionally, the Spring profile can be configured in the `uaa.yml` file
- 
-    $ echo "spring_profiles: default,postgresql" > src/main/resources/uaa.yml
 
 To run the unit tests using mysql:
 
-    $ ./gradlew -Dspring.profiles.active=default,mysql test integrationTest
+    $ docker run --privileged -t -i -v ~/workspace/uaa:/root/uaa cfidentity/uaa-mysql /root/uaa/scripts/unit-tests.sh mysql,default
 
 
-The database configuration for the common and scim modules is defaulted in 
-the [Spring XML configuration files](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/resources/spring/env.xml). 
-You can change them by configuring them in `uaa.yml`
+To run the unit tests using sqlserver:
 
-The defaults are
-
-    PostgreSQL: User: root Password: changeme Database: uaa Host: localhost Port: 5432
-    MySQL:      User: root Password: changeme Database: uaa Host: localhost Port: 3306
+    $ docker run --privileged -t -i -v ~/workspace/uaa:/root/uaa cfidentity/uaa-sqlserver /root/uaa/scripts/unit-tests.sh sqlserver,default
 
 ## Inventory
 
@@ -474,7 +461,7 @@ Here are some ways for you to get involved in the community:
 
 * The UAA has two requirements
   * JDK 1.8.0
-  * PhantomJS, for integration test, [http://phantomjs.org/download.html](http://phantomjs.org/download.html)
+  * [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/), for integration test.
 * Get involved with the Cloud Foundry community on the mailing lists.
   Please help out on the
   [mailing list](https://lists.cloudfoundry.org)
