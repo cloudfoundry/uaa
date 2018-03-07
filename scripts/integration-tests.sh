@@ -10,5 +10,7 @@ TESTENV="$1"
 pushd $(dirname $DIR)
   bootDB "${DB}"
   install_ldap_certs
+  /etc/init.d/slapd start
+  ./scripts/ldap/configure-manifest.sh
   ./gradlew "-Dspring.profiles.active=$TESTENV" jacocoRootReportIntegrationTest
 popd
