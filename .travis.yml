@@ -133,7 +133,7 @@ before_script:
   - docker pull "$IMAGE_NAME" || true
 
 script:
-- docker run -t -v ${PWD}:/root/uaa $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
+- docker run -t -v ${PWD}:/root/uaa --shm-size=1G $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
 
 after_success:
 #- ./gradlew coveralls
