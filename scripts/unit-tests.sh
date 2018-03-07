@@ -7,9 +7,8 @@ source $SCRIPT_DIR/start_ldap_helper.sh
 
 TESTENV="$1"
 
-bootDB "${DB}"
-
 pushd $(dirname $SCRIPT_DIR)
+  bootDB "${DB}"
   install_ldap_certs
   ./gradlew "-Dspring.profiles.active=$TESTENV" jacocoRootReportTest --stacktrace
 popd

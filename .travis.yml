@@ -4,32 +4,42 @@ env:
 
 matrix:
   include:
-#    - os: linux
-#      dist: trusty
-#      jdk: oraclejdk8
-#      sudo: required
-#      group: deprecated-2017Q4
-#      language: java
-#      env:
-#        - SPRING_PROFILE=default
-#        - TEST_COMMAND=generateDocs
-#    - os: linux
-#      dist: trusty
-#      jdk: oraclejdk8
-#      sudo: required
-#      group: deprecated-2017Q4
-#      language: java
-#      env:
-#        - SPRING_PROFILE=sqlserver,default
-#        - TEST_COMMAND=cloudfoundry-identity-server:test
-#    - os: linux
-#      dist: trusty
-#      jdk: oraclejdk8
-#      sudo: required
-#      language: java
-#      env:
-#        - SPRING_PROFILE=sqlserver,default
-#        - TEST_COMMAND=cloudfoundry-identity-uaa:test
+    - os: linux
+      language: java
+      services:
+        - docker
+      env:
+        - IMAGE_NAME=cfidentity/uaa-mysql
+        - SPRING_PROFILE=default
+        - TEST_COMMAND=./gradlew generateDocs
+
+    - os: linux
+      language: java
+      services:
+        - docker
+      env:
+        - IMAGE_NAME=cfidentity/uaa-sqlserver
+        - SPRING_PROFILE=sqlserver,default
+        - TEST_COMMAND=./gradlew cloudfoundry-identity-uaa:test
+
+    - os: linux
+      language: java
+      services:
+        - docker
+      env:
+        - IMAGE_NAME=cfidentity/uaa-sqlserver
+        - SPRING_PROFILE=sqlserver,default
+        - TEST_COMMAND=./gradlew cloudfoundry-identity-uaa:test
+
+    - os: linux
+      language: java
+      services:
+        - docker
+      env:
+        - IMAGE_NAME=cfidentity/uaa-sqlserver
+        - SPRING_PROFILE=sqlserver,default
+        - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
+
     - os: linux
       dist: trusty
       jdk: oraclejdk8
@@ -109,15 +119,14 @@ matrix:
         - SPRING_PROFILE=default
         - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
 
-    # - os: linux
-    #   dist: trusty
-    #   jdk: oraclejdk8
-    #   sudo: required
-    #   language: java
-    #   env:
-    #     - SPRING_PROFILE=sqlserver,default
-    #     - TEST_COMMAND=jacocoRootReportIntegrationTest
-
+    - os: linux
+      language: java
+      services:
+        - docker
+      env:
+        - IMAGE_NAME=cfidentity/uaa-sqlserver
+        - SPRING_PROFILE=sqlserver,default
+        - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
 
 cache:
   apt: true
