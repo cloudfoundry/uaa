@@ -21,7 +21,7 @@ ext {
   jsonPathVersion = '2.4.0'
   junitVersion = '4.12'
   mariaDBClientVersion = '2.2.0'
-  mockitoVersion = '2.8.47'
+  mockitoVersion = '2.13.0'
   powermockVersion = '1.7.0'
   mssqlVersion = '6.2.2.jre8'
   openSamlVersion = '2.6.6'
