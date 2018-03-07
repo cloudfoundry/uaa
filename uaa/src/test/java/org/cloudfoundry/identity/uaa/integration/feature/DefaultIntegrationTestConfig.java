@@ -20,7 +20,6 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.remote.DesiredCapabilities;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,7 +51,6 @@ public class DefaultIntegrationTestConfig {
 
     @Bean(destroyMethod = "quit")
     public ChromeDriver webDriver() {
-//        System.setProperty("webdriver.chrome.driver", "/usr/bin/chromedriver");
         System.setProperty("webdriver.chrome.logfile", "/tmp/chromedriver.log");
         System.setProperty("webdriver.chrome.verboseLogging", "true");
 
@@ -68,20 +66,12 @@ public class DefaultIntegrationTestConfig {
           "--disable-gpu"
         );
 
-        options.setHeadless(true);
-        options.setAcceptInsecureCerts(true);
-        //Disabling capabilities might break SamlIT test. It will not find line in logs
-//        options.addArguments("--verbose", "--disable-web-security", "--ignore-certificate-errors","--allow-running-insecure-content", "--allow-insecure-localhost", "--no-sandbox");
-//        DesiredCapabilities capabilities = DesiredCapabilities.chrome();
-//        LoggingPreferences logs = new LoggingPreferences();
-//        logs.enable(LogType.PERFORMANCE, Level.ALL);
-//        capabilities.setCapability(CapabilityType.LOGGING_PREFS, logs);
-//
-//        options.setBinary("/opt/google/chrome/google-chrome");
-//
-//        capabilities.setCapability(ChromeOptions.CAPABILITY, options);
-//        ChromeDriver driver = new ChromeDriver(capabilities);
+        LoggingPreferences logs = new LoggingPreferences();
+        logs.enable(LogType.PERFORMANCE, Level.ALL);
+        options.setCapability(CapabilityType.LOGGING_PREFS, logs);
+
         ChromeDriver driver = new ChromeDriver(options);
+
         driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
         driver.manage().timeouts().pageLoadTimeout(20, TimeUnit.SECONDS);
         driver.manage().timeouts().setScriptTimeout(15, TimeUnit.SECONDS);
