@@ -136,12 +136,12 @@ script:
 - docker run -t -v ${PWD}:/root/uaa -w="/root/uaa" $IMAGE_NAME $TEST_COMMAND "$SPRING_PROFILE"
 
 after_success:
-- ./gradlew coveralls
-- for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
-- /bin/df -h
-- /usr/bin/du -sh *
-- python scripts/travis/travis_after_all.py
-- export $(cat .to_export_back)
+#- ./gradlew coveralls
+#- for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
+#- /bin/df -h
+#- /usr/bin/du -sh *
+#- python scripts/travis/travis_after_all.py
+#- export $(cat .to_export_back)
 - ! "if [ \"$BUILD_LEADER\" = \"YES\" ]; then\n  if [ \"$BUILD_AGGREGATE_STATUS\"
   = \"others_succeeded\" ]; then\n    echo \"All Succeeded!\"\n else\n    echo \"Some Failed\"\n  fi\nfi\n"
 after_failure:
