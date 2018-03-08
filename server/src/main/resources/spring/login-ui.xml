@@ -280,6 +280,9 @@
         </constructor-arg>
     </bean>
 
+    <bean id="reAuthenticationRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
+    </bean>
+
     <http name="idpSecurity"
           use-expressions="true"
           pattern="/saml/idp/SSO/**"
@@ -306,6 +309,7 @@
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
         <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
         <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
+        <security:custom-filter ref="reAuthenticationRequiredFilter" position="LAST" />
         <form-login login-page="/login"
                     username-parameter="username"
                     password-parameter="password"
