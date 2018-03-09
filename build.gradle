@@ -71,6 +71,7 @@ allprojects {
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
         }
+        maven { url 'http://repository.mulesoft.org/releases/'}
     }
 }
 
