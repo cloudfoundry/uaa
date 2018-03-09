@@ -149,17 +149,13 @@ public class ZoneAwareMetadataGeneratorTests {
                 "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256+ "']");
 
         assertEquals(1, signatureNodes.getLength());
-
-        NodeList digestNodes = evaluateXPathExpression(metadataDoc,
-                "//*[local-name()='DigestMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_DIGEST_SHA256+ "']");
-        assertEquals(1, digestNodes.getLength());
-
     }
 
     @Test
     public void test_metadata_signed_zonified() throws Exception {
         extendedMetadata.setLocal(true);
         otherZoneDefinition.getSamlConfig().setSignatureAlgorithm(SamlConfig.SignatureAlgorithm.SHA512);
+        IdentityZoneHolder.set(otherZone);
         String s = getMetadata();
         Document metadataDoc = getMetadataDoc(s);
 
@@ -167,11 +163,6 @@ public class ZoneAwareMetadataGeneratorTests {
                 "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512+ "']");
 
         assertEquals(1, signatureNodes.getLength());
-
-        NodeList digestNodes = evaluateXPathExpression(metadataDoc,
-                "//*[local-name()='DigestMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_DIGEST_SHA512+ "']");
-        assertEquals(1, digestNodes.getLength());
-
     }
 
     @Test

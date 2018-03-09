@@ -126,10 +126,6 @@ public class ZoneAwareIdpMetadataGeneratorTest {
                 "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256+ "']");
 
         assertEquals(1, signatureNodes.getLength());
-
-        NodeList digestNodes = evaluateXPathExpression(metadataDoc,
-                "//*[local-name()='DigestMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_DIGEST_SHA256+ "']");
-        assertEquals(1, digestNodes.getLength());
     }
 
     @Test
@@ -143,11 +139,6 @@ public class ZoneAwareIdpMetadataGeneratorTest {
                 "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512+ "']");
 
         assertEquals(1, signatureNodes.getLength());
-
-        NodeList digestNodes = evaluateXPathExpression(metadataDoc,
-                "//*[local-name()='DigestMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_DIGEST_SHA512+ "']");
-        assertEquals(1, digestNodes.getLength());
-
     }
 
     @Test
