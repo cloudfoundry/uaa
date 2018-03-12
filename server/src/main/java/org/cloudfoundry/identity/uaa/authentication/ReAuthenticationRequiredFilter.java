@@ -30,7 +30,7 @@ public class ReAuthenticationRequiredFilter extends OncePerRequestFilter {
         }
         if (reAuthenticationRequired) {
             request.getSession().invalidate();
-            sendRedirect("/", requestParams, request, response);
+            sendRedirect(request.getRequestURL().toString(), requestParams, request, response);
         } else {
             filterChain.doFilter(request, response);
         }
