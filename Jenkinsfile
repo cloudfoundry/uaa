@@ -147,7 +147,7 @@ pipeline {
                             pushd uaa
                                 apt-get -qy install lsof
                                 ./scripts/travis/install-ldap-certs.sh
-                                ./gradlew --no-daemon --max-workers 2 --continue jacocoRootReportUaaTest
+                                ./gradlew --no-daemon --continue jacocoRootReportUaaTest
                             popd
                             '''
                     }
