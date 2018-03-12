@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
@@ -31,6 +32,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,9 +57,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static java.util.Collections.emptyList;
-import static java.util.Optional.ofNullable;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -71,6 +72,8 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 
 public class ScimUserBootstrapTests extends JdbcTestBase {
 
@@ -341,6 +344,37 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         assertEquals(1, users.size());
         assertEquals("Bloggs", users.iterator().next().getFamilyName());
         assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
+    }
+
+    @Test
+    public void invited_user_gets_verified_set_to_true() throws Exception {
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate,origin);
+        String email = "test@test.org";
+        String firstName = "FirstName";
+        String lastName = "LastName";
+        String password = "testPassword";
+        String externalId = null;
+
+        String username = new RandomValueStringGenerator().generate().toLowerCase();
+        UaaUser user = getUaaUser(new String[0], origin, email, firstName, lastName, password, externalId, "not-used-id", username);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
+        bootstrap.afterPropertiesSet();
+
+        ScimUser existingUser = db.retrieveAll(IdentityZone.getUaa().getId())
+            .stream()
+            .filter(u -> username.equals(u.getUserName()))
+            .findFirst()
+            .get();
+        String userId = existingUser.getId();
+        existingUser.setVerified(false);
+        existingUser = db.update(userId, existingUser, IdentityZone.getUaa().getId());
+        InvitedUserAuthenticatedEvent event = new InvitedUserAuthenticatedEvent(user);
+        bootstrap.onApplicationEvent(event);
+        ScimUser modifiedUser = db.retrieve(userId, IdentityZone.getUaa().getId());
+
+        assertTrue(modifiedUser.isVerified());
+        assertFalse(existingUser.isVerified());
     }
 
     @Test

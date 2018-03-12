@@ -15,16 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import javax.servlet.ServletContext;
-import javax.xml.namespace.QName;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
@@ -47,6 +37,7 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
@@ -66,9 +57,11 @@ import org.opensaml.saml2.core.NameID;
 import org.opensaml.ws.wsaddressing.impl.AttributedURIImpl;
 import org.opensaml.ws.wssecurity.impl.AttributedStringImpl;
 import org.opensaml.xml.XMLObject;
+import org.opensaml.xml.schema.XSBoolean;
 import org.opensaml.xml.schema.XSBooleanValue;
 import org.opensaml.xml.schema.impl.XSAnyImpl;
 import org.opensaml.xml.schema.impl.XSBase64BinaryImpl;
+import org.opensaml.xml.schema.impl.XSBooleanBuilder;
 import org.opensaml.xml.schema.impl.XSBooleanImpl;
 import org.opensaml.xml.schema.impl.XSDateTimeImpl;
 import org.opensaml.xml.schema.impl.XSIntegerImpl;
@@ -94,6 +87,16 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.context.request.ServletWebRequest;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.ServletContext;
+import javax.xml.namespace.QName;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
@@ -189,7 +192,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         } else if (value instanceof List) {
             for (String s : (List<String>) value) {
                 if (SAML_USER.equals(s)) {
-                    XSAnyImpl impl = new XSAnyImpl("","","") {};
+                    XSAnyImpl impl = new XSAnyImpl("", "", "") {
+                    };
                     impl.setTextContent(s);
                     xmlObjects.add(impl);
                 } else {
@@ -198,6 +202,10 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
                     xmlObjects.add(impl);
                 }
             }
+        } else if (value instanceof Boolean) {
+            XSBoolean impl = new XSBooleanBuilder().buildObject("","","");
+            impl.setValue(new XSBooleanValue((Boolean)value, false));
+            xmlObjects.add(impl);
         } else {
             AttributedStringImpl impl = new AttributedStringImpl("", "", "");
             impl.setValue((String)value);
@@ -276,6 +284,19 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     private SAMLCredential getUserCredential(String username, String firstName, String lastName, String emailAddress, String phoneNumber) {
+        return getUserCredential(username,
+                                 firstName,
+                                 lastName,
+                                 emailAddress,
+                                 phoneNumber,
+                                 null);
+    }
+    private SAMLCredential getUserCredential(String username,
+                                             String firstName,
+                                             String lastName,
+                                             String emailAddress,
+                                             String phoneNumber,
+                                             Boolean emailVerified) {
         NameID usernameID = mock(NameID.class);
         when(usernameID.getValue()).thenReturn(username);
 
@@ -288,6 +309,9 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
         attributes.put(COST_CENTER, Arrays.asList(DENVER_CO));
         attributes.put(MANAGER, Arrays.asList(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+        if (emailVerified!=null) {
+            attributes.put("emailVerified", emailVerified);
+        }
 
         //test different types
         attributes.put("XSURI", "http://localhost:8080/someuri");
@@ -570,11 +594,18 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void update_existingUser_if_attributes_different() throws Exception {
+        try {
+            userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+            fail("user should not exist");
+        } catch (UsernameNotFoundException x) {
+        }
         getAuthentication();
-
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        assertFalse(user.isVerified());
         Map<String,Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "firstName");
         attributeMappings.put("email", "emailAddress");
+        attributeMappings.put("email_verified", "emailVerified");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
@@ -583,9 +614,19 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
         getAuthentication();
 
-        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
         assertEquals("Marissa-changed", user.getGivenName());
         assertEquals("marissa.bloggs@change.org", user.getEmail());
+        assertFalse(user.isVerified());
+
+        credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null, true);
+        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        getAuthentication();
+
+        user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        assertEquals("Marissa-changed", user.getGivenName());
+        assertEquals("marissa.bloggs@change.org", user.getEmail());
+        assertTrue(user.isVerified());
     }
 
     @Test
@@ -597,6 +638,25 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         UaaUser existingUser = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
 
         assertEquals(existingUser.getModified(), user.getModified());
+    }
+
+    @Test
+    public void have_attributes_changed() throws Exception {
+        getAuthentication();
+        UaaUser existing = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        UaaUser modified = new UaaUser(new UaaUserPrototype(existing));
+        assertFalse("Nothing modified", authprovider.haveUserAttributesChanged(existing, modified));
+        modified = new UaaUser(new UaaUserPrototype(existing).withEmail("other-email"));
+        assertTrue("Email modified", authprovider.haveUserAttributesChanged(existing, modified));
+        modified = new UaaUser(new UaaUserPrototype(existing).withPhoneNumber("other-phone"));
+        assertTrue("Phone number modified", authprovider.haveUserAttributesChanged(existing, modified));
+        modified = new UaaUser(new UaaUserPrototype(existing).withVerified(!existing.isVerified()));
+        assertTrue("Verified email modified", authprovider.haveUserAttributesChanged(existing, modified));
+        modified = new UaaUser(new UaaUserPrototype(existing).withGivenName("other-given"));
+        assertTrue("First name modified", authprovider.haveUserAttributesChanged(existing, modified));
+        modified = new UaaUser(new UaaUserPrototype(existing).withFamilyName("other-family"));
+        assertTrue("Last name modified", authprovider.haveUserAttributesChanged(existing, modified));
+
     }
 
     @Test

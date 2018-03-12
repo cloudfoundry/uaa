@@ -12,6 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -40,6 +55,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,24 +75,10 @@ import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -101,7 +103,9 @@ import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -136,7 +140,7 @@ public class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, mock(UrlContentCache.class), mock(RestTemplateFactory.class));
-        mfaChecker = mock(MfaChecker.class);
+        mfaChecker = spy(new MfaChecker(mock(IdentityProviderProvisioning.class)));
     }
 
     @After
@@ -400,7 +404,31 @@ public class LoginInfoEndpointTests {
         check_links_urls(zone);
     }
 
-    public void check_links_urls(IdentityZone zone) throws Exception {
+
+    public void mfa_prompt(IdentityZone zone) throws Exception {
+        zone.getConfig().getMfaConfig().setEnabled(true);
+        IdentityZoneHolder.set(zone);
+        String baseUrl = check_links_urls(zone);
+        Map mapPrompts = (Map) model.get("prompts");
+        assertNotNull(mapPrompts.get("mfaCode"));
+        assertEquals(
+            "MFA Code ( Register at "+addSubdomainToUrl(baseUrl) + " )",
+            ((String[])mapPrompts.get("mfaCode"))[1]
+        );
+    }
+    @Test
+    public void mfa_prompt_in_default_zone() throws Exception {
+        IdentityZone zone = IdentityZone.getUaa();
+        mfa_prompt(zone);
+    }
+
+    @Test
+    public void mfa_prompt_in_non_default_zone() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test","test");
+        mfa_prompt(zone);
+    }
+
+    public String check_links_urls(IdentityZone zone) throws Exception {
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         String baseUrl = "http://uaa.domain.com";
@@ -421,6 +449,7 @@ public class LoginInfoEndpointTests {
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
         assertEquals("One Time Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
+        return baseUrl;
     }
 
     @Test
@@ -546,6 +575,7 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void test_PromptLogic() throws Exception {
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.infoForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
@@ -555,27 +585,43 @@ public class LoginInfoEndpointTests {
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNull(mapPrompts.get("passcode"));
+        assertNull(mapPrompts.get("mfaCode"));
 
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        model.clear();
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), singletonList(MediaType.TEXT_HTML));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
-        assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
+        assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof Map);
         mapPrompts = (Map)model.get("prompts");
         assertEquals("there should be two prompts for html", 2, mapPrompts.size());
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNull(mapPrompts.get("passcode"));
+        assertNull(mapPrompts.get("mfaCode"));
+
+        model.clear();
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
+        mapPrompts = (Map)model.get("prompts");
+        assertEquals("there should be two prompts for html", 3, mapPrompts.size());
+        assertNotNull(mapPrompts.get("username"));
+        assertNotNull(mapPrompts.get("password"));
+        assertNotNull(mapPrompts.get("mfaCode"));
+        assertNull(mapPrompts.get("passcode"));
 
         //add a SAML IDP, should make the passcode prompt appear
+        model.clear();
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
         mapPrompts = (Map)model.get("prompts");
-        assertEquals("there should be three prompts for html", 3, mapPrompts.size());
+        assertEquals("there should be three prompts for html", 4, mapPrompts.size());
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNotNull(mapPrompts.get("passcode"));
+        assertNotNull(mapPrompts.get("mfaCode"));
 
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
@@ -587,6 +633,7 @@ public class LoginInfoEndpointTests {
         uaaIdentityProvider.setActive(false);
         when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
 
+        model.clear();
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         mapPrompts = (Map)model.get("prompts");
@@ -858,7 +905,8 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void testGenerateAutologinCodeFailsWhenMfaRequired() throws Exception {
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class), anyString());
+
         LoginInfoEndpoint endpoint = getEndpoint();
         try {
             endpoint.generateAutologinCode(mock(AutologinRequest.class), "Basic 1234");
@@ -870,7 +918,7 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void testPerformAutologinFailsWhenMfaRequired() throws Exception {
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class), anyString());
         LoginInfoEndpoint endpoint = getEndpoint();
         try {
             endpoint.performAutologin(new MockHttpSession());

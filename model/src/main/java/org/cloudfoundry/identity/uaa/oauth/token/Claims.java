@@ -42,7 +42,7 @@ public class Claims {
     @JsonProperty(ClaimConstants.CLIENT_ID)
     private String clientId;
     @JsonProperty(ClaimConstants.EXP)
-    private Integer exp;
+    private Long exp;
     @JsonProperty(ClaimConstants.AUTHORITIES)
     private List<String> authorities;
     @JsonProperty(ClaimConstants.SCOPE)
@@ -154,11 +154,11 @@ public class Claims {
         this.clientId = clientId;
     }
 
-    public Integer getExp() {
+    public Long getExp() {
         return exp;
     }
 
-    public void setExp(Integer exp) {
+    public void setExp(Long exp) {
         this.exp = exp;
     }
 

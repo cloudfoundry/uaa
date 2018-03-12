@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
@@ -45,6 +45,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -80,7 +82,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import javax.servlet.http.HttpSession;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -94,8 +95,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.servlet.http.HttpSession;
 
-import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
@@ -137,6 +138,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static java.util.Collections.EMPTY_LIST;
 
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests  {
@@ -179,7 +181,6 @@ public class LdapMockMvcTests  {
 
     private static ApacheDsSSLContainer apacheDS;
     private static ApacheDsSSLContainer apacheDS2;
-    private static File tmpDir;
 
     @AfterClass
     public static void afterClass() throws Exception {
@@ -187,22 +188,8 @@ public class LdapMockMvcTests  {
         apacheDS.stop();
     }
 
-    public static boolean checkOpenPorts(int port) throws Exception {
-        //need to configure gradle to not swallow the output, but log it to a file
-        System.out.println("Checking for processes using port:"+port);
-        ProcessBuilder builder = new ProcessBuilder(Arrays.asList("sudo", "lsof", "-i", ":"+port));
-        builder.inheritIO().redirectOutput(ProcessBuilder.Redirect.PIPE);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(builder.start().getInputStream()))) {
-            long count = reader.lines().count();
-            reader.lines().forEach(line -> System.err.println("LDAP Port["+port+"] lsof:"+line));
-            return count > 0;
-        }
-    }
-
     @BeforeClass
     public static void startApacheDS() throws Exception {
-        checkOpenPorts(33389);
-        checkOpenPorts(33636);
         apacheDS = ApacheDSHelper.start();
         webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
@@ -450,7 +437,7 @@ public class LdapMockMvcTests  {
         final String FIRST_NAME = "first_name";
         final String FAMILY_NAME = "family_name";
         final String PHONE_NUMBER = "phone_number";
-        final String EMAIL = "email";
+        final String EMAIL_VERIFIED = "email_verified";
 
 
         Map<String, Object> attributeMappings = new HashMap<>();
@@ -460,10 +447,12 @@ public class LdapMockMvcTests  {
         attributeMappings.put("user.attribute." + MANAGERS, MANAGER);
         attributeMappings.put("user.attribute." + COST_CENTERS, COST_CENTER);
 
+
         //test to remap the user/person properties
         attributeMappings.put(FIRST_NAME, "sn");
         attributeMappings.put(PHONE_NUMBER, "givenname");
         attributeMappings.put(FAMILY_NAME, "telephonenumber");
+        attributeMappings.put(EMAIL_VERIFIED, "emailVerified");
 
         definition.setAttributeMappings(attributeMappings);
         provider.setConfig(definition);
@@ -487,6 +476,7 @@ public class LdapMockMvcTests  {
         assertEquals("8885550986", getFamilyName(username));
         assertEquals("Marissa", getPhoneNumber(username));
         assertEquals("Marissa9", getGivenName(username));
+        assertTrue(getVerified(username));
     }
 
     @Test
@@ -917,6 +907,13 @@ public class LdapMockMvcTests  {
         assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
 
         testSuccessfulLogin();
+
+        captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
+        allValues = captor.getAllValues();
+        assertThat(allValues.get(12), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
+        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent)allValues.get(12);
+        assertEquals(OriginKeys.LDAP, successEvent.getAuthenticationType());
     }
 
     @Test
@@ -1047,6 +1044,7 @@ public class LdapMockMvcTests  {
         assertEquals("Marissa", getGivenName(username));
         assertEquals("Lastnamerton", getFamilyName(username));
         assertEquals("8885550986", getPhoneNumber(username));
+        assertFalse(getVerified(username));
     }
 
     @Test
@@ -1237,6 +1235,10 @@ public class LdapMockMvcTests  {
 
     private String getPhoneNumber(String username) throws Exception {
         return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select phonenumber from users where username=? and origin=? and identity_zone_id=?", String.class, username, LDAP, zone.getZone().getIdentityZone().getId());
+    }
+
+    private boolean getVerified(String username) throws Exception {
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select verified from users where username=? and origin=? and identity_zone_id=?", Boolean.class, username, LDAP, zone.getZone().getIdentityZone().getId());
     }
 
     private MvcResult performAuthentication(String username, String password) throws Exception {

@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
@@ -264,6 +265,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertEquals(testUser.getUserName(), userevent.getUser().getUsername());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertEquals(OriginKeys.UAA, passwordevent.getAuthenticationType());
     }
 
     @Test
@@ -289,6 +291,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertEquals(testUser.getUserName(), userevent.getUser().getUsername());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertEquals(OriginKeys.UAA, passwordevent.getAuthenticationType());
     }
 
 
@@ -509,6 +512,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         UserAuthenticationSuccessEvent userevent = getEventOfType(captor, UserAuthenticationSuccessEvent.class);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertEquals(OriginKeys.UAA, passwordevent.getAuthenticationType());
 
         String marissaToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", testUser.getUserName(), testPassword, "password.write");
         captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -560,6 +564,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         UserAuthenticationSuccessEvent userevent = getEventOfType(captor, UserAuthenticationSuccessEvent.class);
         assertEquals(passwordevent.getUser().getId(), userevent.getUser().getId());
         assertTrue(userevent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+        assertEquals(OriginKeys.UAA, passwordevent.getAuthenticationType());
 
         String marissaToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", testUser.getUserName(), testPassword, "password.write");
         captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);

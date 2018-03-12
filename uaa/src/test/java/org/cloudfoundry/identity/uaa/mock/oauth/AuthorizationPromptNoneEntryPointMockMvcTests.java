@@ -126,7 +126,7 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
             OpenIdSessionStateCalculator openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
             uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(openIdSessionStateCalculator);
 
-            when(openIdSessionStateCalculator.calculate(anyString(), anyString(), anyString())).thenThrow(NoSuchAlgorithmException.class);
+            when(openIdSessionStateCalculator.calculate(anyString(), anyString(), anyString())).thenThrow(RuntimeException.class);
 
             MockHttpSession session = new MockHttpSession();
             login(session);

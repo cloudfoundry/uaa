@@ -188,6 +188,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
                   "User must be authenticated with Spring Security before authorization can be completed.");
             }
 
+            if (!(responseTypes.size() > 0)) {
+                return new ModelAndView(new RedirectView(addQueryParameter(addQueryParameter(resolvedRedirect, "error","invalid_request"), "error_description", "Missing response_type in authorization request")));
+            }
+
             authorizationRequest.setRedirectUri(resolvedRedirect);
             // We intentionally only validate the parameters requested by the client (ignoring any data that may have
             // been added to the request by the manager).
@@ -233,7 +237,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             throw e;
         } catch (Exception e) {
             sessionStatus.setComplete();
-
+            logger.debug("Unable to handle /oauth/authorize, internal error", e);
             if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))) {
                 return new ModelAndView(
                   new RedirectView(addFragmentComponent(resolvedRedirect, "error=internal_server_error"))
@@ -283,11 +287,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         String sessionState = openIdSessionStateCalculator.calculate("", clientId, httpHost.toURI());
         boolean implicit = stream(responseTypes).noneMatch("code"::equalsIgnoreCase);
         String redirectLocation;
+        String errorCode = authException instanceof InteractionRequiredException ? "interaction_required" : "login_required";
         if (implicit) {
-            redirectLocation = addFragmentComponent(resolvedRedirect, "error=login_required");
+            redirectLocation = addFragmentComponent(resolvedRedirect, "error="+ errorCode);
             redirectLocation = addFragmentComponent(redirectLocation, "session_state=" + sessionState);
         } else {
-            redirectLocation = addQueryParameter(resolvedRedirect, "error", "login_required");
+            redirectLocation = addQueryParameter(resolvedRedirect, "error", errorCode);
             redirectLocation = addQueryParameter(redirectLocation, "session_state", sessionState);
         }
 

@@ -43,9 +43,11 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String passwordWriteToken;
     private String adminToken;
+    private String password;
 
     @Before
     public void setUp() throws Exception {
+        password = "secret";
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
                 "clients.read clients.write clients.secret scim.write clients.admin");
         String clientId = generator.generate().toLowerCase();
@@ -63,11 +65,15 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
     public void changePassword_withInvalidPassword_returnsErrorJson() throws Exception {
         ScimUser user = createUser();
         PasswordChangeRequest request = new PasswordChangeRequest();
-        request.setOldPassword("secr3T");
-        request.setPassword(new RandomValueStringGenerator(260).generate());
-        getMockMvc().perform(put("/Users/" + user.getId() + "/password").header("Authorization", "Bearer " + passwordWriteToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request)))
+        request.setOldPassword(password);
+        String tooLongPassword = new RandomValueStringGenerator(260).generate();
+        request.setPassword(tooLongPassword);
+        MockHttpServletRequestBuilder putRequest = put("/Users/" + user.getId() + "/password")
+                                                      .header("Authorization", "Bearer " + passwordWriteToken)
+                                                      .contentType(APPLICATION_JSON)
+                                                      .content(JsonUtils.writeValueAsString(request));
+
+        getMockMvc().perform(putRequest)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
                 .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
@@ -77,8 +83,8 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
     public void changePassword_NewPasswordSameAsOld_ReturnsUnprocessableEntityWithJsonError() throws Exception {
         ScimUser user = createUser();
         PasswordChangeRequest request = new PasswordChangeRequest();
-        request.setOldPassword("secr3T");
-        request.setPassword("secr3T");
+        request.setOldPassword(password);
+        request.setPassword(password);
         getMockMvc().perform(put("/Users/" + user.getId() + "/password").header("Authorization", "Bearer " + passwordWriteToken)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(request)))
@@ -88,10 +94,28 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
     }
 
     @Test
+    public void changePassword_WithBadOldPassword_ReturnsUnauthorizedError() throws Exception {
+        ScimUser user = createUser();
+        String userToken = testClient.getUserOAuthAccessToken("cf", "", user.getUserName(), password, "password.write");
+
+        PasswordChangeRequest request = new PasswordChangeRequest();
+        request.setOldPassword("wrongPassword");
+        request.setPassword(password);
+        getMockMvc().perform(put("/Users/" + user.getId() + "/password")
+          .header("Authorization", "Bearer " + userToken)
+          .contentType(APPLICATION_JSON)
+          .content(JsonUtils.writeValueAsString(request)))
+          .andExpect(status().isUnauthorized())
+          .andExpect(jsonPath("$.error_description").value("Old password is incorrect"))
+          .andExpect(jsonPath("$.error").value("unauthorized"))
+          ;
+    }
+
+    @Test
     public void changePassword_SuccessfullyChangePassword() throws Exception {
         ScimUser user = createUser();
         PasswordChangeRequest request = new PasswordChangeRequest();
-        request.setOldPassword("secr3T");
+        request.setOldPassword(password);
         request.setPassword("n3wAw3som3Passwd");
 
         MockHttpServletRequestBuilder put = put("/Users/" + user.getId() +"/password")
@@ -117,7 +141,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .session(session)
             .accept(TEXT_HTML_VALUE)
             .param("username", user.getUserName())
-            .param("password", "secr3T"))
+            .param("password", password))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/"))
             .andReturn().getRequest().getSession(false);
@@ -129,7 +153,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .session(afterLoginSession)
             .with(cookieCsrf())
             .accept(TEXT_HTML_VALUE)
-            .param("current_password", "secr3T")
+            .param("current_password", password)
             .param("new_password", "secr3T1")
             .param("confirm_password", "secr3T1"))
             .andExpect(status().isFound())
@@ -153,7 +177,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .session(session)
             .accept(TEXT_HTML_VALUE)
             .param("username", user.getUserName())
-            .param("password", "secr3T"))
+            .param("password", password))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/"))
             .andReturn().getRequest().getSession(false);
@@ -164,7 +188,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .session(session)
             .accept(TEXT_HTML_VALUE)
             .param("username", user.getUserName())
-            .param("password", "secr3T"))
+            .param("password", password))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/"))
             .andReturn().getRequest().getSession(false);
@@ -182,7 +206,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .session(afterLoginSessionA)
             .with(cookieCsrf())
             .accept(TEXT_HTML_VALUE)
-            .param("current_password", "secr3T")
+            .param("current_password", password)
             .param("new_password", "secr3T1")
             .param("confirm_password", "secr3T1"))
             .andExpect(status().isFound())
@@ -206,7 +230,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         String id = generator.generate();
         ScimUser user = new ScimUser(id, id + "user@example.com", "name", "familyname");
         user.addEmail(id + "user@example.com");
-        user.setPassword("secr3T");
+        user.setPassword(password);
         return utils().createUser(getMockMvc(), adminToken, user);
     }
 }

@@ -14,8 +14,23 @@
 
 package org.cloudfoundry.identity.uaa.mock.token;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -30,26 +45,22 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
+
+import org.junit.After;
 import org.junit.Before;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.junit.Assert.assertNull;
 import static org.springframework.util.StringUtils.hasText;
@@ -74,6 +85,13 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     protected RevocableTokenProvisioning tokenProvisioning;
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
+    IdentityZone zone;
+    protected UaaUserDatabase userDb;
+    protected MfaProvider mfaProvider;
+    protected IdentityZoneConfiguration uaaZoneConfig;
+    protected UserGoogleMfaCredentialsProvisioning authenticator;
+    protected UserGoogleMfaCredentials credentials;
+
     @Before
     public void setUpContext() throws Exception {
         clientDetailsService = (ClientServicesExtension) getWebApplicationContext().getBean("jdbcClientDetailsService");
@@ -96,6 +114,47 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
                 null
             );
         tokenProvisioning = (RevocableTokenProvisioning) getWebApplicationContext().getBean("revocableTokenProvisioning");
+    }
+
+    @After
+    public void cleanup() throws Exception {
+        if (uaaZoneConfig!=null) {
+            uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
+            MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId(), uaaZoneConfig);
+            deleteMfaRegistrations();
+        }
+    }
+
+    protected void deleteMfaRegistrations() throws Exception {
+        getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM " + JdbcUserGoogleMfaCredentialsProvisioning.TABLE_NAME);
+    }
+
+    public void setupForMfaPasswordGrant() throws Exception {
+        userDb = getWebApplicationContext().getBean(UaaUserDatabase.class);
+        String userId = userDb.retrieveUserByName("marissa", OriginKeys.UAA).getId();
+        setupForMfaPasswordGrant(userId);
+    }
+    public void setupForMfaPasswordGrant(String userId) throws Exception {
+        userDb = getWebApplicationContext().getBean(UaaUserDatabase.class);
+        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId());
+
+        cleanup();
+
+        adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            "admin",
+            "adminsecret",
+            "uaa.admin"
+        );
+        mfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
+
+        uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
+        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId(), uaaZoneConfig);
+
+        authenticator = getWebApplicationContext().getBean(UserGoogleMfaCredentialsProvisioning.class);
+
+        credentials = authenticator.createUserCredentials(userId);
+        credentials.setMfaProviderId(mfaProvider.getId());
+        authenticator.saveUserCredentials(credentials);
     }
 
     public String setUpUserForPasswordGrant() throws Exception {

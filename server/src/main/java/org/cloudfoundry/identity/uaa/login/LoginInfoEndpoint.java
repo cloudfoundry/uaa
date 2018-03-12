@@ -12,8 +12,34 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.awt.*;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -46,11 +72,14 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -61,6 +90,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,35 +98,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.awt.*;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
@@ -117,6 +118,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 @Controller
 public class LoginInfoEndpoint {
 
+    public static final String MFA_CODE = "mfaCode";
     private static Log logger = LogFactory.getLog(LoginInfoEndpoint.class);
 
     public static final String NotANumber = OriginKeys.NotANumber;
@@ -239,7 +241,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
     public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
+        return login(model, principal, Arrays.asList(PASSCODE, MFA_CODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -271,7 +273,7 @@ public class LoginInfoEndpoint {
 
         model.addAttribute("savedAccounts", savedAccounts);
 
-        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
+        return infoForHtml(model, principal, request);
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
@@ -581,19 +583,28 @@ public class LoginInfoEndpoint {
         }
         Map<String, String[]> map = new LinkedHashMap<>();
         for (Prompt prompt : zoneConfiguration.getPrompts()) {
-            if (!exclude.contains(prompt.getName())) {
-                String[] details = prompt.getDetails();
-                if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
-                    String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
-                    if (hasText(urlInPasscode)) {
-                        String[] newDetails = new String[details.length];
-                        System.arraycopy(details, 0, newDetails, 0, details.length);
-                        newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
-                        details = newDetails;
-                    }
+            String[] details = prompt.getDetails();
+            if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
+                String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
+                if (hasText(urlInPasscode)) {
+                    String[] newDetails = new String[details.length];
+                    System.arraycopy(details, 0, newDetails, 0, details.length);
+                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
+                    details = newDetails;
                 }
-                map.put(prompt.getName(), details);
             }
+            map.put(prompt.getName(), details);
+        }
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), OriginKeys.UAA)) {
+            Prompt p = new Prompt(
+                MFA_CODE,
+                "password",
+                "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl()+" )")
+            );
+            map.putIfAbsent(p.getName(), p.getDetails());
+        }
+        for (String excludeThisPrompt : exclude) {
+            map.remove(excludeThisPrompt);
         }
         model.addAttribute("prompts", map);
     }

@@ -49,10 +49,7 @@ dependencies {
     exclude(module: 'slf4j-log4j12')
   }
   testCompile group: 'junit', name: 'junit', version: parent.junitVersion
-  testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
-  testCompile(group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0') {
-    exclude(module: 'servlet-api-2.5')
-  }
+  testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: parent.seleniumJavaVersion
   testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
   testCompile group: 'com.google.zxing', name: 'core', version: parent.zxingVersion
   testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'

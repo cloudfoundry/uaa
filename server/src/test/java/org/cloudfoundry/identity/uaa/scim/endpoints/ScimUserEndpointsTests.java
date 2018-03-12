@@ -608,6 +608,15 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
+    public void testFindGroupsAndApprovals() {
+        ScimUserEndpoints spy = spy(endpoints);
+        SearchResults<?> results = spy.findUsers("id,groups,approvals", "id pr", null, "ascending", 1, 100);
+        assertEquals(2, results.getTotalResults());
+        verify(spy, times(2)).syncGroups(any(ScimUser.class));
+        verify(spy, times(2)).syncApprovals(any(ScimUser.class));
+    }
+
+    @Test
     public void testFindPageOfIds() {
         SearchResults<?> results = endpoints.findUsers("id", "id pr", null, "ascending", 1, 1);
         assertEquals(2, results.getTotalResults());

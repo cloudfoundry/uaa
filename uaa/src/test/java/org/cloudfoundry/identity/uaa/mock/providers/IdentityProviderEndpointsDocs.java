@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -64,6 +65,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
@@ -120,6 +122,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor ATTRIBUTE_MAPPING_GIVEN_NAME = fieldWithPath("config.attributeMappings.given_name").optional(null).type(STRING).description(GIVEN_NAME_DESC);
     private static final FieldDescriptor ATTRIBUTE_MAPPING_FAMILY_NAME = fieldWithPath("config.attributeMappings.family_name").optional(null).type(STRING).description(FAMILY_NAME_DESC);
     private static final FieldDescriptor ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional(null).type(STRING).description(PHONE_NUMBER_DESC);
+    private static final FieldDescriptor ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD = fieldWithPath("config.attributeMappings.email_verified").optional(null).type(STRING).description("Maps the attribute on the assertion to the `email_verified` user record at the time of authentication. Default is false. Once set to true, record remains true for subsequent authentications.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING_EXTERNAL_GROUP = fieldWithPath("config.attributeMappings.external_groups").optional(null).type(ARRAY).description("Map `external_groups` to the attribute for groups in the provider assertion.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT = fieldWithPath("config.attributeMappings['user.attribute.department']").optional(null).type(STRING).description("Map external attribute to UAA recognized mappings. Mapping should be of the format `user.attribute.<attribute_name>`. `department` is used in the documentation as an example attribute.");
     private static final FieldDescriptor ADD_SHADOW_USER = fieldWithPath("config.addShadowUserOnLogin").optional(true).type(BOOLEAN).description(" Determines whether users should be allowed to authenticate without having a user pre-populated in the users database (if true), or whether shadow users must be created before login by an administrator (if false).");
@@ -161,13 +164,14 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     };
 
     private FieldDescriptor[] attributeMappingFields = {
-            ATTRIBUTE_MAPPING,
-            ATTRIBUTE_MAPPING_EMAIL,
-            ATTRIBUTE_MAPPING_GIVEN_NAME,
-            ATTRIBUTE_MAPPING_FAMILY_NAME,
-            ATTRIBUTE_MAPPING_PHONE,
-            ATTRIBUTE_MAPPING_EXTERNAL_GROUP,
-            ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
+        ATTRIBUTE_MAPPING,
+        ATTRIBUTE_MAPPING_EMAIL,
+        ATTRIBUTE_MAPPING_GIVEN_NAME,
+        ATTRIBUTE_MAPPING_FAMILY_NAME,
+        ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
+        ATTRIBUTE_MAPPING_EXTERNAL_GROUP,
+        ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
     FieldDescriptor relayingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
@@ -258,6 +262,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         EXTERNAL_GROUPS_WHITELIST
     });
 
@@ -295,6 +300,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         EXTERNAL_GROUPS_WHITELIST
     });
 
@@ -317,6 +323,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         LDAP_BIND_USER_DN.ignored(),
         LDAP_USER_SEARCH_BASE.ignored(),
         LDAP_USER_SEARCH_FILTER.ignored(),
@@ -367,6 +374,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
         LDAP_ATTRIBUTE_MAPPING_PHONE,
+        ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
         EXTERNAL_GROUPS_WHITELIST
     });
 
@@ -697,6 +705,9 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     public void createLDAPProvider(IdentityProvider<LdapIdentityProviderDefinition> identityProvider,
                                    FieldDescriptor[] fields,
                                    String name) throws Exception {
+        Map<String, Object> attributeMappings = new HashedMap(identityProvider.getConfig().getAttributeMappings());
+        attributeMappings.put(EMAIL_VERIFIED_ATTRIBUTE_NAME, "emailVerified");
+        identityProvider.getConfig().setAttributeMappings(attributeMappings);
         BaseClientDetails admin = new BaseClientDetails(
             "admin",
             null,
@@ -988,6 +999,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     private Map<String, Object> getAttributeMappingMap() {
         Map<String, Object> attributeMappings = new HashMap();
+        attributeMappings.put(EMAIL_VERIFIED_ATTRIBUTE_NAME, "emailVerified");
         attributeMappings.put(EMAIL_ATTRIBUTE_NAME, "emailAddress");
         attributeMappings.put(GIVEN_NAME_ATTRIBUTE_NAME, "first_name");
         attributeMappings.put(FAMILY_NAME_ATTRIBUTE_NAME, "last_name");
