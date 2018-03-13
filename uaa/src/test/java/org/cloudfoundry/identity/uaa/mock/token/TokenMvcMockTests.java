@@ -3813,6 +3813,103 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void testGetTokenPromptLogin() throws Exception {
+        String basicDigestHeaderValue = "Basic "
+                + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
+
+        ScimUser user = setUpUser(generator.generate()+"@test.org");
+
+        String zoneadmingroup = "zones."+ generator.generate()+".admin";
+        ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
+        ScimGroupMember member = new ScimGroupMember(user.getId());
+        groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
+
+        MockHttpSession session = getAuthenticatedSession(user);
+
+        String state = generator.generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .session(session)
+                .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param("prompt", "login")
+                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        assertEquals(result.getRequest().getRequestURL().toString(), result.getResponse().getRedirectedUrl().split("\\?")[0]);
+        Map<String, String[]> mapRequest = result.getRequest().getParameterMap();
+        Map<String, String[]> mapResponse = UaaUrlUtils.getParameterMap(result.getResponse().getRedirectedUrl());
+        for (String key : mapResponse.keySet()) {
+            assertTrue(mapRequest.containsKey(key));
+            assertTrue(Arrays.equals(mapRequest.get(key), mapResponse.get(key)));
+        }
+        Set<String> requestKeys = new HashSet(mapRequest.keySet());
+        requestKeys.removeAll(mapResponse.keySet());
+        assertEquals(1, requestKeys.size());
+        assertTrue(requestKeys.contains("prompt"));
+    }
+
+    @Test
+    public void testGetTokenMaxAge() throws Exception {
+        String basicDigestHeaderValue = "Basic "
+                + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
+
+        ScimUser user = setUpUser(generator.generate()+"@test.org");
+
+        String zoneadmingroup = "zones."+ generator.generate()+".admin";
+        ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
+        ScimGroupMember member = new ScimGroupMember(user.getId());
+        groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
+
+        MockHttpSession session = getAuthenticatedSession(user);
+
+        String state = generator.generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .session(session)
+                .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param("max_age", "1")
+                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        assertEquals("http://localhost/test", result.getResponse().getRedirectedUrl().split("\\?")[0]);
+        Thread.sleep(2000);
+
+        authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .session(session)
+                .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param("max_age", "1")
+                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+
+        result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        assertEquals(result.getRequest().getRequestURL().toString(), result.getResponse().getRedirectedUrl().split("\\?")[0]);
+        Map<String, String[]> mapRequest = result.getRequest().getParameterMap();
+        Map<String, String[]> mapResponse = UaaUrlUtils.getParameterMap(result.getResponse().getRedirectedUrl());
+        for (String key : mapResponse.keySet()) {
+            assertTrue(mapRequest.containsKey(key));
+            assertTrue(Arrays.equals(mapRequest.get(key), mapResponse.get(key)));
+        }
+        Set<String> requestKeys = new HashSet(mapRequest.keySet());
+        requestKeys.removeAll(mapResponse.keySet());
+        assertEquals(1, requestKeys.size());
+        assertTrue(requestKeys.contains("max_age"));
+    }
+
+    @Test
     public void testRevocablePasswordGrantTokenForDefaultZone() throws Exception {
         String tokenKey = "access_token";
         Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(new HashedMap());
