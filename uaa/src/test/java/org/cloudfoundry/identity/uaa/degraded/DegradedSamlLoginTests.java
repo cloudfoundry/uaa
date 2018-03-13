@@ -24,7 +24,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -32,7 +36,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -42,10 +46,14 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -111,8 +119,8 @@ public class DegradedSamlLoginTests {
         try {
             IntegrationTestUtils.createGroup(zoneAdminToken, null, baseUrl, scimGroup);
             Assert.fail("Failure: Group creation should not be allowed");
-        } catch(AssertionError e) {
-            assertThat(e.getMessage(), Matchers.containsString("403"));
+        } catch(HttpServerErrorException e) {
+            assertThat(e.getMessage(), Matchers.containsString("503"));
         }
     }
 
@@ -171,8 +179,8 @@ public class DegradedSamlLoginTests {
                     String.class
             );
             Assert.fail("Failure: Idp creation should not be allowed");
-        } catch(HttpClientErrorException e) {
-            assertThat(e.getMessage(), Matchers.containsString("403"));
+        } catch(HttpServerErrorException e) {
+            assertThat(e.getMessage(), Matchers.containsString("503"));
         }
     }
 
