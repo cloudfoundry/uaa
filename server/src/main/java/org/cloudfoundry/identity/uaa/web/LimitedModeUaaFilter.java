@@ -61,7 +61,8 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        if (isEnabled() && hasDegradedProfile()) {
+        if (hasDegradedProfile()) {
+            logger.debug("Degraded profile is enabled.");
             if ( isMethodAllowed(request) || isEndpointAllowed(request)) {
                 filterChain.doFilter(request, response);
             } else {
