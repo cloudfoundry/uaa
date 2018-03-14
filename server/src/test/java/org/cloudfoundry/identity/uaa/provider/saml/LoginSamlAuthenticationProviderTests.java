@@ -547,7 +547,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         getAuthentication();
 
         UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
-        assertTrue(user.isVerified());
+        assertFalse(user.isVerified());
         assertEquals("marissa-invited", user.getUsername());
         assertEquals("marissa.invited@test.org", user.getEmail());
 

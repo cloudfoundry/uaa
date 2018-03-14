@@ -350,7 +350,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
         boolean userModified = false;
         UaaUser userWithSamlAttributes = getUser(samlPrincipal, userAttributes);
-        boolean hasVerifiedAttribute = userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME)!=null;
         try {
             if (user==null) {
                 user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
@@ -363,11 +362,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 if (!addNew) {
                     throw new LoginSAMLException("SAML user does not exist. "
                             + "You can correct this by creating a shadow user for the SAML user.", e);
-                }
-                // Register new users automatically
-                if (!hasVerifiedAttribute) {
-                    //invited users automatically become verified, others default to verified=false
-                    userWithSamlAttributes.setVerified(is_invitation_acceptance);
                 }
                 publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
                 try {

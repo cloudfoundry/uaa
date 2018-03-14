@@ -250,8 +250,10 @@ public class ScimUserBootstrap implements
         UaaUser uaaUser = event.getUser();
         if (event instanceof InvitedUserAuthenticatedEvent) {
             ScimUser user = getScimUser(uaaUser);
-            //invited users are verified
-            uaaUser = new UaaUser(new UaaUserPrototype(uaaUser).withVerified(true));
+            // external users should default to not being verified
+            if (!OriginKeys.UAA.equals(uaaUser.getOrigin())) {
+                uaaUser.setVerified(false);
+            }
             updateUser(user, uaaUser, false);
             return;
         }
