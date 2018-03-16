@@ -2733,7 +2733,8 @@ The API ``GET /Groups/External/list`` is deprecated
 
         startIndex - the start index of the pagination, default value is 1
         count - the number of results to retrieve, default value is 100
-        filter - scim search filter, possible field names are groupId, externalGroup and displayName
+        filter - scim search filter, possible field names are groupId, externalGroup and displayName (form encoded)
+                Example (to find external group mappings for a specific group by id): ?filter=groupId%20eq%20%22my-group-id%22)
 
 * Request Body::
 
