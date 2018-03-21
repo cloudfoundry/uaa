@@ -496,8 +496,8 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
-            return new SearchResults<ClientDetails>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
-                            clients.size());
+            return new SearchResults<>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
+                clients.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
