@@ -120,7 +120,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
         endpoints = new ScimGroupEndpoints(dao, mm);
         endpoints.setExternalMembershipManager(em);
-        endpoints.setGroupMaxCount(5);
+        endpoints.setGroupMaxCount(20);
 
         userEndpoints = new ScimUserEndpoints();
         userEndpoints.setUserMaxCount(5);
