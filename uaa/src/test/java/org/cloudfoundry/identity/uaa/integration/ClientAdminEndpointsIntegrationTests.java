@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
@@ -19,12 +20,14 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,6 +49,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -58,6 +62,10 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -82,6 +90,7 @@ public class ClientAdminEndpointsIntegrationTests {
     private OAuth2AccessToken token;
     private HttpHeaders headers;
     private List<Approval> approvalList;
+    private List<ClientDetailsModification> clientDetailsModifications;
 
     @Before
     public void setUp() throws Exception {
@@ -107,6 +116,37 @@ public class ClientAdminEndpointsIntegrationTests {
         assertFalse(result.getBody().contains("secret\":"));
     }
 
+    @Before
+    public void setupClients() {
+        clientDetailsModifications = new ArrayList<>();
+    }
+
+    @After
+    public void teardownClients() {
+        for (ClientDetailsModification clientDetailsModification : clientDetailsModifications) {
+            serverRunning.getRestTemplate()
+                .exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
+                    new HttpEntity<BaseClientDetails>(clientDetailsModification, headers), Void.class,
+                    clientDetailsModification.getClientId());
+        }
+    }
+
+    @Test
+    public void testListClientsWithExtremePagination_defaultsTo500() throws Exception {
+        for (int i = 0; i < 502; i++) {
+            clientDetailsModifications.add(createClient("client_credentials"));
+        }
+
+        HttpHeaders headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
+        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients?count=3000", headers);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+
+        SearchResults searchResults = new ObjectMapper().readValue(result.getBody(), SearchResults.class);
+        assertThat(searchResults.getItemsPerPage(), is(500));
+        assertThat((List<?>) searchResults.getResources(), hasSize(500));
+        assertThat(searchResults.getTotalResults(), greaterThan(500));
+    }
+    
     @Test
     public void testCreateClient() throws Exception {
         createClient("client_credentials");

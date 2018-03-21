@@ -123,6 +123,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         endpoints.setGroupMaxCount(5);
 
         userEndpoints = new ScimUserEndpoints();
+        userEndpoints.setUserMaxCount(5);
         userEndpoints.setScimUserProvisioning(udao);
         userEndpoints.setIdentityProviderProvisioning(mock(JdbcIdentityProviderProvisioning.class));
         userEndpoints.setScimGroupMembershipManager(mm);

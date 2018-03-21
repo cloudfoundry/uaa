@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
@@ -51,6 +52,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,7 +66,9 @@ import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.client
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -97,10 +101,12 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
     private ArgumentCaptor<AbstractUaaEvent> captor = null;
     private ScimUser testUser;
     private String testPassword;
-    private RandomValueStringGenerator generator  = new RandomValueStringGenerator(7);
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator(7);
     public static final String SECRET_TOO_LONG = "adfdfdasgdasgasdgafsgasfgfasgfadsgfagsagasddsafdsafsdfdafsdafdsfasdffasfasdfasdfdsfds" +
-            "ewrewrewqrweqrewqrewqrewerwqqweewqrdsadsfewqrewqrtewrewrewrewrererererererererererdfadsafasfdasfsdaf" +
-            "dsfasdfdsagfdsao43o4p43adfsfasdvcdasfmdsafzxcvaddsaaddfsafdsafdsfdsdfsfdsfdsasdfadfsadfsasadfsdfadfs";
+        "ewrewrewqrweqrewqrewqrewerwqqweewqrdsadsfewqrewqrtewrewrewrewrererererererererererdfadsafasfdasfsdaf" +
+        "dsfasdfdsagfdsao43o4p43adfsfasdvcdasfmdsafzxcvaddsaaddfsafdsafdsfdsdfsfdsfdsasdfadfsadfsasadfsdfadfs";
+    private List<ClientDetails> clientDetails;
+    private int clientMaxCount;
 
     @Before
     public void createCaptor() throws Exception {
@@ -122,6 +128,8 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         applicationEventPublisher = mock(ApplicationEventPublisher.class);
         eventPublisher.setApplicationEventPublisher(applicationEventPublisher);
         captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+
+        clientMaxCount = Integer.parseInt(getWebApplicationContext().getEnvironment().getProperty("clientMaxCount"));
     }
 
     @After
@@ -1677,29 +1685,119 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         }
     }
 
+    @Before
+    public void setupClients() {
+        clientDetails = new ArrayList<>();
+    }
+
+    @After
+    public void teardownClients() {
+        for (ClientDetails clientDetail : clientDetails) {
+            delete("/oauth/clients/" + clientDetail.getClientId())
+                .header("Authorization", "Bearer" + adminUserToken)
+                .accept(APPLICATION_JSON);
+        }
+    }
+
+    @Test
+    public void testGetClientsLargerThanMax_whenCountParamIsProvided() throws Exception {
+        for (int i = 0; i < 7; i++) {
+            clientDetails.add(
+                createClient(
+                    adminToken,
+                    "testclient" + new RandomValueStringGenerator().generate(),
+                    SECRET,
+                    Collections.singleton("client_credentials")
+                )
+            );
+        }
+
+        ClientDetails adminsClient = createReadWriteClient(adminToken);
+
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            adminsClient.getClientId(),
+            "secret",
+            "clients.read");
+
+        MockHttpServletRequestBuilder get = get("/oauth/clients")
+            .header("Authorization", "Bearer " + token)
+            .param("count", "7")
+            .accept(APPLICATION_JSON);
+
+        MvcResult result = getMockMvc().perform(get).andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+
+
+        SearchResults<BaseClientDetails> clientDetailsSearchResults = JsonUtils.readValue(body, new TypeReference<SearchResults<BaseClientDetails>>() {
+        });
+
+        assertThat(clientDetailsSearchResults.getItemsPerPage(), is(clientMaxCount));
+        assertThat(clientDetailsSearchResults.getTotalResults(), greaterThan(6));
+        assertThat(clientDetailsSearchResults.getStartIndex(), is(1));
+        assertThat(clientDetailsSearchResults.getResources(), hasSize(clientMaxCount));
+    }
+
+    @Test
+    public void testGetClientsLargerThanMax_whenNoCountParamIsProvided() throws Exception {
+        int numOfClientsCreated = 7;
+        for (int i = 0; i < numOfClientsCreated; i++) {
+            clientDetails.add(
+                createClient(
+                    adminToken,
+                    "testclient" + new RandomValueStringGenerator().generate(),
+                    SECRET,
+                    Collections.singleton("client_credentials")
+                )
+            );
+        }
+
+        ClientDetails adminsClient = createReadWriteClient(adminToken);
+
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            adminsClient.getClientId(),
+            "secret",
+            "clients.read");
+
+        MockHttpServletRequestBuilder get = get("/oauth/clients")
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON);
+
+        MvcResult result = getMockMvc().perform(get).andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+
+
+        SearchResults<BaseClientDetails> clientDetailsSearchResults = JsonUtils.readValue(body, new TypeReference<SearchResults<BaseClientDetails>>() {
+        });
+
+        assertThat(clientDetailsSearchResults.getItemsPerPage(), is(clientMaxCount));
+        assertThat(clientDetailsSearchResults.getTotalResults(), greaterThan(numOfClientsCreated));
+        assertThat(clientDetailsSearchResults.getStartIndex(), is(1));
+        assertThat(clientDetailsSearchResults.getResources(), hasSize(clientMaxCount));
+    }
+
 
     @Test
     public void testClientWithDotInID() throws Exception {
         ClientDetails details = createClient(adminToken, "testclient", SECRET,
-                                                    Collections.singleton("client_credentials"));
+            Collections.singleton("client_credentials"));
         ClientDetails detailsv2 = createClient(adminToken, "testclient.v2", SECRET,
-                            Collections.singleton("client_credentials"));
+            Collections.singleton("client_credentials"));
         assertEquals("testclient.v2", detailsv2.getClientId());
     }
 
     @Test
     public void testPutClientModifyAuthorities() throws Exception {
         ClientDetails client = createClient(adminToken, "testClientForModifyAuthorities",
-                            SECRET, Collections.singleton("client_credentials"));
+            SECRET, Collections.singleton("client_credentials"));
 
         BaseClientDetails modified = new BaseClientDetails(client);
         modified.setAuthorities(Collections.singleton((GrantedAuthority) () -> "newAuthority"));
 
         MockHttpServletRequestBuilder put = put("/oauth/clients/" + client.getClientId())
-                .header("Authorization", "Bearer " + adminToken)
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(modified));
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(modified));
         MvcResult result = getMockMvc().perform(put).andExpect(status().isOk()).andReturn();
 
         client = getClient(client.getClientId());

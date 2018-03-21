@@ -206,6 +206,7 @@ public class ScimUserEndpointsTests {
         gdao.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
         endpoints.setScimGroupMembershipManager(mm);
         groupEndpoints = new ScimGroupEndpoints(gdao, mm);
+        groupEndpoints.setGroupMaxCount(5);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail(JDSA_VMWARE_COM);

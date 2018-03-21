@@ -96,6 +96,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         mdb.setScimUserProvisioning(db);
         mdb.setScimGroupProvisioning(gdb);
         userEndpoints = new ScimUserEndpoints();
+        userEndpoints.setUserMaxCount(5);
         userEndpoints.setScimGroupMembershipManager(mdb);
         userEndpoints.setScimUserProvisioning(db);
         String zoneId = new RandomValueStringGenerator().generate().toLowerCase();
