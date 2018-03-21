@@ -26,6 +26,8 @@ import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hamcrest.Matchers;
+import org.hamcrest.collection.IsCollectionWithSize;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,6 +63,10 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -398,14 +404,44 @@ public class ScimGroupEndpointsIntegrationTests {
 
     }
 
+    @Before
+    public void initScimGroups() {
+        scimGroups = new ArrayList<>();
+    }
+
+    @After
+    public void teardownScimGroups() {
+        for (ScimGroup scimGroup : scimGroups) {
+            deleteResource(groupEndpoint, scimGroup.getId());
+        }
+    }
+
+    @Test
+    public void testExtremeGroupPagination() {
+        for (int i = 0; i < 502; i++) {
+            ScimUser user = createUser("deleteme_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d");
+            scimGroups.add(createGroup("cfid_" + new RandomValueStringGenerator().generate().toLowerCase(), new ScimGroupMember(user.getId())));
+        }
+
+        ResponseEntity<Map> response = client.getForEntity(serverRunning.getUrl(groupEndpoint + "?count=502"), Map.class);
+
+        Map results = response.getBody();
+        assertThat(response.getStatusCode(), is(HttpStatus.OK));
+        assertThat((Integer) results.get("totalResults"), greaterThan(500));
+        assertThat((List<?>) results.get("resources"), hasSize(500));
+        assertThat(results.get("itemsPerPage"), is(500));
+        assertThat(results.get("startIndex"), is(1));
+
+    }
+
     private void createTestClient(String name, String secret, String scope) throws Exception {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         HttpHeaders headers = getAuthenticatedHeaders(token);
         BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password",
-                        "scim.read,scim.write","http://redirect.uri");
+            "scim.read,scim.write", "http://redirect.uri");
         client.setClientSecret(secret);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-                        HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+            HttpMethod.POST, new HttpEntity<>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
     }
 

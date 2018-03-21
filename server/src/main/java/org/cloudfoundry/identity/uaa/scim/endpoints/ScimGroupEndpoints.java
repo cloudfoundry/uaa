@@ -91,6 +91,8 @@ public class ScimGroupEndpoints {
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
+    private int groupMaxCount;
+
     public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
@@ -155,6 +157,10 @@ public class ScimGroupEndpoints {
         @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
         @RequestParam(required = false, defaultValue = "1") int startIndex,
         @RequestParam(required = false, defaultValue = "100") int count) {
+
+        if (count > groupMaxCount) {
+            count = groupMaxCount;
+        }
 
         List<ScimGroup> result;
         try {
@@ -584,5 +590,14 @@ public class ScimGroupEndpoints {
 
     private void addETagHeader(HttpServletResponse httpServletResponse, ScimGroup scimGroup) {
         httpServletResponse.setHeader(E_TAG, "\"" + scimGroup.getVersion() + "\"");
+    }
+
+    public void setGroupMaxCount(int groupMaxCount) {
+        if (groupMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                String.format("Invalid \"groupMaxCount\" value (got %d). Should be positive number.", groupMaxCount)
+            );
+        }
+        this.groupMaxCount = groupMaxCount;
     }
 }

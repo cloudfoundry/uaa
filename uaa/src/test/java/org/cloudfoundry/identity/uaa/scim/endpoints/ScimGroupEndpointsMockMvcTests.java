@@ -68,6 +68,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -412,6 +413,8 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void getGroupsInOtherZone_withZoneAdminToken_returnsOkWithResults() throws Exception {
+        getWebApplicationContext().getBean(ScimGroupEndpoints.class).setGroupMaxCount(50);
+
         String subdomain = new RandomValueStringGenerator(8).generate();
         BaseClientDetails bootstrapClient = null;
         MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(
@@ -476,8 +479,15 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         }
     }
 
+    @After
+    public void resetMaxCount() throws Exception {
+        getWebApplicationContext().getBean(ScimGroupEndpoints.class).setGroupMaxCount(groupMaxCount);
+    }
+
     @Test
-    public void getGroupsInOtherZone_withZoneUserToken_returnsOkWithResults() throws Exception{
+    public void getGroupsInOtherZone_withZoneUserToken_returnsOkWithResults() throws Exception {
+        getWebApplicationContext().getBean(ScimGroupEndpoints.class).setGroupMaxCount(50);
+
         String subdomain = new RandomValueStringGenerator(8).generate();
         BaseClientDetails bootstrapClient = null;
         MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(
@@ -535,6 +545,52 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                          getSystemScopes(null).size() - 1 //password.write exists in both list
         );
 
+    }
+
+    @Test
+    public void testGetGroupsWithMaxCountSize_whenProvidedWithNonDefaultCountParams() throws Exception {
+        for (int i = 0; i < 12; i++) {
+            String displayName = "internal.read" + new RandomValueStringGenerator().generate();
+            String externalGroup = "cn=java-developers,ou=scopes,dc=test,dc=com" + new RandomValueStringGenerator().generate();
+            createGroup(null, displayName, externalGroup);
+        }
+
+        MockHttpServletRequestBuilder get = get("/Groups").param("count", "10")
+            .header("Authorization", "Bearer " + scimReadToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON);
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andReturn();
+
+        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+        assertThat(searchResults.getResources().size(), is(5));
+        assertThat(searchResults.getItemsPerPage(), is(5));
+        assertThat(searchResults.getTotalResults(), is(greaterThan(10)));
+    }
+
+    @Test
+    public void testGetGroupsWithMaxCountSize_whenProvidedWithNoCountParam() throws Exception {
+        for (int i = 0; i < 12; i++) {
+            String displayName = "internal.read" + new RandomValueStringGenerator().generate();
+            String externalGroup = "cn=java-developers,ou=scopes,dc=test,dc=com" + new RandomValueStringGenerator().generate();
+            createGroup(null, displayName, externalGroup);
+        }
+
+        MockHttpServletRequestBuilder get = get("/Groups")
+            .header("Authorization", "Bearer " + scimReadToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON);
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andReturn();
+
+        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+        assertThat(searchResults.getResources().size(), is(5));
+        assertThat(searchResults.getItemsPerPage(), is(5));
+        assertThat(searchResults.getTotalResults(), is(greaterThan(10)));
     }
 
     @Test

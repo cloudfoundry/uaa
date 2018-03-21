@@ -67,6 +67,7 @@ import java.util.UUID;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -119,6 +120,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
         endpoints = new ScimGroupEndpoints(dao, mm);
         endpoints.setExternalMembershipManager(em);
+        endpoints.setGroupMaxCount(5);
 
         userEndpoints = new ScimUserEndpoints();
         userEndpoints.setScimUserProvisioning(udao);
@@ -220,6 +222,24 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testListGroups() throws Exception {
         validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
+    }
+
+    @Test
+    public void whenSettingAnInvalidGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() throws Exception {
+        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expectMessage(containsString(
+            "Invalid \"groupMaxCount\" value (got 0). Should be positive number."
+        ));
+        endpoints.setGroupMaxCount(0);
+    }
+
+    @Test
+    public void whenSettingANegativeValueGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() throws Exception {
+        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expectMessage(containsString(
+            "Invalid \"groupMaxCount\" value (got -1). Should be positive number."
+        ));
+        endpoints.setGroupMaxCount(-1);
     }
 
     @Test
