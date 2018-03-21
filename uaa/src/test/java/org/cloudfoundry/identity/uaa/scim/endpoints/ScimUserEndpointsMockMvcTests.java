@@ -46,7 +46,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
-import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -117,6 +116,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     private ExpiringCodeStore codeStore;
     private JdbcUserGoogleMfaCredentialsProvisioning mfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
+    private int usersMaxCount;
 
     @Before
     public void setUp() throws Exception {
@@ -134,6 +134,8 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         mfaCredentialsProvisioning = getWebApplicationContext().getBean(JdbcUserGoogleMfaCredentialsProvisioning.class);
         mfaProviderProvisioning = getWebApplicationContext().getBean(JdbcMfaProviderProvisioning.class);
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
+
+        usersMaxCount = Integer.parseInt(getWebApplicationContext().getEnvironment().getProperty("userMaxCount"));
     }
 
     private ScimUser createUser(String token) throws Exception {
@@ -558,17 +560,23 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String zoneAdminToken = result.getZoneAdminToken();
         createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
 
-        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users")
-                .header("X-Identity-Zone-Subdomain", subdomain)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .accept(APPLICATION_JSON);
+        int usersMaxCountWithOffset = usersMaxCount + 1;
+        for (int i = 0; i < usersMaxCountWithOffset; i++) {
+            createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
+        }
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users").param("count", Integer.toString(usersMaxCountWithOffset))
+            .header("X-Identity-Zone-Subdomain", subdomain)
+            .header("Authorization", "Bearer " + zoneAdminToken)
+            .accept(APPLICATION_JSON);
 
         MvcResult mvcResult = getMockMvc().perform(get)
                 .andExpect(status().isOk())
                 .andReturn();
         SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        MatcherAssert.assertThat(searchResults.getResources().size(), is(1));
-
+        assertThat(searchResults.getResources().size(), is(usersMaxCount));
+        assertThat(searchResults.getItemsPerPage(), is(usersMaxCount));
+        assertThat(searchResults.getTotalResults(), is(usersMaxCountWithOffset));
     }
 
     @Test

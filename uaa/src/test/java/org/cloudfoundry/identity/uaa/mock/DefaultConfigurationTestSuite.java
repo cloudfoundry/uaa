@@ -66,7 +66,7 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
                 //no op
             }
         });
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml,required_configuration.yml");
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "users_endpoint.yml,uaa.yml,login.yml,required_configuration.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
