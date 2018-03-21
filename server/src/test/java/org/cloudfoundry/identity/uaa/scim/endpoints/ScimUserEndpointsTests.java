@@ -167,6 +167,7 @@ public class ScimUserEndpointsTests {
     @Before
     public void setUp() {
         endpoints = new ScimUserEndpoints();
+        endpoints.setUserMaxCount(5);
 
         IdentityZoneHolder.clear();
         jdbcTemplate = new JdbcTemplate(database);
@@ -766,6 +767,24 @@ public class ScimUserEndpointsTests {
         verifyZeroInteractions(mockApprovalStore);
 
         endpoints.setApprovalStore(am);
+    }
+
+    @Test
+    public void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() throws Exception {
+        expected.expect(IllegalArgumentException.class);
+        expected.expectMessage(containsString(
+            "Invalid \"userMaxCount\" value (got 0). Should be positive number."
+        ));
+        endpoints.setUserMaxCount(0);
+    }
+
+    @Test
+    public void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() throws Exception {
+        expected.expect(IllegalArgumentException.class);
+        expected.expectMessage(containsString(
+            "Invalid \"userMaxCount\" value (got -1). Should be positive number."
+        ));
+        endpoints.setUserMaxCount(-1);
     }
 
     @Test

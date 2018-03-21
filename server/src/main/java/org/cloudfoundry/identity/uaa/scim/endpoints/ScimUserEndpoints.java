@@ -621,6 +621,12 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     }
 
     public void setUserMaxCount(int userMaxCount) {
+        if (userMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
+            );
+        }
+
         this.userMaxCount = userMaxCount;
     }
 }
