@@ -408,6 +408,37 @@ public class UaaTokenServicesTests {
         assertCommonEventProperties(accessToken, CLIENT_ID, tokenSupport.expectedJson);
     }
 
+    @Test
+    public void testCreateAccessTokenForAnotherIssuer() throws URISyntaxException {
+
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        identityZone.setConfig(
+            JsonUtils.readValue(
+                "{\"issuer\": \"http://uaamaster:8080/uaa\"}",
+                IdentityZoneConfiguration.class
+            )
+        );
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
+        IdentityZoneHolder.set(identityZone);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
+
+        tokenServices.setIssuer("http://uaaslave:8080/uaa");
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        assertCommonClientAccessTokenProperties(accessToken);
+        assertThat(accessToken, validFor(is(tokenSupport.accessTokenValidity)));
+        assertThat(accessToken, issuerUri(is("http://uaamaster:8080/uaa/oauth/token")));
+        assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
+        assertThat(accessToken.getRefreshToken(), is(nullValue()));
+        validateExternalAttributes(accessToken);
+    }
 
     @Test
     public void test_refresh_token_is_opaque_when_requested() {
