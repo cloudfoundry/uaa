@@ -104,20 +104,24 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     }
 
     public void setDefaultInternalHostnames(Set<String> hostnames) {
-        hostnames
-            .stream()
-            .forEach(
-              entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
-            );
+        if (hostnames!=null) {
+            hostnames
+                .stream()
+                .forEach(
+                        entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                );
+        }
     }
 
     public synchronized void restoreDefaultHostnames(Set<String> hostnames) {
         this.defaultZoneHostnames.clear();
-        hostnames
-            .stream()
-            .forEach(
-              entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
-            );
+        if (hostnames!=null) {
+            hostnames
+                .stream()
+                .forEach(
+                        entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                );
+        }
     }
 
     public Set<String> getDefaultZoneHostnames() {
