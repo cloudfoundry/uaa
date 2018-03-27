@@ -12,21 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -55,7 +40,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,6 +58,21 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
@@ -130,7 +129,7 @@ public class LoginInfoEndpointTests {
         prompts = new LinkedList<>();
         prompts.add(new Prompt("username", "text", "Email"));
         prompts.add(new Prompt("password", "password", "Password"));
-        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at "+HTTP_LOCALHOST_8080_UAA+"/passcode )"));
+        prompts.add(new Prompt("passcode", "text", "Temporary Authentication Code ( Get one at "+HTTP_LOCALHOST_8080_UAA+"/passcode )"));
         mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         uaaProvider = new IdentityProvider();
@@ -448,7 +447,7 @@ public class LoginInfoEndpointTests {
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
-        assertEquals("One Time Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
+        assertEquals("Temporary Authentication Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
         return baseUrl;
     }
 
