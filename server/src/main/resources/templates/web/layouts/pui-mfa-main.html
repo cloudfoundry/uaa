@@ -44,7 +44,7 @@
  <div class="mfa predix-uaa__wrap u-mv++ u-p++">
     <div class="panel-body">
         <div class="text--center u-p++ predix-uaa__header">
-            <img class="header img-responsive logo" th:with="logo=${branding.getProductLogo()},defaultLogo=@{${assetBaseUrl+'/images/predix-word.svg'}}" th:src="${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}" src="/resources/oss/images/predix-word.svg"/>
+            <img class="header img-responsive logo" style="max-width:400px" th:with="logo=${branding.getProductLogo()},defaultLogo=@{${assetBaseUrl+'/images/predix-word.svg'}}" th:src="${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}" src="/resources/oss/images/predix-word.svg"/>
             <h1 class="header img-responsive" th:if="!${isUaa}" th:text="${zone_name}">Predix UAA</h1>
         </div>
         <div class="predix-uaa__content" layout:fragment="page-content"></div>
