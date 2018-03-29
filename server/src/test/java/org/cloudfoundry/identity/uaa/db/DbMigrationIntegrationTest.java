@@ -15,8 +15,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 
 @Profile("mysql")
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -29,6 +33,7 @@ public class DbMigrationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY'";
+    private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA = ?";
     private MigrationTestRunner migrationTestRunner;
 
     @Before
@@ -76,6 +81,7 @@ public class DbMigrationIntegrationTest {
     @Test
     public void insertMissingPrimaryKeys_whenOldMigrationWithoutPrimaryKeyModificationHasAlreadyRun() throws SQLException {
         List<MigrationTest> migrationTest = Arrays.asList(new MigrationTest() {
+            // 2.4.1: removing the primary key column here would replicate the state before the migration was 'modified'.
             @Override
             public String getTargetMigration() {
                 return "2.4.1";
@@ -103,5 +109,17 @@ public class DbMigrationIntegrationTest {
         });
 
         migrationTestRunner.run(migrationTest.toArray(new MigrationTest[]{}));
+    }
+
+    @Test
+    public void everyTableShouldHaveAPrimaryKeyColumn() throws Exception {
+        flyway.migrate();
+
+        List<String> tableNames = jdbcTemplate.queryForList(getAllTableNames, String.class, jdbcTemplate.getDataSource().getConnection().getCatalog());
+        assertThat(tableNames, hasSize(greaterThan(0)));
+        for (String tableName : tableNames) {
+            int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), tableName);
+            assertThat(format("%s is missing primary key", tableName), count, greaterThanOrEqualTo(1));
+        }
     }
 }
