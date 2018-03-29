@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 @Profile("mysql")
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath*:/spring/data-source.xml", "classpath*:/spring/env.xml"})
-public class DbMigrationIntegrationTest {
+public class MySqlDbMigrationIntegrationTest {
     @Autowired
     private Flyway flyway;
 

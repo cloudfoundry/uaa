@@ -37,6 +37,6 @@ public class MigrationTestRunner {
         });
         flyway.migrate();
 
-        assertThat(assertionsRan[0], is(tests.length));
+        assertThat("Not every db migration ran", assertionsRan[0], is(tests.length));
     }
 }
