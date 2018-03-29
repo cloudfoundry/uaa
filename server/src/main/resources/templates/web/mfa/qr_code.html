@@ -17,10 +17,10 @@
             xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
             layout:decorator="layouts/pui-mfa-main">
 <body>
-<div class="island" layout:fragment="page-content">
-    <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c mfa-header"></h2>
-    <div class="panel-body">
-       <h1 class="mbxl">Setup Multifactor Authentication</h1>
+<div class="island text--left" layout:fragment="page-content">
+    <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="mfa-header text--center"></h2>
+    <div class="island-content">
+       <h1 class="u-mb++">Setup Multifactor Authentication</h1>
        <ol style="padding-left:1em;">
            <li>Install Google Authenticator on your mobile device from the <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605">App Store on your iPhone</a> or <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2">Google Play on your Android. </a></li>
            <li>Open Google Authenticator on your mobile device.</li>
@@ -28,19 +28,19 @@
            <li>Tap "Scan barcode".</li>
            <li>Scan this barcode:</li>
        </ol>
-       <img id="qr" th:src="${qrurl}" alt="error getting qr code" class="center-block"/>
+       <img id="qr" th:src="${qrurl}" alt="error getting qr code" class="center-block u-mv++"/>
         <p>Can't scan barcode? See <a href="/login/mfa/manual" th:href="@{/login/mfa/manual}">manual setup instructions</a>.</p>
         <div class="center-block">
            <a href="/logout.do" th:href="@{/logout.do}">
                <button id="Back"
                    type="Button"
-                   class="btn btn-default">Back</button>
+                   class="btn btn--tertiary">Back</button>
            </a>
            <a href="/login/mfa/verify" th:href="@{/login/mfa/verify}">
                <button id="Next"
                    type="Button"
                    value="true"
-                   class="btn btn-highlight pull-right">Next</button>
+                   class="btn pull-right">Next</button>
            </a>
        </div>
 </div>

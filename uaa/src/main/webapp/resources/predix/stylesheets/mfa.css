@@ -1,0 +1,24 @@
+.predix-uaa__wrap.mfa {
+    min-width: 320px;
+    width: 50%;
+    max-width: 600px;
+    border-radius: 5px;
+}
+
+h2.mfa-header {
+    font-size: 24px;
+}
+
+.mfa .mfa-preformat {
+    color: #000;
+    background: #c0c0c0;
+    border: 0;
+}
+
+.mfa .em-high {
+    font-weight: 600;
+}
+
+.mfa .page {
+    align-items: baseline;
+}

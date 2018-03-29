@@ -17,20 +17,20 @@
             xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
             layout:decorator="layouts/pui-mfa-main">
 <body>
-<div class="island" layout:fragment="page-content">
-    <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c mfa-header"></h2>
-    <div class="panel-body">
-       <h1 class="mbxl">Manual Setup Instructions</h1>
+<div class="island text--left" layout:fragment="page-content">
+    <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="text--center mfa-header"></h2>
+    <div class="island-content">
+       <h1 class="u-mb++">Manual Setup Instructions</h1>
        <ol style="padding-left:1em;">
            <li>Install Google Authenticator on your mobile device from the <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605">App Store on your iPhone</a> or <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2">Google Play on your Android. </a></li>
            <li>Open Google Authenticator on your mobile device.</li>
            <li>Tap the "+" button.</li>
            <li>Tap "Manual Entry".</li>
            <li>Enter the following in the 'Account' field:
-               <p id="account" th:text="${issuer} + ':' + ${username}" class="type-brand-6"></p>
+               <pre id="account" th:text="${issuer} + ':' + ${username}" class="mfa-preformat"></pre>
            </li>
            <li>Enter the following in the 'Key' field:
-               <p id="key" th:text="${mfa_secret}" class="type-brand-6"></p>
+               <pre id="key" th:text="${mfa_secret}" class="mfa-preformat"></pre>
            </li>
            <li>Check that 'Time based' is selected.</li>
            <li>Tap the 'Done' button on your phone.</li>
@@ -39,13 +39,13 @@
            <a href="/login/mfa/register" th:href="@{/login/mfa/register}">
                <button id="Back"
                    type="Button"
-                   class="btn btn-default">Back</button>
+                   class="btn btn--tertiary">Back</button>
            </a>
            <a href="/login/mfa/verify" th:href="@{/login/mfa/verify}">
                <button id="Next"
                    type="Button"
                    value="true"
-                   class="btn btn-highlight pull-right">Next</button>
+                   class="btn pull-right">Next</button>
            </a>
        </div>
 </div>

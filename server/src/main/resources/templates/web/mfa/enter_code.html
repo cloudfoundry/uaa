@@ -23,25 +23,25 @@
 <div class="header" layout:fragment="page-header">
     <th:block layout:include="nav :: nav"></th:block>
 </div>
-<div class="island" layout:fragment="page-content">
-    <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c mbxl mfa-header"></h2>
-    <h1 class="plxl">Enter your Google Authentication Code</h1>
-    <div class="panel-body plxl">
-        <p class="mtxl">
+<div class="island text--left" layout:fragment="page-content">
+    <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="text--center u-mb++ mfa-header"></h2>
+    <h1 class="text--left">Enter your Google Authentication Code</h1>
+    <div class="island-content">
+        <p class="u-mt++">
             Enter the 6-digit code displayed in Google Authenticator app:
         </p>
         <form th:action="@{/login/mfa/verify.do}" method="post" novalidate="novalidate">
             <div class="page">
-                <input name="code" type="number" placeholder="XXX-XXX" autofocus="autofocus" class="form-control mrs txt-c em-high" maxlength="6"/>
-                <button id= "verify_code_btn" type="submit" class="btn btn-highlight mlxl">Verify</button>
+                <input name="code" type="text" placeholder="XXX-XXX" autofocus="autofocus" class="form-control u-mr- text--center em-high" maxlength="6"/>
+                <button id= "verify_code_btn" type="submit" class="island-button u-ml">Verify</button>
             </div>
-            <div th:if="${error}" th:text="${error}" class="error-color mtl"></div>
+            <div th:if="${error}" th:text="${error}" class="error-color u-mt+"></div>
         </form>
         <a th:href="${is_first_time_user} ? @{/login/mfa/register} : @{/logout.do}" >
             <button id="Back"
                 type="Button"
                 onclick="window.history.back()"
-                class="btn btn-default mtl">Back</button>
+                class="btn btn--tertiary u-mt+">Back</button>
         </a>
     </div>
 </div>
