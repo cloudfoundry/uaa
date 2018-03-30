@@ -162,6 +162,14 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(userName, created.getUserName());
     }
 
+    @Test(expected = InvalidScimResourceException.class)
+    public void createUserReturnsBadRequestForInvalidUserName() throws Exception {
+        String userName = "JOE_" + new RandomValueStringGenerator(400).generate().toLowerCase();
+        ScimUser user = new ScimUser(null, userName, "Jo", "User");
+        user.addEmail(userName);
+        db.createUser(user, "j7hyqpassX", IdentityZoneHolder.get().getId());
+    }
+
     protected void addMembership(String userId, String origin) {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String zoneId = IdentityZoneHolder.get().getId();

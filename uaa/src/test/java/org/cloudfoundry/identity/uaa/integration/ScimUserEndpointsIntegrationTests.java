@@ -56,6 +56,8 @@ public class ScimUserEndpointsIntegrationTests {
 
     private final String JOE = "JOE_" + new RandomValueStringGenerator().generate().toLowerCase();
 
+    private final String INVALID_USER_NAME = "JOE_" + new RandomValueStringGenerator(400).generate().toLowerCase();
+
     private final String DELETE_ME = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
 
     private final String userEndpoint = "/Users";
@@ -102,22 +104,23 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
-        ScimUser user = new ScimUser();
-        user.setUserName(username);
-        user.setPassword("password");
-        user.setName(new ScimUser.Name(firstName, lastName));
-        user.addEmail(email);
+        ScimUser user = createScimUser(username, firstName, lastName, email);
 
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
     }
 
-    private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
-                    String email, boolean verified) {
+    private ScimUser createScimUser(String username, String firstName, String lastName, String email) {
         ScimUser user = new ScimUser();
-        user.setPassword("password");
         user.setUserName(username);
+        user.setPassword("password");
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
+        return user;
+    }
+
+    private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
+                    String email, boolean verified) {
+        ScimUser user = createScimUser(username, firstName, lastName, email);
         user.setVerified(verified);
 
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
@@ -139,6 +142,22 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(joe1.getId(), joe2.getId());
         assertTrue(joe2.isVerified());
     }
+
+    // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
+    // --data
+    // "{\"userName\":\"`cat /dev/random | LC_CTYPE=C tr -dc "[:alpha:]" | head -c 400`\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
+    // -X POST http://localhost:8080/uaa/User
+    @Test
+    public void createUserReturnsBadRequestForInvalidUserName() throws Exception {
+        ScimUser user = createScimUser(INVALID_USER_NAME, "Joe", "User", "joe@blah.com");
+        ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint), HttpMethod.POST,
+                new HttpEntity<>(user), Map.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        Map<String, String> error = response.getBody();
+        assertEquals("invalid_scim_resource", error.get("error"));
+    }
+
 
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // --data
