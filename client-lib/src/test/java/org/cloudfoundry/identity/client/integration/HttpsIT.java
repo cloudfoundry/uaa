@@ -35,7 +35,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class HttpsIntegrationTest {
+public class HttpsIT {
 
     public static String uaaURI = "https://login.oms.identity.team";
 

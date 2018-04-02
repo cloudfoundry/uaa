@@ -136,7 +136,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static java.util.Collections.emptyList;
 
-public class XOAuthAuthenticationManagerTest {
+public class XOAuthAuthenticationManagerIT {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();

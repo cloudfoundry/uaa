@@ -691,9 +691,9 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.setAuthUrl(new URL("http://oidc10.oms.identity.team/oauth/authorize"));
-        config.setTokenUrl(new URL("http://oidc10.oms.identity.team/oauth/token"));
-        config.setTokenKeyUrl(new URL("http://oidc10.oms.identity.team/token_key"));
+        config.setAuthUrl(new URL("http://oidc10.uaa.com/oauth/authorize"));
+        config.setTokenUrl(new URL("http://oidc10.uaa.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("http://oidc10.uaa.com/token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);
