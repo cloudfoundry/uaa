@@ -27,7 +27,7 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertNotNull;
 
-public class RestTemplateSSLTest {
+public class RestTemplateSslIT {
 
     @Test
     public void test() throws Exception {
