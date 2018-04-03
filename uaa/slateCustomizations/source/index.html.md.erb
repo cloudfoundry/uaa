@@ -150,9 +150,9 @@ _Response Headers_
 
 # Token
 
-The `/oauth/token` endpoint requires client authentication to be accessed. Client Authentication can be passed as 
+The `/oauth/token` endpoint requires client authentication to be accessed. Client Authentication can be passed as
 as part of the request authorization header, using basic authentication, or as part of the request parameters, using the `client_id` and `client_secret` parameter
-names. 
+names.
 
 ## Authorization Code Grant
 
@@ -303,7 +303,7 @@ _Response Fields_
   Added in 3.10.0
 </aside>
 
-The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in 
+The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in
 [RFC 7522](https://tools.ietf.org/html/rfc7522). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer`.
 In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
 The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
@@ -331,10 +331,10 @@ _Response Fields_
 </aside>
 
 The _JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants_
-allows to request an OAuth 2.0 access token with a JWT id_token bearer assertion. The flow is defined in 
+allows to request an OAuth 2.0 access token with a JWT id_token bearer assertion. The flow is defined in
 [RFC 7523](https://tools.ietf.org/html/rfc7523). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`.
 In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
-The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the 
+The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the
 UAA database. If multiple providers exists that have the same issuer, the grant will fail.
 
 <%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/curl-request.md")).result(binding) %>
@@ -455,7 +455,7 @@ _Request Header_
 ### List all tokens for a user
 
 The `/oauth/token/list/user/{userId}` will return all the tokens that match the user_id in the path parameter.
-This token requires the `tokens.list` scope. 
+This token requires the `tokens.list` scope.
 
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/curl-request.md")).result(binding) %>
@@ -1503,7 +1503,7 @@ uaac user get testuser
 ## List
 
 Listing users supports <a href="http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources">SCIM filtering</a> on the available attributes.
-By default users are returned with their group memberships and approvals, a rather expensive operation. 
+By default users are returned with their group memberships and approvals, a rather expensive operation.
 To avoid this, perform the search by including the `attributes` parameter to reduce the results.
 
 <%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/curl-request.md")).result(binding) %>
@@ -2049,7 +2049,7 @@ _Response Fields_
 
 ## Patch
 
-Updating partial elements of a group is documented at 
+Updating partial elements of a group is documented at
 [SCIM Specification](http://www.simplecloud.info/specs/draft-scim-api-01.html#edit-resource-with-patch)
 
 <%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointsDocs/patchScimGroup/curl-request.md")).result(binding) %>
@@ -2627,9 +2627,9 @@ _Request Headers_
 ### Get authentication code
 
 Similar to /passcode, the difference with an autologin authentication code, is that the authentication of the user takes place
-during the generation of the one time code.
+during the generation of the temporary authentication code.
 The autologin authentication code can be used to log the user in with an HTTP redirect. The UAA will establish an authenticated
-server side session and expire the code. To generate the one time code, a POST against /autologin is required.
+server side session and expire the code. To generate the temporary authentication code, a POST against /autologin is required.
 
 <%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/http-request.md")).result(binding) %>
@@ -2671,8 +2671,8 @@ for browser based actions.
 ### Request Reset Password Code
 
 This endpoint returns an onetime code that can be used to change a user's password.
-The actual password change can take place by invoking an API endpoint, `/password_change`, or by a UI flow through 
-the `/reset_password` endpoint. 
+The actual password change can take place by invoking an API endpoint, `/password_change`, or by a UI flow through
+the `/reset_password` endpoint.
 
 <%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/http-request.md")).result(binding) %>
