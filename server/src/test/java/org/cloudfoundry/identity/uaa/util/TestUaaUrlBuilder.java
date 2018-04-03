@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.springframework.beans.factory.annotation.Value;
-
 public class TestUaaUrlBuilder {
 
     private String systemDomain;
