@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
-import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
@@ -127,7 +126,7 @@ public class XOAuthProviderConfiguratorTests {
     private OIDCIdentityProviderDefinition oidc;
     private RawXOAuthIdentityProviderDefinition oauth;
 
-    private String authorizeUrl = new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/authorize").build();
+    private String authorizeUrl = "http://oidc10.random-made-up-url.com/oauth/authorize";
     private String baseExpect = authorizeUrl + "?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
     private String redirectUri;
     private MockHttpServletRequest request;
@@ -153,9 +152,9 @@ public class XOAuthProviderConfiguratorTests {
         request.setServerPort(8443);
 
         for (AbstractXOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
-            def.setAuthUrl(new URL(authorizeUrl));
-            def.setTokenUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/oauth/token").build()));
-            def.setTokenKeyUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/token_keys").build()));
+            def.setAuthUrl(new URL("http://oidc10.random-made-up-url.com/oauth/authorize"));
+            def.setTokenUrl(new URL("http://oidc10.random-made-up-url.com/oauth/token"));
+            def.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_keys"));
             def.setScopes(Arrays.asList("openid","password.write"));
             def.setRelyingPartyId("clientId");
             if (def == oidc) {

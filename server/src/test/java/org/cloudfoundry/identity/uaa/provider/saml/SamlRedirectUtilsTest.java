@@ -33,7 +33,7 @@ public class SamlRedirectUtilsTest {
                 .setLinkText("link text")
                 .setZoneId(IdentityZone.getUaa().getId());
 
-        String domain = "login." + new TestUaaUrlBuilder().getSystemDomain();
+        String domain = "login.random-made-up-url.com";
         String url = SamlRedirectUtils.getIdpRedirectUrl(definition, domain);
         Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=" + domain + "&idp=simplesamlphp-url&isPassive=true", url);
     }

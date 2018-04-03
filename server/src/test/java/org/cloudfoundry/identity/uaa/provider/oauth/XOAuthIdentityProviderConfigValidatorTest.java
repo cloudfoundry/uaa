@@ -17,9 +17,9 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     @Before
     public void setup() throws MalformedURLException {
         definition = new OIDCIdentityProviderDefinition();
-        definition.setAuthUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/authorize").build()));
-        definition.setTokenUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/oauth/token").build()));
-        definition.setTokenKeyUrl(new URL(new TestUaaUrlBuilder().withSubdomain("oidc10").withPath("/token_key").build()));
+        definition.setAuthUrl(new URL("http://oidc10.random-made-up-url.com/oauth/authorize"));
+        definition.setTokenUrl(new URL("http://oidc10.random-made-up-url.com/oauth/token"));
+        definition.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_key"));
         definition.setShowLinkText(true);
         definition.setLinkText("My OIDC Provider");
         definition.setSkipSslValidation(true);
