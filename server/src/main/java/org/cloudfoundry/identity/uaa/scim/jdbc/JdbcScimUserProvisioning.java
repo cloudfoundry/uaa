@@ -213,8 +213,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
         } catch(DataIntegrityViolationException e) {
             logger.debug("DataIntegrityViolationException thrown: ", e);
-                throw new InvalidScimResourceException("ScimUser:" + user + " is Invalid and can not be created. " +
-                        "Please validate the property values.");
+                throw new InvalidScimResourceException("ScimUser:" + user.getUserName() + " is invalid and cannot be created. " +
+                        "Please validate the property values for size and type.");
         }
 
         return retrieve(id, zoneId);
