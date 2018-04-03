@@ -457,7 +457,7 @@ logout:
       - https://url2.domain2.com/logout-success
     url: /configured_login
 notifications:
-  url: https://notifications.oms.identity.team
+  url: https://notifications.somedomain.com
 oauth:
   client:
     encoder_cache: false
