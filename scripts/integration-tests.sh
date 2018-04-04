@@ -25,5 +25,5 @@ pushd $(dirname $DIR)
   ./scripts/ldap/configure-manifest.sh
   ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif
   ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ./uaa/src/main/resources/ldap_init.ldif
-  ./gradlew "-Dspring.profiles.active=$TESTENV" jacocoRootReportIntegrationTest
+  ./gradlew "-Dspring.profiles.active=$TESTENV" jacocoRootReportIntegrationTest --no-daemon --stacktrace --console=plain -x :cloudfoundry-identity-samples:assemble -x javadoc -x javadocJar
 popd
