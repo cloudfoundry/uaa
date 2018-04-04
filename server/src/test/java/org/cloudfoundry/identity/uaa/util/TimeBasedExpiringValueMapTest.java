@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 public class TimeBasedExpiringValueMapTest {
 
-    public static final int TIMEOUT = 5;
+    public static final int TIMEOUT = 50;
     private MockTimeService timeService = new MockTimeService();
     private TimeBasedExpiringValueMap<String,Object> map;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
