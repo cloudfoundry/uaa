@@ -445,13 +445,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             info.put(NONCE, nonce);
         }
 
-        if(additionalRootClaims != null) {
-            additionalRootClaims
-                .entrySet()
-                .stream()
-                .forEach(entry -> info.putIfAbsent(entry.getKey(), entry.getValue()));
-        }
-
         accessToken.setAdditionalInformation(info);
 
         String content;
@@ -467,7 +460,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             grantType,
             refreshToken,
             revocableHashSignature,
-            revocable
+            revocable,
+            additionalRootClaims
         );
         try {
             content = JsonUtils.writeValueAsString(jwtAccessToken);
@@ -571,12 +565,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String grantType,
                                                 String refreshToken,
                                                 String revocableHashSignature,
-                                                boolean revocable) {
+                                                boolean revocable,
+                                                Map<String, Object> additionalRootClaims) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
 
         claims.put(JTI, token.getAdditionalInformation().get(JTI));
         claims.putAll(token.getAdditionalInformation());
+
+        if(additionalRootClaims != null) {
+            claims.putAll(additionalRootClaims);
+        }
 
         claims.put(SUB, clientId);
         if (null != clientScopes) {
