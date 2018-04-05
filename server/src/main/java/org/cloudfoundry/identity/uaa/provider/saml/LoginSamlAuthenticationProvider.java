@@ -357,6 +357,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         } catch (UsernameNotFoundException e) {
             UaaUser uaaUser = userDatabase.retrieveUserByEmail(userWithSamlAttributes.getEmail(), samlPrincipal.getOrigin());
             if (uaaUser != null) {
+                userModified = true;
                 user = uaaUser.modifyUsername(samlPrincipal.getName());
             } else {
                 if (!addNew) {
