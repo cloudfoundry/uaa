@@ -414,11 +414,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             info.put(NONCE, nonce);
         }
 
-        additionalRootClaims
-            .entrySet()
-            .stream()
-            .forEach(entry -> info.putIfAbsent(entry.getKey(), entry.getValue()));
-
         accessToken.setAdditionalInformation(info);
 
         String content;
@@ -433,7 +428,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             resourceIds,
             grantType,
             revocableHashSignature,
-            revocable
+            revocable,
+            additionalRootClaims
         );
         try {
             content = JsonUtils.writeValueAsString(jwtAccessToken);
@@ -486,12 +482,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 Set<String> resourceIds,
                                                 String grantType,
                                                 String revocableHashSignature,
-                                                boolean revocable) {
+                                                boolean revocable,
+                                                Map<String, Object> additionalRootClaims) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
 
         claims.put(JTI, token.getAdditionalInformation().get(JTI));
         claims.putAll(token.getAdditionalInformation());
+
+        if(additionalRootClaims != null) {
+            claims.putAll(additionalRootClaims);
+        }
 
         claims.put(SUB, clientId);
         if (null != clientScopes) {
@@ -593,9 +594,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean refreshTokenRevocable = accessTokenRevocable || TokenConstants.TokenFormat.OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
 
         OAuth2RefreshToken refreshToken = null;
+        Map<String,Object> additionalRootClaims = null;
+
+        if (uaaTokenEnhancer != null) {
+            additionalRootClaims = new HashMap<>();
+            additionalRootClaims.putAll(uaaTokenEnhancer.enhance(emptyMap(), authentication));
+        }
 
         if(client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)){
-            refreshToken = createRefreshToken(user, refreshTokenId, authentication, revocableHashSignature, refreshTokenRevocable);
+            refreshToken = createRefreshToken(user, refreshTokenId, authentication, revocableHashSignature, refreshTokenRevocable, additionalRootClaims);
         }
 
         String clientId = authentication.getOAuth2Request().getClientId();
@@ -626,12 +633,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         Set<String> responseTypes = extractResponseTypes(authentication);
-
-        Map<String,Object> additionalRootClaims = new HashMap<>();
-
-        if (uaaTokenEnhancer != null) {
-            additionalRootClaims.putAll(uaaTokenEnhancer.enhance(emptyMap(), authentication));
-        }
 
         CompositeAccessToken accessToken =
             createAccessToken(
@@ -791,7 +792,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private ExpiringOAuth2RefreshToken createRefreshToken(UaaUser user, String tokenId,
                                                           OAuth2Authentication authentication,
                                                           String revocableHashSignature,
-                                                          boolean revocable) {
+                                                          boolean revocable,
+                                                          Map<String,Object> externalAttributes) {
 
         String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
         Set<String> scope = authentication.getOAuth2Request().getScope();
@@ -804,12 +806,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Date validitySeconds = refreshTokenValidityResolver.resolve(authentication.getOAuth2Request().getClientId());
         ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(tokenId, validitySeconds);
-
-        Map<String,Object> externalAttributes = null;
-        if (uaaTokenEnhancer != null) {
-            externalAttributes = new HashMap<>();
-            externalAttributes.putAll(uaaTokenEnhancer.enhance(emptyMap(), authentication));
-        }
 
         String content;
         try {

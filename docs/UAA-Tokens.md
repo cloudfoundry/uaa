@@ -174,7 +174,11 @@ Scope names are [case sensitive](http://tools.ietf.org/html/draft-ietf-oauth-v2-
 Wild card scopes have been available since [UAA version 1.8.0](https://github.com/cloudfoundry/uaa/releases/tag/1.8.0).
 
 ### Token enhancers
+```UaaTokenEnhancer``` is an interface which can be used to enhance access and refresh tokens with custom attributes. You may plug-in a ```UaaTokenEnhancer``` into the bean ```UaaTokenServices```. Values returned by methods
 
-```UaaTokenEnhancer``` is an interface which can be used to enhance access and refresh tokens with custom attributes. 
-You may plug-in a ```UaaTokenEnhancer``` into the bean ```UaaTokenServices```. Value returned by ```getExternalAttributes``` will be passed to 
-```setAdditionalInformation``` of the token object.
+  * ```getExternalAttributes```
+  * ```enhance```
+
+will be passed to ```setAdditionalInformation``` of the token object.
+The interface method ```enhance``` is the successor of ```getExternalAttributes``` and can be used as replacement.
+

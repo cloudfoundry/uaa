@@ -711,15 +711,18 @@ public class UaaTokenServicesTests {
         this.assertCommonEventProperties(accessToken, tokenSupport.userId, buildJsonString(tokenSupport.requestedAuthScopes));
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     protected void validateExternalAttributes(OAuth2AccessToken accessToken) {
         Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
         if (tokenEnhancer!=null) {
-            Assert.assertEquals("test", extendedAttributes.get("purpose"));
             String atValue = accessToken.getValue().length() < 40 ?
                 tokenSupport.tokens.get(accessToken.getValue()).getValue() :
                 accessToken.getValue();
             Map<String,Object> claims = JsonUtils.readValue(JwtHelper.decode(atValue).getClaims(),
                                                             new TypeReference<Map<String, Object>>() {});
+
+            assertNotNull(claims.get("ext_attr"));
+            assertEquals("test", ((Map)claims.get("ext_attr")).get("purpose"));
 
             assertNotNull(claims.get("ex_prop"));
             assertEquals("nz", ((Map)claims.get("ex_prop")).get("country"));
@@ -736,19 +739,10 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
 
         TokenRequest refreshTokenRequest = getRefreshTokenRequest();
-        String xx = accessToken.getRefreshToken().getValue();
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(xx, refreshTokenRequest);
-        Map<String, Object> extendedContext = (Map<String, Object>) refreshedAccessToken.getAdditionalInformation();
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
 
-        if (tokenEnhancer!=null) {
-            assertNotNull(extendedContext);
-            assertEquals("test", ((Map<String, String>)extendedContext.get("ext_attr")).get("purpose"));
-            assertNotNull(extendedContext.get("ex_groups"));
-            assertNotNull(extendedContext.get("ex_prop"));
-            assertEquals("nz", ((Map<String, String>) extendedContext.get("ex_prop")).get("country"));
-        } else {
-            assertNull("External attributes should not exist", extendedContext.get("ext_attr"));
-        }
+        validateExternalAttributes(accessToken);
+        validateExternalAttributes(refreshedAccessToken);
     }
 
     @Test
