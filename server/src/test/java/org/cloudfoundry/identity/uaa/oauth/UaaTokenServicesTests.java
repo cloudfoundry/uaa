@@ -12,21 +12,8 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.lang.reflect.Field;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -50,9 +37,6 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.collections.map.HashedMap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -79,6 +63,21 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.ReflectionUtils;
+
+import java.lang.reflect.Field;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyMap;
@@ -407,6 +406,38 @@ public class UaaTokenServicesTests {
         assertCommonEventProperties(accessToken, CLIENT_ID, tokenSupport.expectedJson);
     }
 
+    @Test
+    public void testCreateAccessTokenForAnotherIssuer() throws URISyntaxException {
+
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        identityZone.setConfig(
+            JsonUtils.readValue(
+                "{\"issuer\": \"http://uaamaster:8080/uaa\"}",
+                IdentityZoneConfiguration.class
+            )
+        );
+        identityZone.getConfig().getTokenPolicy().setAccessTokenValidity(tokenSupport.accessTokenValidity);
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
+        IdentityZoneHolder.set(identityZone);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
+
+        tokenServices.setIssuer("http://uaaslave:8080/uaa");
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        assertCommonClientAccessTokenProperties(accessToken);
+        assertThat(accessToken, validFor(is(tokenSupport.accessTokenValidity)));
+        assertThat(accessToken, issuerUri(is("http://uaamaster:8080/uaa/oauth/token")));
+        assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
+        assertThat(accessToken.getRefreshToken(), is(nullValue()));
+        validateExternalAttributes(accessToken);
+    }
 
     @Test
     public void test_refresh_token_is_opaque_when_requested() {

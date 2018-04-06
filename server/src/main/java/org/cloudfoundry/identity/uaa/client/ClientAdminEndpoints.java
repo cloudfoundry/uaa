@@ -83,6 +83,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.String.format;
+
 /**
  * Controller for listing and manipulating OAuth2 clients.
  */
@@ -124,6 +126,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private AuthenticationManager authenticationManager;
     private ApplicationEventPublisher publisher;
+    private int clientMaxCount;
 
     public ClientDetailsValidator getRestrictedScopesValidator() {
         return restrictedScopesValidator;
@@ -318,7 +321,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     public ClientDetails updateClientDetails(@RequestBody BaseClientDetails client,
                     @PathVariable("client") String clientId) throws Exception {
         Assert.state(clientId.equals(client.getClientId()),
-                        String.format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
+                        format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
         ClientDetails details = client;
         try {
             ClientDetails existing = getClientDetails(clientId);
@@ -469,6 +472,11 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                     @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
                     @RequestParam(required = false, defaultValue = "100") int count) throws Exception {
+
+        if (count > clientMaxCount) {
+            count = clientMaxCount;
+        }
+
         List<ClientDetails> result = new ArrayList<ClientDetails>();
         List<ClientDetails> clients;
         try {
@@ -488,8 +496,8 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
-            return new SearchResults<ClientDetails>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
-                            clients.size());
+            return new SearchResults<>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
+                clients.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
@@ -732,5 +740,14 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         publisher = applicationEventPublisher;
+    }
+
+    public void setClientMaxCount(int clientMaxCount) {
+        if (clientMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                format("Invalid \"clientMaxCount\" value (got %d). Should be positive number.", clientMaxCount)
+            );
+        }
+        this.clientMaxCount = clientMaxCount;
     }
 }

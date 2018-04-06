@@ -49,6 +49,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     private BasicParserPool parserPool;
     private IdentityProviderProvisioning providerProvisioning;
     private UrlContentCache contentCache;
+    private MetadataFetcher metadataFetcher;
 
     private Timer dummyTimer = new Timer() {
         @Override public void cancel() { super.cancel(); }
@@ -230,7 +231,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
             FixedHttpMetaDataProvider fixedHttpMetaDataProvider = getFixedHttpMetaDataProvider(def, dummyTimer, getClientParams());
-            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata();
+            byte[] metadata = metadataFetcher.fetch(fixedHttpMetaDataProvider);
             def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
             return configureXMLMetadata(def);
         } catch (URISyntaxException e) {
@@ -270,5 +271,9 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+    }
+
+    public void setMetadataFetcher(MetadataFetcher metadataFetcher) {
+        this.metadataFetcher = metadataFetcher;
     }
 }

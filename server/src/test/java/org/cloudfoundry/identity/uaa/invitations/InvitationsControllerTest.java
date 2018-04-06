@@ -387,6 +387,7 @@ public class InvitationsControllerTest {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "verified-user");
         codeData.put("email", "user@example.com");
+        codeData.put("origin", "some-origin");
 
         when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(createCode(codeData), null);
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(createCode(codeData));

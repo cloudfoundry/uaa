@@ -358,6 +358,12 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
                 Attribute phoneNumberAttribute = buildStringAttribute(attributeMappings.get("phone_number").toString(), Collections.singletonList(phoneNumber));
                 attributeStatement.getAttributes().add(phoneNumberAttribute);
             }
+
+            String email = user.getPrimaryEmail();
+            if (StringUtils.hasText(email) && attributeMappings.containsKey("email")) {
+                Attribute customEmailAttribute = buildStringAttribute(attributeMappings.get("email").toString(), Collections.singletonList(email));
+                attributeStatement.getAttributes().add(customEmailAttribute);
+            }
         }
 
         assertion.getAttributeStatements().add(attributeStatement);

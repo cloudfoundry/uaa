@@ -1,5 +1,7 @@
 uaa:
   url: http://localhost:8080/uaa
+issuer:
+  uri: http://localhost:8080/uaa
 foo: bar
 spring_profiles: hsqldb
 logging:

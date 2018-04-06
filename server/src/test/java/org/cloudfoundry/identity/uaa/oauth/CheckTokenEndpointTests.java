@@ -269,6 +269,8 @@ public class CheckTokenEndpointTests {
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         tokenServices.setApprovalStore(approvalStore);
+        tokenServices.setAccessTokenValidityResolver(new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE));
+        tokenServices.setRefreshTokenValidityResolver(new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), Integer.MAX_VALUE));
         tokenServices.setTokenPolicy(IdentityZoneHolder.get().getConfig().getTokenPolicy());
 
         defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
@@ -839,7 +841,7 @@ public class CheckTokenEndpointTests {
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         Integer iat = result.getIat();
         assertNotNull(iat);
-        Integer exp = result.getExp();
+        Long exp = result.getExp();
         assertNotNull(exp);
         assertTrue(iat < exp);
     }
@@ -971,7 +973,7 @@ public class CheckTokenEndpointTests {
         assertEquals(result.getAzAttr(),azAttributes);
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testInvalidAuthoritiesNested() throws Exception {
         Map<String, Object> nestedAttributes = new HashMap<>();
         nestedAttributes.put("nested_group", "true");
@@ -987,7 +989,8 @@ public class CheckTokenEndpointTests {
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
             UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
         setAccessToken(tokenServices.createAccessToken(authentication));
-        endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
+        assertNull(result.getAzAttr());
     }
 
     @Test

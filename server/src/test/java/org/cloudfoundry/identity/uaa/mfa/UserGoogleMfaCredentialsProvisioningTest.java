@@ -5,18 +5,14 @@ import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpSession;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,13 +33,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
     @Before
     public void setup() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
         provisioner = new UserGoogleMfaCredentialsProvisioning();
-        MfaCredentialsSessionCache cache = new MfaCredentialsSessionCache();
-        provisioner.setCredCache(cache);
-
         mfaProvider = new MfaProvider().setName("abc").setId("abc");
         otherMfaProvider = new MfaProvider().setName("abcd").setId("abcd");
         jdbcProvisioner = mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
@@ -51,20 +41,19 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         mfaProviderProvisioning = mock(MfaProviderProvisioning.class);
         provisioner.setMfaProviderProvisioning(mfaProviderProvisioning);
         when(mfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenReturn(mfaProvider);
-
         IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
+    }
 
-        ((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest().getSession(true);
+    @After
+    public void teardown() throws Exception {
+        IdentityZoneHolder.clear();
     }
 
     @Test
     public void testSavesCredentialsNotInDatabase() {
         UserGoogleMfaCredentials creds = creds();
-
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
-
         verify(jdbcProvisioner, times(0)).save(any(), anyString());
-        assertEquals(creds, session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
     }
 
     @Test
@@ -73,16 +62,12 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
 
         UserGoogleMfaCredentials updatedCreds = new UserGoogleMfaCredentials("jabbahut",
-            "different_key",
-            45678,
-            Arrays.asList(1,22));
+                                                                             "different_key",
+                                                                             45678,
+                                                                             Arrays.asList(1, 22));
 
         provisioner.saveUserCredentials(updatedCreds.getUserId(), updatedCreds.getSecretKey(), updatedCreds.getValidationCode(), updatedCreds.getScratchCodes());
-
         verify(jdbcProvisioner, times(0)).save(any(), anyString());
-
-        assertEquals(updatedCreds, session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
-
     }
 
     @Test
@@ -90,16 +75,13 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         UserGoogleMfaCredentials creds = creds();
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
         verify(jdbcProvisioner, times(0)).save(any(), anyString());
-
-        provisioner.persistCredentials();
-
+        provisioner.saveUserCredentials(creds);
         verify(jdbcProvisioner, times(1)).save(creds, IdentityZoneHolder.get().getId());
-        assertNull(session().getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS"));
     }
 
     @Test
     public void testPersist_emptySession() {
-        provisioner.persistCredentials();
+        //provisioner.persistCredentials();
         verify(jdbcProvisioner, times(0)).save(any(), anyString());
         //assume that creds are already in database if session doesn't exist
     }
@@ -109,12 +91,9 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         UserGoogleMfaCredentials creds = creds();
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
         verify(jdbcProvisioner, times(0)).save(any(), anyString());
-
-        provisioner.persistCredentials();
-
+        provisioner.saveUserCredentials(creds);
         doThrow(UserMfaConfigAlreadyExistsException.class).when(jdbcProvisioner).save(any(), anyString());
-        provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
-        provisioner.persistCredentials();
+        provisioner.saveUserCredentials(creds);
     }
 
     @Test
@@ -125,7 +104,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
 
-        provisioner.persistCredentials();
+        //provisioner.persistCredentials();
 
         assertTrue("user not persisted for mfa provider", provisioner.activeUserCredentialExists("jabbahut", mfaProvider.getId()));
         assertFalse("user persisted even though we switched mfaProvider", provisioner.activeUserCredentialExists("jabbahut", otherMfaProvider.getId()));
@@ -141,42 +120,28 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         provisioner.saveUserCredentials(creds.getUserId(), creds.getSecretKey(), creds.getValidationCode(), creds.getScratchCodes());
         assertFalse("no user in db but activeCredentialExists returned true", provisioner.activeUserCredentialExists("jabbahut", mfaProvider.getId()));
 
-        provisioner.persistCredentials();
+        //provisioner.persistCredentials();
         assertTrue("user not shown as active after persisting", provisioner.activeUserCredentialExists("jabbahut", mfaProvider.getId()));
 
     }
 
-    @Test
+    @Test(expected = UnsupportedOperationException.class)
     public void testGetSecretKey() {
-        UserGoogleMfaCredentials creds = creds();
-        session().setAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS", creds);
-
-        String key = provisioner.getSecretKey("jabbahut");
-        assertEquals("very_sercret_key", key);
+        provisioner.getSecretKey("jabbahut");
     }
 
-
-    @Test
-    public void testGetSecretKey_NotExistsInSession() {
-        UserGoogleMfaCredentials creds = creds();
-
-        when(jdbcProvisioner.retrieve(anyString(), anyString())).thenReturn(creds);
-
-        String key = provisioner.getSecretKey("jabbahut");
-        assertEquals("very_sercret_key", key);
-    }
 
     @Test
     public void isFirstTimeMFAUser() {
         UaaPrincipal uaaPrincipal = mock(UaaPrincipal.class);
-        session().setAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS", creds());
-
         assertTrue(provisioner.isFirstTimeMFAUser(uaaPrincipal));
     }
 
     @Test
     public void isFirstTimeMFAUser_CredsAreNotInSession() {
         UaaPrincipal uaaPrincipal = mock(UaaPrincipal.class);
+        UserGoogleMfaCredentials creds = creds();
+        when(jdbcProvisioner.retrieve(any(),any())).thenReturn(creds);
         assertFalse(provisioner.isFirstTimeMFAUser(uaaPrincipal));
     }
 
@@ -187,14 +152,11 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
     private UserGoogleMfaCredentials creds() {
         UserGoogleMfaCredentials res = new UserGoogleMfaCredentials("jabbahut",
-            "very_sercret_key",
-            74718234,
-            Arrays.asList(1, 22));
+                                                                    "very_sercret_key",
+                                                                    74718234,
+                                                                    Arrays.asList(1, 22));
         res.setMfaProviderId(mfaProvider.getId());
         return res;
     }
 
-    private HttpSession session() {
-        return ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest().getSession(false);
-    }
 }

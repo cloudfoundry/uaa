@@ -376,7 +376,8 @@ oauth:
 #      whitelist:
 #        - https://url1.domain1.com/logout-success
 #        - https://url2.domain2.com/logout-success
-
+issuer:
+  uri: http://localhost:8080/uaa
 login:
   # Enable create account and forgot password links on the Login Server (enabled by default)
   #selfServiceLinksEnabled: true
@@ -627,3 +628,14 @@ uaa:
 #  port: 2525
 #  user:
 #  password:
+
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:389/'
+    userDn: 'cn=admin,dc=test,dc=com'
+    password: 'password'
+    searchBase: 'dc=test,dc=com'
+    searchFilter: 'cn={0}'
+

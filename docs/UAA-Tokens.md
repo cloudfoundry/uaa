@@ -1,8 +1,6 @@
-==================================================
-User Account and Authentication - A note on Tokens
-==================================================
+# User Account and Authentication: Tokens
 
-# Overview
+## Overview
 The UAA is a web application that manages users and Oauth 2 clients and issues tokens that are used for authorization.
 The UAA implements [the Oauth 2 authorization framework](http://tools.ietf.org/html/rfc6749) and issues 
 [JSON web tokens](http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-25).
@@ -11,7 +9,7 @@ There is often a level of confusion of what the UAA does when initially starting
 This document is intended a brief introduction to clear up some concepts for those that are new to
 Oauth 2 and/or the UAA.
 
-# Getting Started
+## Getting Started
 Easiest way to explain what a token contains and how it is used is to get you to look at one. 
 This step requires that you have Java 1.7 or higher installed.
 
@@ -80,7 +78,7 @@ There are some notable fields here that we are interested in:
   * scope - a list of permissions that this client has on behalf of this user
   * [aud](http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-25#section-4.1.3) - the audience, who this token is intended for. 
 
-## Users and Clients and other actors
+### Users and Clients and other actors
 A user is often represented as a live person, or a process running.
 
 A client is an application that acts on behalf of a user or act on its own.
@@ -89,7 +87,7 @@ A resource server is often defined as an application with access to a user's dat
 
 A brief and informative [tutorial](http://tutorials.jenkov.com/oauth2/index.html) has already been written.
 
-## Grant types
+### Grant types
 An access token can be requested in four different ways, in the Oauth specification they are referred to as 
 [grant types](http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-1.3)
 
@@ -100,7 +98,7 @@ An access token can be requested in four different ways, in the Oauth specificat
   4. authorization_code - in this scenario, the client never sees the user's credentials. It is the most secure
      grant type but relies on 302 redirects from the HTTP protocol.
 
-## Scopes
+### Scopes
 When it comes to the UAA, and integrating with the UAA, you will be dealing with scopes. Scopes are essentially permissions, 
 and are added as a [named parameter](http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.3)
 in the [access token](http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.3).
@@ -125,7 +123,7 @@ Scopes, are arbitrary strings, defined by the client itself. The UAA does use th
 [audience](http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-25#section-4.1.3) field. The 'base name' is defined
 as anything before the last dot. 
 
-### Client authorities, UAA groups and scopes
+#### Client authorities, UAA groups and scopes
 In the UAA each client has a list of ```client authorities```. This is ```List<String>``` of scopes
 that represents the permissions the client has by itself. The second field the client has is the ```scopes``` field. 
 The ```client scopes``` represents the permissions that the client uses when acting on behalf of a user.
@@ -144,7 +142,7 @@ When a token is requested by a client on behalf of a user the following process 
   5. A scope list is created with the shared scopes from step 3 and 4. 
   6. A token is generated, with the scope parameter from step 5.
 
-### Wildcard scopes
+#### Wildcard scopes
 As scopes are arbitrary strings and those strings often containing dots to create a naming conventions.
 For example, a resource server maintaining documents could create the following naming scheme
 
@@ -175,8 +173,7 @@ Scope names are [case sensitive](http://tools.ietf.org/html/draft-ietf-oauth-v2-
  
 Wild card scopes have been available since [UAA version 1.8.0](https://github.com/cloudfoundry/uaa/releases/tag/1.8.0).
 
-## Token enhancers
-
+### Token enhancers
 ```UaaTokenEnhancer``` is an interface which can be used to enhance access and refresh tokens with custom attributes. You may plug-in a ```UaaTokenEnhancer``` into the bean ```UaaTokenServices```. Values returned by methods
 
   * ```getExternalAttributes```

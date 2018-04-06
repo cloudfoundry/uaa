@@ -135,6 +135,7 @@
         <property name="passwordValidator" ref="uaaPasswordValidator"/>
         <property name="codeStore" ref="codeStore"/>
         <property name="mfaCredentialsProvisioning" ref="jdbcUserGoogleMfaCredentialsProvisioning" />
+        <property name="userMaxCount" value="${userMaxCount:500}" />
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">
@@ -145,6 +146,7 @@
             <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
         </property>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="groupMaxCount" value="${groupMaxCount:500}" />
     </bean>
 
     <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"

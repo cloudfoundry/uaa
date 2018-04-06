@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
@@ -32,7 +30,11 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -43,7 +45,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,12 +55,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
 
-import static java.util.Collections.emptyList;
-import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser}
@@ -124,6 +126,7 @@ public class ScimUserBootstrap implements
         List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
         users.removeIf(u -> deleteMe.contains(u.getUsername()));
         for (UaaUser u : users) {
+            u.setVerified(true);
             addUser(u);
         }
     }
@@ -244,9 +247,14 @@ public class ScimUserBootstrap implements
     }
 
     public void onApplicationEvent(AuthEvent event) {
+        UaaUser uaaUser = event.getUser();
         if (event instanceof InvitedUserAuthenticatedEvent) {
-            ScimUser user = getScimUser(event.getUser());
-            updateUser(user, event.getUser(), false);
+            ScimUser user = getScimUser(uaaUser);
+            // external users should default to not being verified
+            if (!OriginKeys.UAA.equals(uaaUser.getOrigin())) {
+                uaaUser.setVerified(false);
+            }
+            updateUser(user, uaaUser, false);
             return;
         }
         if (event instanceof ExternalGroupAuthorizationEvent) {
@@ -271,14 +279,14 @@ public class ScimUserBootstrap implements
             //update the user itself
             if(event.isUserModified()) {
                 //update the user itself
-                ScimUser user = getScimUser(event.getUser());
-                updateUser(user, event.getUser(), false);
+                ScimUser user = getScimUser(uaaUser);
+                updateUser(user, uaaUser, false);
             }
             return;
         }
 
         if (event instanceof NewUserAuthenticatedEvent) {
-            addUser(event.getUser());
+            addUser(uaaUser);
             return;
         }
     }
@@ -334,7 +342,7 @@ public class ScimUserBootstrap implements
 
     /**
      * Convert UaaUser to SCIM data.
-     * Bootstrapped users are verified by default
+     *
      */
     private ScimUser convertToScimUser(UaaUser user) {
         ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
@@ -342,7 +350,7 @@ public class ScimUserBootstrap implements
         scim.addEmail(user.getEmail());
         scim.setOrigin(user.getOrigin());
         scim.setExternalId(user.getExternalId());
-        scim.setVerified(true);
+        scim.setVerified(user.isVerified());
         return scim;
     }
 

@@ -61,7 +61,7 @@ public class SamlServiceProviderDefinitionTest {
 
     @Test
     public void testGetUrlWhenValid() throws Exception {
-        definition.setMetaDataLocation("http://login.oms.identity.team/saml/idp/metadata");
+        definition.setMetaDataLocation("http://uaa.com/saml/idp/metadata");
         assertEquals(URL, definition.getType());
     }
 

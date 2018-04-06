@@ -218,12 +218,13 @@
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="mfaRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter">
+    <bean id="mfaUiRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter">
         <constructor-arg name="urlFilter" value="/login/mfa/**"/>
         <constructor-arg name="redirect" value="/login/mfa/register"/>
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
         <constructor-arg name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
         <constructor-arg name="checker" ref="mfaChecker"/>
+        <constructor-arg name="logoutMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
     <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"
@@ -269,7 +270,7 @@
         </constructor-arg>
     </bean>
 
-    <bean id="passwordChangeRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter">
+    <bean id="passwordChangeUiRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter">
         <constructor-arg name="redirectUri" value="/force_password_change"/>
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
         <constructor-arg name="ignoreUris">
@@ -277,6 +278,9 @@
                 <value>/login/mfa/**</value>
             </array>
         </constructor-arg>
+    </bean>
+
+    <bean id="reAuthenticationRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
     </bean>
 
     <http name="idpSecurity"
@@ -305,6 +309,7 @@
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
         <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
         <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
+        <security:custom-filter after="SECURITY_CONTEXT_FILTER" ref="reAuthenticationRequiredFilter"/>
         <form-login login-page="/login"
                     username-parameter="username"
                     password-parameter="password"
@@ -314,8 +319,8 @@
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
         <custom-filter ref="clientRedirectStateCache" before="CSRF_FILTER"/>
-        <custom-filter ref="mfaRequiredFilter" after="CSRF_FILTER"/>
-        <custom-filter ref="passwordChangeRequiredFilter" before="FORM_LOGIN_FILTER"/>
+        <custom-filter ref="mfaUiRequiredFilter" after="CSRF_FILTER"/>
+        <custom-filter ref="passwordChangeUiRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
@@ -589,26 +594,18 @@
     <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
         <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
-        <property name="credCache" ref="mfaCredentialsSessionCache" />
+        <property name="authenticator" ref="googleAuthenticator"/>
     </bean>
-
-    <bean id="mfaCredentialsSessionCache" class="org.cloudfoundry.identity.uaa.mfa.MfaCredentialsSessionCache" />
 
     <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint">
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
-        <property name="googleAuthenticatorService" ref="googleAuthenticatorAdapter" />
         <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
         <property name="userDatabase" ref="userDatabase" />
     </bean>
 
     <bean id="mfaCompleteUrl" class="java.lang.String">
         <constructor-arg value="/login/mfa/completed"/>
-    </bean>
-
-    <bean id="googleAuthenticatorAdapter" class="org.cloudfoundry.identity.uaa.mfa.GoogleAuthenticatorAdapter">
-        <property name="authenticator" ref="googleAuthenticator"/>
-        <property name="credCache" ref="mfaCredentialsSessionCache" />
     </bean>
 
     <bean id="googleAuthenticator" class="com.warrenstrange.googleauth.GoogleAuthenticator">

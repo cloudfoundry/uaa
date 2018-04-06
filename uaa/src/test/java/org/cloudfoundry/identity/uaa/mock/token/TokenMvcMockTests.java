@@ -12,9 +12,26 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.httpclient.util.URIUtil;
+import javax.servlet.http.HttpSession;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -60,6 +77,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.collections.map.HashedMap;
+import org.apache.commons.httpclient.util.URIUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -96,26 +117,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
-
-import javax.servlet.http.HttpSession;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -168,7 +169,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -1059,6 +1059,107 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void testAuthorizeEndpointWithPromptNone_MfaRequired() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        clientDetails.setAutoApproveScopes(Arrays.asList("uaa.user"));
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Arrays.asList("other.scope"));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user,other.scope";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        super.setupForMfaPasswordGrant(developer.getId());
+
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        String state = generator.generate();
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+                                                    .session(session)
+                                                    .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                                                    .param(OAuth2Utils.STATE, state)
+                                                    .param(OAuth2Utils.CLIENT_ID, clientId)
+                                                    .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                                                    .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andReturn();
+
+        String url = result.getResponse().getHeader("Location");
+        assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
+
+        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
+        result = getMockMvc().perform(get("/oauth/authorize")
+                                          .session(session)
+                                          .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                                          .param(OAuth2Utils.STATE, state)
+                                          .param(OAuth2Utils.CLIENT_ID, clientId)
+                                          .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                                          .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andReturn();
+        url = result.getResponse().getHeader("Location");
+        assertThat(url, containsString(TEST_REDIRECT_URI));
+        assertThat(url, not(containsString("error")));
+        assertThat(url, not(containsString("login_required")));
+        assertThat(url, not(containsString("interaction_required")));
+    }
+
+    @Test
+    public void testAuthorizeEndpointWithPromptNone_ForcePasswordChangeRequired() throws Exception {
+        String clientId = "testclient"+ generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        clientDetails.setAutoApproveScopes(Arrays.asList("uaa.user"));
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Arrays.asList("other.scope"));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String username = "testuser"+ generator.generate();
+        String userScopes = "uaa.user,other.scope";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        MockHttpSession session = new MockHttpSession();
+        setAuthentication(session, developer, true, "pwd", "mfa", "otp");
+
+        String state = generator.generate();
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+                                                    .session(session)
+                                                    .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                                                    .param(OAuth2Utils.STATE, state)
+                                                    .param(OAuth2Utils.CLIENT_ID, clientId)
+                                                    .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                                                    .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andReturn();
+
+        String url = result.getResponse().getHeader("Location");
+        assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
+
+        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
+        result = getMockMvc().perform(get("/oauth/authorize")
+                                          .session(session)
+                                          .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                                          .param(OAuth2Utils.STATE, state)
+                                          .param(OAuth2Utils.CLIENT_ID, clientId)
+                                          .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+                                          .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andReturn();
+        url = result.getResponse().getHeader("Location");
+        assertThat(url, containsString(TEST_REDIRECT_URI));
+        assertThat(url, not(containsString("error")));
+        assertThat(url, not(containsString("login_required")));
+        assertThat(url, not(containsString("interaction_required")));
+    }
+
+    @Test
     public void testAuthorizeEndpointWithPromptNone_Authenticated() throws Exception {
         String clientId = "testclient"+ generator.generate();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
@@ -1748,8 +1849,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     public void setAuthentication(MockHttpSession session, ScimUser developer) {
+        setAuthentication(session, developer, false, "pwd");
+    }
+
+    public void setAuthentication(MockHttpSession session, ScimUser developer, boolean forcePasswordChange, String... authMethods) {
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), OriginKeys.UAA,"", IdentityZoneHolder.get().getId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId", OriginKeys.ORIGIN,"sessionId"));
+        auth.setRequiresPasswordChange(forcePasswordChange);
+        auth.setAuthenticationMethods(new HashSet<>(Arrays.asList(authMethods)));
         Assert.assertTrue(auth.isAuthenticated());
         SecurityContextHolder.getContext().setAuthentication(auth);
         session.setAttribute(
@@ -3703,6 +3810,103 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             containsInAnyOrder(new String[]{zoneadmingroup, "openid", "cloud_controller.read", "cloud_controller.write"})
         );
 
+    }
+
+    @Test
+    public void testGetTokenPromptLogin() throws Exception {
+        String basicDigestHeaderValue = "Basic "
+                + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
+
+        ScimUser user = setUpUser(generator.generate()+"@test.org");
+
+        String zoneadmingroup = "zones."+ generator.generate()+".admin";
+        ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
+        ScimGroupMember member = new ScimGroupMember(user.getId());
+        groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
+
+        MockHttpSession session = getAuthenticatedSession(user);
+
+        String state = generator.generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .session(session)
+                .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param("prompt", "login")
+                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        assertEquals(result.getRequest().getRequestURL().toString(), result.getResponse().getRedirectedUrl().split("\\?")[0]);
+        Map<String, String[]> mapRequest = result.getRequest().getParameterMap();
+        Map<String, String[]> mapResponse = UaaUrlUtils.getParameterMap(result.getResponse().getRedirectedUrl());
+        for (String key : mapResponse.keySet()) {
+            assertTrue(mapRequest.containsKey(key));
+            assertTrue(Arrays.equals(mapRequest.get(key), mapResponse.get(key)));
+        }
+        Set<String> requestKeys = new HashSet(mapRequest.keySet());
+        requestKeys.removeAll(mapResponse.keySet());
+        assertEquals(1, requestKeys.size());
+        assertTrue(requestKeys.contains("prompt"));
+    }
+
+    @Test
+    public void testGetTokenMaxAge() throws Exception {
+        String basicDigestHeaderValue = "Basic "
+                + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
+
+        ScimUser user = setUpUser(generator.generate()+"@test.org");
+
+        String zoneadmingroup = "zones."+ generator.generate()+".admin";
+        ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
+        group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
+        ScimGroupMember member = new ScimGroupMember(user.getId());
+        groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
+
+        MockHttpSession session = getAuthenticatedSession(user);
+
+        String state = generator.generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .session(session)
+                .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param("max_age", "1")
+                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        assertEquals("http://localhost/test", result.getResponse().getRedirectedUrl().split("\\?")[0]);
+        Thread.sleep(2000);
+
+        authRequest = get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .session(session)
+                .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param("max_age", "1")
+                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+
+        result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        assertEquals(result.getRequest().getRequestURL().toString(), result.getResponse().getRedirectedUrl().split("\\?")[0]);
+        Map<String, String[]> mapRequest = result.getRequest().getParameterMap();
+        Map<String, String[]> mapResponse = UaaUrlUtils.getParameterMap(result.getResponse().getRedirectedUrl());
+        for (String key : mapResponse.keySet()) {
+            assertTrue(mapRequest.containsKey(key));
+            assertTrue(Arrays.equals(mapRequest.get(key), mapResponse.get(key)));
+        }
+        Set<String> requestKeys = new HashSet(mapRequest.keySet());
+        requestKeys.removeAll(mapResponse.keySet());
+        assertEquals(1, requestKeys.size());
+        assertTrue(requestKeys.contains("max_age"));
     }
 
     @Test

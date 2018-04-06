@@ -178,6 +178,7 @@ public class IdpWebSsoProfileImplTest {
     public void verifyAttributeMappings() throws Exception {
         String phone = "123";
         user.setPhoneNumbers(Collections.singletonList(new ScimUser.PhoneNumber(phone)));
+        user.setPrimaryEmail("marissa@saml-test.org");
         when(scimUserProvisioning.extractPhoneNumber(any(ScimUser.class))).thenReturn(phone);
         Map<String, Object> staticAttributes = new HashMap<>();
         staticAttributes.put("organization-id","12345");
@@ -188,6 +189,7 @@ public class IdpWebSsoProfileImplTest {
         attributeMappings.put("given_name", "first_name");
         attributeMappings.put("family_name", "last_name");
         attributeMappings.put("phone_number", "cell_phone");
+        attributeMappings.put("email", "primary_email");
         samlServiceProvider.getConfig().setAttributeMappings(attributeMappings);
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
@@ -203,6 +205,7 @@ public class IdpWebSsoProfileImplTest {
 
         List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
 
+        assertAttributeValue(attributes, "primary_email", user.getPrimaryEmail());
         assertAttributeValue(attributes, "first_name", user.getGivenName());
         assertAttributeValue(attributes, "last_name", user.getFamilyName());
         assertAttributeValue(attributes, "cell_phone", user.getPhoneNumbers().get(0).getValue());

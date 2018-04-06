@@ -29,10 +29,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class PasswordChangeRequiredFilterTest {
+public class PasswordChangeUiRequiredFilterTest {
 
 
-    private PasswordChangeRequiredFilter filter;
+    private PasswordChangeUiRequiredFilter filter;
     private RequestCache cache;
     private UaaAuthentication authentication;
     private MockHttpServletRequest request;
@@ -42,7 +42,7 @@ public class PasswordChangeRequiredFilterTest {
     @Before
     public void setup() {
         cache = mock(RequestCache.class);
-        filter = new PasswordChangeRequiredFilter(
+        filter = new PasswordChangeUiRequiredFilter(
             "/force_password_change",
             cache,
             "/login/mfa/**"

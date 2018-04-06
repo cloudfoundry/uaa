@@ -71,10 +71,10 @@ allprojects {
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
         }
+        maven { url 'http://repository.mulesoft.org/releases/'}
     }
 }
 
-//apply plugin: 'com.bmuschko.cargo-base'
 apply plugin: 'com.bmuschko.cargo'
 apply plugin: 'org.flywaydb.flyway'
 apply plugin: 'jacoco'
@@ -149,7 +149,7 @@ subprojects {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
     test {
-        jvmArgs += ["-Xmx1024m"]
+        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener"]
     }
 
     task integrationTest(type: Test) {
@@ -270,6 +270,7 @@ cargo {
     }
 
     local {
+        timeout = 540000
         jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData} -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
         configFile {

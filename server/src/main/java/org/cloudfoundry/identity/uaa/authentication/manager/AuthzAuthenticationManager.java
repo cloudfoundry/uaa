@@ -128,7 +128,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                     success.setRequiresPasswordChange(true);
                 }
 
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success));
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, OriginKeys.UAA));
                 return success;
             }
         }

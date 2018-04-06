@@ -12,6 +12,34 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.awt.*;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -71,43 +99,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import java.awt.*;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyMap;
+import static java.util.Objects.isNull;
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptyMap;
-import static java.util.Objects.isNull;
-import static java.util.Optional.ofNullable;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -118,6 +118,7 @@ import static java.util.Optional.ofNullable;
 @Controller
 public class LoginInfoEndpoint {
 
+    public static final String MFA_CODE = "mfaCode";
     private static Log logger = LogFactory.getLog(LoginInfoEndpoint.class);
 
     public static final String NotANumber = OriginKeys.NotANumber;
@@ -240,7 +241,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
     public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
+        return login(model, principal, Arrays.asList(PASSCODE, MFA_CODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -272,7 +273,7 @@ public class LoginInfoEndpoint {
 
         model.addAttribute("savedAccounts", savedAccounts);
 
-        return login(model, principal, Collections.singletonList(PASSCODE), false, request);
+        return infoForHtml(model, principal, request);
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
@@ -582,27 +583,28 @@ public class LoginInfoEndpoint {
         }
         Map<String, String[]> map = new LinkedHashMap<>();
         for (Prompt prompt : zoneConfiguration.getPrompts()) {
-            if (!exclude.contains(prompt.getName())) {
-                String[] details = prompt.getDetails();
-                if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
-                    String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
-                    if (hasText(urlInPasscode)) {
-                        String[] newDetails = new String[details.length];
-                        System.arraycopy(details, 0, newDetails, 0, details.length);
-                        newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
-                        details = newDetails;
-                    }
+            String[] details = prompt.getDetails();
+            if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
+                String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
+                if (hasText(urlInPasscode)) {
+                    String[] newDetails = new String[details.length];
+                    System.arraycopy(details, 0, newDetails, 0, details.length);
+                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
+                    details = newDetails;
                 }
-                map.put(prompt.getName(), details);
             }
+            map.put(prompt.getName(), details);
         }
         if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), OriginKeys.UAA)) {
             Prompt p = new Prompt(
-                "mfaCode",
+                MFA_CODE,
                 "password",
                 "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl()+" )")
             );
-            map.put(p.getName(), p.getDetails());
+            map.putIfAbsent(p.getName(), p.getDetails());
+        }
+        for (String excludeThisPrompt : exclude) {
+            map.remove(excludeThisPrompt);
         }
         model.addAttribute("prompts", map);
     }

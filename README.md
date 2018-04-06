@@ -199,18 +199,13 @@ grant, the same as used by a client like CF.
 
 ## Integration tests
 
-You can run the integration tests with
+You can run the integration tests with docker
 
-    $ ./gradlew integrationTest
+    $ ~/workspace/uaa/run-integration-tests.sh mysql
+    $ ~/workspace/uaa/run-integration-tests.sh postgresql
+    $ ~/workspace/uaa/run-integration-tests.sh sqlserver
   
-will run the integration tests against a uaa server running in a local
-Apache Tomcat instance, so for example the service URL is set to `http://localhost:8080/uaa` (by
-default).  
-  
-You can point the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
-`uaa.yml` where URLs can be changed
-and (if appropriate) set the context root for running the
-server (see below for more detail on that).
+will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
 ### Custom YAML Configuration
 
@@ -287,27 +282,11 @@ Notice how uaa.url can be converted into an environment variable called UAA_URL
 
 The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 
-To run the unit tests using postgresql:
+To run the unit tests with docker:
 
-    $ ./gradlew -Dspring.profiles.active=default,postgresql test integrationTest
-
-Optionally, the Spring profile can be configured in the `uaa.yml` file
- 
-    $ echo "spring_profiles: default,postgresql" > src/main/resources/uaa.yml
-
-To run the unit tests using mysql:
-
-    $ ./gradlew -Dspring.profiles.active=default,mysql test integrationTest
-
-
-The database configuration for the common and scim modules is defaulted in 
-the [Spring XML configuration files](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/resources/spring/env.xml). 
-You can change them by configuring them in `uaa.yml`
-
-The defaults are
-
-    PostgreSQL: User: root Password: changeme Database: uaa Host: localhost Port: 5432
-    MySQL:      User: root Password: changeme Database: uaa Host: localhost Port: 3306
+    $ ~/workspace/uaa/run-unit-tests.sh mysql
+    $ ~/workspace/uaa/run-unit-tests.sh postgresql
+    $ ~/workspace/uaa/run-unit-tests.sh sqlserver
 
 ## Inventory
 
@@ -474,7 +453,7 @@ Here are some ways for you to get involved in the community:
 
 * The UAA has two requirements
   * JDK 1.8.0
-  * PhantomJS, for integration test, [http://phantomjs.org/download.html](http://phantomjs.org/download.html)
+  * [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/), for integration test.
 * Get involved with the Cloud Foundry community on the mailing lists.
   Please help out on the
   [mailing list](https://lists.cloudfoundry.org)

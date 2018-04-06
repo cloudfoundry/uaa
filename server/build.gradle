@@ -24,30 +24,7 @@ dependencies {
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
-  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
-    exclude(module: 'opensaml')
-  }
-  compile(group: 'org.opensaml', name: 'opensaml', version: openSamlVersion) {
-    exclude(module: 'bcprov-jdk15on')
-    exclude(group: 'org.slf4j', module: 'log4j-over-slf4j')
-    exclude(group: 'org.owasp.esapi', module: 'esapi')
-    exclude(group: 'ca.juliusdavies', module: 'not-yet-commons-ssl')
-    exclude(group: "org.apache.velocity", module: 'velocity')
-  }
-  compile group: 'org.apache.santuario', name: 'xmlsec', version: parent.openSamlXmlSec
-  compile group: 'org.apache.velocity', name: 'velocity-engine-core', version: '2.0'
-
-  compile (group:'org.owasp.esapi', name:'esapi', version:parent.esapiVersion) {
-    exclude(group: 'xalan', module: 'xalan')
-    exclude(group: 'commons-beanutils', module: 'commons-beanutils-core')
-    exclude(group: 'commons-fileupload', module: 'commons-fileupload')
-    exclude(group: 'org.owasp.antisamy', module: 'antisamy')
-  }
-  compile group: 'commons-fileupload', name: 'commons-fileupload', version: parent.commonsFileuploadVersion
-  compile group: 'commons-beanutils', name: 'commons-beanutils', version: parent.commonsBeanUtilsVersion
-  compile group: 'org.owasp.antisamy', name: 'antisamy', version: parent.antisamyVersion
-  compile group: 'xalan', name: 'xalan', version:parent.xalanVersion
-  compile files('lib/not-yet-commons-ssl-0.3.17.jar')
+  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion
 
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')

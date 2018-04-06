@@ -700,10 +700,24 @@ public class IntegrationTestUtils {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 
-    public static BaseClientDetails getClient(RestTemplate template,
+    public static BaseClientDetails getClient(String token,
                                               String url,
                                               String clientId) throws Exception {
-        ResponseEntity<BaseClientDetails> response = template.getForEntity(url+"/oauth/clients/{clientId}", BaseClientDetails.class, clientId);
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+ token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+
+        HttpEntity getHeaders = new HttpEntity(null, headers);
+
+        ResponseEntity<BaseClientDetails> response = template.exchange(
+                url+"/oauth/clients/" + clientId,
+                HttpMethod.GET,
+                getHeaders,
+                BaseClientDetails.class
+        );
+
         return response.getBody();
     }
 
@@ -781,16 +795,24 @@ public class IntegrationTestUtils {
         throw new RuntimeException("Invalid create return code:"+clientCreate.getStatusCode());
     }
 
-    public static BaseClientDetails updateClient(RestTemplate template,
-                                                 String url,
+    public static BaseClientDetails updateClient(String url,
+                                                 String token,
                                                  BaseClientDetails client) throws Exception {
 
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+ token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+
+        HttpEntity getHeaders = new HttpEntity(client, headers);
+
         ResponseEntity<BaseClientDetails> response = template.exchange(
-            url + "/oauth/clients/{clientId}",
-            HttpMethod.PUT,
-            new HttpEntity<>(client),
-            BaseClientDetails.class,
-            client.getClientId());
+                url+"/oauth/clients/" + client.getClientId(),
+                HttpMethod.PUT,
+                getHeaders,
+                BaseClientDetails.class
+        );
 
         return response.getBody();
     }
