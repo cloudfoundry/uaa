@@ -33,7 +33,7 @@
   <div class="predix-uaa__wrap">
     <div class="predix-uaa__header">
       <div>
-          <img class="header img-responsive logo" style="max-width:330px" th:with="logo=${branding.getProductLogo()},defaultLogo=@{${assetBaseUrl+'/images/predix-word.svg'}}" th:src="${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}"/>
+          <img id="logo-header" class="header img-responsive logo" style="max-width:330px" th:with="logo=${branding.getProductLogo()},defaultLogo=@{${assetBaseUrl+'/images/predix-word.svg'}}" th:src="${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}"/>
         <div layout:fragment="page-nav"></div>
       </div>
     </div>

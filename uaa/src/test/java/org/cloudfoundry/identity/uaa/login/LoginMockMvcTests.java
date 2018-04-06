@@ -703,7 +703,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     //Thymeleaf now converts copyright html code into unicode
-    private static final String predixCopyright =  "Copyright \u00a9 2016 General Electric Company. All rights reserved.";
+    private static final String predixCopyright =  "Copyright \u00a9 2018 General Electric Company. All rights reserved.";
     @Test
     public void testPredixCopyright() throws Exception {
         getMockMvc().perform(get("/login")) .andExpect(content().string(allOf(containsString(predixCopyright))));
