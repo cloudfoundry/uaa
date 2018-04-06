@@ -37,12 +37,10 @@
         <div class="saml-login">
             <p th:if="${showLoginLinks==true and fieldUsernameShow}">or sign in with: </p>
             <div class="u-p--" th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
-                <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                <a href="" th:class="${fieldUsernameShow} ? 'saml-login-link' : 'btn btn--full'" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}">Use your corporate credentials</a>
             </div>
-            <div th:each="oauthLink : ${oauthLinks}" >
-                <div class="u-p--">
-                    <a href="" th:href="${oauthLink.key}" th:text="${oauthLink.value}" class="saml-login-link">Use your corporate credentials</a>
-                </div>
+            <div class="u-p--" th:each="oauthLink : ${oauthLinks}" >
+                <a href="" th:class="${fieldUsernameShow} ? 'saml-login-link' : 'btn btn--full'" th:href="${oauthLink.key}" th:text="${oauthLink.value}">Use your corporate credentials</a>
             </div>
         </div>
         <div class="island-footer" th:style="${#strings.isEmpty(links['createAccountLink'])?'display:inline-block':''}">
