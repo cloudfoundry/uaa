@@ -13,4 +13,5 @@
 
 
 -- create a lower index to match the query
-CREATE UNIQUE INDEX groups_unique_lower_key ON groups(LOWER(displayname),LOWER(identity_zone_id));
+-- CREATE UNIQUE INDEX groups_unique_lower_key ON groups(LOWER(displayname),LOWER(identity_zone_id));
+-- removed since we are not affected by these performance problems
