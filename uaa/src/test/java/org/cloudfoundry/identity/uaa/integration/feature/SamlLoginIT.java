@@ -17,7 +17,9 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.integration.util.SamlIdentityProviderCreator;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
+import org.cloudfoundry.identity.uaa.integration.util.SimpleSamlPhpIdpCreator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -137,6 +139,8 @@ public class SamlLoginIT {
     ServerRunning serverRunning = ServerRunning.isRunning();
     private static SamlTestUtils samlTestUtils;
 
+    private static SamlIdentityProviderCreator idpCreator;
+
     @BeforeClass
     public static void setupSamlUtils() throws Exception {
         assertTrue("Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
@@ -146,6 +150,7 @@ public class SamlLoginIT {
         } catch (ConfigurationException e) {
             samlTestUtils.initializeSimple();
         }
+        idpCreator = new SimpleSamlPhpIdpCreator(SAML_ORIGIN, ServerRunning.isRunning());
     }
 
     public static String getValidRandomIDPMetaData() {
@@ -453,7 +458,7 @@ public class SamlLoginIT {
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {
-        return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning);
+        return idpCreator.createIdp(baseUrl);
     }
 
     protected BaseClientDetails createClientAndSpecifyProvider(String clientId, IdentityProvider provider,
