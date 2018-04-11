@@ -12,17 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,12 +22,16 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class UaaUrlUtilsTest {
 
@@ -81,11 +77,15 @@ public class UaaUrlUtilsTest {
         "http://*.domain.com",
         "http://username:password@some.server.com",
         "http://username:password@some.server.com/path",
+        "http://username:password@example.com:8080/path",
         "http://under_score_subdomain.example.com",
         "http://under_score_subdomain.ex_ample.com",
         "http://dash-subdomain.example.com",
         "http://dash-subdomain.ex-ample.com",
         "cool-app://example.com",
+        "http://localhost:*/path",
+        "http://localhost:*/**",
+        "http://localhost:*/*",
         "org.cloudfoundry.identity://mobile-windows-app.com/view",
         "org+cloudfoundry+identity://mobile-ios-app.com/view",
         "org-cl0udfoundry-identity://mobile-android-app.com/view"
