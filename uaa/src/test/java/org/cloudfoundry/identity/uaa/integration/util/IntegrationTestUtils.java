@@ -59,6 +59,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 
 import com.dumbster.smtp.SimpleSmtpServer;
@@ -1383,8 +1384,10 @@ public class IntegrationTestUtils {
     }
 
     public static void validateAccountChooserCookie(String baseUrl, WebDriver webDriver) {
-        List<String> cookies = getAccountChooserCookies(baseUrl, webDriver);
-        assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+        if (IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() == true) {
+            List<String> cookies = getAccountChooserCookies(baseUrl, webDriver);
+            assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+        }
     }
 
     public static void validateUserLastLogon(ScimUser user, Long beforeTestTime, Long afterTestTime) {

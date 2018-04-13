@@ -197,8 +197,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post)
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("http://localhost:8080/app/"))
-            .andExpect(savedAccountCookie(user));
+            .andExpect(redirectedUrl("http://localhost:8080/app/"));
     }
 
     @SuppressWarnings("deprecation")
