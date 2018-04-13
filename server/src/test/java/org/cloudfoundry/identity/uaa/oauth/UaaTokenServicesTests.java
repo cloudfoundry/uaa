@@ -408,7 +408,6 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenForAnotherIssuer() throws URISyntaxException {
-
         String subdomain = "test-zone-subdomain";
         IdentityZone identityZone = getIdentityZone(subdomain);
         identityZone.setConfig(
@@ -437,6 +436,23 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
         validateExternalAttributes(accessToken);
+    }
+
+    @Test
+    public void testCreateAccessTokenForInvalidIssuer()  {
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        try {
+            identityZone.setConfig(
+                    JsonUtils.readValue(
+                            "{\"issuer\": \"notAnURL\"}",
+                            IdentityZoneConfiguration.class
+                    )
+            );
+            fail();
+        } catch (JsonUtils.JsonUtilException e) {
+            assertThat(e.getMessage(), containsString("Invalid issuer format. Must be valid URL."));
+        }
     }
 
     @Test
