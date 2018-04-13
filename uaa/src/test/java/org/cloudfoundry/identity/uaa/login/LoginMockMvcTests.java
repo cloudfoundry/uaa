@@ -826,6 +826,14 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testLogOutWithLogoutEndpoint() throws Exception {
+        getMockMvc().perform(get("/uaa/logout").contextPath("/uaa"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/uaa/login"))
+                .andExpect(emptyCurrentUserCookie());
+    }
+
+    @Test
     public void testLogOutIgnoreRedirectParameter() throws Exception {
         getMockMvc().perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
             .andExpect(status().isFound())
