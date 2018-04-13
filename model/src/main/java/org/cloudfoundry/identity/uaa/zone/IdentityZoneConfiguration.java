@@ -17,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
@@ -146,6 +148,11 @@ public class IdentityZoneConfiguration {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public void setIssuer(String issuer) {
-        this.issuer = issuer;
+        try {
+            new URL(issuer);
+            this.issuer = issuer;
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("Invalid issuer format. Must be valid URL.");
+        }
     }
 }
