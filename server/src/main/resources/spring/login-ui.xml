@@ -158,8 +158,17 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-        <constructor-arg value="/logout.do"/>
+    <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.OrRequestMatcher">
+        <constructor-arg>
+            <util:list>
+                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                    <constructor-arg value="/logout"/>
+                </bean>
+                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                    <constructor-arg value="/logout.do"/>
+                </bean>
+            </util:list>
+        </constructor-arg>
     </bean>
 
     <bean id="uiAuthorizeRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">

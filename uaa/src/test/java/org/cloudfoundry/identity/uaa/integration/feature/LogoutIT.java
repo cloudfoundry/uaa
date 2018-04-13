@@ -1,13 +1,5 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.net.Inet4Address;
-import java.net.URLEncoder;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -19,11 +11,21 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
+
+import java.net.Inet4Address;
+import java.net.URLEncoder;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -91,7 +93,7 @@ public class LogoutIT {
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         return zone.getBody();
     }
-    
+
     @Test
     public void testLogoutWithRedirect() throws Exception {
         assertTrue("Expected testzone1.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
@@ -100,7 +102,7 @@ public class LogoutIT {
 
         //identity client token
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
         //create the zone
         createZoneSubdomain(identityClient, baseUrl, zoneId, zoneId);
@@ -109,4 +111,27 @@ public class LogoutIT {
         webDriver.get(zoneUrl + "/logout.do?redirect=" + URLEncoder.encode(redirectUrl, "UTF-8"));
         assertEquals(redirectUrl, webDriver.getCurrentUrl());
     }
+    
+    @Test
+    public void testLogoutWithRedirectUsingLogoutEndpoint() throws Exception {
+        assertTrue("Expected testzone1.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String zoneId = "testzone1";
+        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+
+        //create the zone
+        IdentityZone identityZone = createZoneSubdomain(identityClient, baseUrl, zoneId, zoneId);
+        String redirectUrl = "https://www.google.com";
+        identityZone.getConfig().getLinks().getLogout().setWhitelist(Arrays.asList(redirectUrl));
+        HttpEntity<IdentityZone> identityZoneHttpEntity = new HttpEntity(identityZone);
+        identityClient.exchange(baseUrl + "/identity-zones/" + identityZone.getId(), HttpMethod.PUT, identityZoneHttpEntity, IdentityZone.class);
+
+        webDriver.get(zoneUrl + "/logout?redirect=" + URLEncoder.encode(redirectUrl, "UTF-8"));
+        assertEquals(redirectUrl + "/", webDriver.getCurrentUrl());
+    }
+
 }
