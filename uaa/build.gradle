@@ -36,13 +36,10 @@ dependencies {
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
   runtime group: 'org.postgresql', name: 'postgresql', version:parent.postgresqlVersion
 
-  runtime group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
-  runtime group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: parent.jacksonVersion
-  runtime group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
-
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   runtime(group: 'com.ge.predix', name: 'spring-log-filter', version:'1.1.3') {
     exclude(group: 'ch.qos.logback')
+    exclude(group: 'com.fasterxml.jackson.core')
   }
 
   // For Spring Metering Filter support
