@@ -151,7 +151,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
     private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
     private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
-    private static final String ZONE_ISSUER_DESC = "Issuer of this zone";
+    private static final String ZONE_ISSUER_DESC = "Issuer of this zone. Must be a valid URL.";
     private static final String DEFAULT_ISSUER_URI = "http://localhost:8080/uaa";
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
