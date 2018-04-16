@@ -61,7 +61,9 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         if(IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
             SavedAccountOption savedAccountOption = new SavedAccountOption();
             savedAccountOption.setEmail(uaaPrincipal.getEmail());
+            savedAccountOption.setOrigin(uaaPrincipal.getOrigin());
             savedAccountOption.setUserId(uaaPrincipal.getId());
+            savedAccountOption.setUsername(uaaPrincipal.getName());
             Cookie savedAccountCookie = new Cookie("Saved-Account-" + uaaPrincipal.getId(), encodeCookieValue(JsonUtils.writeValueAsString(savedAccountOption)));
             savedAccountCookie.setPath(request.getContextPath() + "/login");
             savedAccountCookie.setHttpOnly(true);

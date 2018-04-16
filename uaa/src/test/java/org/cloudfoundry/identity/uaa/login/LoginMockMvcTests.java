@@ -2250,7 +2250,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         SavedAccountOption savedAccount = new SavedAccountOption();
         savedAccount.setEmail("test@example.org");
+        savedAccount.setOrigin("uaa");
         savedAccount.setUserId("1234-5678");
+        savedAccount.setUsername("test@example.org");
         getMockMvc().perform(get("/login")
             .session(session)
             .header("Accept", TEXT_HTML)
@@ -2276,7 +2278,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         SavedAccountOption savedAccount = new SavedAccountOption();
         savedAccount.setEmail("test@example.org");
+        savedAccount.setOrigin("uaa");
         savedAccount.setUserId("1234-5678");
+        savedAccount.setUsername("test@example.org");
         getMockMvc().perform(get("/login")
             .session(session)
             .cookie(new Cookie("Saved-Account-12345678", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount))))

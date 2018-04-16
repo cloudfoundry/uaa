@@ -205,6 +205,8 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
         return result -> {
             SavedAccountOption savedAccountOption = new SavedAccountOption();
             savedAccountOption.setEmail(user.getPrimaryEmail());
+            savedAccountOption.setUsername(user.getUserName());
+            savedAccountOption.setOrigin(user.getOrigin());
             savedAccountOption.setUserId(user.getId());
             String cookieName = "Saved-Account-" + user.getId();
             cookie().value(cookieName, URLEncoder.encode(JsonUtils.writeValueAsString(savedAccountOption))).match(result);
