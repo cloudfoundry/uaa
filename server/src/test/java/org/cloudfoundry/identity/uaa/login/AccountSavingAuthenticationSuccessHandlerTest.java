@@ -89,6 +89,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         UaaAuthentication authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
 
         AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
+        successHandler.setSessionTimeout(1234);
         SavedRequestAwareAuthenticationSuccessHandler redirectingHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
         successHandler.setRedirectingHandler(redirectingHandler);
 
@@ -113,6 +114,10 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         Assert.assertEquals(secure, accountOptionCookie.getSecure());
 
         verify(redirectingHandler, times(1)).onAuthenticationSuccess(request, response, authentication);
+
+        Cookie currentUserCookie = response.getCookie("Current-User");
+        assertThat(currentUserCookie, notNullValue());
+        assertEquals(1234, currentUserCookie.getMaxAge());
     }
 
     @Test
