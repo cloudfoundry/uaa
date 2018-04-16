@@ -13,7 +13,6 @@ import org.junit.runners.Parameterized;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 import javax.servlet.ServletException;
@@ -105,9 +104,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
 
         SavedAccountOption expectedCookieValue = new SavedAccountOption();
         expectedCookieValue.setUserId(user.getId());
-        expectedCookieValue.setUsername(user.getUsername());
         expectedCookieValue.setEmail(user.getEmail());
-        expectedCookieValue.setOrigin(user.getOrigin());
 
         assertEquals(URLEncoder.encode(JsonUtils.writeValueAsString(expectedCookieValue)), cookieValue);
         assertEquals(true, accountOptionCookie.isHttpOnly());
