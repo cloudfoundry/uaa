@@ -56,7 +56,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         }
 
         UaaPrincipal uaaPrincipal = (UaaPrincipal) principal;
-        if(IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() == true) {
+        if(IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
             SavedAccountOption savedAccountOption = new SavedAccountOption();
             savedAccountOption.setEmail(uaaPrincipal.getEmail());
             savedAccountOption.setUserId(uaaPrincipal.getId());

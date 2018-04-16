@@ -65,7 +65,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
     @SuppressWarnings("deprecation")
     @Test
     public void whenSuccessfullyAuthenticated_accountGetsSavedViaCookie() throws IOException, ServletException {
-        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
         Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
         UaaUser user = new UaaUser(
                 "user-id",
@@ -117,7 +117,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
 
     @Test
     public void empty_Account_Cookie() throws IOException, ServletException {
-        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(false);
         Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
         UaaUser user = new UaaUser(
                 "user-id",
