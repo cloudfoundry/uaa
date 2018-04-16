@@ -247,7 +247,7 @@ public class AutologinIT {
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
-        if (IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() == true) {
+        if (IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
             assertThat(cookies, hasItem(startsWith("Saved-Account-")));
         }
         assertThat(cookies, hasItem(startsWith("Current-User")));

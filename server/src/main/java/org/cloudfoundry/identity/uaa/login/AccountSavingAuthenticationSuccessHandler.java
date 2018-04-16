@@ -32,6 +32,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
+    private int sessionTimeout;
+
     @Autowired
     public SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
 
@@ -56,7 +58,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         }
 
         UaaPrincipal uaaPrincipal = (UaaPrincipal) principal;
-        if(IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() == true) {
+        if(IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
             SavedAccountOption savedAccountOption = new SavedAccountOption();
             savedAccountOption.setEmail(uaaPrincipal.getEmail());
             savedAccountOption.setOrigin(uaaPrincipal.getOrigin());
@@ -76,7 +78,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         currentUserInformation.setUserId(uaaPrincipal.getId());
         Cookie currentUserCookie = new Cookie("Current-User", encodeCookieValue(JsonUtils.writeValueAsString(currentUserInformation)));
         // cookie expires in a day
-        currentUserCookie.setMaxAge(24*60*60);
+        currentUserCookie.setMaxAge(sessionTimeout);
         currentUserCookie.setHttpOnly(false);
         currentUserCookie.setPath(request.getContextPath());
 
@@ -91,5 +93,9 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
             throw new IllegalArgumentException(e);
         }
         return out;
+    }
+
+    public void setSessionTimeout(int sessionTimeout) {
+        this.sessionTimeout = sessionTimeout;
     }
 }

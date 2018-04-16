@@ -66,7 +66,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
     @SuppressWarnings("deprecation")
     @Test
     public void whenSuccessfullyAuthenticated_accountGetsSavedViaCookie() throws IOException, ServletException {
-        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
         Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
         UaaUser user = new UaaUser(
                 "user-id",
@@ -90,6 +90,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         UaaAuthentication authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
 
         AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
+        successHandler.setSessionTimeout(1234);
         SavedRequestAwareAuthenticationSuccessHandler redirectingHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
         successHandler.setRedirectingHandler(redirectingHandler);
 
@@ -116,11 +117,15 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         Assert.assertEquals(secure, accountOptionCookie.getSecure());
 
         verify(redirectingHandler, times(1)).onAuthenticationSuccess(request, response, authentication);
+
+        Cookie currentUserCookie = response.getCookie("Current-User");
+        assertThat(currentUserCookie, notNullValue());
+        assertEquals(1234, currentUserCookie.getMaxAge());
     }
 
     @Test
     public void empty_Account_Cookie() throws IOException, ServletException {
-        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(false);
         Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
         UaaUser user = new UaaUser(
                 "user-id",

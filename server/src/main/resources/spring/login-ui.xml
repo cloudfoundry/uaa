@@ -183,6 +183,7 @@
     <bean id="accountSavingAuthenticationSuccessHandler"
           class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler">
         <property name="redirectingHandler" ref="successRedirectHandler"/>
+        <property name="sessionTimeout" value="${servlet.idle-timeout:1800}"/>
     </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
