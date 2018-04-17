@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -43,7 +44,6 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
@@ -83,11 +83,14 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.log.SAMLLogger;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.websso.WebSSOProfileConsumer;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.context.request.ServletWebRequest;
 
+import javax.servlet.ServletContext;
+import javax.xml.namespace.QName;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -95,10 +98,12 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.ServletContext;
-import javax.xml.namespace.QName;
 
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.not;
@@ -547,7 +552,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         getAuthentication();
 
         UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
-        assertTrue(user.isVerified());
+        assertFalse(user.isVerified());
         assertEquals("marissa-invited", user.getUsername());
         assertEquals("marissa.invited@test.org", user.getEmail());
 
@@ -627,6 +632,36 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertEquals("Marissa-changed", user.getGivenName());
         assertEquals("marissa.bloggs@change.org", user.getEmail());
         assertTrue(user.isVerified());
+    }
+
+    @Test
+    public void update_existingUser_if_username_different() throws Exception {
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "firstName");
+        attributeMappings.put("family_name", "lastName");
+        attributeMappings.put("email", "emailAddress");
+        attributeMappings.put("phone_number", "phone");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
+
+        getAuthentication();
+
+        UaaUser originalUser = userDatabase.retrieveUserByEmail("marissa.bloggs@test.com", OriginKeys.SAML);
+        assertNotNull(originalUser);
+        assertEquals("marissa-saml", originalUser.getUsername());
+
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<String, String>();
+        attributes.add(GIVEN_NAME_ATTRIBUTE_NAME, "Marissa");
+        attributes.add(FAMILY_NAME_ATTRIBUTE_NAME, "Bloggs");
+        attributes.add(EMAIL_ATTRIBUTE_NAME, "marissa.bloggs@test.com");
+        attributes.add(PHONE_NUMBER_ATTRIBUTE_NAME, "1234567890");
+
+        UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, "marissa-saml-changed", "marissa.bloggs@test.com", OriginKeys.SAML, "marissa-saml-changed", IdentityZoneHolder.get().getId());
+        UaaUser user = authprovider.createIfMissing(samlPrincipal, false, new ArrayList<SimpleGrantedAuthority>(), attributes);
+
+        assertNotNull(user);
+        assertEquals("marissa-saml-changed", user.getUsername());
     }
 
     @Test

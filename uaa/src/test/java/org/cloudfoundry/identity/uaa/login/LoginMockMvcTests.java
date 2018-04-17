@@ -51,7 +51,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,6 +79,8 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -96,9 +97,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -146,10 +149,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
-import static java.util.Arrays.asList;
-import static java.util.Collections.EMPTY_LIST;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 
 public class LoginMockMvcTests extends InjectedMockContextTest {
 
@@ -491,8 +490,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(validPost)
             .andDo(print())
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/uaa/"))
-            .andExpect(currentUserCookie(marissa.getId()));
+            .andExpect(redirectedUrl("/uaa/"));
     }
 
     private static ResultMatcher currentUserCookie(String userId) {
@@ -577,8 +575,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("username", user.getUserName())
             .param("password", user.getPassword()))
             .andDo(print())
-            .andExpect(redirectedUrl("/uaa/"))
-            .andExpect(currentUserCookie(user.getId()));
+            .andExpect(redirectedUrl("/uaa/"));
     }
 
     @Test
@@ -2547,9 +2544,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
           .param("password", user.getPassword());
 
         getMockMvc().perform(post)
-          .andExpect(redirectedUrl("/uaa/"))
-          .andExpect(currentUserCookie(user.getId()));
-
+          .andExpect(redirectedUrl("/uaa/"));
         // authorize for client that does not allow that idp
 
         String clientId = "different-provider-client";

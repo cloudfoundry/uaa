@@ -17,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,13 +34,14 @@ public class IdentityZoneConfiguration {
     private List<Prompt> prompts = Arrays.asList(
         new Prompt("username", "text", "Email"),
         new Prompt("password", "password", "Password"),
-        new Prompt("passcode", "password", "One Time Code (Get on at /passcode)")
+        new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)")
     );
     private boolean idpDiscoveryEnabled = false;
     private BrandingInformation branding;
     private boolean accountChooserEnabled;
     private UserConfig userConfig = new UserConfig();
     private MfaConfig mfaConfig = new MfaConfig();
+    private String issuer;
 
     public IdentityZoneConfiguration() {}
 
@@ -136,5 +139,20 @@ public class IdentityZoneConfiguration {
 
     public void setUserConfig(UserConfig userConfig) {
         this.userConfig = userConfig;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getIssuer() {
+        return issuer;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public void setIssuer(String issuer) {
+        try {
+            new URL(issuer);
+            this.issuer = issuer;
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("Invalid issuer format. Must be valid URL.");
+        }
     }
 }

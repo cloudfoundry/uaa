@@ -156,6 +156,7 @@ public class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,255,0,0,0,0,6));
         IdentityZoneHolder.set(testZone);
 
+        endpoints.setClientMaxCount(5);
         endpoints.setClientDetailsService(clientDetailsService);
         endpoints.setClientRegistrationService(clientRegistrationService);
         endpoints.setSecurityContextAccessor(securityContextAccessor);
@@ -898,6 +899,15 @@ public class ClientAdminEndpointsTests {
         });
         detail.setScope(Arrays.asList(detail.getClientId() + ".read"));
         endpoints.createClientDetails(detail);
+    }
+
+    @Test
+    public void testClientEndpointCannotBeConfiguredWithAnInvalidMaxCount() throws Exception {
+        expected.expect(IllegalArgumentException.class);
+        expected.expectMessage(containsString(
+            "Invalid \"clientMaxCount\" value (got 0). Should be positive number."
+        ));
+        endpoints.setClientMaxCount(0);
     }
 
     @Test(expected = InvalidClientDetailsException.class)

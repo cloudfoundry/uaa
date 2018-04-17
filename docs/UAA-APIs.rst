@@ -838,7 +838,7 @@ Request body      *example* ::
                                 },
                                 {
                                     "name": "passcode",
-                                    "text": "One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )",
+                                    "text": "Temporary Authentication Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )",
                                     "type": "password"
                                 }
                             ],

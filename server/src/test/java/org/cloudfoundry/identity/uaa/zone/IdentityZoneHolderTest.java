@@ -186,7 +186,7 @@ public class IdentityZoneHolderTest {
             "      {\n" +
             "        \"name\": \"passcode\",\n" +
             "        \"type\": \"password\",\n" +
-            "        \"text\": \"One Time Code (Get on at /passcode)\"\n" +
+            "        \"text\": \"Temporary Authentication Code (Get on at /passcode)\"\n" +
             "      }\n" +
             "    ],\n" +
             "    \"idpDiscoveryEnabled\": false,\n" +

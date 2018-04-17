@@ -96,6 +96,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         mdb.setScimUserProvisioning(db);
         mdb.setScimGroupProvisioning(gdb);
         userEndpoints = new ScimUserEndpoints();
+        userEndpoints.setUserMaxCount(5);
         userEndpoints.setScimGroupMembershipManager(mdb);
         userEndpoints.setScimUserProvisioning(db);
         String zoneId = new RandomValueStringGenerator().generate().toLowerCase();
@@ -347,9 +348,8 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void invited_user_gets_verified_set_to_true() throws Exception {
-        String origin = "testOrigin";
-        addIdentityProvider(jdbcTemplate,origin);
+    public void uaaUserGetsVerifiedSetToTrue() throws Exception {
+        String origin = OriginKeys.UAA;
         String email = "test@test.org";
         String firstName = "FirstName";
         String lastName = "LastName";
@@ -368,13 +368,46 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
             .get();
         String userId = existingUser.getId();
         existingUser.setVerified(false);
-        existingUser = db.update(userId, existingUser, IdentityZone.getUaa().getId());
+        db.update(userId, existingUser, IdentityZone.getUaa().getId());
         InvitedUserAuthenticatedEvent event = new InvitedUserAuthenticatedEvent(user);
+
         bootstrap.onApplicationEvent(event);
+
         ScimUser modifiedUser = db.retrieve(userId, IdentityZone.getUaa().getId());
 
         assertTrue(modifiedUser.isVerified());
-        assertFalse(existingUser.isVerified());
+    }
+
+    @Test
+    public void externalInvitedUserGetsVerifiedSetToFalse() throws Exception {
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate,origin);
+        String email = "test@test.org";
+        String firstName = "FirstName";
+        String lastName = "LastName";
+        String password = "testPassword";
+        String externalId = null;
+
+        String username = new RandomValueStringGenerator().generate().toLowerCase();
+        UaaUser user = getUaaUser(new String[0], origin, email, firstName, lastName, password, externalId, "not-used-id", username);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
+        bootstrap.afterPropertiesSet();
+
+        ScimUser existingUser = db.retrieveAll(IdentityZone.getUaa().getId())
+          .stream()
+          .filter(u -> username.equals(u.getUserName()))
+          .findFirst()
+          .get();
+        String userId = existingUser.getId();
+        existingUser.setVerified(true);
+        db.update(userId, existingUser, IdentityZone.getUaa().getId());
+        InvitedUserAuthenticatedEvent event = new InvitedUserAuthenticatedEvent(user);
+
+        bootstrap.onApplicationEvent(event);
+
+        ScimUser modifiedUser = db.retrieve(userId, IdentityZone.getUaa().getId());
+
+        assertFalse(modifiedUser.isVerified());
     }
 
     @Test

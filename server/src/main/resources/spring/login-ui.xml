@@ -183,6 +183,7 @@
     <bean id="accountSavingAuthenticationSuccessHandler"
           class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler">
         <property name="redirectingHandler" ref="successRedirectHandler"/>
+        <property name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}"/>
     </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
@@ -280,6 +281,9 @@
         </constructor-arg>
     </bean>
 
+    <bean id="reAuthenticationRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
+    </bean>
+
     <http name="idpSecurity"
           use-expressions="true"
           pattern="/saml/idp/SSO/**"
@@ -306,6 +310,7 @@
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
         <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
         <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
+        <security:custom-filter after="SECURITY_CONTEXT_FILTER" ref="reAuthenticationRequiredFilter"/>
         <form-login login-page="/login"
                     username-parameter="username"
                     password-parameter="password"

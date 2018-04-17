@@ -126,8 +126,8 @@ public class XOAuthProviderConfiguratorTests {
     private OIDCIdentityProviderDefinition oidc;
     private RawXOAuthIdentityProviderDefinition oauth;
 
-
-    private String baseExpect = "https://oidc10.oms.identity.team/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
+    private String authorizeUrl = "http://oidc10.random-made-up-url.com/oauth/authorize";
+    private String baseExpect = authorizeUrl + "?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s%s";
     private String redirectUri;
     private MockHttpServletRequest request;
     XOAuthProviderConfigurator configurator;
@@ -152,9 +152,9 @@ public class XOAuthProviderConfiguratorTests {
         request.setServerPort(8443);
 
         for (AbstractXOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
-            def.setAuthUrl(new URL("https://oidc10.oms.identity.team/oauth/authorize"));
-            def.setTokenUrl(new URL("https://oidc10.oms.identity.team/oauth/token"));
-            def.setTokenKeyUrl(new URL("https://oidc10.oms.identity.team/token_keys"));
+            def.setAuthUrl(new URL("http://oidc10.random-made-up-url.com/oauth/authorize"));
+            def.setTokenUrl(new URL("http://oidc10.random-made-up-url.com/oauth/token"));
+            def.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_keys"));
             def.setScopes(Arrays.asList("openid","password.write"));
             def.setRelyingPartyId("clientId");
             if (def == oidc) {

@@ -55,14 +55,4 @@ public class LocalUaaRestTemplateMockMvcTests extends InjectedMockContextTest {
         assertNotNull("authorization bearer header should be present", request.getHeaders().get("Authorization").get(0));
         assertEquals("bearer "+token.getValue(), request.getHeaders().get("Authorization").get(0));
     }
-
-    @Test
-    @Ignore("Only run Self Signed Test when we have an actual environment to test against.")
-    public void testSelfSignedCertificate() throws Exception {
-        String url = "https://notifications.oms.identity.team/info";
-        //String url = "https://notifications.oms.identity.team/notifications";
-        LocalUaaRestTemplate restTemplate = getWebApplicationContext().getBean(LocalUaaRestTemplate.class);
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
 }

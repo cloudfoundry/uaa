@@ -12,21 +12,8 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.lang.reflect.Field;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -36,7 +23,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -51,9 +37,6 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.collections.map.HashedMap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -80,6 +63,21 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.ReflectionUtils;
+
+import java.lang.reflect.Field;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyMap;
@@ -408,6 +406,54 @@ public class UaaTokenServicesTests {
         assertCommonEventProperties(accessToken, CLIENT_ID, tokenSupport.expectedJson);
     }
 
+    @Test
+    public void testCreateAccessTokenForAnotherIssuer() throws URISyntaxException {
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        identityZone.setConfig(
+            JsonUtils.readValue(
+                "{\"issuer\": \"http://uaamaster:8080/uaa\"}",
+                IdentityZoneConfiguration.class
+            )
+        );
+        identityZone.getConfig().getTokenPolicy().setAccessTokenValidity(tokenSupport.accessTokenValidity);
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
+        IdentityZoneHolder.set(identityZone);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
+
+        tokenServices.setIssuer("http://uaaslave:8080/uaa");
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        assertCommonClientAccessTokenProperties(accessToken);
+        assertThat(accessToken, validFor(is(tokenSupport.accessTokenValidity)));
+        assertThat(accessToken, issuerUri(is("http://uaamaster:8080/uaa/oauth/token")));
+        assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
+        assertThat(accessToken.getRefreshToken(), is(nullValue()));
+        validateExternalAttributes(accessToken);
+    }
+
+    @Test
+    public void testCreateAccessTokenForInvalidIssuer()  {
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        try {
+            identityZone.setConfig(
+                    JsonUtils.readValue(
+                            "{\"issuer\": \"notAnURL\"}",
+                            IdentityZoneConfiguration.class
+                    )
+            );
+            fail();
+        } catch (JsonUtils.JsonUtilException e) {
+            assertThat(e.getMessage(), containsString("Invalid issuer format. Must be valid URL."));
+        }
+    }
 
     @Test
     public void test_refresh_token_is_opaque_when_requested() {
@@ -681,15 +727,18 @@ public class UaaTokenServicesTests {
         this.assertCommonEventProperties(accessToken, tokenSupport.userId, buildJsonString(tokenSupport.requestedAuthScopes));
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     protected void validateExternalAttributes(OAuth2AccessToken accessToken) {
         Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
         if (tokenEnhancer!=null) {
-            Assert.assertEquals("test", extendedAttributes.get("purpose"));
             String atValue = accessToken.getValue().length() < 40 ?
                 tokenSupport.tokens.get(accessToken.getValue()).getValue() :
                 accessToken.getValue();
             Map<String,Object> claims = JsonUtils.readValue(JwtHelper.decode(atValue).getClaims(),
                                                             new TypeReference<Map<String, Object>>() {});
+
+            assertNotNull(claims.get("ext_attr"));
+            assertEquals("test", ((Map)claims.get("ext_attr")).get("purpose"));
 
             assertNotNull(claims.get("ex_prop"));
             assertEquals("nz", ((Map)claims.get("ex_prop")).get("country"));
@@ -706,19 +755,10 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
 
         TokenRequest refreshTokenRequest = getRefreshTokenRequest();
-        String xx = accessToken.getRefreshToken().getValue();
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(xx, refreshTokenRequest);
-        Map<String, Object> extendedContext = (Map<String, Object>) refreshedAccessToken.getAdditionalInformation();
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
 
-        if (tokenEnhancer!=null) {
-            assertNotNull(extendedContext);
-            assertEquals("test", ((Map<String, String>)extendedContext.get("ext_attr")).get("purpose"));
-            assertNotNull(extendedContext.get("ex_groups"));
-            assertNotNull(extendedContext.get("ex_prop"));
-            assertEquals("nz", ((Map<String, String>) extendedContext.get("ex_prop")).get("country"));
-        } else {
-            assertNull("External attributes should not exist", extendedContext.get("ext_attr"));
-        }
+        validateExternalAttributes(accessToken);
+        validateExternalAttributes(refreshedAccessToken);
     }
 
     @Test

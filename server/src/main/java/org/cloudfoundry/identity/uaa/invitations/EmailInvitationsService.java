@@ -6,7 +6,6 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -25,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
@@ -59,13 +59,14 @@ public class EmailInvitationsService implements InvitationsService {
 
         ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
 
-        user = scimUserProvisioning.verifyUser(userId, user.getVersion(), IdentityZoneHolder.get().getId());
+        if (UAA.equals(user.getOrigin())) {
+            user = scimUserProvisioning.verifyUser(userId, user.getVersion(), IdentityZoneHolder.get().getId());
 
-
-        if (OriginKeys.UAA.equals(user.getOrigin()) && StringUtils.hasText(password)) {
-            PasswordChangeRequest request = new PasswordChangeRequest();
-            request.setPassword(password);
-            scimUserProvisioning.changePassword(userId, null, password, IdentityZoneHolder.get().getId());
+            if (StringUtils.hasText(password)) {
+                PasswordChangeRequest request = new PasswordChangeRequest();
+                request.setPassword(password);
+                scimUserProvisioning.changePassword(userId, null, password, IdentityZoneHolder.get().getId());
+            }
         }
 
         String redirectLocation = "/home";

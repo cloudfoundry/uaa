@@ -54,6 +54,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpMethod.POST;
@@ -221,6 +222,10 @@ public class InvitationsIT {
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         //webdriver follows redirects so we should be on the UAA authorization page
         assertEquals("user_only_for_invitations_test", acceptedUsername);
+
+        //external users should default to not being "verified" since we can't determine this
+        ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
+        assertFalse(user.isVerified());
     }
 
     @Test

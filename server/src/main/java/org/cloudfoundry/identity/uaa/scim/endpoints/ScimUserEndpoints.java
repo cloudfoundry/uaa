@@ -153,6 +153,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private ApplicationEventPublisher publisher;
 
+    private int userMaxCount;
+
     public void checkIsEditAllowed(String origin, HttpServletRequest request) {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
         if (attr!=null && attr instanceof Boolean) {
@@ -316,7 +318,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
         checkIsEditAllowed(user.getOrigin(), request);
-        membershipManager.removeMembersByMemberId(userId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+        membershipManager.removeMembersByMemberId(userId, user.getOrigin(), IdentityZoneHolder.get().getId());
         scimUserProvisioning.delete(userId, version, IdentityZoneHolder.get().getId());
         scimDeletes.incrementAndGet();
         if (publisher != null) {
@@ -402,6 +404,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         if (startIndex < 1) {
             startIndex = 1;
+        }
+
+        if (count > userMaxCount) {
+            count = userMaxCount;
         }
 
         List<ScimUser> input = new ArrayList<ScimUser>();
@@ -612,5 +618,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         this.publisher = applicationEventPublisher;
+    }
+
+    public void setUserMaxCount(int userMaxCount) {
+        if (userMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
+            );
+        }
+
+        this.userMaxCount = userMaxCount;
     }
 }
