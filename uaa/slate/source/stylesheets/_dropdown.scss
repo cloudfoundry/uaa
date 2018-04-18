@@ -43,7 +43,18 @@
 #version-dropdown {
   margin:10px;
   position:relative;
+
+  .dropdown {
+    color: #FFFFFF;
+    padding: 5px 15px;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+    vertical-align: middle;
+  }
 }
+
 
 #version-select { }
 
