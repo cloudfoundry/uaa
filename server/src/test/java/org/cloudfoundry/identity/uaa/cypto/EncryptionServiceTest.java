@@ -1,7 +1,10 @@
 package org.cloudfoundry.identity.uaa.cypto;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.security.Security;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -10,6 +13,10 @@ import static org.hamcrest.Matchers.not;
 
 public class EncryptionServiceTest {
     private EncryptionService service;
+    @BeforeClass
+    public static void key() {
+        Security.setProperty("crypto.policy", "unlimited");
+    }
 
     @Before
     public void setup() {

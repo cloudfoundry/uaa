@@ -7,15 +7,13 @@ import org.cloudfoundry.identity.uaa.mfa.exception.UnableToRetrieveMfaException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Base64Utils;
 
+import java.security.Security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +25,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     private JdbcUserGoogleMfaCredentialsProvisioning db;
+    @BeforeClass
+    public static void key() {
+        Security.setProperty("crypto.policy", "unlimited");
+    }
 
     private final static String MFA_ID = new RandomValueStringGenerator(36).generate();
     private String zoneId = new RandomValueStringGenerator(36).generate();

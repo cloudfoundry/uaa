@@ -162,7 +162,13 @@
 #    requireDigit: 0
 #    requireSpecialCharacter: 0
 #    expirePasswordInMonths: 0
-
+encryption:
+  active_key_label: key-1
+  encryption_keys:
+    - label: 'key-1'
+      passphrase: 'MY-PASSPHRASE'
+    - label: 'key-2'
+      passphrase: 'MY-PASSPHRASE-TWO'
 scim:
   groups:
     zones.read: Read identity zones
