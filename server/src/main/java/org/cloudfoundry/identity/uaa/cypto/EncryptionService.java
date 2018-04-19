@@ -27,6 +27,7 @@ public class EncryptionService {
     private final int AES_KEY_LENGTH_BITS = 256;
     private final String CIPHER = "AES";
     private final String CIPHERSCHEME = "AES/GCM/NoPadding";
+    private SecureRandom random = new SecureRandom();
 
 
     public EncryptionService(String passphrase) {
@@ -78,7 +79,6 @@ public class EncryptionService {
 
     private byte[] generateRandomArray(int sizeInBytes) throws NoSuchAlgorithmException {
         final byte[] randomArray = new byte[sizeInBytes];
-        SecureRandom random = SecureRandom.getInstanceStrong();
         random.nextBytes(randomArray);
         return randomArray;
     }
@@ -86,7 +86,6 @@ public class EncryptionService {
     private byte[] generateKey(byte[] salt) throws UnsupportedEncodingException {
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(new SHA256Digest());
 
-        //TODO: utf-8???
         gen.init(this.passphrase.getBytes("UTF-8"), salt, PBKDF2_ITERATIONS);
         return ((KeyParameter) gen.generateDerivedParameters(AES_KEY_LENGTH_BITS)).getKey();
     }
