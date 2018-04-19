@@ -36,6 +36,7 @@ public class PostgresDbMigrationIntegrationTest {
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_CATALOG = ? and TABLE_NAME != 'schema_version'";
     private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
     private String fetchColumnTypeFromTable = "SELECT udt_name FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
+    private String fetchIsNullableFromTable = "SELECT is_nullable FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
 
     private MigrationTestRunner migrationTestRunner;
 
@@ -106,6 +107,33 @@ public class PostgresDbMigrationIntegrationTest {
                   "encrypted_validation_code"
                 );
                 assertThat(encryptedValidationCodeColumnType, is("varchar"));
+
+                String encryptedValidationCodeIsNullable = jdbcTemplate.queryForObject(
+                  fetchIsNullableFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getSchema(),
+                  "encrypted_validation_code"
+                );
+                assertThat(encryptedValidationCodeIsNullable, is("YES"));
+
+                String validationCodeIsNullable = jdbcTemplate.queryForObject(
+                  fetchIsNullableFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getSchema(),
+                  "validation_code"
+                );
+                assertThat(validationCodeIsNullable, is("YES"));
+
+                String validationColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getSchema(),
+                  "validation_code"
+                );
+                assertThat(validationColumnType, is("int4"));
             }
         };
 

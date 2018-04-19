@@ -34,7 +34,8 @@ public class SqlServerDbMigrationIntegrationTest {
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_CATALOG = ? AND TABLE_NAME = LOWER(?) AND CONSTRAINT_NAME like 'PK_%'";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.tables WHERE TABLE_CATALOG = ? and TABLE_NAME != 'schema_version'";
     private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
-    private String fetchColumnTypeFromTable = "SELECT data_type FROM information_schema.columns WHERE table_name = 'user_google_mfa_credentials' and TABLE_CATALOG = ? and column_name = ?";
+    private String fetchColumnTypeFromTable = "SELECT data_type FROM information_schema.columns WHERE table_name = ? and TABLE_CATALOG = ? and column_name = ?";
+    private String fetchColumnIsNullableFromTable = "SELECT is_nullable FROM information_schema.columns WHERE table_name = ? and TABLE_CATALOG = ? and column_name = ?";
 
     private MigrationTestRunner migrationTestRunner;
 
@@ -80,25 +81,57 @@ public class SqlServerDbMigrationIntegrationTest {
             @Override
             public void runAssertions() throws Exception {
                 String saltColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable, String.class,
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
                   jdbcTemplate.getDataSource().getConnection().getCatalog(),
                   "salt"
                 );
                 assertThat(saltColumnType, is("varchar"));
 
                 String encryptionKeyLabelColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable, String.class,
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
                   jdbcTemplate.getDataSource().getConnection().getCatalog(),
                   "encryption_key_label"
                 );
                 assertThat(encryptionKeyLabelColumnType, is("varchar"));
 
                 String encryptedValidationCodeColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable, String.class,
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
                   jdbcTemplate.getDataSource().getConnection().getCatalog(),
                   "encrypted_validation_code"
                 );
                 assertThat(encryptedValidationCodeColumnType, is("varchar"));
+
+                String encryptedValidationCodeColumnIsNullable = jdbcTemplate.queryForObject(
+                  fetchColumnIsNullableFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "encrypted_validation_code"
+                );
+                assertThat(encryptedValidationCodeColumnIsNullable, is("YES"));
+
+                String validationCodeColumnIsNullable = jdbcTemplate.queryForObject(
+                  fetchColumnIsNullableFromTable, String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "validation_code"
+                );
+                assertThat(validationCodeColumnIsNullable, is("YES"));
+
+                String validationColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "validation_code"
+                );
+                assertThat(validationColumnType, is("int"));
             }
         };
 
