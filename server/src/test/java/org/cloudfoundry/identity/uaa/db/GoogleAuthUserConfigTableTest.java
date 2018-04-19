@@ -18,7 +18,6 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
             new TestColumn("user_id", "nvarchar/varchar",  36),
             new TestColumn("secret_key","nvarchar/varchar", 255),
-            new TestColumn("salt","nvarchar/varchar", 255),
             new TestColumn("encryption_key_label","nvarchar/varchar", 255),
             new TestColumn("encrypted_validation_code", "nvarchar/varchar", 255),
             new TestColumn("validation_code", "integer/int4/int", -1),
