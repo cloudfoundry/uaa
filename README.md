@@ -451,9 +451,12 @@ grabbed from the open id provider
 
 Here are some ways for you to get involved in the community:
 
-* The UAA has two requirements
+* The UAA has three requirements
   * JDK 1.8.0
   * [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/), for integration test.
+  * Allow a key strength of 256bit by modifying /Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/security/java.security
+    * change `#crypto.policy=unlimited` to `crypto.policy=unlimited`
+
 * Get involved with the Cloud Foundry community on the mailing lists.
   Please help out on the
   [mailing list](https://lists.cloudfoundry.org)
