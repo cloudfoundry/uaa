@@ -79,7 +79,6 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private ScimUser user;
     private MockHttpSession session;
-    private UaaUserDatabase userDb;
     private ApplicationListener listener;
 
     @Before
@@ -91,7 +90,6 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         );
         jdbcUserGoogleMfaCredentialsProvisioning = (JdbcUserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("jdbcUserGoogleMfaCredentialsProvisioning");
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
-        userDb = (UaaUserDatabase)getWebApplicationContext().getBean("userDatabase");
 
         mfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
         otherMfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());

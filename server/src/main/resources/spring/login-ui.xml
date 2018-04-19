@@ -588,8 +588,13 @@
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
 
+    <bean id="encryptionService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionService">
+        <constructor-arg index="0" value="verystrongpassphrase"/>
+    </bean>
+
     <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
         <constructor-arg index="0" ref="jdbcTemplate"/>
+        <constructor-arg index="1" ref="encryptionService"/>
     </bean>
 
     <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
