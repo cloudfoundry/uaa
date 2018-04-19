@@ -159,6 +159,14 @@ public class MySqlDbMigrationIntegrationTest {
                   "encryption_key_label"
                 );
                 assertThat(keyColumnType, is("varchar(255)"));
+
+                String encryptedValidationCodeColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "encrypted_validation_code"
+                );
+                assertThat(encryptedValidationCodeColumnType, is("varchar(255)"));
             }
         };
 

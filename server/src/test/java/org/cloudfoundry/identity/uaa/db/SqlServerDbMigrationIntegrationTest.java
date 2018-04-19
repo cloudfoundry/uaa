@@ -92,6 +92,13 @@ public class SqlServerDbMigrationIntegrationTest {
                   "encryption_key_label"
                 );
                 assertThat(encryptionKeyLabelColumnType, is("varchar"));
+
+                String encryptedValidationCodeColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable, String.class,
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "encrypted_validation_code"
+                );
+                assertThat(encryptedValidationCodeColumnType, is("varchar"));
             }
         };
 

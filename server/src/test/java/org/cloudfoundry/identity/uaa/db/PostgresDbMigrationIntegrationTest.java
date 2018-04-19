@@ -97,6 +97,15 @@ public class PostgresDbMigrationIntegrationTest {
                   "encryption_key_label"
                 );
                 assertThat(keyColumnType, is("varchar"));
+
+                String encryptedValidationCodeColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getSchema(),
+                  "encrypted_validation_code"
+                );
+                assertThat(encryptedValidationCodeColumnType, is("varchar"));
             }
         };
 

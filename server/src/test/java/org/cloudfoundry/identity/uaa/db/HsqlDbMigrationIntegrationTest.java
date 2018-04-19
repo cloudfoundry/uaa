@@ -115,6 +115,15 @@ public class HsqlDbMigrationIntegrationTest {
                 );
                 assertThat(saltColumnType, is("VARCHAR(255)"));
 
+                String encryptedVerificationCodeColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "USER_GOOGLE_MFA_CREDENTIALS",
+                  jdbcTemplate.getDataSource().getConnection().getSchema(),
+                  "ENCRYPTED_VALIDATION_CODE"
+                );
+                assertThat(encryptedVerificationCodeColumnType, is("VARCHAR(255)"));
+
                 String keyColumnType = jdbcTemplate.queryForObject(
                   fetchColumnTypeFromTable,
                   String.class,

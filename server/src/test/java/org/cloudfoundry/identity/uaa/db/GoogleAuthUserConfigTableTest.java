@@ -20,6 +20,7 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
             new TestColumn("secret_key","nvarchar/varchar", 255),
             new TestColumn("salt","nvarchar/varchar", 255),
             new TestColumn("encryption_key_label","nvarchar/varchar", 255),
+            new TestColumn("encrypted_validation_code", "nvarchar/varchar", 255),
             new TestColumn("validation_code", "integer/int4/int", -1),
             new TestColumn("scratch_codes", "nvarchar/varchar", 255),
             new TestColumn("mfa_provider_id", "char/character/bpchar", 36),
