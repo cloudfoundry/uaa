@@ -14,6 +14,7 @@ import java.util.List;
 
 import static java.lang.String.format;
 import static java.lang.System.getProperties;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -33,12 +34,16 @@ public class SqlServerDbMigrationIntegrationTest {
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_CATALOG = ? AND TABLE_NAME = LOWER(?) AND CONSTRAINT_NAME like 'PK_%'";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.tables WHERE TABLE_CATALOG = ? and TABLE_NAME != 'schema_version'";
     private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
+    private String fetchColumnTypeFromTable = "SELECT data_type FROM information_schema.columns WHERE table_name = 'user_google_mfa_credentials' and TABLE_CATALOG = ? and column_name = ?";
+
+    private MigrationTestRunner migrationTestRunner;
 
     @Before
     public void setup() {
         assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("sqlserver"));
 
         flyway.clean();
+        migrationTestRunner = new MigrationTestRunner(flyway);
     }
 
     @After
@@ -62,5 +67,34 @@ public class SqlServerDbMigrationIntegrationTest {
         } catch (Exception _) {
             fail("oauth_code table should auto increment primary key when inserting data.");
         }
+    }
+
+    @Test
+    public void mfaTableAddsTwoNewColumns() {
+        MigrationTest migrationTest = new MigrationTest() {
+            @Override
+            public String getTargetMigration() {
+                return "4.13.0";
+            }
+
+            @Override
+            public void runAssertions() throws Exception {
+                String saltColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable, String.class,
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "salt"
+                );
+                assertThat(saltColumnType, is("varchar"));
+
+                String encryptionKeyLabelColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable, String.class,
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "encryption_key_label"
+                );
+                assertThat(encryptionKeyLabelColumnType, is("varchar"));
+            }
+        };
+
+        migrationTestRunner.run(migrationTest);
     }
 }
