@@ -87,18 +87,21 @@ flyway {
             user = 'root'
             password = 'changeme'
             schemas = ['uaa']
+            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/mysql']
             break
         case 'postgresql':
             driver = 'org.postgresql.Driver'
             url = 'jdbc:postgresql:uaa'
             user = 'root'
             password = 'changeme'
+            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/postgresql']
             break
         case 'sqlserver':
             driver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
             url = 'jdbc:sqlserver://localhost:1433;database=uaa;'
             user = 'root'
             password = 'changemeCHANGEME1234!'
+            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/sqlserver']
             break
     }
 }
