@@ -13,18 +13,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static java.lang.String.format;
 import static java.lang.System.getProperties;
 import static junit.framework.TestCase.fail;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.junit.Assume.assumeTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -39,7 +36,7 @@ public class MySqlDbMigrationIntegrationTest {
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY'";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA = ?";
     private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
-    private String fetchColumnNameAndTypeFromTable = "SELECT column_name, column_type  FROM information_schema.columns WHERE table_name = 'user_google_mfa_credentials' and TABLE_SCHEMA = ? and column_name = ?";
+    private String fetchColumnTypeFromTable = "SELECT column_type FROM information_schema.columns WHERE table_name = 'user_google_mfa_credentials' and TABLE_SCHEMA = ? and column_name = ?";
     private MigrationTestRunner migrationTestRunner;
 
     @Before
@@ -147,25 +144,21 @@ public class MySqlDbMigrationIntegrationTest {
 
             @Override
             public void runAssertions() throws Exception {
-                Map<String, Object> mfaTableColumns = jdbcTemplate.queryForMap(
-                  fetchColumnNameAndTypeFromTable,
+                String saltColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
                   jdbcTemplate.getDataSource().getConnection().getCatalog(),
                   "salt"
                 );
-                assertThat(mfaTableColumns, allOf(
-                  hasEntry(is("column_name"), is("salt")),
-                  hasEntry(is("column_type"), is("varchar(255)")))
-                );
+                assertThat(saltColumnType, is("varchar(255)"));
 
-                mfaTableColumns = jdbcTemplate.queryForMap(
-                  fetchColumnNameAndTypeFromTable,
+                String keyColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
                   jdbcTemplate.getDataSource().getConnection().getCatalog(),
                   "encryption_key_label"
                 );
-                assertThat(mfaTableColumns, allOf(
-                  hasEntry(is("column_name"), is("encryption_key_label")),
-                  hasEntry(is("column_type"), is("varchar(255)")))
-                );
+                assertThat(keyColumnType, is("varchar(255)"));
             }
         };
 
