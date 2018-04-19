@@ -107,15 +107,6 @@ public class HsqlDbMigrationIntegrationTest {
 
             @Override
             public void runAssertions() throws Exception {
-                String saltColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable,
-                  String.class,
-                  "USER_GOOGLE_MFA_CREDENTIALS",
-                  jdbcTemplate.getDataSource().getConnection().getSchema(),
-                  "SALT"
-                );
-                assertThat(saltColumnType, is("VARCHAR(255)"));
-
                 String encryptedVerificationCodeColumnType = jdbcTemplate.queryForObject(
                   fetchColumnTypeFromTable,
                   String.class,

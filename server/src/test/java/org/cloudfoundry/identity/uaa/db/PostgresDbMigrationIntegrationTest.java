@@ -81,15 +81,6 @@ public class PostgresDbMigrationIntegrationTest {
 
             @Override
             public void runAssertions() throws Exception {
-                String saltColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getSchema(),
-                  "salt"
-                );
-                assertThat(saltColumnType, is("varchar"));
-
                 String keyColumnType = jdbcTemplate.queryForObject(
                   fetchColumnTypeFromTable,
                   String.class,

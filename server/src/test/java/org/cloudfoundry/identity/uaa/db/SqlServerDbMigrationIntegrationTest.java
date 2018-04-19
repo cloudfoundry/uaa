@@ -80,15 +80,6 @@ public class SqlServerDbMigrationIntegrationTest {
 
             @Override
             public void runAssertions() throws Exception {
-                String saltColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
-                  "salt"
-                );
-                assertThat(saltColumnType, is("varchar"));
-
                 String encryptionKeyLabelColumnType = jdbcTemplate.queryForObject(
                   fetchColumnTypeFromTable,
                   String.class,

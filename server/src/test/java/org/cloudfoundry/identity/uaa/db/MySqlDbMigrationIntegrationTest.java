@@ -146,15 +146,6 @@ public class MySqlDbMigrationIntegrationTest {
 
             @Override
             public void runAssertions() throws Exception {
-                String saltColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
-                  "salt"
-                );
-                assertThat(saltColumnType, is("varchar(255)"));
-
                 String keyColumnType = jdbcTemplate.queryForObject(
                   fetchColumnTypeFromTable,
                   String.class,
