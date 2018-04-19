@@ -40,7 +40,7 @@ matrix:
         - docker
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
-        - SPRING_PROFILE=postgres,default
+        - SPRING_PROFILE=postgresql,default
         - TEST_COMMAND=/root/uaa/scripts/unit-tests.sh
     - os: linux
       language: java
@@ -73,7 +73,7 @@ matrix:
         - docker
       env:
         - IMAGE_NAME=cfidentity/uaa-postgresql
-        - SPRING_PROFILE=postgres,default
+        - SPRING_PROFILE=postgresql,default
         - TEST_COMMAND=/root/uaa/scripts/integration-tests.sh
     - os: linux
       language: java
