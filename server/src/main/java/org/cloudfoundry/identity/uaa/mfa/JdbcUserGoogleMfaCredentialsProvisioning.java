@@ -150,20 +150,34 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
         @Override
         public UserGoogleMfaCredentials mapRow(ResultSet rs, int rowNum) throws SQLException {
             UserGoogleMfaCredentials userGoogleMfaCredentials = null;
-            try {
-                String encryptionKeyLabel = rs.getString("encryption_key_label");
-                EncryptionKeyService.EncryptionKey encryptionKey = encryptionKeyService.getKey(encryptionKeyLabel).get();
+            String encryptionKeyLabel = rs.getString("encryption_key_label");
 
+            if (StringUtils.isEmpty(encryptionKeyLabel)) {
                 userGoogleMfaCredentials = new UserGoogleMfaCredentials(
                   rs.getString("user_id"),
-                  new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("secret_key")))),
-                  valueOf(new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("encrypted_validation_code"))))),
-                  fromSCString(new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("scratch_codes")))))
-                );
-            } catch (EncryptionServiceException e) {
-                logger.error("Unable to decrypt MFA credentials", e);
-                throw new UnableToRetrieveMfaException(e);
+                  rs.getString("secret_key"),
+                  rs.getInt("validation_code"),
+                  fromSCString(rs.getString("scratch_codes")));
+            } else {
+                try {
+                    EncryptionKeyService.EncryptionKey encryptionKey = encryptionKeyService.getKey(encryptionKeyLabel).orElseGet(() -> {
+                        RuntimeException cause = new RuntimeException("Attempted to retrieve record with an unknown decryption key");
+                        logger.error(String.format("Couldn't decrypt with unknown key label : %s", encryptionKeyLabel), cause);
+                        throw new UnableToRetrieveMfaException(cause);
+                    });
+
+                    userGoogleMfaCredentials = new UserGoogleMfaCredentials(
+                      rs.getString("user_id"),
+                      new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("secret_key")))),
+                      valueOf(new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("encrypted_validation_code"))))),
+                      fromSCString(new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("scratch_codes")))))
+                    );
+                } catch (EncryptionServiceException e) {
+                    logger.error("Unable to decrypt MFA credentials", e);
+                    throw new UnableToRetrieveMfaException(e);
+                }
             }
+
             userGoogleMfaCredentials.setMfaProviderId(rs.getString("mfa_provider_id"));
             userGoogleMfaCredentials.setZoneId(rs.getString("zone_id"));
 

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -277,14 +278,61 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         db.save(userGoogleMfaCredentials, zoneId);
 
         EncryptionKeyService mockEncryptionKeyService = mock(EncryptionKeyService.class, Answers.RETURNS_DEEP_STUBS);
-        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, mockEncryptionKeyService);
-
-        when(mockEncryptionKeyService.getKey(any()).get().decrypt(any()))
+        when(mockEncryptionKeyService.getKey(any()).orElseGet(any()).decrypt(any()))
           .thenThrow(new EncryptionServiceException(new RuntimeException("message should match")));
+        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, mockEncryptionKeyService);
 
         expectedException.expect(UnableToRetrieveMfaException.class);
         expectedException.expectMessage("message should match");
 
         db.retrieve(userGoogleMfaCredentials.getUserId(), MFA_ID);
     }
+
+    @Test
+    public void whenDecryptingWithNonExistentKey_ShouldThrowMeaningfulException() {
+        encryptionKeyService = new EncryptionKeyService(inactiveKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
+        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate,
+          encryptionKeyService);
+        db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
+
+
+        encryptionKeyService = new EncryptionKeyService(activeKeyLabel, Lists.newArrayList(activeEncryptionKey));
+        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, encryptionKeyService);
+
+        expectedException.expect(UnableToRetrieveMfaException.class);
+        expectedException.expectMessage("Attempted to retrieve record with an unknown decryption key");
+
+        db.retrieve("user1", MFA_ID);
+    }
+
+    @Test
+    public void whenDecryptingRecordWithNoKeyLabel_ShouldNotAttemptToDecrypt() {
+        String userId = "user1";
+        int numInsertedRecords = jdbcTemplate.update("INSERT INTO user_google_mfa_credentials (user_id, secret_key, validation_code, scratch_codes, mfa_provider_id, zone_id, encryption_key_label) VALUES (?,?,?,?,?,?,?)",
+          userId, "secret_key", 123456, "123", MFA_ID, zoneId, null);
+        assertThat(numInsertedRecords, is(1));
+
+        UserGoogleMfaCredentials user = db.retrieve(userId, MFA_ID);
+        assertThat(user, is(notNullValue()));
+        assertThat(user.getUserId(), is(userId));
+        assertThat(user.getSecretKey(), is("secret_key"));
+        assertThat(user.getValidationCode(), is(123456));
+        assertThat(user.getScratchCodes(), containsInAnyOrder(123));
+    }
+
+    @Test
+    public void whenDecryptingRecordWithEmptyKeyLabel_ShouldNotAttemptToDecrypt() {
+        String userId = "user1";
+        int numInsertedRecords = jdbcTemplate.update("INSERT INTO user_google_mfa_credentials (user_id, secret_key, validation_code, scratch_codes, mfa_provider_id, zone_id, encryption_key_label) VALUES (?,?,?,?,?,?,?)",
+          userId, "secret_key", 123456, "123", MFA_ID, zoneId, "");
+        assertThat(numInsertedRecords, is(1));
+
+        UserGoogleMfaCredentials user = db.retrieve(userId, MFA_ID);
+        assertThat(user, is(notNullValue()));
+        assertThat(user.getUserId(), is(userId));
+        assertThat(user.getSecretKey(), is("secret_key"));
+        assertThat(user.getValidationCode(), is(123456));
+        assertThat(user.getScratchCodes(), containsInAnyOrder(123));
+    }
+
 }
