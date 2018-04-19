@@ -4,7 +4,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
-import org.cloudfoundry.identity.uaa.cypto.EncryptionService;
+import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionServiceException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UnableToPersistMfaException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UnableToRetrieveMfaException;
@@ -25,41 +25,37 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.lang.Integer.valueOf;
-import static java.lang.String.valueOf;
 
 public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable, UserMfaCredentialsProvisioning<UserGoogleMfaCredentials> {
 
     private static Logger logger = LoggerFactory.getLogger(JdbcUserGoogleMfaCredentialsProvisioning.class);
 
-    public static final String TABLE_NAME = "user_google_mfa_credentials";
-
     private static final String CREATE_USER_MFA_CONFIG_SQL =
-      "INSERT INTO " + TABLE_NAME + "(user_id, secret_key, encrypted_validation_code, scratch_codes, mfa_provider_id, zone_id) VALUES (?,?,?,?,?,?)";
+      "INSERT INTO user_google_mfa_credentials (user_id, secret_key, encrypted_validation_code, scratch_codes, mfa_provider_id, zone_id, encryption_key_label) VALUES (?,?,?,?,?,?,?)";
 
     private static final String UPDATE_USER_MFA_CONFIG_SQL =
-      "UPDATE " + TABLE_NAME + " SET secret_key=?, encrypted_validation_code=?, scratch_codes=?, mfa_provider_id=?, zone_id=? WHERE user_id=?";
+      "UPDATE user_google_mfa_credentials SET secret_key=?, encrypted_validation_code=?, scratch_codes=?, mfa_provider_id=?, zone_id=? WHERE user_id=?";
 
-    private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM " + TABLE_NAME + " WHERE user_id=? AND mfa_provider_id=?";
+    private static final String QUERY_USER_MFA_CONFIG_ALL_SQL = "SELECT * FROM user_google_mfa_credentials WHERE user_id=? AND mfa_provider_id=?";
 
-    private static final String DELETE_USER_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE user_id=?";
+    private static final String DELETE_USER_MFA_CONFIG_SQL = "DELETE FROM user_google_mfa_credentials WHERE user_id=?";
 
-    private static final String DELETE_PROVIDER_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE mfa_provider_id=?";
+    private static final String DELETE_PROVIDER_MFA_CONFIG_SQL = "DELETE FROM user_google_mfa_credentials WHERE mfa_provider_id=?";
 
-    private static final String DELETE_ZONE_MFA_CONFIG_SQL = "DELETE FROM " + TABLE_NAME + " WHERE zone_id=?";
-
+    private static final String DELETE_ZONE_MFA_CONFIG_SQL = "DELETE FROM user_google_mfa_credentials WHERE zone_id=?";
 
     private JdbcTemplate jdbcTemplate;
-    private EncryptionService encryptionService;
     private UserMfaCredentialsMapper mapper;
+    private EncryptionKeyService encryptionKeyService;
 
-    public JdbcUserGoogleMfaCredentialsProvisioning(JdbcTemplate jdbcTemplate, EncryptionService encryptionService) {
+    public JdbcUserGoogleMfaCredentialsProvisioning(JdbcTemplate jdbcTemplate, EncryptionKeyService encryptionKeyService) {
         this.jdbcTemplate = jdbcTemplate;
-        this.encryptionService = encryptionService;
-        this.mapper = new UserMfaCredentialsMapper(encryptionService);
+        this.mapper = new UserMfaCredentialsMapper(encryptionKeyService);
+        this.encryptionKeyService = encryptionKeyService;
     }
 
     private String encrypt(String value) throws EncryptionServiceException {
-        return Base64Utils.encodeToString(encryptionService.encrypt(value));
+        return Base64Utils.encodeToString(encryptionKeyService.getActiveKey().encrypt(value));
     }
 
     @Override
@@ -79,6 +75,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
 
                 ps.setString(pos++, credentials.getMfaProviderId());
                 ps.setString(pos++, zoneId);
+                ps.setString(pos++, encryptionKeyService.getActiveKey().getLabel());
             });
         } catch (DuplicateKeyException e) {
             throw new UserMfaConfigAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -144,21 +141,24 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
     }
 
     private static final class UserMfaCredentialsMapper implements RowMapper<UserGoogleMfaCredentials> {
-        private EncryptionService encryptionService;
+        private EncryptionKeyService encryptionKeyService;
 
-        public UserMfaCredentialsMapper(EncryptionService encryptionService) {
-            this.encryptionService = encryptionService;
+        public UserMfaCredentialsMapper(EncryptionKeyService encryptionKeyService) {
+            this.encryptionKeyService = encryptionKeyService;
         }
 
         @Override
         public UserGoogleMfaCredentials mapRow(ResultSet rs, int rowNum) throws SQLException {
             UserGoogleMfaCredentials userGoogleMfaCredentials = null;
             try {
+                String encryptionKeyLabel = rs.getString("encryption_key_label");
+                EncryptionKeyService.EncryptionKey encryptionKey = encryptionKeyService.getKey(encryptionKeyLabel).get();
+
                 userGoogleMfaCredentials = new UserGoogleMfaCredentials(
                   rs.getString("user_id"),
-                  new String(encryptionService.decrypt(Base64Utils.decodeFromString(rs.getString("secret_key")))),
-                  valueOf(new String(encryptionService.decrypt(Base64Utils.decodeFromString(rs.getString("encrypted_validation_code"))))),
-                  fromSCString(new String(encryptionService.decrypt(Base64Utils.decodeFromString(rs.getString("scratch_codes")))))
+                  new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("secret_key")))),
+                  valueOf(new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("encrypted_validation_code"))))),
+                  fromSCString(new String(encryptionKey.decrypt(Base64Utils.decodeFromString(rs.getString("scratch_codes")))))
                 );
             } catch (EncryptionServiceException e) {
                 logger.error("Unable to decrypt MFA credentials", e);
@@ -173,9 +173,5 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
         private List<Integer> fromSCString(String csString) {
             return Arrays.stream(csString.split(",")).map(s -> Integer.parseInt(s)).collect(Collectors.toList());
         }
-    }
-
-    public void setEncryptionService(EncryptionService encryptionService) {
-        this.encryptionService = encryptionService;
     }
 }

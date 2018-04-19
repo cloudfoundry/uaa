@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.cypto;
 
 import com.google.common.collect.Lists;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -8,35 +9,40 @@ import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class ActiveEncryptionKeyServiceTest {
-    private ActiveEncryptionKeyService activeEncryptionKeyService;
-    private List<ActiveEncryptionKeyService.EncryptionKey> encryptionKeys;
+public class EncryptionKeyServiceTest {
+    private EncryptionKeyService encryptionKeyService;
+    private List<EncryptionKeyService.EncryptionKey> encryptionKeys;
 
     @Before
     public void setup() {
         encryptionKeys = new ArrayList<>();
-        encryptionKeys.add(new ActiveEncryptionKeyService.EncryptionKey() {{
+        encryptionKeys.add(new EncryptionKeyService.EncryptionKey() {{
             put("label", "active-key");
             put("passphrase", "some-passphrase");
         }});
 
-        encryptionKeys.add(new ActiveEncryptionKeyService.EncryptionKey() {{
+        encryptionKeys.add(new EncryptionKeyService.EncryptionKey() {{
             put("label", "active-key2");
             put("passphrase", "some-passphrase2");
         }});
 
-        activeEncryptionKeyService = new ActiveEncryptionKeyService("active-key", encryptionKeys);
+        encryptionKeyService = new EncryptionKeyService("active-key", encryptionKeys);
     }
 
     @Test
-    public void shouldFetchValidEncryptionActiveKeyPassphrase() {
-        String passphrase = activeEncryptionKeyService.getPassphrase();
+    public void shouldFetchValidEncryptionActiveKeyPassphrase() throws EncryptionServiceException {
+        String passphrase = encryptionKeyService.getActiveKey().getPassphrase();
 
         assertThat(passphrase, is("some-passphrase"));
+        byte[] cipherValue = encryptionKeyService.getActiveKey().encrypt("plain-text");
+        assertThat(cipherValue, is(notNullValue()));
+        assertThat(new String(encryptionKeyService.getActiveKey().decrypt(cipherValue)), is("plain-text"));
     }
 
     @Rule
@@ -48,7 +54,7 @@ public class ActiveEncryptionKeyServiceTest {
         expectedException.expect(NoActiveEncryptionKeyProvided.class);
         expectedException.expectMessage(String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined", activeKeyLabel));
 
-        activeEncryptionKeyService = new ActiveEncryptionKeyService(activeKeyLabel, new ArrayList<>());
+        encryptionKeyService = new EncryptionKeyService(activeKeyLabel, new ArrayList<>());
     }
 
     @Test
@@ -56,7 +62,7 @@ public class ActiveEncryptionKeyServiceTest {
         expectedException.expect(NoActiveEncryptionKeyProvided.class);
         expectedException.expectMessage("UAA cannot be started without encryption key value uaa.encryption.active_key_label");
 
-        activeEncryptionKeyService = new ActiveEncryptionKeyService("", new ArrayList<>());
+        encryptionKeyService = new EncryptionKeyService("", new ArrayList<>());
     }
 
     @Test
@@ -69,20 +75,36 @@ public class ActiveEncryptionKeyServiceTest {
           String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s, label=%s] is undefined", key2, key3)
         );
 
-        ActiveEncryptionKeyService.EncryptionKey activeEncryptionKey = new ActiveEncryptionKeyService.EncryptionKey();
+        EncryptionKeyService.EncryptionKey activeEncryptionKey = new EncryptionKeyService.EncryptionKey();
         activeEncryptionKey.put("label", "key1");
         activeEncryptionKey.put("passphrase", "123456789");
 
-        ActiveEncryptionKeyService.EncryptionKey encryptionKey2 = new ActiveEncryptionKeyService.EncryptionKey();
+        EncryptionKeyService.EncryptionKey encryptionKey2 = new EncryptionKeyService.EncryptionKey();
         encryptionKey2.put("label", key2);
         encryptionKey2.put("passphrase", "");
 
 
-        ActiveEncryptionKeyService.EncryptionKey encryptionKey3 = new ActiveEncryptionKeyService.EncryptionKey();
+        EncryptionKeyService.EncryptionKey encryptionKey3 = new EncryptionKeyService.EncryptionKey();
         encryptionKey3.put("label", key3);
         encryptionKey3.put("passphrase", "");
 
-        activeEncryptionKeyService =
-          new ActiveEncryptionKeyService("key1", Lists.newArrayList(activeEncryptionKey, encryptionKey2, encryptionKey3));
+        encryptionKeyService =
+          new EncryptionKeyService("key1", Lists.newArrayList(activeEncryptionKey, encryptionKey2, encryptionKey3));
+    }
+
+    @Test
+    public void shouldBeAbleToFetchInactiveKey() {
+        Optional<EncryptionKeyService.EncryptionKey> key = encryptionKeyService.getKey("active-key2");
+        assertThat(key.isPresent(), is(true));
+
+        assertThat(key.get().getLabel(), is("active-key2"));
+        assertThat(key.get().getPassphrase(), is("some-passphrase2"));
+    }
+
+    @Test
+    public void shouldThrowAMeaningfulErrorWhenUnableToFindAKey() {
+        Optional<EncryptionKeyService.EncryptionKey> missingKey = encryptionKeyService.getKey("key-that-does-not-exist");
+
+        assertThat(missingKey.isPresent(), is(false));
     }
 }
