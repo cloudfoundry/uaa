@@ -35,6 +35,7 @@ public class HsqlDbMigrationIntegrationTest {
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = UPPER(?) AND CONSTRAINT_NAME LIKE 'SYS_PK_%'";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA = ? and TABLE_NAME != 'schema_version'";
     private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
+    private String fetchColumnTypeFromTable = "SELECT DTD_IDENTIFIER FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
     private MigrationTestRunner migrationTestRunner;
 
     @Before
@@ -93,5 +94,38 @@ public class HsqlDbMigrationIntegrationTest {
             int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), tableName);
             assertThat(format("%s is missing primary key", tableName), count, greaterThanOrEqualTo(1));
         }
+    }
+
+    @Test
+    public void mfaTableAddsTwoNewColumns() {
+        MigrationTest migrationTest = new MigrationTest() {
+            @Override
+            public String getTargetMigration() {
+                return "4.13.0";
+            }
+
+            @Override
+            public void runAssertions() throws Exception {
+                String saltColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "USER_GOOGLE_MFA_CREDENTIALS",
+                  jdbcTemplate.getDataSource().getConnection().getSchema(),
+                  "SALT"
+                );
+                assertThat(saltColumnType, is("VARCHAR(255)"));
+
+                String keyColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "USER_GOOGLE_MFA_CREDENTIALS",
+                  jdbcTemplate.getDataSource().getConnection().getSchema(),
+                  "ENCRYPTION_KEY_LABEL"
+                );
+                assertThat(keyColumnType, is("VARCHAR(255)"));
+            }
+        };
+
+        migrationTestRunner.run(migrationTest);
     }
 }
