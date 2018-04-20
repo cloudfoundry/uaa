@@ -45,13 +45,13 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,6 +80,8 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -94,11 +96,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -128,6 +133,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
+import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -146,10 +156,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
-import static java.util.Arrays.asList;
-import static java.util.Collections.EMPTY_LIST;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 
 public class LoginMockMvcTests extends InjectedMockContextTest {
 
@@ -169,6 +175,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private IdentityZoneConfiguration identityZoneConfiguration;
     private Links globalLinks;
     private IdentityZone identityZone;
+    private IdentityZoneProvisioning identityZoneProvisioning;
 
 
     @Before
@@ -183,8 +190,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             originalProperties.put(s, propertySource.getProperty(s));
         }
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
-        originalConfiguration = getWebApplicationContext().getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
-        identityZoneConfiguration = getWebApplicationContext().getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
+        identityZoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        originalConfiguration = identityZoneProvisioning.retrieve(getUaa().getId()).getConfig();
+        identityZoneConfiguration = identityZoneProvisioning.retrieve(getUaa().getId()).getConfig();
         bootstrapMfaProvider();
     }
 
@@ -2096,6 +2104,147 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         httpHeaders.add("Access-Control-Request-Method", "GET");
         httpHeaders.add("Origin", "fuzzybunnies.com");
         getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void testNullCorsPolicyConfigurationsforNonDefaultZone() throws Exception {
+        String subdomain = "testzone"+ generator.generate();
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
+        zone.getConfig().getCorsPolicy().setDefaultConfiguration(null);
+        zone.getConfig().getCorsPolicy().setXhrConfiguration(null);
+        zone.setId(UUID.randomUUID().toString());
+        zone.setName(subdomain);
+        zone.setSubdomain(subdomain);
+        zone.setDescription(subdomain);
+        identityZoneProvisioning.create(zone);
+        IdentityZoneHolder.set(zone);
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "Accept");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+
+        httpHeaders.add("X-Requested-With", "XMLHttpRequest");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+
+    }
+
+    @Test
+    public void testDefaultCorsPolicyforNonDefaultZone() throws Exception {
+        String subdomain = "testzone"+ generator.generate();
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowedUris(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout.do$"));
+        corsConfig.setAllowedOrigins(Arrays.asList("other.com$"));
+        corsConfig.setAllowedMethods(Arrays.asList("GET"));
+        corsConfig.setAllowedHeaders(Arrays.asList("Accept", "Authorization", "Content-Type"));
+        zone.getConfig().getCorsPolicy().setDefaultConfiguration(corsConfig);
+        zone.setId(UUID.randomUUID().toString());
+        zone.setName(subdomain);
+        zone.setSubdomain(subdomain);
+        zone.setDescription(subdomain);
+        identityZoneProvisioning.create(zone);
+        IdentityZoneHolder.set(zone);
+
+        //make POST call when only GET is allowed
+        getMockMvc().perform(post("/oauth/token")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "other.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isMethodNotAllowed());
+
+        //make preflight call with non matching origin
+        MvcResult mvcResult = getMockMvc().perform(options("/uaa/userinfo")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "example.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal origin", mvcResult.getResponse().getErrorMessage());
+
+        //make preflight call with non matching uri
+        mvcResult = getMockMvc().perform(options("/uaa/users")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "other.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal request URI", mvcResult.getResponse().getErrorMessage());
+
+        //make preflight call with header that is not allowed
+        mvcResult = getMockMvc().perform(options("/uaa/logout.do")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE + ", " + ACCEPT_LANGUAGE)
+                .header("Origin", "other.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal header requested", mvcResult.getResponse().getErrorMessage());
+        assertEquals("*", mvcResult.getResponse().getHeader(ACCESS_CONTROL_ALLOW_ORIGIN));
+    }
+
+    @Test
+    public void testXhrCorsPolicyforNonDefaultZone() throws Exception {
+        String subdomain = "testzone"+ generator.generate();
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowedUris(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout.do$"));
+        corsConfig.setAllowedOrigins(Arrays.asList("other.com$"));
+        corsConfig.setAllowedMethods(Arrays.asList("GET"));
+
+        List allowedHeadersList = Arrays.asList("Accept", "Authorization", "Content-Type");
+        corsConfig.setAllowedHeaders(allowedHeadersList);
+        zone.getConfig().getCorsPolicy().setXhrConfiguration(corsConfig);
+        zone.setId(UUID.randomUUID().toString());
+        zone.setName(subdomain);
+        zone.setSubdomain(subdomain);
+        zone.setDescription(subdomain);
+        identityZoneProvisioning.create(zone);
+        IdentityZoneHolder.set(zone);
+
+        //make POST call when only GET is allowed
+        getMockMvc().perform(post("/oauth/token")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "other.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isMethodNotAllowed());
+
+        //make preflight call with non matching origin
+        MvcResult mvcResult = getMockMvc().perform(options("/uaa/userinfo")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "example.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal origin", mvcResult.getResponse().getErrorMessage());
+
+        //make preflight call with non matching uri
+        mvcResult = getMockMvc().perform(options("/users")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "other.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal request URI", mvcResult.getResponse().getErrorMessage());
+
+        //make preflight call with header that is not allowed
+        mvcResult = getMockMvc().perform(options("/uaa/logout.do")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE + ", " + ACCEPT_LANGUAGE)
+                .header("Origin", "other.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("other.com", mvcResult.getResponse().getHeader(ACCESS_CONTROL_ALLOW_ORIGIN));
+        assertEquals("Illegal header requested", mvcResult.getResponse().getErrorMessage());
     }
 
     @Test
