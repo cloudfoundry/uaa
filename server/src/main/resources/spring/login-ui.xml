@@ -182,8 +182,13 @@
 
     <bean id="accountSavingAuthenticationSuccessHandler"
           class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler">
-        <property name="redirectingHandler" ref="successRedirectHandler"/>
-        <property name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}"/>
+        <constructor-arg name="redirectingHandler" ref="successRedirectHandler"/>
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
+    </bean>
+
+    <bean id="currentUserCookieFactory"
+          class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
+        <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}" />
     </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
