@@ -39,7 +39,7 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
     private MockMvc mockMvc;
     private ResetPasswordService resetPasswordService;
     private ResourcePropertySource resourcePropertySource;
-    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
+    private AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
     private UaaAuthentication authentication;
 
     @Before

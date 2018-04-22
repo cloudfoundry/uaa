@@ -32,18 +32,13 @@ import java.net.URLEncoder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
-
-    private int sessionTimeout;
+    private SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
+    private CurrentUserCookieFactory currentUserCookieFactory;
 
     @Autowired
-    public SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
-
-    public SavedRequestAwareAuthenticationSuccessHandler getRedirectingHandler() {
-        return redirectingHandler;
-    }
-
-    public void setRedirectingHandler(SavedRequestAwareAuthenticationSuccessHandler redirectingHandler) {
+    public AccountSavingAuthenticationSuccessHandler(SavedRequestAwareAuthenticationSuccessHandler redirectingHandler, CurrentUserCookieFactory currentUserCookieFactory) {
         this.redirectingHandler = redirectingHandler;
+        this.currentUserCookieFactory = currentUserCookieFactory;
     }
 
     @Override
@@ -77,7 +72,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
 
         Cookie currentUserCookie = null;
         try {
-            currentUserCookie = new CurrentUserCookieFactory(sessionTimeout).getCookie(request, uaaPrincipal);
+            currentUserCookie = currentUserCookieFactory.getCookie(request, uaaPrincipal);
         } catch (CurrentUserCookieFactory.CurrentUserCookieEncodingException e) {
             e.printStackTrace();
         }
@@ -92,9 +87,5 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
             throw new IllegalArgumentException(e);
         }
         return out;
-    }
-
-    public void setSessionTimeout(int sessionTimeout) {
-        this.sessionTimeout = sessionTimeout;
     }
 }

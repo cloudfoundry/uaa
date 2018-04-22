@@ -104,7 +104,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     @Autowired
     UaaUserDatabase userDatabase;
 
-    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
+    private AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
 
     @Before
     public void setUp() throws Exception {

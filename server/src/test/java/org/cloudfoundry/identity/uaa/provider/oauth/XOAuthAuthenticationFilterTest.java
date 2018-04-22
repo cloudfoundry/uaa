@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 
 public class XOAuthAuthenticationFilterTest {
 
-    private AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();;
+    private AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
 
     @Before
     @After
