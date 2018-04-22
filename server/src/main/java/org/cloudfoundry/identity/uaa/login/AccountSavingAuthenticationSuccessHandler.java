@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -74,18 +75,16 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
             response.addCookie(savedAccountCookie);
         }
 
-        CurrentUserInformation currentUserInformation = new CurrentUserInformation();
-        currentUserInformation.setUserId(uaaPrincipal.getId());
-        Cookie currentUserCookie = new Cookie("Current-User", encodeCookieValue(JsonUtils.writeValueAsString(currentUserInformation)));
-        // cookie expires in a day
-        currentUserCookie.setMaxAge(sessionTimeout);
-        currentUserCookie.setHttpOnly(false);
-        currentUserCookie.setPath(request.getContextPath());
-
+        Cookie currentUserCookie = null;
+        try {
+            currentUserCookie = new CurrentUserCookieFactory(sessionTimeout).getCookie(request, uaaPrincipal);
+        } catch (CurrentUserCookieFactory.CurrentUserCookieEncodingException e) {
+            e.printStackTrace();
+        }
         response.addCookie(currentUserCookie);
     }
 
-    private static String encodeCookieValue(String inValue) throws IllegalArgumentException {
+    public static String encodeCookieValue(String inValue) throws IllegalArgumentException {
         String out = null;
         try {
             out = URLEncoder.encode(inValue, UTF_8.name());
