@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -113,6 +114,12 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
             String redirectUrl = result.getResponse().getRedirectedUrl();
             Assert.assertThat(redirectUrl, containsString("session_state=sessionhash.saltvalue"));
             verify(calculator).calculate(currentUserId, "ant", "http://example.com");
+
+            // uaa-singular relies on the Current-User cookie. Because of GDPR, the Current-User cookie was
+            // changed to expire after a relatively short time. We have to renew that cookie during each
+            // call to /oauth/authorize or uaa-singular can get into an infinite loop where every open browser
+            // tab relying on uaa-singular aggressively polls /oauth/authorize?prompt=none
+            Assert.assertThat(result.getResponse().getCookie("Current-User").getValue(), Matchers.containsString(currentUserId));
         } finally {
             uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(backupCalculator);
         }
