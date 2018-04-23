@@ -29,14 +29,16 @@ import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.
 
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
     private ExceptionMappingAuthenticationFailureHandler delegate;
+    private CurrentUserCookieFactory currentUserCookieFactory;
 
-    public UaaAuthenticationFailureHandler(ExceptionMappingAuthenticationFailureHandler delegate) {
+    public UaaAuthenticationFailureHandler(ExceptionMappingAuthenticationFailureHandler delegate, CurrentUserCookieFactory currentUserCookieFactory) {
         this.delegate = delegate;
+        this.currentUserCookieFactory = currentUserCookieFactory;
     }
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        addCookie(response, request.getContextPath());
+        addCookie(request, response);
         if(exception != null) {
             if (exception instanceof PasswordChangeRequiredException) {
                 request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
@@ -49,14 +51,11 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        addCookie(response, request.getContextPath());
+        addCookie(request, response);
     }
 
-    private void addCookie(HttpServletResponse response, String contextPath) {
-        Cookie currentUserCookie = new Cookie("Current-User", null);
-        currentUserCookie.setHttpOnly(false);
-        currentUserCookie.setMaxAge(0);
-        currentUserCookie.setPath(contextPath);
-        response.addCookie(currentUserCookie);
+    private void addCookie(HttpServletRequest request, HttpServletResponse response) {
+        Cookie clearCurrentUserCookie = currentUserCookieFactory.getNullCookie(request);
+        response.addCookie(clearCurrentUserCookie);
     }
 }

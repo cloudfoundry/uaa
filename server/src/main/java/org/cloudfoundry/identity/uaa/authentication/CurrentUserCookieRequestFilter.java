@@ -44,6 +44,9 @@ public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
                 handleError(response, principal);
                 return;
             }
+        } else {
+            Cookie currentUserCookie = currentUserCookieFactory.getNullCookie(request);
+            response.addCookie(currentUserCookie);
         }
 
         filterChain.doFilter(request, response);

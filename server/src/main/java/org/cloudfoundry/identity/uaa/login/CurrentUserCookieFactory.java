@@ -34,6 +34,14 @@ public class CurrentUserCookieFactory {
         }
     }
 
+    public Cookie getNullCookie(HttpServletRequest request) {
+        Cookie currentUserCookie = new Cookie(CURRENT_USER_COOKIE_NAME, null);
+        currentUserCookie.setHttpOnly(false);
+        currentUserCookie.setMaxAge(0);
+        currentUserCookie.setPath(request.getContextPath());
+        return currentUserCookie;
+    }
+
     public class CurrentUserCookieEncodingException extends Exception {
         public CurrentUserCookieEncodingException(Exception e) {
             super(e);

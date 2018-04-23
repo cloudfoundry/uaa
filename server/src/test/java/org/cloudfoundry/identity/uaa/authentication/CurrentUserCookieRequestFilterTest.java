@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -58,14 +59,15 @@ public class CurrentUserCookieRequestFilterTest {
     }
 
     @Test
-    public void whenUserIsNotAuthenticated_doesNotAddCurrentUserCookie() throws IOException, ServletException {
+    public void whenUserIsNotAuthenticated_clearsCurrentUserCookie() throws IOException, ServletException {
         FilterChain filterChain = mock(FilterChain.class);
         MockHttpServletRequest req = new MockHttpServletRequest();
         MockHttpServletResponse res = new MockHttpServletResponse();
+        when(currentUserCookieFactory.getNullCookie(eq(req))).thenReturn(new Cookie("Current-User", null));
 
         filter.doFilterInternal(req, res, filterChain);
 
-        assertThat(res.getCookies().length, equalTo(0));
+        assertThat(res.getCookie("Current-User").getValue(), nullValue());
         verify(filterChain).doFilter(req, res);
     }
 
