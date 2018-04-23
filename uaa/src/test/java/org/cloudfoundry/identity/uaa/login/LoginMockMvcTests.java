@@ -493,14 +493,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(redirectedUrl("/uaa/"));
     }
 
-    private static ResultMatcher currentUserCookie(String userId) {
-      return result -> {
-        cookie().value("Current-User", URLEncoder.encode("{\"userId\":\"" + userId + "\"}", "UTF-8")).match(result);
-        cookie().maxAge("Current-User", 365*24*60*60);
-        cookie().path("Current-User", "/uaa").match(result);
-      };
-    }
-
     @Test
     public void test_case_insensitive_login() throws Exception {
         String username = "mixed-CASE-USER-"+generator.generate()+"@testdomain.com";
@@ -2641,7 +2633,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         return result -> {
             cookie().value("Current-User", isEmptyOrNullString()).match(result);
             cookie().maxAge("Current-User", 0).match(result);
-            cookie().path("Current-User", "/uaa").match(result);
+            cookie().path("Current-User", "/").match(result);
         };
     }
 
