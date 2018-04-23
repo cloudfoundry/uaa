@@ -2,22 +2,18 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -50,7 +46,7 @@ public class CurrentUserCookieRequestFilterTest {
         FilterChain filterChain = mock(FilterChain.class);
         MockHttpServletRequest req = new MockHttpServletRequest();
         MockHttpServletResponse res = new MockHttpServletResponse();
-        when(currentUserCookieFactory.getCookie(eq(req), any(UaaPrincipal.class))).thenReturn(new Cookie("Current-User", "current-user-cookie-value"));
+        when(currentUserCookieFactory.getCookie(any(UaaPrincipal.class))).thenReturn(new Cookie("Current-User", "current-user-cookie-value"));
 
         filter.doFilterInternal(req, res, filterChain);
 
@@ -63,7 +59,7 @@ public class CurrentUserCookieRequestFilterTest {
         FilterChain filterChain = mock(FilterChain.class);
         MockHttpServletRequest req = new MockHttpServletRequest();
         MockHttpServletResponse res = new MockHttpServletResponse();
-        when(currentUserCookieFactory.getNullCookie(eq(req))).thenReturn(new Cookie("Current-User", null));
+        when(currentUserCookieFactory.getNullCookie()).thenReturn(new Cookie("Current-User", null));
 
         filter.doFilterInternal(req, res, filterChain);
 
@@ -78,7 +74,7 @@ public class CurrentUserCookieRequestFilterTest {
         FilterChain filterChain = mock(FilterChain.class);
         MockHttpServletRequest req = new MockHttpServletRequest();
         MockHttpServletResponse res = new MockHttpServletResponse();
-        when(currentUserCookieFactory.getCookie(eq(req), any(UaaPrincipal.class))).thenThrow(currentUserCookieFactory.new CurrentUserCookieEncodingException(null));
+        when(currentUserCookieFactory.getCookie(any(UaaPrincipal.class))).thenThrow(currentUserCookieFactory.new CurrentUserCookieEncodingException(null));
 
         filter.doFilterInternal(req, res, filterChain);
 

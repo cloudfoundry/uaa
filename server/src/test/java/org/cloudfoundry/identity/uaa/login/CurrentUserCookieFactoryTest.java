@@ -3,18 +3,13 @@ package org.cloudfoundry.identity.uaa.login;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
-import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
 import static org.hamcrest.Matchers.*;
@@ -43,25 +38,25 @@ public class CurrentUserCookieFactoryTest {
 
     @Test
     public void getCookie_returnsCookieWithNameCurrentUser() throws Exception {
-        Cookie cookie = factory.getCookie(request, uaaPrincipal);
+        Cookie cookie = factory.getCookie(uaaPrincipal);
         assertEquals("Current-User", cookie.getName());
     }
 
     @Test
     public void getCookie_returnsCookieMaxAgeEqualToSessionTimeout() throws Exception {
-        Cookie cookie = factory.getCookie(request, uaaPrincipal);
+        Cookie cookie = factory.getCookie(uaaPrincipal);
         assertEquals(sessionTimeout, cookie.getMaxAge());
     }
 
     @Test
     public void getCookie_setsContextPath() throws Exception {
-        Cookie cookie = factory.getCookie(request, uaaPrincipal);
-        assertEquals("/oauth/authorize", cookie.getPath());
+        Cookie cookie = factory.getCookie(uaaPrincipal);
+        assertEquals("/", cookie.getPath());
     }
 
     @Test
     public void getCookie_containsUrlEncodedJsonBody() throws Exception {
-        Cookie cookie = factory.getCookie(request, uaaPrincipal);
+        Cookie cookie = factory.getCookie(uaaPrincipal);
         assertEquals("%7B%22userId%22%3A%22user-guid%22%7D", cookie.getValue());
         String decoded = URLDecoder.decode(cookie.getValue(), "UTF-8");
         JsonNode parsedCookie = JsonUtils.readTree(decoded);
@@ -70,17 +65,17 @@ public class CurrentUserCookieFactoryTest {
 
     @Test
     public void getNullCookie() {
-        Cookie cookie = factory.getNullCookie(request);
+        Cookie cookie = factory.getNullCookie();
 
         assertEquals("Current-User", cookie.getName());
         assertFalse(cookie.isHttpOnly());
         assertEquals(0, cookie.getMaxAge());
-        assertEquals("/oauth/authorize", cookie.getPath());
+        assertEquals("/", cookie.getPath());
     }
 
     @Test
     public void getCookie_doesNotIncludePersonallyIdentifiableInformation() throws Exception {
-        Cookie cookie = factory.getCookie(request, uaaPrincipal);
+        Cookie cookie = factory.getCookie(uaaPrincipal);
         assertThat(cookie.getValue(), not(containsString(username)));
         assertThat(cookie.getValue(), not(containsString(email)));
     }
@@ -90,7 +85,7 @@ public class CurrentUserCookieFactoryTest {
         // JavaScript running on the UAA's session_management page will not be able to interact with this
         // cookie if httpOnly is enabled.
 
-        Cookie cookie = factory.getCookie(request, uaaPrincipal);
+        Cookie cookie = factory.getCookie(uaaPrincipal);
         assertFalse(cookie.isHttpOnly());
     }
 

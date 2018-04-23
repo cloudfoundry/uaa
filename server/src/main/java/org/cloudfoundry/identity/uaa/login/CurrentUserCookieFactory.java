@@ -1,11 +1,9 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 
 public class CurrentUserCookieFactory {
@@ -16,11 +14,11 @@ public class CurrentUserCookieFactory {
         this.sessionTimeout = sessionTimeout;
     }
 
-    public Cookie getCookie(HttpServletRequest request, UaaPrincipal uaaPrincipal) throws CurrentUserCookieEncodingException {
+    public Cookie getCookie(UaaPrincipal uaaPrincipal) throws CurrentUserCookieEncodingException {
         CurrentUserInformation currentUserInformation = new CurrentUserInformation();
         currentUserInformation.setUserId(uaaPrincipal.getId());
         Cookie cookie = new Cookie(CURRENT_USER_COOKIE_NAME, urlEncode(JsonUtils.writeValueAsString(currentUserInformation)));
-        cookie.setPath(request.getContextPath());
+        cookie.setPath("/");
         cookie.setHttpOnly(false);
         cookie.setMaxAge(sessionTimeout);
         return cookie;
@@ -34,11 +32,11 @@ public class CurrentUserCookieFactory {
         }
     }
 
-    public Cookie getNullCookie(HttpServletRequest request) {
+    public Cookie getNullCookie() {
         Cookie currentUserCookie = new Cookie(CURRENT_USER_COOKIE_NAME, null);
         currentUserCookie.setHttpOnly(false);
         currentUserCookie.setMaxAge(0);
-        currentUserCookie.setPath(request.getContextPath());
+        currentUserCookie.setPath("/");
         return currentUserCookie;
     }
 

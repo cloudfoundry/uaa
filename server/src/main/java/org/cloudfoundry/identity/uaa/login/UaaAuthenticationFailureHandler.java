@@ -38,7 +38,7 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        addCookie(request, response);
+        addCookie(response);
         if(exception != null) {
             if (exception instanceof PasswordChangeRequiredException) {
                 request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
@@ -51,11 +51,11 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        addCookie(request, response);
+        addCookie(response);
     }
 
-    private void addCookie(HttpServletRequest request, HttpServletResponse response) {
-        Cookie clearCurrentUserCookie = currentUserCookieFactory.getNullCookie(request);
+    private void addCookie(HttpServletResponse response) {
+        Cookie clearCurrentUserCookie = currentUserCookieFactory.getNullCookie();
         response.addCookie(clearCurrentUserCookie);
     }
 }
