@@ -9,7 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -37,7 +36,7 @@ public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
         if (isAuthenticated()) {
             UaaPrincipal principal = (UaaPrincipal) getContext().getAuthentication().getPrincipal();
             try {
-                Cookie currentUserCookie = currentUserCookieFactory.getCookie(request, principal);
+                Cookie currentUserCookie = currentUserCookieFactory.getCookie(principal);
                 response.addCookie(currentUserCookie);
             } catch (CurrentUserCookieFactory.CurrentUserCookieEncodingException e) {
                 logger.error(errorMessage(principal), e);
@@ -45,7 +44,7 @@ public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
                 return;
             }
         } else {
-            Cookie currentUserCookie = currentUserCookieFactory.getNullCookie(request);
+            Cookie currentUserCookie = currentUserCookieFactory.getNullCookie();
             response.addCookie(currentUserCookie);
         }
 

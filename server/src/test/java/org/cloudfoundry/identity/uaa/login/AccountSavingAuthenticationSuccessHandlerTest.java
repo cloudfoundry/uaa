@@ -60,7 +60,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
     public void setup() throws Exception {
         redirectingHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
         currentUserCookieFactory = mock(CurrentUserCookieFactory.class);
-        when(currentUserCookieFactory.getCookie(any(), any())).thenReturn(new Cookie("Current-User", "%7B%22userId%22%3A%22user-id%22%7D"));
+        when(currentUserCookieFactory.getCookie(any())).thenReturn(new Cookie("Current-User", "%7B%22userId%22%3A%22user-id%22%7D"));
         successHandler = new AccountSavingAuthenticationSuccessHandler(redirectingHandler, currentUserCookieFactory);
     }
 
@@ -127,7 +127,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         verify(redirectingHandler, times(1)).onAuthenticationSuccess(request, response, authentication);
 
         ArgumentCaptor<UaaPrincipal> uaaPrincipal = ArgumentCaptor.forClass(UaaPrincipal.class);
-        verify(currentUserCookieFactory).getCookie(any(), uaaPrincipal.capture());
+        verify(currentUserCookieFactory).getCookie(uaaPrincipal.capture());
         assertEquals("user-id", uaaPrincipal.getValue().getId());
 
         Cookie currentUserCookie = response.getCookie("Current-User");
