@@ -358,6 +358,7 @@
 
     <bean id="uaaAuthenticationFailureHandler" class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
         <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
     </bean>
 
 

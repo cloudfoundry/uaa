@@ -47,6 +47,7 @@ public class UaaAuthenticationFailureHandlerTests {
     private MockHttpServletResponse response;
     private MockHttpServletRequest request;
     private UaaAuthenticationFailureHandler uaaAuthenticationFailureHandler;
+    private CurrentUserCookieFactory cookieFactory;
 
     @Before
     public void setup() throws Exception {
@@ -56,7 +57,8 @@ public class UaaAuthenticationFailureHandlerTests {
         errorMap.put("org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException", "/login/mfa/register");
         failureHandler.setExceptionMappings(errorMap);
         failureHandler = spy(failureHandler);
-        uaaAuthenticationFailureHandler = new UaaAuthenticationFailureHandler(failureHandler);
+        cookieFactory = new CurrentUserCookieFactory(1234);
+        uaaAuthenticationFailureHandler = new UaaAuthenticationFailureHandler(failureHandler, cookieFactory);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
     }
@@ -72,7 +74,7 @@ public class UaaAuthenticationFailureHandlerTests {
     @Test
     public void onAuthenticationFailure_Without_Delegate() throws Exception {
         AuthenticationException exception = mock(AuthenticationException.class);
-        uaaAuthenticationFailureHandler = new UaaAuthenticationFailureHandler(null);
+        uaaAuthenticationFailureHandler = new UaaAuthenticationFailureHandler(null, cookieFactory);
         uaaAuthenticationFailureHandler.onAuthenticationFailure(request, response, exception);
         validateCookie();
     }

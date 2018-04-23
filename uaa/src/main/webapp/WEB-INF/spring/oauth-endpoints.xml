@@ -388,7 +388,7 @@
           xmlns="http://www.springframework.org/schema/security">
         <custom-filter ref="mfaRequiredFilter" position="BASIC_AUTH_FILTER"/>
         <custom-filter ref="passwordChangeRequiredFilter" after="BASIC_AUTH_FILTER"/>
-        <custom-filter ref="currentUserCookieFilter" after="LAST"/>
+        <custom-filter ref="currentUserCookieFilter" before="FILTER_SECURITY_INTERCEPTOR"/>
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <csrf disabled="true"/>
     </http>

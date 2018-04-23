@@ -69,6 +69,16 @@ public class CurrentUserCookieFactoryTest {
     }
 
     @Test
+    public void getNullCookie() {
+        Cookie cookie = factory.getNullCookie(request);
+
+        assertEquals("Current-User", cookie.getName());
+        assertFalse(cookie.isHttpOnly());
+        assertEquals(0, cookie.getMaxAge());
+        assertEquals("/oauth/authorize", cookie.getPath());
+    }
+
+    @Test
     public void getCookie_doesNotIncludePersonallyIdentifiableInformation() throws Exception {
         Cookie cookie = factory.getCookie(request, uaaPrincipal);
         assertThat(cookie.getValue(), not(containsString(username)));
