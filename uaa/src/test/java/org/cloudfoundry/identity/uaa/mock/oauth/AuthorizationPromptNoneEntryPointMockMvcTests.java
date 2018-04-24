@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,9 +18,7 @@ import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -54,6 +53,18 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
         ).andReturn();
 
         assertThat(result.getResponse().getRedirectedUrl(), startsWith("http://example.com/with/path.html#error=login_required"));
+    }
+
+    @Test
+    public void silentAuthentication_clearsCurrentUserCookie_whenNotAuthenticated() throws Exception {
+        MvcResult result = getMockMvc().perform(
+                get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
+        ).andReturn();
+
+        // This is necessary to make sure Current-User gets cleaned up when, for example, a UAA is restarted and the
+        // user's JSESSIONID is no longer valid.
+        assertThat(result.getResponse().getCookie("Current-User").getValue(), nullValue());
+        assertThat(result.getResponse().getCookie("Current-User").getMaxAge(), equalTo(0));
     }
 
     @Test
@@ -113,6 +124,12 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
             String redirectUrl = result.getResponse().getRedirectedUrl();
             Assert.assertThat(redirectUrl, containsString("session_state=sessionhash.saltvalue"));
             verify(calculator).calculate(currentUserId, "ant", "http://example.com");
+
+            // uaa-singular relies on the Current-User cookie. Because of GDPR, the Current-User cookie was
+            // changed to expire after a relatively short time. We have to renew that cookie during each
+            // call to /oauth/authorize or uaa-singular can get into an infinite loop where every open browser
+            // tab relying on uaa-singular aggressively polls /oauth/authorize?prompt=none
+            Assert.assertThat(result.getResponse().getCookie("Current-User").getValue(), Matchers.containsString(currentUserId));
         } finally {
             uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(backupCalculator);
         }

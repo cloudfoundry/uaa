@@ -274,12 +274,4 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
                 .content(jsonStatus))
             .andExpect(status().isOk());
     }
-
-    private static ResultMatcher currentUserCookie(String userId) {
-        return result -> {
-            cookie().value("Current-User", URLEncoder.encode("{\"userId\":\"" + userId + "\"}", "UTF-8")).match(result);
-            cookie().maxAge("Current-User", 365*24*60*60);
-            cookie().path("Current-User", "").match(result);
-        };
-    }
 }

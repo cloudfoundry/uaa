@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -31,18 +33,14 @@ import java.net.URLEncoder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
-
-    private int sessionTimeout;
+    private SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
+    private CurrentUserCookieFactory currentUserCookieFactory;
+    private Logger logger = LoggerFactory.getLogger(AccountSavingAuthenticationSuccessHandler.class);
 
     @Autowired
-    public SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
-
-    public SavedRequestAwareAuthenticationSuccessHandler getRedirectingHandler() {
-        return redirectingHandler;
-    }
-
-    public void setRedirectingHandler(SavedRequestAwareAuthenticationSuccessHandler redirectingHandler) {
+    public AccountSavingAuthenticationSuccessHandler(SavedRequestAwareAuthenticationSuccessHandler redirectingHandler, CurrentUserCookieFactory currentUserCookieFactory) {
         this.redirectingHandler = redirectingHandler;
+        this.currentUserCookieFactory = currentUserCookieFactory;
     }
 
     @Override
@@ -74,18 +72,16 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
             response.addCookie(savedAccountCookie);
         }
 
-        CurrentUserInformation currentUserInformation = new CurrentUserInformation();
-        currentUserInformation.setUserId(uaaPrincipal.getId());
-        Cookie currentUserCookie = new Cookie("Current-User", encodeCookieValue(JsonUtils.writeValueAsString(currentUserInformation)));
-        // cookie expires in a day
-        currentUserCookie.setMaxAge(sessionTimeout);
-        currentUserCookie.setHttpOnly(false);
-        currentUserCookie.setPath(request.getContextPath());
-
+        Cookie currentUserCookie = null;
+        try {
+            currentUserCookie = currentUserCookieFactory.getCookie(uaaPrincipal);
+        } catch (CurrentUserCookieFactory.CurrentUserCookieEncodingException e) {
+            logger.error(String.format("There was an error while creating the Current-Account cookie for user %s", uaaPrincipal.getId()), e);
+        }
         response.addCookie(currentUserCookie);
     }
 
-    private static String encodeCookieValue(String inValue) throws IllegalArgumentException {
+    public static String encodeCookieValue(String inValue) throws IllegalArgumentException {
         String out = null;
         try {
             out = URLEncoder.encode(inValue, UTF_8.name());
@@ -93,9 +89,5 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
             throw new IllegalArgumentException(e);
         }
         return out;
-    }
-
-    public void setSessionTimeout(int sessionTimeout) {
-        this.sessionTimeout = sessionTimeout;
     }
 }
