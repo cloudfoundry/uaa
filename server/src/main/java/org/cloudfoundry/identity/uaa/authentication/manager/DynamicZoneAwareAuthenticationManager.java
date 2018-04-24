@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager.AuthenticationManagerConfiguration;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -29,12 +31,14 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -64,16 +68,27 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         IdentityZone zone = IdentityZoneHolder.get();
         //chain it exactly like the UAA
-        return getChainedAuthenticationManager(zone).authenticate(authentication);
+        UaaLoginHint loginHint = extractLoginHint(authentication);
+        return getChainedAuthenticationManager(zone, loginHint).authenticate(authentication);
     }
 
-    protected ChainedAuthenticationManager getChainedAuthenticationManager(IdentityZone zone) {
+    protected UaaLoginHint extractLoginHint(Authentication authentication) {
+        UaaLoginHint loginHint = null;
+        if (authentication != null && authentication.getDetails() instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails uaaAuthenticationDetails = (UaaAuthenticationDetails) authentication.getDetails();
+            loginHint = uaaAuthenticationDetails.getLoginHint();
+        }
+        return loginHint;
+    }
+
+    protected ChainedAuthenticationManager getChainedAuthenticationManager(IdentityZone zone, UaaLoginHint loginHint) {
         IdentityProvider ldapProvider = getProvider(OriginKeys.LDAP, zone);
         IdentityProvider uaaProvider = getProvider(OriginKeys.UAA, zone);
 
         List<AuthenticationManagerConfiguration> delegates = new LinkedList<>();
 
-        if (uaaProvider.isActive()) {
+        String origin = loginHint == null ? null : loginHint.getOrigin();
+        if (uaaProvider.isActive() && (origin == null || origin.equals("uaa"))) {
             AuthenticationManagerConfiguration uaaConfig = new AuthenticationManagerConfiguration(internalUaaAuthenticationManager, null);
             uaaConfig.setStopIf(
                 AccountNotVerifiedException.class,
@@ -83,7 +98,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
             delegates.add(uaaConfig);
         }
 
-        if (ldapProvider.isActive()) {
+        if (ldapProvider.isActive() && (origin == null || origin.equals("ldap"))) {
             //has LDAP IDP config changed since last time?
             DynamicLdapAuthenticationManager existing = getLdapAuthenticationManager(zone, ldapProvider);
             if (!existing.getDefinition().equals(ldapProvider.getConfig())) {
@@ -95,6 +110,10 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
                 new AuthenticationManagerConfiguration(ldapAuthenticationManager,
                                                        delegates.size()>0 ? ChainedAuthenticationManager.IF_PREVIOUS_FALSE : null);
             delegates.add(ldapConfig);
+        }
+
+        if (delegates.size() == 0 && origin != null) {
+            throw new ProviderNotFoundException("The passed login hint is invalid");
         }
 
         ChainedAuthenticationManager result = new ChainedAuthenticationManager();
