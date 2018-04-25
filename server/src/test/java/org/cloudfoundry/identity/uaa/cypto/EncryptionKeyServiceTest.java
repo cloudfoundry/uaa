@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.cypto;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,6 +63,36 @@ public class EncryptionKeyServiceTest {
         expectedException.expectMessage("UAA cannot be started without encryption key value uaa.encryption.active_key_label");
 
         encryptionKeyService = new EncryptionKeyService("", new ArrayList<>());
+    }
+
+    @Test
+    public void shouldThrowErrorIfPassphraseIsLessThan8Characters() {
+        expectedException.expect(NoActiveEncryptionKeyProvided.class);
+        expectedException.expectMessage("The required length of the encryption passphrases for [label=key-1, label=key-2] need to be at least 8 characters long.");
+
+        encryptionKeyService = new EncryptionKeyService("key-1", Lists.newArrayList(new EncryptionKeyService.EncryptionKey() {{
+            put("label", "key-1");
+            put("passphrase", "a");
+        }}, new EncryptionKeyService.EncryptionKey() {{
+            put("label", "key-2");
+            put("passphrase", "aaaaaaa");
+        }}, new EncryptionKeyService.EncryptionKey() {{
+            put("label", "key-3");
+            put("passphrase", "aaaaaaaa");
+        }}));
+    }
+
+    @Test
+    public void shouldThrowErrorIfDuplicateKeysAreProvided() {
+        expectedException.expect(NoActiveEncryptionKeyProvided.class);
+        expectedException.expectMessage("UAA cannot be started as multiple keys have the same label in uaa.encryption.encryption_keys/[label=key-1]");
+
+        EncryptionKeyService.EncryptionKey key1 = new EncryptionKeyService.EncryptionKey() {{
+            put("label", "key-1");
+            put("passphrase", Strings.repeat("a", 8));
+        }};
+
+        encryptionKeyService = new EncryptionKeyService("key-1", Lists.newArrayList(key1, key1));
     }
 
     @Test
