@@ -23,7 +23,7 @@ public class Decryptor {
 
             byte[] base64DecodedCipherValue = Base64Utils.decodeFromString(cipherValue);
             byte[] decryptedValue = new EncryptionService(passphrase).decrypt(base64DecodedCipherValue);
-            System.out.println(new String(decryptedValue));
+            System.out.print(new String(decryptedValue));
         } catch (IOException | EncryptionServiceException e) {
             e.printStackTrace();
         }

@@ -23,7 +23,7 @@ public class Encryptor {
 
             byte[] cipherValue = new EncryptionService(passphrase).encrypt(plainText);
             String base64CipherValue = Base64Utils.encodeToString(cipherValue);
-            System.out.println(base64CipherValue);
+            System.out.print(base64CipherValue);
         } catch (IOException | EncryptionServiceException e) {
             e.printStackTrace();
         }
