@@ -70,6 +70,14 @@ allprojects {
     apply plugin: 'propdeps-idea'
     apply plugin: 'propdeps-eclipse'
     configurations.provided.transitive = false
+    configurations.all {
+        resolutionStrategy {
+            force 'com.google.guava:guava:' + guavaVersion,
+             'com.fasterxml.jackson.core:jackson-core:' + jacksonVersion,
+              'com.fasterxml.jackson.core:jackson-annotations:' + jacksonVersion,
+               'com.fasterxml.jackson.core:jackson-databind:' + jacksonVersion
+        }
+    }
     apply plugin: 'eclipse-wtp'
 
     repositories {

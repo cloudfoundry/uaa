@@ -34,16 +34,9 @@ dependencies {
   compile group: 'cglib', name: 'cglib', version:parent.cglibVersion
   compile(group: 'com.ge.predix', name: 'spring-metering-filter', version:'1.2.3') {
     exclude(group: 'javax.mail')
-    exclude(module: 'jackson-core')
-    exclude(module: 'jackson-annotations')
-    exclude(module: 'jackson-databind')
   }
   // For dynamic log level configuration
-  compile(group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.1') {
-    exclude(module: 'jackson-core')
-    exclude(module: 'jackson-annotations')
-    exclude(module: 'jackson-databind')
-  }
+  compile group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.1'
 
   runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
   runtime group: 'org.springframework.retry', name: 'spring-retry', version:parent.springRetryVersion
