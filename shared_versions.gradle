@@ -49,5 +49,5 @@ ext {
   velocityVersion = '2.0'
   xalanVersion = '2.7.2'
   zxingVersion = '3.3.1'
-  predixpublickeyProviderVersion = '1.0.2'
+  predixpublickeyProviderVersion = '1.2.0'
 }
