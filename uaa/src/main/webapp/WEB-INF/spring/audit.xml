@@ -43,13 +43,13 @@
     <!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
     <bean id="loggingAuditService" class="org.cloudfoundry.identity.uaa.audit.LoggingAuditService" />
 
-        <bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
-            <constructor-arg ref="predixAuditService" />
-        </bean>
-        <bean id="predixAuditService" class="org.cloudfoundry.identity.uaa.audit.PredixAuditService" />
-    <beans profile="predixaudit">
-        <bean class="org.cloudfoundry.identity.uaa.audit.PredixAuditConfig"></bean>
-    </beans>
+        <!--<bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">-->
+            <!--<constructor-arg ref="predixAuditService" />-->
+        <!--</bean>-->
+        <!--<bean id="predixAuditService" class="org.cloudfoundry.identity.uaa.audit.PredixAuditService" />-->
+    <!--<beans profile="predixaudit">-->
+        <!--<bean class="org.cloudfoundry.identity.uaa.audit.PredixAuditConfig"></bean>-->
+    <!--</beans>-->
 <!-- Commented out because event hub does not work with proxies locally. If this gets fixed we can uncomment -->
     <!-- <beans profile="!cloud">
         <bean class="org.cloudfoundry.identity.uaa.audit.LocalPredixAuditConfig"></bean>
