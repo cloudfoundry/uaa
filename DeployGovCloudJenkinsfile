@@ -9,11 +9,11 @@ pipeline {
     parameters  {
         choice(name: 'DEPLOYMENT_TYPE', choices:'govw', description: 'This specifies which point of presence to deploy to')
         booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
-        booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
+        booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: false, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
     }
     stages {
-		stage('Deploy to govcloud') {
-			environment {
+        stage('Deploy to govcloud') {
+            environment {
                 CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
                 ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
             }
@@ -27,8 +27,8 @@ pipeline {
                 }
             }
 
-			steps {
-				script {
+            steps {
+                script {
                     dir('uaa') {
                         checkout scm
                     }
@@ -85,7 +85,7 @@ pipeline {
 
                         # run service broker acceptance tests
                         # if [ $DEPLOYMENT_TYPE != 'perf-vpc-sb' -a $DEPLOYMENT_TYPE != 'perf-asv-sb' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'perf-azr-usw' -a $DEPLOYMENT_TYPE != 'perf-govcloud' -a $DEPLOYMENT_TYPE != 'cf3-integration' -a $DEPLOYMENT_TYPE != 'asv-pr-db-mig-test' ]; then
-                        #    ./uaa-sb-acceptance-tests.sh
+                            ./uaa-sb-acceptance-tests.sh
                         # fi
                     popd
                     touch uaa-release.properties
@@ -95,8 +95,8 @@ pipeline {
                     stopvpn.sh 
                     '''
                     stash includes: 'uaa-release.properties', name:'uaa-release.properties'
-				}
-			}
-		}
+                }
+            }
+        }
     }
 }
