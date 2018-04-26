@@ -1,0 +1,102 @@
+#!/usr/bin/env groovy
+def devcloudArtServer = Artifactory.server('devcloud')
+pipeline {
+    agent none
+    options {
+        skipDefaultCheckout()
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
+    }
+    parameters  {
+        choice(name: 'DEPLOYMENT_TYPE', choices:'govw', description: 'This specifies which point of presence to deploy to')
+        booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
+        booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: false, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
+    }
+    stages {
+        stage('Deploy to govcloud') {
+            environment {
+                CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+                ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+            }
+            agent {
+                docker {
+                    image 'dig-propel/govcloud-deploy'
+                    label 'dind'
+                    args "--privileged --sysctl net.ipv6.conf.all.disable_ipv6=0"
+                    registryUrl 'https://registry.gear.ge.com/'
+                    registryCredentialsId "DTR_CREDS"
+                }
+            }
+
+            steps {
+                script {
+                    dir('uaa') {
+                        checkout scm
+                    }
+                    APP_VERSION = sh (returnStdout: true, script: '''
+                        grep 'version' uaa/gradle.properties | sed 's/version=//'
+                        ''').trim()
+                    APP_VERSION = '4.6.4'
+                    echo "Downloading UAA  ${APP_VERSION} Artifact Artifactory"
+                    def downloadSpec = """{
+                        "files": [
+                            {
+                                "target": "deploy-workspace/",
+                                "flat": "true",
+                                "pattern": "MAAXA-MVN/builds/uaa/${APP_VERSION}/*.war"
+                            }
+                        ]
+                    }"""
+                    sh 'pwd && ls -ltr'
+                    devcloudArtServer.download(downloadSpec)
+                    sh "ls -ltr deploy-workspace/"
+                    dir('uaa-cf-release') {
+                        git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                    }
+                    sh '''#!/bin/bash -ex
+                    export CF_USERNAME=$CF_CREDENTIALS_USR
+                    export CF_PASSWORD=$CF_CREDENTIALS_PSW
+                    export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
+                    echo "APP_VERSION is:$APP_VERSION"
+                    export APP_VERSION='4.6.4'
+                    export DEPLOY_BRANCH_SUFFIX=$APP_VERSION
+                    source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
+                    unset HTTPS_PROXY
+                    unset HTTP_PROXY
+                    unset http_proxy
+                    unset https_proxy
+                    unset GRADLE_OPTS
+
+                    echo 'Installing ruby and uaac'
+                    apk update && apk upgrade
+                    apk add ruby ca-certificates ruby-dev build-base ruby-rdoc ruby-irb libstdc++ fontconfig
+                    gem install cf-uaac bundle
+                    echo PATH is $PATH
+
+                    startvpn.sh
+
+                    pushd uaa-cf-release
+                        source combine-inline-config.sh
+                        echo "$UAA_CONFIG_YAML"
+                        echo "$APP_NAME"
+                        export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
+                        cf -v
+                        ruby -v
+                        ./ci_deploy.sh
+
+                        # run service broker acceptance tests
+                        # if [ $DEPLOYMENT_TYPE != 'perf-vpc-sb' -a $DEPLOYMENT_TYPE != 'perf-asv-sb' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'perf-azr-usw' -a $DEPLOYMENT_TYPE != 'perf-govcloud' -a $DEPLOYMENT_TYPE != 'cf3-integration' -a $DEPLOYMENT_TYPE != 'asv-pr-db-mig-test' ]; then
+                            ./uaa-sb-acceptance-tests.sh
+                        # fi
+                    popd
+                    touch uaa-release.properties
+                    echo "DEPLOYMENT_TYPE:$DEPLOYMENT_TYPE" >> uaa-release.properties
+                    echo "UAA_CF_RELEASE_COMMIT_HASH:$UAA_CONFIG_COMMIT" >> uaa-release.properties
+                    echo "UAA_APP_VERSION:$APP_VERSION" >> uaa-release.properties
+                    stopvpn.sh 
+                    '''
+                    stash includes: 'uaa-release.properties', name:'uaa-release.properties'
+                }
+            }
+        }
+    }
+}
