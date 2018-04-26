@@ -45,7 +45,7 @@ pipeline {
         }
         stage('Build, Test, and Push Image') {
             environment {
-                DOCKER_USER = credentials('artifactory-docker-repo-pusher')
+                DOCKER_USER = credentials('dtr-docker-repo-pusher')
             }
             steps {
                 dir('uaa-cf-release') {
