@@ -35,7 +35,6 @@ pipeline {
                     APP_VERSION = sh (returnStdout: true, script: '''
                         grep 'version' uaa/gradle.properties | sed 's/version=//'
                         ''').trim()
-                    APP_VERSION = '4.6.4'
                     echo "Downloading UAA  ${APP_VERSION} Artifact Artifactory"
                     def downloadSpec = """{
                         "files": [
@@ -57,7 +56,6 @@ pipeline {
                     export CF_PASSWORD=$CF_CREDENTIALS_PSW
                     export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
                     echo "APP_VERSION is:$APP_VERSION"
-                    export APP_VERSION='4.6.4'
                     export DEPLOY_BRANCH_SUFFIX=$APP_VERSION
                     source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
                     unset HTTPS_PROXY
