@@ -43,7 +43,7 @@ pipeline {
                     pushd uaa
                         export APP_VERSION=`grep 'version' gradle.properties | sed 's/version=//'`
                         ./gradlew clean generateDocs
-                        cd uaa/build/docs
+                        cd uaa/build/docs/version/$APP_VERSION
                         touch Staticfile
                         cf login -a $DEPLOYMENT_TARGET -u $CF_CREDENTIALS_USR -p $CF_CREDENTIALS_PSW -o predix-release -s predix-acs
                         cf push $APP_NAME -m $APP_MEMORY

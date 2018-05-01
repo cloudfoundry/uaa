@@ -84,7 +84,9 @@ pipeline {
                     pushd uaa
                         APP_VERSION=$(grep 'version' gradle.properties | sed 's/version=//')
                         docker login $DOCKER_REPO_URL -u $DOCKER_REPO_USER -p $DOCKER_REPO_USER_PW
+                        docker tag ${DOCKER_REPO_URL}/uaa:${APP_VERSION} ${DOCKER_REPO_URL}/uaa:latest
                         docker push ${DOCKER_REPO_URL}/uaa:${APP_VERSION}
+                        docker push ${DOCKER_REPO_URL}/uaa:latest
                     popd
                 '''
             }
