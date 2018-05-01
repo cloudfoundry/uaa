@@ -1,11 +1,14 @@
 #!/usr/bin/env groovy
 
+library "security-ci-commons-shared-lib"
+def NODE = nodeDetails("uaa")
+
 pipeline {
     agent {
         docker {
-            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
-            label 'dind'
-            args '-v /var/lib/docker/.gradle:/root/.gradle'
+            image "${NODE['IMAGE']}"
+            label "${NODE['LABEL']}"
+            args "${NODE['ARGS']}"
         }
     }
     parameters {
