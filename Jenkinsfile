@@ -1,5 +1,9 @@
 #!/usr/bin/env groovy
 def devcloudArtServer = Artifactory.server('devcloud')
+
+library "security-ci-commons-shared-lib"
+def NODE = nodeDetails("uaa")
+
 pipeline {
     agent none
     environment {
@@ -21,11 +25,11 @@ pipeline {
             parallel {
                 stage ('Checkout & Build') {
                     agent {
-                      docker {
-                          image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
-                          label 'dind'
-                          args '-v /var/lib/docker/.gradle:/root/.gradle'
-                      }
+                        docker {
+                            image "${NODE['IMAGE']}"
+                            label "${NODE['LABEL']}"
+                            args "${NODE['ARGS']}"
+                        }
                     }
                     steps {
                         echo env.BRANCH_NAME
@@ -65,9 +69,9 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
-                            label 'dind'
-                            args '-v /var/lib/docker/.gradle:/root/.gradle'
+                            image "${NODE['IMAGE']}"
+                            label "${NODE['LABEL']}"
+                            args "${NODE['ARGS']}"
                         }
                     }
                     steps {
@@ -124,9 +128,9 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
-                            label 'dind'
-                            args '-v /var/lib/docker/.gradle:/root/.gradle'
+                            image "${NODE['IMAGE']}"
+                            label "${NODE['LABEL']}"
+                            args "${NODE['ARGS']}"
                         }
                     }
                     steps {
@@ -189,8 +193,8 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
-                            label 'dind'
+                            image "${NODE['IMAGE']}"
+                            label "${NODE['LABEL']}"
                             args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
                         }
                     }
@@ -259,11 +263,11 @@ pipeline {
                         ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_CF3_INTEGRATION")
                     }
                     agent {
-                       docker {
-                           image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing:0.0.8'
-                           label 'dind'
-                           args '-v /var/lib/docker/.gradle:/root/.gradle'
-                       }
+                        docker {
+                            image "${NODE['IMAGE']}"
+                            label "${NODE['LABEL']}"
+                            args "${NODE['ARGS']}"
+                        }
                     }
                     steps {
                         echo env.BRANCH_NAME

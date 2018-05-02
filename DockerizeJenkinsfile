@@ -3,7 +3,7 @@
 pipeline {
     agent {
         docker {
-            image 'repo.ci.build.ge.com:8443/predix-security/uaa-ci-testing-with-docker:latest'
+            image 'registry.gear.ge.com/dig-predix-security-services/uaa-ci-testing-with-docker:latest'
             label 'dind'
             args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "localhost":127.0.0.1'
         }
