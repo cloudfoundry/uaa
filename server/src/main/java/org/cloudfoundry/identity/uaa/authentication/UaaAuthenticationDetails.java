@@ -32,6 +32,7 @@ public class UaaAuthenticationDetails implements Serializable {
     public static final String ADD_NEW = "add_new";
 
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
+    private UaaLoginHint loginHint;
 
     private boolean addNew;
 
@@ -69,6 +70,7 @@ public class UaaAuthenticationDetails implements Serializable {
             this.clientId = clientId;
         }
         this.addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
+        this.loginHint = UaaLoginHint.parseRequestParameter(request.getParameter("login_hint"));
     }
 
     public UaaAuthenticationDetails(@JsonProperty("addNew") boolean addNew,
@@ -99,6 +101,14 @@ public class UaaAuthenticationDetails implements Serializable {
 
     public void setAddNew(boolean addNew) {
         this.addNew = addNew;
+    }
+
+    public UaaLoginHint getLoginHint() {
+        return loginHint;
+    }
+
+    public void setLoginHint(UaaLoginHint loginHint) {
+        this.loginHint = loginHint;
     }
 
     @Override

@@ -87,18 +87,21 @@ flyway {
             user = 'root'
             password = 'changeme'
             schemas = ['uaa']
+            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/mysql']
             break
         case 'postgresql':
             driver = 'org.postgresql.Driver'
             url = 'jdbc:postgresql:uaa'
             user = 'root'
             password = 'changeme'
+            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/postgresql']
             break
         case 'sqlserver':
             driver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
             url = 'jdbc:sqlserver://localhost:1433;database=uaa;'
             user = 'root'
             password = 'changemeCHANGEME1234!'
+            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/sqlserver']
             break
     }
 }
@@ -373,6 +376,19 @@ task mockAssertion(type: JavaExec) {
     args = System.getProperty("file", null) == null ? [] : [System.getProperty("file")]
     classpath = files(subprojects.sourceSets.test.runtimeClasspath)
 }
+
+task encrypt(type: JavaExec) {
+    main = 'org.cloudfoundry.identity.uaa.Encryptor'
+    args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
+    classpath = files(subprojects.find {it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+}
+
+task decrypt(type: JavaExec) {
+    main = 'org.cloudfoundry.identity.uaa.Decryptor'
+    args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
+    classpath = files(subprojects.find {it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+}
+
 
 
 coveralls {

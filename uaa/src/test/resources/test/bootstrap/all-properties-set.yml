@@ -67,6 +67,11 @@ disableInternalAuth: true
 disableInternalUserManagement: true
 issuer:
   uri: https://localhost:8443/uaa/oauth/token
+encryption:
+  active_key_label: CHANGE-THIS-KEY
+  encryption_keys:
+  - label: CHANGE-THIS-KEY
+    passphrase: CHANGEME
 jwt:
   token:
     claims:

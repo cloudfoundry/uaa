@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import java.security.Security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationListener;
@@ -68,7 +70,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
+public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     private String adminToken;
     private JdbcUserGoogleMfaCredentialsProvisioning jdbcUserGoogleMfaCredentialsProvisioning;
@@ -79,19 +81,22 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private ScimUser user;
     private MockHttpSession session;
-    private UaaUserDatabase userDb;
     private ApplicationListener listener;
+
+    @BeforeClass
+    public static void key() {
+        Security.setProperty("crypto.policy", "unlimited");
+    }
 
     @Before
     public void setup() throws Exception {
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
-            "admin",
-            "adminsecret",
-            "clients.read clients.write clients.secret clients.admin uaa.admin"
+                "admin",
+                "adminsecret",
+                "clients.read clients.write clients.secret clients.admin uaa.admin"
         );
         jdbcUserGoogleMfaCredentialsProvisioning = (JdbcUserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("jdbcUserGoogleMfaCredentialsProvisioning");
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
-        userDb = (UaaUserDatabase)getWebApplicationContext().getBean("userDatabase");
 
         mfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
         otherMfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
@@ -109,7 +114,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
     }
 
     @After
-    public void cleanup () throws Exception {
+    public void cleanup() throws Exception {
         uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
         MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);
@@ -129,7 +134,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         redirectToMFARegistration();
 
         MockHttpServletResponse response = getMockMvc().perform(get("/logout.do")
-          .session(session)).andReturn().getResponse();
+                .session(session)).andReturn().getResponse();
 
         assertTrue(response.getRedirectedUrl().endsWith("/login"));
     }

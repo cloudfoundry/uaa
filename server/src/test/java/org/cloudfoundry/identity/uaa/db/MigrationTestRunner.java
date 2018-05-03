@@ -6,6 +6,7 @@ import org.flywaydb.core.api.callback.BaseFlywayCallback;
 import org.junit.Assert;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,6 +24,12 @@ public class MigrationTestRunner {
             @Override
             public void afterEachMigrate(Connection connection, MigrationInfo info) {
                 super.afterEachMigrate(connection, info);
+                try {
+                    connection.commit();
+                } catch (SQLException e) {
+                    Assert.fail(e.getMessage());
+                }
+
                 for (MigrationTest test : tests) {
                     if (test.getTargetMigration().equals(info.getVersion().getVersion())) {
                         try {

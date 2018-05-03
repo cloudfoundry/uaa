@@ -36,6 +36,9 @@ public class MySqlDbMigrationIntegrationTest {
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY'";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA = ?";
     private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
+    private String fetchColumnTypeFromTable = "SELECT column_type FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
+    private String fetchColumnIsNullableFromTable = "SELECT is_nullable FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
+
     private MigrationTestRunner migrationTestRunner;
 
     @Before
@@ -131,5 +134,66 @@ public class MySqlDbMigrationIntegrationTest {
             int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), tableName);
             assertThat(format("%s is missing primary key", tableName), count, greaterThanOrEqualTo(1));
         }
+    }
+
+    @Test
+    public void mfaTableAddsTwoNewColumns() {
+        MigrationTest migrationTest = new MigrationTest() {
+            @Override
+            public String getTargetMigration() {
+                return "4.13.0";
+            }
+
+            @Override
+            public void runAssertions() throws Exception {
+                String keyColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "encryption_key_label"
+                );
+                assertThat(keyColumnType, is("varchar(255)"));
+
+                String encryptedValidationCodeColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "encrypted_validation_code"
+                );
+                assertThat(encryptedValidationCodeColumnType, is("varchar(255)"));
+
+                String encryptedVerificationCodeColumnIsNullable = jdbcTemplate.queryForObject(
+                  fetchColumnIsNullableFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "encrypted_validation_code"
+                );
+                assertThat(encryptedVerificationCodeColumnIsNullable, is("YES"));
+
+                String verificationCodeColumnIsNullable = jdbcTemplate.queryForObject(
+                  fetchColumnIsNullableFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "validation_code"
+                );
+                assertThat(verificationCodeColumnIsNullable, is("YES"));
+
+                String validationColumnType = jdbcTemplate.queryForObject(
+                  fetchColumnTypeFromTable,
+                  String.class,
+                  "user_google_mfa_credentials",
+                  jdbcTemplate.getDataSource().getConnection().getCatalog(),
+                  "validation_code"
+                );
+                assertThat(validationColumnType, is("int(11)"));
+
+            }
+        };
+
+        migrationTestRunner.run(migrationTest);
     }
 }

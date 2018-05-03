@@ -162,7 +162,6 @@
 #    requireDigit: 0
 #    requireSpecialCharacter: 0
 #    expirePasswordInMonths: 0
-
 scim:
   groups:
     zones.read: Read identity zones

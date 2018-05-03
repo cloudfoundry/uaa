@@ -126,7 +126,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     }
 
     protected void deleteMfaRegistrations() throws Exception {
-        getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM " + JdbcUserGoogleMfaCredentialsProvisioning.TABLE_NAME);
+        getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM user_google_mfa_credentials");
     }
 
     public void setupForMfaPasswordGrant() throws Exception {

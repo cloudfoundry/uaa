@@ -594,8 +594,18 @@
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
 
+    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
+        <constructor-arg index="0" value="${encryption.active_key_label}"/>
+        <constructor-arg index="1" value="#{@config['encryption']['encryption_keys']}"/>
+    </bean>
+
+    <bean id="encryptionService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionService">
+        <constructor-arg index="0" value="#{activeKeyService.getActiveKey().getPassphrase()}"/>
+    </bean>
+
     <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
         <constructor-arg index="0" ref="jdbcTemplate"/>
+        <constructor-arg index="1" ref="activeKeyService"/>
     </bean>
 
     <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
