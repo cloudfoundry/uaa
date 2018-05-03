@@ -465,6 +465,10 @@ public class LoginInfoEndpoint {
             if (hasText(formRedirectUri)) {
                 model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
             }
+            String loginHint = loginHintParam.orElse(null);
+            if (hasText(loginHint)) {
+                model.addAttribute("login_hint",loginHint);
+            }
 
             boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
             boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();

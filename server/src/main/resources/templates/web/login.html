@@ -32,9 +32,14 @@
                    th:type="hidden"
                    th:value="${form_redirect_uri}"/>
             <input th:if="${param.login_hint}"
+                   th:unless="${login_hint}"
                    th:name="login_hint"
                    th:type="hidden"
                    th:value="${param.login_hint}"/>
+            <input th:if="${login_hint}"
+                   th:name="login_hint"
+                   th:type="hidden"
+                   th:value="${login_hint}"/>
         </form>
         </th:block>
         <div class="saml-login">
