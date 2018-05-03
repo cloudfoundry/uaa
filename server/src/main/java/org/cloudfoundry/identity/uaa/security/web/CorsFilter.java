@@ -83,6 +83,7 @@ public class CorsFilter extends OncePerRequestFilter {
     static final Log logger = LogFactory.getLog(CorsFilter.class);
     public static final String X_REQUESTED_WITH = "X-Requested-With";
     public static final String WILDCARD = "*";
+    public static final long CORS_MATCH_TIMEOUT = 400L;
 
     private CorsConfiguration xhrConfiguration = new CorsConfiguration();
     private CorsConfiguration defaultConfiguration = new CorsConfiguration();
@@ -352,11 +353,23 @@ public class CorsFilter extends OncePerRequestFilter {
         if (StringUtils.isEmpty(uri)) {
             return false;
         }
-
+        long patternMatchTotalExecutionTime = 0L;
         for (Pattern pattern : configuration.getAllowedUriPatterns()) {
             // Making sure that the pattern matches
-            if (pattern.matcher(uri).find()) {
-                return true;
+            long indexStartTime = System.currentTimeMillis();
+            try {
+                if(TimeLimitRegexMatcher.matcher(pattern, uri).find()) {
+                    return true;
+                }
+            } catch (TimeLimitRegexMatcher.RegExTimeoutException e) {
+                logger.debug(String.format("The '%s' URI timed out on matching the defined CORS policy.", uri));
+            }
+            long indexExecutionTime = System.currentTimeMillis() - indexStartTime;
+            patternMatchTotalExecutionTime = patternMatchTotalExecutionTime + indexExecutionTime;
+            logger.debug("Execution time: " + patternMatchTotalExecutionTime);
+            if(patternMatchTotalExecutionTime >= CORS_MATCH_TIMEOUT) {
+                logger.debug(String.format("The '%s' URI reached to max timeout on matching the defined CORS policy.", uri));
+                return false;
             }
         }
         logger.debug(String.format("The '%s' URI does not allow CORS requests.", uri));
@@ -364,10 +377,23 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     protected boolean isAllowedOrigin(final String origin, CorsConfiguration configuration) {
+        long patternMatchTotalExecutionTime = 0L;
         for (Pattern pattern : configuration.getAllowedOriginPatterns()) {
             // Making sure that the pattern matches
-            if (pattern.matcher(origin).find()) {
-                return true;
+            long indexStartTime = System.currentTimeMillis();
+            try {
+                if(TimeLimitRegexMatcher.matcher(pattern, origin).find()) {
+                    return true;
+                }
+            } catch (TimeLimitRegexMatcher.RegExTimeoutException e) {
+                logger.debug(String.format("The '%s' origin timed out on matching the defined CORS policy.", origin));
+            }
+            long indexExecutionTime = System.currentTimeMillis() - indexStartTime;
+            patternMatchTotalExecutionTime = patternMatchTotalExecutionTime + indexExecutionTime;
+            logger.debug("Execution time: " + patternMatchTotalExecutionTime);
+            if(patternMatchTotalExecutionTime >= CORS_MATCH_TIMEOUT) {
+                logger.debug(String.format("The '%s' origin reached to max timeout on matching the defined CORS policy.", origin));
+                return false;
             }
         }
         logger.debug(String.format("The '%s' origin is not allowed to make CORS requests.",origin));

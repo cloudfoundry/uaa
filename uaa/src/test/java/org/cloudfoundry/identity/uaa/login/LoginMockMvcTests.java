@@ -2132,6 +2132,95 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testDefaultCorsPolicyWithBadUriPatternforNonDefaultZone() throws Exception {
+        String subdomain = "testzone"+ generator.generate();
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        //throws a pattern syntax error
+        corsConfig.setAllowedUris(Arrays.asList("["));
+        corsConfig.setAllowedOrigins(Arrays.asList("other.com$"));
+        corsConfig.setAllowedMethods(Arrays.asList("GET"));
+        corsConfig.setAllowedHeaders(Arrays.asList("Accept", "Authorization", "Content-Type"));
+        zone.getConfig().getCorsPolicy().setDefaultConfiguration(corsConfig);
+        zone.setId(UUID.randomUUID().toString());
+        zone.setName(subdomain);
+        zone.setSubdomain(subdomain);
+        zone.setDescription(subdomain);
+        identityZoneProvisioning.create(zone);
+        IdentityZoneHolder.set(zone);
+
+        //make preflight call with non matching uri
+        MvcResult mvcResult = getMockMvc().perform(get("/uaa/users")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "other.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal request URI", mvcResult.getResponse().getErrorMessage());
+    }
+
+    @Test
+    public void testDefaultCorsPolicyWithBadOriginPatternforNonDefaultZone() throws Exception {
+        String subdomain = "testzone"+ generator.generate();
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowedUris(Arrays.asList("^/uaa/userinfo$"));
+        //throws a pattern syntax error
+        corsConfig.setAllowedOrigins(Arrays.asList("["));
+        corsConfig.setAllowedMethods(Arrays.asList("GET"));
+        corsConfig.setAllowedHeaders(Arrays.asList("Accept", "Authorization", "Content-Type"));
+        zone.getConfig().getCorsPolicy().setDefaultConfiguration(corsConfig);
+        zone.setId(UUID.randomUUID().toString());
+        zone.setName(subdomain);
+        zone.setSubdomain(subdomain);
+        zone.setDescription(subdomain);
+        identityZoneProvisioning.create(zone);
+        IdentityZoneHolder.set(zone);
+
+        //make preflight call with non matching origin
+        MvcResult mvcResult = getMockMvc().perform(options("/uaa/userinfo")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "example.com")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal origin", mvcResult.getResponse().getErrorMessage());
+
+    }
+
+    @Test
+    public void testDefaultCorsPolicyLongRunningPatternforNonDefaultZone() throws Exception {
+        String subdomain = "testzone"+ generator.generate();
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        String largePattern = "((a*b*)*) | ((a*)*)";
+        String largeString = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaax";
+        corsConfig.setAllowedUris(Arrays.asList("^/uaa/userinfo$"));
+        corsConfig.setAllowedOrigins(Arrays.asList(largePattern));
+        corsConfig.setAllowedMethods(Arrays.asList("GET"));
+        corsConfig.setAllowedHeaders(Arrays.asList("Accept", "Authorization", "Content-Type"));
+        zone.getConfig().getCorsPolicy().setDefaultConfiguration(corsConfig);
+        zone.setId(UUID.randomUUID().toString());
+        zone.setName(subdomain);
+        zone.setSubdomain(subdomain);
+        zone.setDescription(subdomain);
+        identityZoneProvisioning.create(zone);
+        IdentityZoneHolder.set(zone);
+
+        //make preflight call with non matching origin
+        MvcResult mvcResult = getMockMvc().perform(options("/uaa/userinfo")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", largeString)
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                .andExpect(status().isForbidden()).andReturn();
+        assertEquals("Illegal origin", mvcResult.getResponse().getErrorMessage());
+    }
+
+    @Test
     public void testDefaultCorsPolicyforNonDefaultZone() throws Exception {
         String subdomain = "testzone"+ generator.generate();
         IdentityZone zone = new IdentityZone();
@@ -2184,6 +2273,14 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isForbidden()).andReturn();
         assertEquals("Illegal header requested", mvcResult.getResponse().getErrorMessage());
         assertEquals("*", mvcResult.getResponse().getHeader(ACCESS_CONTROL_ALLOW_ORIGIN));
+
+        //try call to base zone
+        IdentityZoneHolder.set(IdentityZoneHolder.getUaaZone());
+        getMockMvc().perform(options("/uaa/userinfo")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "other.com"))
+                .andExpect(status().isOk()).andReturn();
     }
 
     @Test
@@ -2245,6 +2342,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isForbidden()).andReturn();
         assertEquals("other.com", mvcResult.getResponse().getHeader(ACCESS_CONTROL_ALLOW_ORIGIN));
         assertEquals("Illegal header requested", mvcResult.getResponse().getErrorMessage());
+
+        //try call to base zone
+        IdentityZoneHolder.set(IdentityZoneHolder.getUaaZone());
+        getMockMvc().perform(options("/uaa/userinfo")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", AUTHORIZATION + ", " + ACCEPT + ", " + CONTENT_TYPE)
+                .header("Origin", "other.com"))
+                .andExpect(status().isOk()).andReturn();
     }
 
     @Test

@@ -101,6 +101,32 @@ public class CorsFilterTests {
     }
 
     @Test
+    public void test_isAllowedRequestUri_Reaches_Max_Timeout() {
+        String uri = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaax";
+        CorsFilter filter = new CorsFilter();
+        filter.setCorsAllowedUris(Arrays.asList("((a*b*)*) | ((a*)*)", "((a*c*)*) | ((a*)*)", "((a*d*)*) | ((a*)*)"));
+        filter.initialize();
+        long startTime = System.currentTimeMillis();
+        assertFalse(filter.isAllowedRequestUri(uri, filter.getDefaultConfiguration()));
+        long executionTime = System.currentTimeMillis() - startTime;
+        //execution time will always be just slightly larger than total cors timeout so add 15 ms to account for that.
+        assertTrue(executionTime <= CorsFilter.CORS_MATCH_TIMEOUT + 10L);
+    }
+
+    @Test
+    public void test_isAllowedRequestOrigin_Reaches_Max_Timeout() {
+        String origin = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaax";
+        CorsFilter filter = new CorsFilter();
+        filter.setCorsAllowedOrigins(Arrays.asList("((a*b*)*) | ((a*)*)", "((a*c*)*) | ((a*)*)", "((a*d*)*) | ((a*)*)"));
+        filter.initialize();
+        long startTime = System.currentTimeMillis();
+        assertFalse(filter.isAllowedOrigin(origin, filter.getDefaultConfiguration()));
+        long executionTime = System.currentTimeMillis() - startTime;
+        //execution time will always be just slightly larger than total cors timeout so add 10 ms to account for that.
+        assertTrue(executionTime <= CorsFilter.CORS_MATCH_TIMEOUT + 10L);
+    }
+
+    @Test
     public void testRequestExpectStandardCorsResponse() throws ServletException, IOException {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
