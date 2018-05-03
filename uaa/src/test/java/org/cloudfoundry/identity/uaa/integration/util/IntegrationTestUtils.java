@@ -1174,6 +1174,7 @@ public class IntegrationTestUtils {
                                             null,
                                             null,
                                             resource.getPreEstablishedRedirectUri(),
+                                            null,
                                             true);
     }
 
@@ -1198,6 +1199,7 @@ public class IntegrationTestUtils {
                                                                   String tokenResponseType,
                                                                   String jSessionId,
                                                                   String redirectUri,
+                                                                  String loginHint,
                                                                   boolean callCheckToken) throws Exception {
         BasicCookieStore cookies = new BasicCookieStore();
         // TODO Fix to use json API rather than HTML
@@ -1212,6 +1214,9 @@ public class IntegrationTestUtils {
                 .queryParam("client_id", clientId);
         if( hasText(redirectUri)) {
             builder = builder.queryParam("redirect_uri", redirectUri);
+        }
+        if (hasText(loginHint)) {
+            builder = builder.queryParam("login_hint", loginHint);
         }
         URI uri = builder.build();
 

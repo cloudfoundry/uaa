@@ -928,6 +928,7 @@ public class SamlLoginIT {
                                                                                                      "token id_token",
                                                                                                      cookie.getValue(),
                                                                                                      zoneUrl,
+                                                                                                     null,
                                                                                                      false);
 
         webDriver.get(baseUrl + "/logout.do");
@@ -1154,6 +1155,7 @@ public class SamlLoginIT {
                                                                                                      "token id_token",
                                                                                                      cookie.getValue(),
                                                                                                      zoneUrl,
+                                                                                                     null,
                                                                                                      false);
 
         webDriver.get(baseUrl + "/logout.do");
