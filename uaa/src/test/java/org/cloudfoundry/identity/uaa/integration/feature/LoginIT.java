@@ -52,6 +52,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -216,6 +217,24 @@ public class LoginIT {
         assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
 
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
+    }
+
+    @Test
+    public void testLoginHint() throws Exception {
+        String newUserEmail = createAnotherUser();
+        webDriver.get(baseUrl + "/logout.do");
+        String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", "UTF-8");
+        webDriver.get(baseUrl + "/login?login_hint=" + ldapLoginHint);
+        assertEquals("Cloud Foundry", webDriver.getTitle());
+        attemptLogin(newUserEmail, USER_PASSWORD);
+        assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Unable to verify email or password. Please try again."));
+
+        String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", "UTF-8");
+        webDriver.get(baseUrl + "/login?login_hint=" + uaaLoginHint);
+        assertEquals("Cloud Foundry", webDriver.getTitle());
+        attemptLogin(newUserEmail, USER_PASSWORD);
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        webDriver.get(baseUrl + "/logout.do");
     }
 
     @Test
