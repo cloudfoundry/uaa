@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +29,7 @@ public class AbstractIdentityProviderDefinition {
     private String providerDescription;
 
     public List<String> getEmailDomain() {
-        return emailDomain != null ? emailDomain : Collections.emptyList();
+        return emailDomain;
     }
 
     public AbstractIdentityProviderDefinition setEmailDomain(List<String> emailDomain) {

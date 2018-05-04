@@ -364,7 +364,7 @@ public class LoginInfoEndpoint {
             String loginHint = loginHintParam.get();
 
             //Old format: Search for email domain in IdPs (to be removed with next major version/migrated to new format)
-            List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getValue().getEmailDomain().contains(loginHint)).collect(Collectors.toList());
+            List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(loginHint)).collect(Collectors.toList());
             if(matchingIdps.size() > 1) {
                 throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
             } else if(matchingIdps.size() == 1) {
