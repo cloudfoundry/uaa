@@ -12,36 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.awt.*;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -72,9 +47,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -98,6 +70,34 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.awt.*;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
@@ -363,13 +363,29 @@ public class LoginInfoEndpoint {
         if(loginHintParam.isPresent()) {
             String loginHint = loginHintParam.get();
 
-                List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getValue().getEmailDomain().contains(loginHint)).collect(Collectors.toList());
-                if(matchingIdps.size() > 1) {
-                    throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
-                }
-
-            if(matchingIdps.size() == 1) {
+            //Old format: Search for email domain in IdPs (to be removed with next major version/migrated to new format)
+            List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getValue().getEmailDomain().contains(loginHint)).collect(Collectors.toList());
+            if(matchingIdps.size() > 1) {
+                throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
+            } else if(matchingIdps.size() == 1) {
                 idpForRedirect = matchingIdps.get(0);
+            } else {
+                //New format: pass login_hint in JSON format to login page
+                UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
+                if (uaaLoginHint != null) {
+                    if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
+                        model.addAttribute("login_hint",loginHint);
+                    } else {
+                        List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getKey().equals(uaaLoginHint.getOrigin())).collect(Collectors.toList());
+                        if(hintIdps.size() > 1) {
+                            throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
+                        } else if(hintIdps.size() == 1) {
+                            idpForRedirect = hintIdps.get(0);
+                        } else {
+                            model.addAttribute("error", "invalid_login_hint");
+                        }
+                    }
+                }
             }
         }
 
@@ -464,10 +480,6 @@ public class LoginInfoEndpoint {
             String formRedirectUri = request.getParameter(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER);
             if (hasText(formRedirectUri)) {
                 model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
-            }
-            String loginHint = loginHintParam.orElse(null);
-            if (hasText(loginHint)) {
-                model.addAttribute("login_hint",loginHint);
             }
 
             boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
