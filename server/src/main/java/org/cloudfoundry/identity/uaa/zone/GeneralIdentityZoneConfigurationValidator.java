@@ -68,6 +68,11 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     }
                 }
             }
+            if (!StringUtils.isEmpty(config.getIssuer())) {
+                if (tokenPolicy == null || StringUtils.isEmpty(tokenPolicy.getActiveKeyId())) {
+                    throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
+                }
+            }
         }
 
         if(config.getBranding() != null && config.getBranding().getBanner() != null) {
