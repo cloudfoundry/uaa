@@ -57,3 +57,19 @@ integrationTest {
     includeTestsMatching "*IT"
   }
 }
+
+
+publishing {
+  publications {
+    statsd(MavenPublication) {
+      apply plugin: 'war'
+
+      groupId 'org.cloudfoundry.identity'
+      version version
+      artifactId 'cloudfoundry-identity-statsd'
+
+      from components.web
+      artifact sourceJar
+    }
+  }
+}
