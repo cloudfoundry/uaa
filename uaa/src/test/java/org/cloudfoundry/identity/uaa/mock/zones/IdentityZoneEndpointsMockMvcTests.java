@@ -1993,6 +1993,79 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         );
     }
 
+    @Test
+    public void testUpdateZone_withCustomIssuerAndSigningKeyWorks() throws Exception {
+        IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
+        identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
+        identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
+
+        String zoneId = "should-not-exist" + new RandomValueStringGenerator(5).generate();
+        IdentityZone identityZone =
+            createZone(
+                zoneId,
+                HttpStatus.CREATED,
+                adminToken,
+                identityZoneConfiguration
+            );
+
+        updateZone(
+            zoneId,
+            identityZone,
+            HttpStatus.OK,
+            adminToken
+        );
+    }
+
+    @Test
+    public void testUpdateZone_withCustomIssuerSetAndNoTokenPolicyShouldFail() throws Exception {
+        IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
+        identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
+        identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
+
+        String zoneId = "should-not-exist" + new RandomValueStringGenerator(5).generate();
+        IdentityZone identityZone =
+            createZone(
+                zoneId,
+                HttpStatus.CREATED,
+                adminToken,
+                identityZoneConfiguration
+            );
+
+        identityZone.getConfig().setTokenPolicy(null);
+        updateZone(
+            zoneId,
+            identityZone,
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "You cannot set issuer value unless you have set your own signing key for this identity zone.",
+            adminToken
+        );
+    }
+
+    @Test
+    public void testUpdateZone_withCustomIssuerSetAndNoActiveSigningKeyShouldFail() throws Exception {
+        IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
+        identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
+        identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
+
+        String zoneId = "should-not-exist" + new RandomValueStringGenerator(5).generate();
+        IdentityZone identityZone =
+            createZone(
+                zoneId,
+                HttpStatus.CREATED,
+                adminToken,
+                identityZoneConfiguration
+            );
+
+        identityZone.getConfig().setTokenPolicy(new TokenPolicy());
+        updateZone(
+            zoneId,
+            identityZone,
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "You cannot set issuer value unless you have set your own signing key for this identity zone.",
+            adminToken
+        );
+    }
+
     private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
         MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
@@ -2052,19 +2125,24 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         return null;
     }
 
-    private IdentityZone updateZone(String id, IdentityZone identityZone, HttpStatus expect, String token) throws Exception {
+    private IdentityZone updateZone(String id, IdentityZone identityZone, HttpStatus expect, String expectedContent, String token) throws Exception {
         MvcResult result = getMockMvc().perform(
-                put("/identity-zones/" + id)
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(identityZone)))
-                .andExpect(status().is(expect.value()))
-                .andReturn();
+            put("/identity-zones/" + id)
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().is(expect.value()))
+            .andExpect(content().string(containsString(expectedContent)))
+            .andReturn();
 
         if (expect.is2xxSuccessful()) {
             return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
         }
         return null;
+    }
+
+    private IdentityZone updateZone(String id, IdentityZone identityZone, HttpStatus expect, String token) throws Exception {
+        return updateZone(id, identityZone, expect, "", token);
     }
 
     private IdentityZone updateZone(IdentityZone identityZone, HttpStatus expect, String token) throws Exception {
