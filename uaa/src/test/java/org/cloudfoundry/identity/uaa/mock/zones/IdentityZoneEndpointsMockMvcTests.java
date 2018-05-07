@@ -94,6 +94,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -1948,6 +1949,50 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         updateZone(identityZone, HttpStatus.UNPROCESSABLE_ENTITY, adminToken);
     }
 
+    @Test
+    public void testCreateZone_withCustomIssuerAndSigningKeyWorks() throws Exception {
+        IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
+        identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
+        identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
+
+        createZone(
+            "should-not-exist" + new RandomValueStringGenerator(5).generate(),
+            HttpStatus.CREATED,
+            adminToken,
+            identityZoneConfiguration
+        );
+    }
+
+    @Test
+    public void testCreateZone_withCustomIssuerAndNoTokenPolicyShouldFail() throws Exception {
+        IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
+        identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
+        identityZoneConfiguration.setTokenPolicy(null);
+
+        createZone(
+            "should-not-exist" + new RandomValueStringGenerator(5).generate(),
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "You cannot set issuer value unless you have set your own signing key for this identity zone.",
+            adminToken,
+            identityZoneConfiguration
+        );
+    }
+
+    @Test
+    public void testCreateZone_withCustomIssuerAndNoActiveSigningKeyShouldFail() throws Exception {
+        IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
+        identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
+        identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
+
+        createZone(
+            "should-not-exist" + new RandomValueStringGenerator(5).generate(),
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "You cannot set issuer value unless you have set your own signing key for this identity zone.",
+            adminToken,
+            identityZoneConfiguration
+        );
+    }
+
     private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
         MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
@@ -1976,15 +2021,21 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     private IdentityZone createZone(String id, HttpStatus expect, String token, IdentityZoneConfiguration zoneConfiguration) throws Exception {
+        Map<String, String> keys = new HashMap<>();
+        keys.put("kid", "key");
+        zoneConfiguration.getTokenPolicy().setKeys(keys);
+        zoneConfiguration.getTokenPolicy().setActiveKeyId("kid");
+        zoneConfiguration.getTokenPolicy().setKeys(keys);
+
+        return createZone(id, expect, "" , token, zoneConfiguration);
+    }
+
+    private IdentityZone createZone(String id, HttpStatus expect, String expectedContent, String token, IdentityZoneConfiguration zoneConfiguration) throws Exception {
         IdentityZone identityZone = getIdentityZone(id);
         identityZone.setConfig(zoneConfiguration);
         identityZone.getConfig().getSamlConfig().setPrivateKey(serviceProviderKey);
         identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(serviceProviderKeyPassword);
         identityZone.getConfig().getSamlConfig().setCertificate(serviceProviderCertificate);
-        Map<String, String> keys = new HashMap<>();
-        keys.put("kid", "key");
-        identityZone.getConfig().getTokenPolicy().setKeys(keys);
-        identityZone.getConfig().getTokenPolicy().setActiveKeyId("kid");
 
         MvcResult result = getMockMvc().perform(
             post("/identity-zones")
@@ -1992,6 +2043,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(identityZone)))
             .andExpect(status().is(expect.value()))
+            .andExpect(content().string(containsString(expectedContent)))
             .andReturn();
 
         if (expect.is2xxSuccessful()) {
