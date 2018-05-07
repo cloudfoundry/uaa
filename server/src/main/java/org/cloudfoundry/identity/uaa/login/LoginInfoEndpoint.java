@@ -362,29 +362,30 @@ public class LoginInfoEndpoint {
 
         if(loginHintParam.isPresent()) {
             String loginHint = loginHintParam.get();
-
-            //Old format: Search for email domain in IdPs (to be removed with next major version/migrated to new format)
-            List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(loginHint)).collect(Collectors.toList());
-            if(matchingIdps.size() > 1) {
-                throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
-            } else if(matchingIdps.size() == 1) {
-                idpForRedirect = matchingIdps.get(0);
-            } else {
-                //New format: pass login_hint in JSON format to login page
-                UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
-                if (uaaLoginHint != null) {
-                    if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
-                        model.addAttribute("login_hint",loginHint);
+            // parse login_hint in JSON format
+            UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
+            if (uaaLoginHint != null) {
+                if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
+                    // in case of uaa/ldap, pass value to login page
+                    model.addAttribute("login_hint",loginHint);
+                } else {
+                    // for oidc/saml, trigger the redirect
+                    List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getKey().equals(uaaLoginHint.getOrigin())).collect(Collectors.toList());
+                    if(hintIdps.size() > 1) {
+                        throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
+                    } else if(hintIdps.size() == 1) {
+                        idpForRedirect = hintIdps.get(0);
                     } else {
-                        List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getKey().equals(uaaLoginHint.getOrigin())).collect(Collectors.toList());
-                        if(hintIdps.size() > 1) {
-                            throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
-                        } else if(hintIdps.size() == 1) {
-                            idpForRedirect = hintIdps.get(0);
-                        } else {
-                            model.addAttribute("error", "invalid_login_hint");
-                        }
+                        model.addAttribute("error", "invalid_login_hint");
                     }
+                }
+            } else {
+                // login_hint in JSON format was not available, try old format (email domain)
+                List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(loginHint)).collect(Collectors.toList());
+                if (matchingIdps.size() > 1) {
+                    throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
+                } else if (matchingIdps.size() == 1) {
+                    idpForRedirect = matchingIdps.get(0);
                 }
             }
         }
