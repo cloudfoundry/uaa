@@ -69,6 +69,7 @@ public class DefaultIntegrationTestConfig {
         LoggingPreferences logs = new LoggingPreferences();
         logs.enable(LogType.PERFORMANCE, Level.ALL);
         options.setCapability(CapabilityType.LOGGING_PREFS, logs);
+        options.setAcceptInsecureCerts(true);
 
         ChromeDriver driver = new ChromeDriver(options);
 
