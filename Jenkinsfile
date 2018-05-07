@@ -367,6 +367,9 @@ pipeline {
             }
         }
         stage('Upload Build Artifact') {
+            environment {
+                BINTRAY_CREDS = credentials("BINTRAY_CREDS")
+            }
             agent {
                 label 'dind'
             }
@@ -387,17 +390,17 @@ pipeline {
                     APP_VERSION = sh (returnStdout: true, script: '''
                         grep 'version' uaa/gradle.properties | sed 's/version=//'
                         ''').trim()
-                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
-                    def uploadSpec = """{
-                        "files": [
-                            {
-                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                                "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
-                            }
-                        ]
-                    }"""
-                    def buildInfo = devcloudArtServer.upload(uploadSpec)
-                    devcloudArtServer.publishBuildInfo(buildInfo)
+//                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
+//                    def uploadSpec = """{
+//                        "files": [
+//                            {
+//                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+//                                "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
+//                            }
+//                        ]
+//                    }"""
+//                    def buildInfo = devcloudArtServer.upload(uploadSpec)
+//                    devcloudArtServer.publishBuildInfo(buildInfo)
 
                     echo 'package offline install files to CLZ'
                     sh """#!/bin/bash -ex
