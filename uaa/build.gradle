@@ -129,3 +129,19 @@ task jasmineTest(type: Exec) {
   executable 'npm'
   args 'test'
 }
+
+
+
+publishing {
+  publications {
+    uaa_war(MavenPublication) {
+      apply plugin: 'war'
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-uaa'
+
+      from components.web
+      artifact sourceJar
+    }
+
+  }
+}
