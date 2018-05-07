@@ -103,3 +103,16 @@ processResources {
 integrationTest {}.onlyIf { //disable since we don't have any
   true == false
 }
+
+
+publishing {
+  publications {
+    server(MavenPublication) {
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-server'
+
+      from components.java
+      artifact sourceJar
+    }
+  }
+}
