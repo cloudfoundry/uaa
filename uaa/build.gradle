@@ -121,3 +121,17 @@ war {
   //workaround for maven <scope>optional</scope>
   rootSpec.exclude("**/spring-security-oauth-*.jar")
 }
+
+publishing {
+  publications {
+    uaa_war(MavenPublication) {
+      apply plugin: 'war'
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-uaa'
+
+      from components.web
+      artifact sourceJar
+    }
+
+  }
+}

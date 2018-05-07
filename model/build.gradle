@@ -37,3 +37,15 @@ integrationTest {}.onlyIf { //disable since we don't have any
   false
 }
 
+
+publishing {
+  publications {
+    uaa_model(MavenPublication) {
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-model'
+
+      from components.java
+      artifact sourceJar
+    }
+  }
+}

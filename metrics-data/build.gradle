@@ -29,3 +29,15 @@ processResources {
 }
 
 
+publishing {
+  publications {
+    metrics(MavenPublication) {
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-metrics-data'
+
+      from components.java
+      artifact sourceJar
+    }
+  }
+}
+
