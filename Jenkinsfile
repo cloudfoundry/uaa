@@ -398,6 +398,20 @@ pipeline {
                     }"""
                     def buildInfo = devcloudArtServer.upload(uploadSpec)
                     devcloudArtServer.publishBuildInfo(buildInfo)
+
+                    echo 'package offline install files to CLZ'
+                    sh """#!/bin/bash -ex
+                        # currently only pulls config for rosneft PPC, maybe parameterize per PPC later
+                        # TODO: compose .toml file and push along with tar and war
+                        tar -zcf ppc-uaa-deploy-${APP_VERSION}.tgz uaa-cf-release/config-rosneft uaa-cf-release/*.sh
+
+                        curl -T "build/cloudfoundry-identity-uaa-${APP_VERSION}.war" -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/cloudfoundry-identity-uaa-${APP_VERSION}.war
+                        curl -T "ppc-uaa-deploy-${APP_VERSION}.tgz" -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/ppc-uaa-deploy-${APP_VERSION}.tgz
+                        curl -T "uaa/PPCDeployJenkinsfile" -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/PPCDeployJenkinsfile
+                        echo 'publish file in bintray'
+                        curl -X POST -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/publish
+                    """
+
                 }
             }
         }
