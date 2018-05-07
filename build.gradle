@@ -73,6 +73,23 @@ allprojects {
         }
         maven { url 'http://repository.mulesoft.org/releases/'}
     }
+    task sourceJar(type: Jar) {
+        from sourceSets.main.allJava
+        classifier "sources"
+    }
+    apply plugin: 'maven-publish'
+
+    publishing {
+        repositories {
+            maven {
+                url "https://oss.sonatype.org/content/repositories/releases/"
+                credentials {
+                    username "$nexusUsername"
+                    password "$nexusPassword"
+                }
+            }
+        }
+    }
 }
 
 apply plugin: 'com.bmuschko.cargo'
@@ -252,80 +269,14 @@ subprojects {
     }
 }
 
-apply plugin: 'maven-publish'
 
-task sourceJar(type: Jar) {
-    from sourceSets.main.allJava
-    classifier "sources"
-}
 
 publishing {
-    repositories {
-        maven {
-            url "https://oss.sonatype.org/content/repositories/releases/"
-            credentials {
-                username "$nexusUsername"
-                password "$nexusPassword"
-            }
-        }
-    }
-
     publications {
-        lib(MavenPublication) {
+        uaa_parent(MavenPublication) {
             groupId 'org.cloudfoundry.identity'
             version uaaVersion
-            artifactId 'cloudfoundry-identity-client-lib'
-
-            from components.java
-            artifact sourceJar
-        }
-
-        server(MavenPublication) {
-            groupId 'org.cloudfoundry.identity'
-            version uaaVersion
-            artifactId 'cloudfoundry-identity-server'
-
-            from components.java
-            artifact sourceJar
-        }
-
-        statsd(MavenPublication) {
-            apply plugin: 'war'
-
-            groupId 'org.cloudfoundry.identity'
-            version uaaVersion
-            artifactId 'cloudfoundry-identity-statsd'
-
-            from components.web
-            artifact sourceJar
-        }
-
-        metrics(MavenPublication) {
-            groupId 'org.cloudfoundry.identity'
-            version uaaVersion
-            artifactId 'cloudfoundry-identity-metrics-data'
-
-            from components.java
-            artifact sourceJar
-        }
-
-
-        uaa_war(MavenPublication) {
-            apply plugin: 'war'
-            groupId 'org.cloudfoundry.identity'
-            version uaaVersion
-            artifactId 'cloudfoundry-identity-uaa'
-
-            from components.web
-            artifact sourceJar
-
-        }
-
-
-        uaa_model(MavenPublication) {
-            groupId 'org.cloudfoundry.identity'
-            version uaaVersion
-            artifactId 'cloudfoundry-identity-model'
+            artifactId 'cloudfoundry-identity-parent'
 
             from components.java
             artifact sourceJar
