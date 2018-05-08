@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -192,6 +194,10 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         identityZone.getConfig().setIssuer(DEFAULT_ISSUER_URI);
         identityZone.getConfig().setSamlConfig(samlConfig);
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        tokenPolicy.setActiveKeyId("active-key-1");
+        tokenPolicy.setKeys(new HashMap<>(Collections.singletonMap("active-key-1", "key")));
+        identityZone.getConfig().setTokenPolicy(tokenPolicy);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
         FieldDescriptor[] fieldDescriptors = {
@@ -482,6 +488,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         updatedIdentityZone.setDescription("Like the Twilight Zone but not tastier.");
         Map<String, String> keys = new HashMap<>();
         keys.put("updatedKeyId", "upD4t3d.s1gNiNg.K3y/t3XT");
+        updatedIdentityZone.getConfig().getTokenPolicy().setActiveKeyId("updatedKeyId");
         updatedIdentityZone.getConfig().getTokenPolicy().setKeys(keys);
         SamlConfig samlConfig = new SamlConfig();
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
@@ -652,6 +659,12 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         identityZone.getConfig().setSamlConfig(samlConfig);
         identityZone.getConfig().setIssuer(DEFAULT_ISSUER_URI);
+
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        tokenPolicy.setActiveKeyId("active-key-1");
+        tokenPolicy.setKeys(new HashMap<>(Collections.singletonMap("active-key-1", "key")));
+        identityZone.getConfig().setTokenPolicy(tokenPolicy);
+
         identityZone.setId(id);
         identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
         identityZone.setName("The Twiglet Zone");
