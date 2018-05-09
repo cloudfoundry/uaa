@@ -38,7 +38,6 @@ import org.springframework.security.core.AuthenticationException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -113,7 +112,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         }
 
         if (delegates.size() == 0 && origin != null) {
-            throw new ProviderNotFoundException("The passed login hint is invalid");
+            throw new ProviderNotFoundException("The origin provided in the login hint is invalid.");
         }
 
         ChainedAuthenticationManager result = new ChainedAuthenticationManager();
