@@ -74,7 +74,7 @@ task populateVersionfile {
   def versionfile = new File("$projectDir/slateCustomizations/source/versionfile")
   versionfile.createNewFile()
   assert versionfile.exists()
-  versionfile.text = version
+  versionfile.text = version.toString().substring(0, version.toString().lastIndexOf('.')) + ".0"
 }
 task customizeSlate(type: Copy) {
   dependsOn populateVersionfile
@@ -101,7 +101,7 @@ task(slate, type: Exec) {
   dependsOn 'customizeSlate', 'deleteDefaultContent', 'bundleInstall', 'docsTestRestDocs'
       workingDir file('build/slate')
       executable 'bundle'
-      args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs/version/' + version
+      args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs/version/' + version.toString().substring(0, version.toString().lastIndexOf('.')) + ".0"
 }
 generateDocs {
   dependsOn slate
