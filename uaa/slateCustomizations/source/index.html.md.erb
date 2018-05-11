@@ -515,6 +515,10 @@ _Response Fields_
 
 # Introspect Token
 
+<aside class="success">
+  Added in UAA 4.9.0
+</aside>
+
 Introspect token endpoint is [RFC-7662](https://tools.ietf.org/html/rfc7662) Complaint. Active flag is responsible for showing the validity of the token and not the HTTP status code.
 Status code will be 200 OK for both valid and invalid tokens.
 
@@ -1335,8 +1339,8 @@ _Error Codes_
 
 ## Create
 
-<aside class="warning">
-  MFA support is in active development and is not ready for production use.
+<aside class="success">
+  Added in UAA 4.13.0
 </aside>
 
 <%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
@@ -1369,9 +1373,6 @@ _Error Codes_
 ## Update
 
 <aside class="warning">
-  MFA support is in active development and is not ready for production use.
-</aside>
-<aside class="warning">
   Update is not supported for MFA provider.
 </aside>
 
@@ -1387,8 +1388,8 @@ _Error Codes_
 
 ## Get
 
-<aside class="warning">
-  MFA support is in active development and is not ready for production use.
+<aside class="success">
+  Added in UAA 4.13.0
 </aside>
 
 <%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/curl-request.md")).result(binding) %>
@@ -1414,8 +1415,8 @@ _Error Codes_
 
 ## Delete
 
-<aside class="warning">
-  MFA support is in active development and is not ready for production use.
+<aside class="success">
+  Added in UAA 4.13.0
 </aside>
 
 <%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/curl-request.md")).result(binding) %>
@@ -1440,8 +1441,8 @@ _Error Codes_
 
 ## List
 
-<aside class="warning">
-  MFA support is in active development and is not ready for production use.
+<aside class="success">
+  Added in UAA 4.13.0
 </aside>
 
 <%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/curl-request.md")).result(binding) %>
